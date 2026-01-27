@@ -1,0 +1,356 @@
+/**
+ * Promotional Banner Carousel Styles
+ * Desain untuk banner promosi full-width dengan caption overlay
+ */
+
+/* Container */
+#promo-banner-carousel-container {
+    width: 100%;
+    margin: 0 auto 2rem;
+    position: relative;
+    max-width: 1400px;
+}
+
+/* Wrapper */
+.promo-banner-wrapper {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Track Container */
+.promo-carousel-track-container {
+    overflow: hidden;
+    width: 100%;
+}
+
+/* Track */
+.promo-carousel-track {
+    display: flex;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+/* Slide */
+.promo-carousel-slide {
+    flex: 0 0 100%;
+    width: 100%;
+}
+
+/* Banner Card */
+.promo-banner-card {
+    position: relative;
+    width: 100%;
+    background: #f3f4f6;
+    overflow: hidden;
+}
+
+.promo-banner-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+/* Image Container */
+.promo-banner-image-container {
+    position: relative;
+    width: 100%;
+    padding-top: 33.33%; /* 3:1 aspect ratio untuk desktop */
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+@media (max-width: 768px) {
+    .promo-banner-image-container {
+        padding-top: 56.25%; /* 16:9 aspect ratio untuk mobile */
+    }
+}
+
+.promo-banner-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.promo-banner-link:hover .promo-banner-image {
+    transform: scale(1.05);
+}
+
+/* Caption Overlay */
+.promo-banner-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 2rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 70%, transparent 100%);
+    color: white;
+    z-index: 2;
+}
+
+@media (max-width: 768px) {
+    .promo-banner-caption {
+        padding: 1.5rem 1rem;
+    }
+}
+
+/* Title */
+.promo-banner-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@media (max-width: 768px) {
+    .promo-banner-title {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .promo-banner-title {
+        font-size: 1.25rem;
+    }
+}
+
+/* Subtitle */
+.promo-banner-subtitle {
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+    opacity: 0.95;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    animation: fadeInUp 0.6s ease-out 0.1s backwards;
+}
+
+@media (max-width: 768px) {
+    .promo-banner-subtitle {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .promo-banner-subtitle {
+        font-size: 0.875rem;
+    }
+}
+
+/* CTA Button */
+.promo-cta-button {
+    display: inline-block;
+    background: #059669;
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(5, 150, 105, 0.3);
+    animation: fadeInUp 0.6s ease-out 0.2s backwards;
+}
+
+.promo-cta-button:hover {
+    background: #047857;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(5, 150, 105, 0.4);
+}
+
+.promo-cta-button:active {
+    transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+    .promo-cta-button {
+        padding: 0.625rem 1.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Navigation Buttons */
+.promo-carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    border-radius: 50%;
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    z-index: 10;
+    color: #059669;
+    backdrop-filter: blur(4px);
+}
+
+.promo-carousel-nav:hover {
+    background: #059669;
+    color: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.promo-carousel-nav:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.promo-carousel-prev {
+    left: 1rem;
+}
+
+.promo-carousel-next {
+    right: 1rem;
+}
+
+@media (max-width: 768px) {
+    .promo-carousel-nav {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+    
+    .promo-carousel-prev {
+        left: 0.5rem;
+    }
+    
+    .promo-carousel-next {
+        right: 0.5rem;
+    }
+}
+
+/* Dots */
+.promo-carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.promo-carousel-dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background: #d1d5db;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.promo-carousel-dot:hover {
+    background: #9ca3af;
+    transform: scale(1.2);
+}
+
+.promo-carousel-dot.active {
+    background: #059669;
+    width: 2rem;
+    border-radius: 0.375rem;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Loading State */
+.promo-carousel-loading {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6b7280;
+    background: #f3f4f6;
+    border-radius: 1rem;
+}
+
+.promo-carousel-loading svg {
+    width: 3rem;
+    height: 3rem;
+    margin: 0 auto 1rem;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Empty State */
+.promo-carousel-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #9ca3af;
+    background: #f9fafb;
+    border-radius: 1rem;
+}
+
+.promo-carousel-empty svg {
+    width: 4rem;
+    height: 4rem;
+    margin: 0 auto 1rem;
+}
+
+/* Accessibility */
+.promo-carousel-nav:focus,
+.promo-carousel-dot:focus {
+    outline: 2px solid #059669;
+    outline-offset: 2px;
+}
+
+/* Print */
+@media print {
+    #promo-banner-carousel-container {
+        display: none;
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .promo-carousel-track,
+    .promo-banner-image,
+    .promo-carousel-nav,
+    .promo-cta-button {
+        transition: none;
+    }
+    
+    .promo-banner-title,
+    .promo-banner-subtitle,
+    .promo-cta-button {
+        animation: none;
+    }
+}
