@@ -302,28 +302,17 @@ function cancelTieredPricing(productId) {
 }
 
 /**
- * Update product grosir data via SheetDB API
+ * Update product grosir data via GAS API
  */
 async function updateProductGrosir(productId, tiers) {
     const grosirJson = JSON.stringify(tiers);
     
     try {
-        const response = await fetch(`${API_URL}/id/${productId}?sheet=${PRODUCTS_SHEET}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                data: { 
-                    grosir: grosirJson
-                } 
-            })
+        await GASActions.update(PRODUCTS_SHEET, productId, { 
+            grosir: grosirJson
         });
         
-        const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.message || 'Failed to update product');
-        }
-        
-        return result;
+        return { success: true };
     } catch (error) {
         console.error('Error updating product grosir:', error);
         throw error;
