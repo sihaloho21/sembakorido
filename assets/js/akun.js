@@ -1405,3 +1405,133 @@ async function loadModalPoints() {
         document.getElementById('loyalty-modal-points').textContent = '0';
     }
 }
+
+/**
+ * Fetch reward items from tukar_poin sheet
+ */
+async function fetchRewardItemsForAkun() {
+    const loadingDiv = document.getElementById('reward-items-loading');
+    const emptyDiv = document.getElementById('reward-items-empty');
+    const listDiv = document.getElementById('reward-items-list');
+    
+    // Show loading state
+    loadingDiv?.classList.remove('hidden');
+    emptyDiv?.classList.add('hidden');
+    listDiv?.classList.add('hidden');
+    
+    try {
+        const apiUrl = CONFIG.getMainApiUrl();
+        // Use simple GET without custom headers to avoid CORS preflight
+        const response = await fetch(`${apiUrl}?sheet=tukar_poin`);
+        
+        if (!response.ok) {
+            console.error('Failed to fetch reward items:', response.status);
+            loadingDiv?.classList.add('hidden');
+            emptyDiv?.classList.remove('hidden');
+            return;
+        }
+        
+        const data = await response.json();
+        const items = parseSheetResponse(data);
+        
+        // Hide loading
+        loadingDiv?.classList.add('hidden');
+        
+        if (!items || items.length === 0) {
+            emptyDiv?.classList.remove('hidden');
+            return;
+        }
+        
+        // Render items
+        renderRewardItemsListAkun(items);
+        listDiv?.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('Error fetching reward items:', error);
+        loadingDiv?.classList.add('hidden');
+        emptyDiv?.classList.remove('hidden');
+    }
+}
+
+/**
+ * Render reward items list in the modal
+ * @param {Array} items - Array of reward items from tukar_poin sheet
+ */
+function renderRewardItemsListAkun(items) {
+    const listDiv = document.getElementById('reward-items-list');
+    if (!listDiv) return;
+    
+    listDiv.innerHTML = '';
+    
+    items.forEach(item => {
+        // Handle field name variations (case-insensitive)
+        const id = (item.id || item.ID || '').toString();
+        const nama = (item.nama || item.Nama || item.judul || item.Judul || 'Reward').toString();
+        const deskripsi = (item.deskripsi || item.Deskripsi || item.description || item.Description || '').toString();
+        const gambar = (item.gambar || item.Gambar || item.image || item.Image || '').toString();
+        const poin = parseInt(item.poin || item.Poin || item.points || item.Points || 0);
+        
+        // Create card element
+        const card = document.createElement('div');
+        card.className = 'border-2 border-gray-200 rounded-xl p-4 hover:border-amber-500 transition';
+        
+        // Build card HTML with optional image
+        let cardHTML = '<div class="flex gap-3 mb-3">';
+        
+        // Left side: Image (if available)
+        if (gambar) {
+            cardHTML += `
+                <div class="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
+                    <img src="${gambar}" alt="${nama}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'w-full h-full flex items-center justify-center text-gray-400\\'>📦</div>'">
+                </div>
+            `;
+        }
+        
+        // Right side: Content
+        cardHTML += `
+            <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-start gap-2 mb-1">
+                    <p class="font-bold text-gray-800 truncate">${nama}</p>
+                    <span class="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">${poin} Poin</span>
+                </div>
+        `;
+        
+        // Description (if available)
+        if (deskripsi) {
+            cardHTML += `<p class="text-xs text-gray-500 line-clamp-2">${deskripsi}</p>`;
+        }
+        
+        cardHTML += `
+            </div>
+        </div>
+        `;
+        
+        // Button
+        cardHTML += `
+            <button onclick="showConfirmTukarModal('${id}')" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg transition text-sm">
+                Tukar Sekarang
+            </button>
+        `;
+        
+        card.innerHTML = cardHTML;
+        listDiv.appendChild(card);
+    });
+}
+
+/**
+ * Initialize reward items when modal opens
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    // Fetch reward items on page load
+    fetchRewardItemsForAkun();
+    
+    // Also refresh when switching to exchange tab
+    const exchangeTab = document.getElementById('tab-exchange');
+    if (exchangeTab) {
+        const originalOnClick = exchangeTab.onclick;
+        exchangeTab.onclick = function(e) {
+            if (originalOnClick) originalOnClick.call(this, e);
+            fetchRewardItemsForAkun();
+        };
+    }
+});
