@@ -339,11 +339,9 @@ async function loadOrderHistory(user) {
         
         // Filter orders to ensure only user's orders (double check phone match)
         orders = orders.filter(order => {
-            const orderPhone = order.phone || order.whatsapp || '';
-            // Remove leading '0' or '+62' for comparison
-            const normalizedOrderPhone = orderPhone.replace(/^(\+62|62|0)/, '');
-            const normalizedUserPhone = user.whatsapp.replace(/^(\+62|62|0)/, '');
-            return normalizedOrderPhone === normalizedUserPhone;
+            const orderPhone = normalizePhoneTo08(order.phone || order.whatsapp || '');
+            const userPhone = normalizePhoneTo08(user.whatsapp);
+            return orderPhone === userPhone;
         });
         
         // Check again after filtering
