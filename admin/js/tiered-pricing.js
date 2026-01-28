@@ -140,14 +140,21 @@ function renderTierInput(productId, tier, index) {
 
 /**
  * Parse grosir data from JSON string
+ * Filters out invalid entries with NaN or invalid values
  */
 function parseGrosirData(grosirString) {
     if (!grosirString) return [];
     try {
         const parsed = JSON.parse(grosirString);
         if (Array.isArray(parsed)) {
+            // Filter valid entries only (both min_qty and price must be valid numbers)
+            const validTiers = parsed.filter(tier => {
+                const minQty = parseInt(tier.min_qty);
+                const price = parseInt(tier.price);
+                return !isNaN(minQty) && !isNaN(price) && minQty > 0 && price >= 0;
+            });
             // Sort by min_qty descending for proper tier ordering
-            return parsed.sort((a, b) => b.min_qty - a.min_qty);
+            return validTiers.sort((a, b) => b.min_qty - a.min_qty);
         }
         return [];
     } catch (e) {
@@ -160,8 +167,12 @@ function parseGrosirData(grosirString) {
  * Toggle tiered pricing for a product
  */
 async function toggleTieredPricing(productId) {
-    const product = tieredPricingProducts.find(p => p.id === productId);
-    if (!product) return;
+    // Use String comparison to avoid type mismatch
+    const product = tieredPricingProducts.find(p => String(p.id) === String(productId));
+    if (!product) {
+        console.error('Product not found:', productId);
+        return;
+    }
     
     const grosirData = parseGrosirData(product.grosir);
     const isCurrentlyEnabled = grosirData && grosirData.length > 0;
@@ -172,8 +183,10 @@ async function toggleTieredPricing(productId) {
             await updateProductGrosir(productId, []);
             showAdminToast('Harga grosir dinonaktifkan', 'success');
         } else {
-            // Enable with one default tier
-            const defaultTier = [{ min_qty: 5, price: parseInt(product.harga) * 0.95 }];
+            // Enable with one default tier - handle non-numeric harga safely
+            const basePrice = parseInt(product.harga) || 0;
+            const defaultPrice = basePrice > 0 ? Math.floor(basePrice * 0.95) : 0;
+            const defaultTier = [{ min_qty: 5, price: defaultPrice }];
             await updateProductGrosir(productId, defaultTier);
             showAdminToast('Harga grosir diaktifkan', 'success');
         }
@@ -229,8 +242,12 @@ function removeTierInput(productId, index) {
  * Save tiered pricing for a product
  */
 async function saveTieredPricing(productId) {
-    const product = tieredPricingProducts.find(p => p.id === productId);
-    if (!product) return;
+    // Use String comparison to avoid type mismatch
+    const product = tieredPricingProducts.find(p => String(p.id) === String(productId));
+    if (!product) {
+        console.error('Product not found:', productId);
+        return;
+    }
     
     // Collect tier data from inputs
     const minQtyInputs = document.querySelectorAll(`[data-product-id="${productId}"][data-tier-min-qty]`);
@@ -253,17 +270,29 @@ async function saveTieredPricing(productId) {
         tiers.push({ min_qty: minQty, price });
     });
     
+    // Filter out any invalid tiers
+    const validTiers = tiers.filter(tier => {
+        const minQty = parseInt(tier.min_qty);
+        const price = parseInt(tier.price);
+        return !isNaN(minQty) && !isNaN(price) && minQty > 0 && price >= 0;
+    });
+    
+    if (validTiers.length === 0) {
+        showAdminToast('Tidak ada tingkatan harga valid untuk disimpan', 'warning');
+        return;
+    }
+    
     // Validate tiers
-    if (!validateTiers(tiers)) {
+    if (!validateTiers(validTiers)) {
         showAdminToast('Tingkatan harga tidak valid. Pastikan min_qty naik dan harga turun', 'error');
         return;
     }
     
     try {
         // Sort tiers by min_qty descending for consistent ordering
-        tiers.sort((a, b) => b.min_qty - a.min_qty);
+        validTiers.sort((a, b) => b.min_qty - a.min_qty);
         
-        await updateProductGrosir(productId, tiers);
+        await updateProductGrosir(productId, validTiers);
         showAdminToast('Harga grosir berhasil disimpan!', 'success');
         fetchTieredPricingProducts();
     } catch (error) {
@@ -305,10 +334,17 @@ function cancelTieredPricing(productId) {
  * Update product grosir data via GAS API
  */
 async function updateProductGrosir(productId, tiers) {
-    const grosirJson = JSON.stringify(tiers);
+    // Normalize tiers to ensure valid values
+    const normalizedTiers = tiers.map(tier => ({
+        min_qty: parseInt(tier.min_qty),
+        price: parseInt(tier.price)
+    }));
+    
+    const grosirJson = JSON.stringify(normalizedTiers);
     
     try {
-        await GASActions.update(PRODUCTS_SHEET, productId, { 
+        // Ensure productId is string for consistency
+        await GASActions.update(PRODUCTS_SHEET, String(productId), { 
             grosir: grosirJson
         });
         
