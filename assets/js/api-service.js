@@ -253,24 +253,27 @@ const ApiService = {
     
     /**
      * POST request helper
+     * Uses FormData with 'json' key to avoid CORS preflight
      */
     async post(endpoint, data, options = {}) {
+        // Create FormData to avoid preflight
+        const formData = new FormData();
+        formData.append('json', JSON.stringify(data));
+        
         return this.fetch(endpoint, {
             ...options,
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            body: JSON.stringify(data),
+            body: formData,
             cache: false // Don't cache POST requests by default
         });
     },
     
     /**
      * PATCH request helper
+     * DEPRECATED: Use GASActions.update() instead to avoid CORS preflight
      */
     async patch(endpoint, data, options = {}) {
+        console.warn('⚠️ ApiService.patch() is deprecated. Use GASActions.update() instead.');
         return this.fetch(endpoint, {
             ...options,
             method: 'PATCH',
