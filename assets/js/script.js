@@ -1647,9 +1647,22 @@ async function claimReward(rewardId) {
 
         // Show loading state
         showToast('Sedang memproses penukaran...');
-        // 3. Deduct points from user_points sheet
+        
+        // 3. Get user data to find ID, then deduct points
+        const userRes = await fetch(`${API_URL}?sheet=user_points`);
+        const allUsers = await userRes.json();
+        const userData = allUsers.find(u => u.phone === phone);
+        
+        if (!userData || !userData.id) {
+            alert('Data pengguna tidak ditemukan.');
+            return;
+        }
+        
         const newPoints = userPoints - requiredPoints;
-        await ApiService.patch(`/phone/${phone}?sheet=user_points`, { points: newPoints });
+        await GASActions.update('user_points', userData.id, { 
+            points: newPoints,
+            last_updated: new Date().toLocaleString('id-ID')
+        });
 
         // 4. Record claim in claims sheet
         const claimId = 'CLM-' + Date.now().toString().slice(-6);
@@ -1857,13 +1870,20 @@ async function processClaimReward(rewardId, customerName) {
         // Show loading state
         showToast('Sedang memproses penukaran...');
 
-        // 2. Deduct points from user_points sheet
+        // 2. Get user data to find ID, then deduct points
+        const userRes = await fetch(`${API_URL}?sheet=user_points`);
+        const allUsers = await userRes.json();
+        const userData = allUsers.find(u => u.phone === phone);
+        
+        if (!userData || !userData.id) {
+            alert('Data pengguna tidak ditemukan.');
+            return;
+        }
+        
         const newPoints = userPoints - requiredPoints;
-        await ApiService.patch(`/phone/${phone}?sheet=user_points`, {
-            data: {
-                points: newPoints,
-                last_updated: new Date().toLocaleString('id-ID')
-            }
+        await GASActions.update('user_points', userData.id, {
+            points: newPoints,
+            last_updated: new Date().toLocaleString('id-ID')
         });
 
         // 3. Record claim in claims sheet
