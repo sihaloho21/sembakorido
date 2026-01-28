@@ -593,62 +593,26 @@
                 <!-- Exchange Tab Content -->
                 <div id="exchange-content">
                     <h4 class="font-bold text-gray-800 mb-4">Tukar Poin</h4>
-                    <div class="space-y-3">
-                        <!-- Reward 1 -->
-                        <div class="border-2 border-gray-200 rounded-xl p-4 hover:border-amber-500 transition">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <p class="font-bold text-gray-800">Voucher Rp 10.000</p>
-                                    <p class="text-xs text-gray-500">Min. belanja Rp 50.000</p>
-                                </div>
-                                <span class="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">50 Poin</span>
-                            </div>
-                            <button class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg transition text-sm" onclick="redeemReward(50, 'Voucher Rp 10.000')">
-                                Tukar Sekarang
-                            </button>
-                        </div>
+                    
+                    <!-- Loading State -->
+                    <div id="reward-items-loading" class="text-center py-8">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-amber-500"></div>
+                        <p class="text-sm text-gray-500 mt-2">Memuat produk tukar poin...</p>
+                    </div>
 
-                        <!-- Reward 2 -->
-                        <div class="border-2 border-gray-200 rounded-xl p-4 hover:border-amber-500 transition">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <p class="font-bold text-gray-800">Voucher Rp 25.000</p>
-                                    <p class="text-xs text-gray-500">Min. belanja Rp 100.000</p>
-                                </div>
-                                <span class="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">100 Poin</span>
-                            </div>
-                            <button class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg transition text-sm" onclick="redeemReward(100, 'Voucher Rp 25.000')">
-                                Tukar Sekarang
-                            </button>
+                    <!-- Empty State -->
+                    <div id="reward-items-empty" class="hidden text-center py-8">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
                         </div>
+                        <p class="text-gray-600 font-medium">Belum ada produk tukar poin</p>
+                    </div>
 
-                        <!-- Reward 3 -->
-                        <div class="border-2 border-gray-200 rounded-xl p-4 hover:border-amber-500 transition">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <p class="font-bold text-gray-800">Voucher Rp 50.000</p>
-                                    <p class="text-xs text-gray-500">Min. belanja Rp 200.000</p>
-                                </div>
-                                <span class="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">200 Poin</span>
-                            </div>
-                            <button class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg transition text-sm" onclick="redeemReward(200, 'Voucher Rp 50.000')">
-                                Tukar Sekarang
-                            </button>
-                        </div>
-
-                        <!-- Reward 4 -->
-                        <div class="border-2 border-gray-200 rounded-xl p-4 hover:border-amber-500 transition">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <p class="font-bold text-gray-800">Gratis Ongkir</p>
-                                    <p class="text-xs text-gray-500">Untuk 1x pengiriman</p>
-                                </div>
-                                <span class="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">150 Poin</span>
-                            </div>
-                            <button class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg transition text-sm" onclick="redeemReward(150, 'Gratis Ongkir')">
-                                Tukar Sekarang
-                            </button>
-                        </div>
+                    <!-- Reward Items List -->
+                    <div id="reward-items-list" class="space-y-3 hidden">
+                        <!-- Dynamic reward cards will be inserted here -->
                     </div>
 
                     <!-- Info -->

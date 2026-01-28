@@ -43,6 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show login form
         showLogin();
     }
+    
+    // Initialize reward items
+    initRewardItemsTab();
 });
 
 /**
@@ -1403,5 +1406,185 @@ async function loadModalPoints() {
     } catch (error) {
         console.error('Error loading modal points:', error);
         document.getElementById('loyalty-modal-points').textContent = '0';
+    }
+}
+
+/**
+ * Fetch reward items from tukar_poin sheet
+ */
+async function fetchRewardItemsForAkun() {
+    const loadingDiv = document.getElementById('reward-items-loading');
+    const emptyDiv = document.getElementById('reward-items-empty');
+    const listDiv = document.getElementById('reward-items-list');
+    
+    // Check if required DOM elements exist
+    if (!loadingDiv || !emptyDiv || !listDiv) {
+        console.error('Required reward items DOM elements not found');
+        return;
+    }
+    
+    // Show loading state
+    loadingDiv.classList.remove('hidden');
+    emptyDiv.classList.add('hidden');
+    listDiv.classList.add('hidden');
+    
+    try {
+        const apiUrl = CONFIG.getMainApiUrl();
+        // Use simple GET without custom headers to avoid CORS preflight
+        const response = await fetch(`${apiUrl}?sheet=tukar_poin`);
+        
+        if (!response.ok) {
+            console.error('Failed to fetch reward items:', response.status);
+            loadingDiv.classList.add('hidden');
+            emptyDiv.classList.remove('hidden');
+            return;
+        }
+        
+        const data = await response.json();
+        const items = parseSheetResponse(data);
+        
+        // Hide loading
+        loadingDiv.classList.add('hidden');
+        
+        if (!items || items.length === 0) {
+            emptyDiv.classList.remove('hidden');
+            return;
+        }
+        
+        // Render items
+        renderRewardItemsListAkun(items);
+        listDiv.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('Error fetching reward items:', error);
+        loadingDiv.classList.add('hidden');
+        emptyDiv.classList.remove('hidden');
+    }
+}
+
+/**
+ * Render reward items list in the modal
+ * @param {Array} items - Array of reward items from tukar_poin sheet
+ */
+function renderRewardItemsListAkun(items) {
+    const listDiv = document.getElementById('reward-items-list');
+    if (!listDiv) return;
+    
+    listDiv.innerHTML = '';
+    
+    items.forEach(item => {
+        // Handle field name variations (case-insensitive)
+        const id = (item.id || item.ID || '').toString();
+        const nama = (item.nama || item.Nama || item.judul || item.Judul || 'Reward').toString();
+        const deskripsi = (item.deskripsi || item.Deskripsi || item.description || item.Description || '').toString();
+        const gambar = (item.gambar || item.Gambar || item.image || item.Image || '').toString();
+        const poin = parseInt(item.poin || item.Poin || item.points || item.Points || 0);
+        
+        // Create card element
+        const card = document.createElement('div');
+        card.className = 'border-2 border-gray-200 rounded-xl p-4 hover:border-amber-500 transition';
+        
+        // Create container div
+        const containerDiv = document.createElement('div');
+        containerDiv.className = 'flex gap-3 mb-3';
+        
+        // Left side: Image (if available and is valid URL)
+        if (gambar && isValidImageUrl(gambar)) {
+            const imageWrapper = document.createElement('div');
+            imageWrapper.className = 'flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100';
+            
+            const img = document.createElement('img');
+            img.className = 'w-full h-full object-cover';
+            img.alt = ''; // Keep alt empty, nama will be in the title
+            img.onerror = function() {
+                this.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400">📦</div>';
+            };
+            // Sanitize URL by encoding if needed
+            img.src = encodeURI(gambar);
+            
+            imageWrapper.appendChild(img);
+            containerDiv.appendChild(imageWrapper);
+        }
+        
+        // Right side: Content
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'flex-1 min-w-0';
+        
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'flex justify-between items-start gap-2 mb-1';
+        
+        const titleP = document.createElement('p');
+        titleP.className = 'font-bold text-gray-800 truncate';
+        titleP.textContent = nama; // Use textContent to prevent XSS
+        
+        const badge = document.createElement('span');
+        badge.className = 'bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap';
+        badge.textContent = `${poin} Poin`;
+        
+        headerDiv.appendChild(titleP);
+        headerDiv.appendChild(badge);
+        contentDiv.appendChild(headerDiv);
+        
+        // Description (if available)
+        if (deskripsi) {
+            const descP = document.createElement('p');
+            descP.className = 'text-xs text-gray-500 line-clamp-2';
+            descP.textContent = deskripsi; // Use textContent to prevent XSS
+            contentDiv.appendChild(descP);
+        }
+        
+        containerDiv.appendChild(contentDiv);
+        card.appendChild(containerDiv);
+        
+        // Button - use dataset and addEventListener instead of inline onclick
+        const button = document.createElement('button');
+        button.className = 'w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg transition text-sm';
+        button.textContent = 'Tukar Sekarang';
+        button.dataset.rewardId = id;
+        button.addEventListener('click', function() {
+            if (typeof showConfirmTukarModal === 'function') {
+                showConfirmTukarModal(this.dataset.rewardId);
+            }
+        });
+        
+        card.appendChild(button);
+        listDiv.appendChild(card);
+    });
+}
+
+/**
+ * Validate if a string is a valid image URL
+ * @param {string} url - URL to validate
+ * @returns {boolean} - True if valid image URL
+ */
+function isValidImageUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    try {
+        const parsedUrl = new URL(url);
+        return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
+ * Initialize reward items tab functionality
+ */
+function initRewardItemsTab() {
+    // Fetch reward items on page load
+    fetchRewardItemsForAkun();
+    
+    // Also refresh when switching to exchange tab
+    const exchangeTab = document.getElementById('tab-exchange');
+    if (exchangeTab) {
+        // Store reference to avoid wrapping multiple times
+        if (!exchangeTab.dataset.rewardInitialized) {
+            exchangeTab.dataset.rewardInitialized = 'true';
+            
+            // Add click listener using addEventListener instead of onclick
+            exchangeTab.addEventListener('click', function() {
+                fetchRewardItemsForAkun();
+            });
+        }
     }
 }
