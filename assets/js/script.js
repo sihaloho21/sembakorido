@@ -1242,7 +1242,40 @@ function generateOrderId() {
     return `ORD-${result}`;
 }
 
-function sendToWA() {
+/**
+ * Log order to GAS via FormData to avoid CORS preflight
+ * Ensures required fields are present before sending
+ * @param {object} order - Order data to log
+ * @returns {Promise<object>} Response from GAS
+ */
+async function logOrderToGAS(order) {
+    // Ensure required fields are present
+    const orderData = {
+        id: order.id || generateOrderId(),
+        pelanggan: order.pelanggan || '',
+        produk: order.produk || '',
+        qty: order.qty || 0,
+        total: order.total || 0,
+        status: order.status || 'Pending',
+        tanggal: order.tanggal || new Date().toLocaleString('id-ID'),
+        phone: order.phone || '',
+        poin: order.poin || 0,
+        point_processed: order.point_processed || 'No'
+    };
+    
+    console.log('📝 Logging order to GAS:', orderData);
+    
+    try {
+        const result = await GASActions.create('orders', orderData);
+        console.log('✅ Order logged successfully:', result);
+        return result;
+    } catch (error) {
+        console.error('❌ Error logging order to GAS:', error);
+        throw error;
+    }
+}
+
+async function sendToWA() {
     // Get the button element
     const sendButton = event?.target || document.querySelector('button[onclick="sendToWA()"]');
     
@@ -1412,19 +1445,12 @@ function sendToWA() {
         point_processed: 'No'
     };
 
-    // Use ApiService to log order (no caching for POST)
-    // SheetDB requires data to be wrapped in {data: [...]}
-    ApiService.post('?sheet=orders', { data: [orderData] })
-        .then(data => {
-            console.log('Order logged to spreadsheet:', data);
-            
-
-        })
-        .catch(err => {
-            console.error('Error logging order:', err);
-        })
-    .finally(() => {
-        // Clear cart after order
+    // Log order to GAS using FormData (no CORS preflight)
+    try {
+        await logOrderToGAS(orderData);
+        console.log('✅ Order logged to spreadsheet successfully');
+        
+        // Clear cart after successful order logging
         cart = [];
         saveCart();
         updateCartUI();
@@ -1433,7 +1459,11 @@ function sendToWA() {
         // Show success notification with WhatsApp button
         showSuccessNotification(orderId, waUrl);
         
-        // Re-enable button after modal closes (reset state)
+    } catch (err) {
+        console.error('❌ Error logging order:', err);
+        alert('Gagal menyimpan pesanan. Silakan coba lagi atau hubungi admin.');
+    } finally {
+        // Re-enable button after completion (reset state)
         if (sendButton) {
             setTimeout(() => {
                 sendButton.disabled = false;
@@ -1444,7 +1474,7 @@ function sendToWA() {
                 sendButton.classList.remove('opacity-75', 'cursor-not-allowed');
             }, 500);
         }
-    });
+    }
 }
 
 function handleLogoClick() {
