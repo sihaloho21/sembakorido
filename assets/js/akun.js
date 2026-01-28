@@ -305,6 +305,10 @@ async function loadLoyaltyPoints(user) {
     } catch (error) {
         console.error('❌ Error loading loyalty points:', error);
         document.getElementById('loyalty-points').textContent = '0';
+        // Set reward context even on error
+        if (user && user.whatsapp) {
+            setRewardContextFromAkun(normalizePhoneTo08(user.whatsapp), 0);
+        }
     }
 }
 
