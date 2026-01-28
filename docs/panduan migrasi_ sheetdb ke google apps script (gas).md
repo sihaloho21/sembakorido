@@ -14,8 +14,9 @@ Anda tidak perlu menghapus data apa pun di Google Sheets. Kita hanya akan menamb
 3.  Hapus semua kode yang ada di editor, lalu masukkan kode GAS yang mendukung doGet(e) dan doPost(e).
 
 **Format Request dari Frontend:**
-- Semua operasi write (create/update/delete) menggunakan POST dengan FormData
+- Semua operasi write (create/update/delete) menggunakan **POST dengan FormData**
 - FormData berisi field `json` dengan stringified payload
+- **TIDAK ADA custom headers yang di-set** (browser otomatis set multipart/form-data)
 - GAS membaca dari `e.parameter.json` atau `e.postData.contents`
 
 4.  Klik tombol **Save** (ikon disket) dan beri nama "Paket Sembako API".
@@ -72,7 +73,62 @@ const GASActions = {
 };
 ```
 
-### C. File `admin/js/admin-script.js` (Operasi CRUD)
+### C. File `assets/js/api-service.js` (POST Method Updated)
+
+**PENTING:** `ApiService.post()` telah diupdate untuk menggunakan FormData tanpa custom headers:
+
+```javascript
+async post(endpoint, data, options = {}) {
+    // Create FormData and append JSON payload
+    const formData = new FormData();
+    formData.append('json', JSON.stringify(data));
+    
+    return this.fetch(endpoint, {
+        ...options,
+        method: 'POST',
+        // No Content-Type header - browser sets multipart/form-data automatically
+        body: formData,
+        cache: false
+    });
+}
+```
+
+### D. File `assets/js/script.js` (Checkout & Claims)
+
+#### 1. Checkout - Log Order to GAS:
+```javascript
+// Helper function untuk log order
+async function logOrderToGAS(orderData) {
+    if (!orderData.id || !orderData.status || !orderData.tanggal) {
+        throw new Error('Missing required order fields');
+    }
+    if (!orderData.point_processed) {
+        orderData.point_processed = 'No';
+    }
+    return await GASActions.create('orders', orderData);
+}
+
+// Di sendToWA(), gunakan logOrderToGAS
+logOrderToGAS(orderData)
+    .then(data => console.log('✅ Order logged successfully:', data))
+    .catch(err => console.error('❌ Error logging order:', err));
+```
+
+#### 2. Claims - Record via GASActions:
+```javascript
+// Menggunakan GASActions.create untuk claims
+await GASActions.create('claims', {
+    id: claimId,
+    phone: phone,
+    nama: customerName,
+    hadiah: rewardName,
+    poin: requiredPoints,
+    status: 'Menunggu',
+    tanggal: new Date().toLocaleString('id-ID')
+});
+```
+
+### E. File `admin/js/admin-script.js` (Operasi CRUD)
 
 #### 1. Update Status Pesanan:
 ```javascript
@@ -94,7 +150,7 @@ if (id) {
 await GASActions.delete('products', id);
 ```
 
-### D. File `admin/js/banner-management.js`
+### F. File `admin/js/banner-management.js`
 
 ```javascript
 // Create banner
@@ -107,7 +163,7 @@ await GASActions.update('banners', id, bannerData);
 await GASActions.delete('banners', id);
 ```
 
-### E. File `admin/js/tiered-pricing.js`
+### G. File `admin/js/tiered-pricing.js`
 
 ```javascript
 // Update product with tiered pricing
@@ -129,9 +185,10 @@ await GASActions.update('products', productId, { grosir: JSON.stringify(tiers) }
 ```javascript
 fetch(url, {
     method: 'PATCH',  // Non-simple method
-    headers: { 'Content-Type': 'application/json' },  // Simple type but with PATCH/DELETE triggers preflight
+    headers: { 'Content-Type': 'application/json' },  // Custom header
     body: JSON.stringify(data)
 })
+// ↑ Ini trigger OPTIONS preflight yang GAS tidak bisa handle
 ```
 
 ✅ **Metode Baru (No Preflight):**
@@ -142,14 +199,16 @@ fetch(url, {
     method: 'POST',  // Simple method
     body: formData  // No headers set - browser handles it
 })
+// ↑ Langsung POST, tidak ada preflight OPTIONS
 ```
 
 ---
 
 ## 4. Apa yang Dihapus?
-1.  **Metode HTTP PATCH/DELETE:** Tidak lagi digunakan, semua operasi melalui POST
+1.  **Metode HTTP PATCH/DELETE:** Tidak lagi digunakan, semua operasi melalui POST dengan FormData
 2.  **Custom Headers:** Content-Type tidak di-set manual untuk write operations
-3.  **Ketergantungan SheetDB:** Anda bisa menghapus akun SheetDB atau membiarkannya sebagai cadangan.
+3.  **JSON Body Langsung:** Semua data dikirim via FormData dengan key 'json'
+4.  **Ketergantungan SheetDB:** Anda bisa menghapus akun SheetDB atau membiarkannya sebagai cadangan.
 
 ---
 
@@ -160,7 +219,26 @@ fetch(url, {
 *   **Gratis:** Selama Google Sheets gratis, API Anda juga gratis.
 
 ---
+
+## 6. Checklist Implementasi
+
+✅ **Completed:**
+- [x] gas-actions.js helper created with FormData approach
+- [x] ApiService.post() updated to use FormData (no Content-Type header)
+- [x] Checkout flow uses logOrderToGAS() via GASActions
+- [x] Claims functionality uses GASActions.create()
+- [x] Admin operations (products, categories, orders, tukar_poin, banners) use GASActions
+- [x] Tiered pricing updates use GASActions
+- [x] User points editing uses GASActions
+- [x] No PATCH/DELETE methods remain in admin files
+- [x] No Content-Type headers set for write operations
+
+---
+
 **Catatan Penting:** 
 - GAS Web App hanya mendukung doGet(e) dan doPost(e). Metode PATCH/DELETE tidak didukung.
-- Semua write operations harus menggunakan POST dengan FormData berisi field 'json'
+- Semua write operations harus menggunakan **POST dengan FormData** berisi field 'json'
+- **JANGAN set Content-Type header** - biarkan browser yang set otomatis
 - Sheet whitelist: products, categories, orders, users, user_points, tukar_poin, banners, claims, settings
+- Untuk debugging, check Network tab di browser - harusnya tidak ada OPTIONS preflight untuk write operations
+

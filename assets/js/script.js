@@ -1242,6 +1242,26 @@ function generateOrderId() {
     return `ORD-${result}`;
 }
 
+/**
+ * Log order to Google Apps Script (GAS) using FormData approach
+ * @param {object} orderData - Order data to log
+ * @returns {Promise} - Resolves when order is logged successfully
+ */
+async function logOrderToGAS(orderData) {
+    // Ensure required fields are present
+    if (!orderData.id || !orderData.status || !orderData.tanggal) {
+        throw new Error('Missing required order fields');
+    }
+    
+    // Ensure point_processed field exists (default to 'No')
+    if (!orderData.point_processed) {
+        orderData.point_processed = 'No';
+    }
+    
+    // Use GASActions to create order record
+    return await GASActions.create('orders', orderData);
+}
+
 function sendToWA() {
     // Get the button element
     const sendButton = event?.target || document.querySelector('button[onclick="sendToWA()"]');
@@ -1412,16 +1432,16 @@ function sendToWA() {
         point_processed: 'No'
     };
 
-    // Use ApiService to log order (no caching for POST)
-    // SheetDB requires data to be wrapped in {data: [...]}
-    ApiService.post('?sheet=orders', { data: [orderData] })
+    // Use logOrderToGAS to log order via FormData (no CORS preflight)
+    logOrderToGAS(orderData)
         .then(data => {
-            console.log('Order logged to spreadsheet:', data);
+            console.log('✅ Order logged to GAS successfully:', data);
             
-
         })
         .catch(err => {
-            console.error('Error logging order:', err);
+            console.error('❌ Error logging order to GAS:', err);
+            // Show error to user but still allow WhatsApp redirect
+            alert('Pesanan mungkin tidak tercatat di sistem. Silakan hubungi admin jika perlu.');
         })
     .finally(() => {
         // Clear cart after order
@@ -1666,16 +1686,14 @@ async function claimReward(rewardId) {
 
         // 4. Record claim in claims sheet
         const claimId = 'CLM-' + Date.now().toString().slice(-6);
-        await ApiService.post('?sheet=claims', {
-            data: [{
-                id: claimId,
-                phone: phone,
-                nama: customerName,
-                hadiah: rewardName,
-                poin: requiredPoints,
-                status: 'Menunggu',
-                tanggal: new Date().toLocaleString('id-ID')
-            }]
+        await GASActions.create('claims', {
+            id: claimId,
+            phone: phone,
+            nama: customerName,
+            hadiah: rewardName,
+            poin: requiredPoints,
+            status: 'Menunggu',
+            tanggal: new Date().toLocaleString('id-ID')
         });
 
         // 5. Update local state and UI
@@ -1888,16 +1906,14 @@ async function processClaimReward(rewardId, customerName) {
 
         // 3. Record claim in claims sheet
         const claimId = 'CLM-' + Date.now().toString().slice(-6);
-        await ApiService.post('?sheet=claims', {
-            data: [{
-                id: claimId,
-                phone: phone,
-                nama: customerName,
-                hadiah: rewardName,
-                poin: requiredPoints,
-                status: 'Menunggu',
-                tanggal: new Date().toLocaleString('id-ID')
-            }]
+        await GASActions.create('claims', {
+            id: claimId,
+            phone: phone,
+            nama: customerName,
+            hadiah: rewardName,
+            poin: requiredPoints,
+            status: 'Menunggu',
+            tanggal: new Date().toLocaleString('id-ID')
         });
 
         // 4. Update local state and UI
