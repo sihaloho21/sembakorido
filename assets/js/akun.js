@@ -293,14 +293,22 @@ async function loadLoyaltyPoints(user) {
             const points = parseInt(userPoints.points || userPoints.poin || 0);
             console.log(`✅ User points: ${points}`);
             document.getElementById('loyalty-points').textContent = points;
+            // Set reward context for use by reward modal
+            setRewardContextFromAkun(normalizedPhone, points);
         } else {
             console.log('⚠️ No points record found for user');
             document.getElementById('loyalty-points').textContent = '0';
+            // Set reward context with 0 points
+            setRewardContextFromAkun(normalizedPhone, 0);
         }
         
     } catch (error) {
         console.error('❌ Error loading loyalty points:', error);
         document.getElementById('loyalty-points').textContent = '0';
+        // Set reward context even on error
+        if (user && user.whatsapp) {
+            setRewardContextFromAkun(normalizePhoneTo08(user.whatsapp), 0);
+        }
     }
 }
 
@@ -1393,6 +1401,8 @@ async function loadModalPoints() {
         
         if (!response.ok) {
             document.getElementById('loyalty-modal-points').textContent = '0';
+            // Set context even with 0 points
+            setRewardContextFromAkun(user.whatsapp, 0);
             return;
         }
         
@@ -1403,12 +1413,18 @@ async function loadModalPoints() {
             const userPoints = pointsData[0];
             const points = parseInt(userPoints.points || userPoints.poin || 0);
             document.getElementById('loyalty-modal-points').textContent = points;
+            // Set reward context for use by showConfirmTukarModal
+            setRewardContextFromAkun(user.whatsapp, points);
         } else {
             document.getElementById('loyalty-modal-points').textContent = '0';
+            // Set context even with 0 points
+            setRewardContextFromAkun(user.whatsapp, 0);
         }
     } catch (error) {
         console.error('Error loading modal points:', error);
         document.getElementById('loyalty-modal-points').textContent = '0';
+        // Set context even on error
+        setRewardContextFromAkun(user.whatsapp, 0);
     }
 }
 
@@ -1419,6 +1435,19 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/**
+ * Set reward context from akun page (user phone and points)
+ * This allows "Tukar Sekarang" to work without requiring "Cek Poin Saya"
+ */
+function setRewardContextFromAkun(userPhone, userPoints) {
+    if (userPhone) {
+        sessionStorage.setItem('reward_phone', normalizePhoneTo08(userPhone));
+    }
+    if (userPoints !== null && userPoints !== undefined) {
+        sessionStorage.setItem('user_points', userPoints.toString());
+    }
 }
 
 /**
