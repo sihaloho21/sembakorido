@@ -1413,6 +1413,15 @@ async function loadModalPoints() {
 }
 
 /**
+ * HTML escape helper to prevent XSS
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
  * Fetch reward items from tukar_poin sheet for akun page
  */
 async function fetchRewardItemsForAkun() {
@@ -1447,8 +1456,9 @@ async function fetchRewardItemsForAkun() {
     } catch (error) {
         console.error('Error fetching reward items:', error);
         
-        // Hide loading state
+        // Hide loading and empty states
         if (loadingEl) loadingEl.classList.add('hidden');
+        if (emptyEl) emptyEl.classList.add('hidden');
         
         // Show error message
         listEl.innerHTML = `
@@ -1480,11 +1490,11 @@ function renderRewardItemsListAkun(items) {
     
     // Render items with image on left, matching reference style
     listEl.innerHTML = items.map(item => {
-        const id = (item.id || '').toString();
-        const nama = (item.nama || item.judul || 'Hadiah').toString();
+        const id = escapeHtml((item.id || '').toString());
+        const nama = escapeHtml((item.nama || item.judul || 'Hadiah').toString());
         const poin = parseInt(item.poin || item.Poin || 0);
-        const gambar = (item.gambar || 'https://via.placeholder.com/80?text=Reward').toString();
-        const deskripsi = (item.deskripsi || '').toString();
+        const gambar = escapeHtml((item.gambar || 'https://via.placeholder.com/80?text=Reward').toString());
+        const deskripsi = escapeHtml((item.deskripsi || '').toString());
         
         return `
             <div class="border-2 border-gray-200 rounded-xl p-4 hover:border-amber-500 transition">
