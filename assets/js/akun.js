@@ -39,9 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loggedInUser) {
         // User already logged in, show dashboard
         showDashboard(loggedInUser);
-        
-        // Set global AkunUser for reward context
-        window.AkunUser = loggedInUser;
     } else {
         // Show login form
         showLogin();
@@ -170,10 +167,6 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         // Login successful
         foundUser.whatsapp = normalizePhoneTo08(foundUser.whatsapp || foundUser.phone || normalizedPhone);
         saveLoggedInUser(foundUser);
-        
-        // Set global AkunUser for reward context
-        window.AkunUser = foundUser;
-        
         showDashboard(foundUser);
         document.getElementById('dashboard-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
         
@@ -1515,7 +1508,8 @@ function renderRewardItemsListAkun(items) {
         const id = escapeHtml((item.id || '').toString());
         const nama = escapeHtml((item.nama || item.judul || 'Hadiah').toString());
         const poin = parseInt(item.poin || item.Poin || 0);
-        const gambar = escapeHtml((item.gambar || 'https://via.placeholder.com/80?text=Reward').toString());
+        // Don't escape URLs - they come from our own database
+        const gambar = (item.gambar || 'https://via.placeholder.com/80?text=Reward').toString();
         const deskripsi = escapeHtml((item.deskripsi || '').toString());
         
         return `
