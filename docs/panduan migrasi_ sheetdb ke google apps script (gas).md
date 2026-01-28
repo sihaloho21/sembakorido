@@ -94,7 +94,38 @@ async post(endpoint, data, options = {}) {
 
 **CATATAN PENTING:** ApiService.patch() sudah deprecated. Gunakan GASActions.update() untuk semua operasi update.
 
-### D. File `assets/js/script.js` (Checkout Flow)
+### D. File `assets/js/akun.js` (Safe Phone Normalization)
+
+Phone normalization now safely handles numeric values from Google Sheets:
+
+```javascript
+// Safe phone normalization that handles numbers, null, undefined
+const normalizePhoneTo08 = (phone) => {
+    // Safely convert to string first to handle numbers, null, undefined
+    const phoneStr = String(phone == null ? '' : phone);
+    const digits = phoneStr.replace(/[^0-9]/g, '');
+    if (!digits) return '';
+    let core = digits;
+    if (core.startsWith('62')) core = core.slice(2);
+    if (core.startsWith('0')) core = core.slice(1);
+    if (!core.startsWith('8')) return '';
+    return '0' + core;
+};
+
+// Used in loadOrderHistory to safely filter orders
+async function loadOrderHistory(user) {
+    // ... fetch orders ...
+    orders = orders.filter(order => {
+        const orderPhone = normalizePhoneTo08(order.phone || order.whatsapp || '');
+        const userPhone = normalizePhoneTo08(user.whatsapp);
+        return orderPhone === userPhone;
+    });
+}
+```
+
+**IMPORTANT:** When phone/whatsapp values come from Google Sheets as numbers (not strings), the safe conversion ensures no TypeError occurs.
+
+### E. File `assets/js/script.js` (Checkout Flow)
 
 Fungsi checkout telah diperbarui untuk menggunakan `logOrderToGAS()`:
 
@@ -164,7 +195,69 @@ await GASActions.update('banners', id, bannerData);
 await GASActions.delete('banners', id);
 ```
 
-### G. File `admin/js/tiered-pricing.js`
+### G. File `admin/js/tiered-pricing.js` (Robust Implementation)
+
+Tiered pricing now handles ID type mismatches and invalid data robustly:
+
+```javascript
+// Safe product matching using String comparison
+async function toggleTieredPricing(productId) {
+    // Use String comparison to avoid type mismatch
+    const product = tieredPricingProducts.find(p => String(p.id) === String(productId));
+    if (!product) {
+        console.error('Product not found:', productId);
+        return;
+    }
+    
+    // ... rest of logic ...
+    
+    // Safe default tier price calculation
+    const basePrice = parseInt(product.harga) || 0;
+    const defaultPrice = basePrice > 0 ? Math.floor(basePrice * 0.95) : 0;
+    const defaultTier = [{ min_qty: 5, price: defaultPrice }];
+}
+
+// Parse and filter valid entries only
+function parseGrosirData(grosirString) {
+    if (!grosirString) return [];
+    try {
+        const parsed = JSON.parse(grosirString);
+        if (Array.isArray(parsed)) {
+            // Filter valid entries only
+            const validTiers = parsed.filter(tier => {
+                const minQty = parseInt(tier.min_qty);
+                const price = parseInt(tier.price);
+                return !isNaN(minQty) && !isNaN(price) && minQty > 0 && price >= 0;
+            });
+            return validTiers.sort((a, b) => b.min_qty - a.min_qty);
+        }
+        return [];
+    } catch (e) {
+        console.error('Error parsing grosir data:', e);
+        return [];
+    }
+}
+
+// Update with String productId for consistency
+async function updateProductGrosir(productId, tiers) {
+    const normalizedTiers = tiers.map(tier => ({
+        min_qty: parseInt(tier.min_qty),
+        price: parseInt(tier.price)
+    }));
+    
+    await GASActions.update(PRODUCTS_SHEET, String(productId), { 
+        grosir: JSON.stringify(normalizedTiers)
+    });
+}
+```
+
+**ROBUSTNESS IMPROVEMENTS:**
+- Product ID matching uses `String(p.id) === String(productId)` to handle both number and string IDs
+- Default tier price calculation safely handles non-numeric `product.harga` (produces 0 instead of NaN)
+- `parseGrosirData` filters out invalid entries with NaN or negative values
+- `updateProductGrosir` normalizes tier values and ensures productId is String
+
+### H. File `admin/js/tiered-pricing.js`
 
 ```javascript
 // Update product with tiered pricing
@@ -251,12 +344,15 @@ grep -R "Content-Type.*application/json" admin/js
 
 ✅ **Manual Tests:**
 - Checkout: Click "Kirim Pesanan ke WhatsApp" → Order logged (check Network tab: 200 OK, no OPTIONS) → WhatsApp redirect
+- Akun Page: Order history loads correctly with numeric phone/whatsapp values from Sheets (no TypeError)
 - Admin Products: Create/Update/Delete works without preflight
 - Admin Banners: Create/Update/Delete works without preflight  
 - Admin Categories: Create/Update/Delete works without preflight
 - Admin Tukar Poin: Create/Update/Delete works without preflight
 - Admin User Points: Update works without preflight
-- Tiered Pricing: Update works without preflight
+- Tiered Pricing: Toggle shows "Tingkatan Harga Grosir" section when enabled
+- Tiered Pricing: Works with both string and numeric product IDs
+- Tiered Pricing: Default tier price is valid (not NaN) even with invalid base price
 
 ---
 
@@ -266,4 +362,8 @@ grep -R "Content-Type.*application/json" admin/js
 - **JANGAN PERNAH set Content-Type header untuk write operations - biarkan browser yang handle**
 - Sheet whitelist: products, categories, orders, users, user_points, tukar_poin, banners, claims, settings
 - Setelah checkout berhasil, order akan tercatat di sheet 'orders' SEBELUM redirect ke WhatsApp
+- **Phone normalization:** `normalizePhoneTo08` uses `String()` conversion to safely handle numeric values from Sheets
+- **Tiered pricing:** Product ID matching uses String comparison to handle type mismatches
+- **Tiered pricing:** Default tier price calculation handles invalid base prices safely (no NaN)
+- **Tiered pricing:** `parseGrosirData` filters out invalid entries with NaN values
 

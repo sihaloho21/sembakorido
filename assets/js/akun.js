@@ -5,7 +5,9 @@
 
 // Phone utilities
 const normalizePhoneTo08 = (phone) => {
-    const digits = (phone || '').toString().replace(/[^0-9]/g, '');
+    // Safely convert to string first to handle numbers, null, undefined
+    const phoneStr = String(phone == null ? '' : phone);
+    const digits = phoneStr.replace(/[^0-9]/g, '');
     if (!digits) return '';
     let core = digits;
     if (core.startsWith('62')) core = core.slice(2);
