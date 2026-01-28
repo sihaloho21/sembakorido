@@ -309,7 +309,8 @@ function renderProducts(products) {
 }
 
 function filterProducts() {
-    const query = document.getElementById('search-input').value.toLowerCase();
+    const searchInput = document.getElementById('search-input');
+    const query = searchInput ? searchInput.value.toLowerCase() : '';
     filteredProducts = allProducts.filter(p => {
         const matchesSearch = p.nama.toLowerCase().includes(query) || 
                             (p.deskripsi && p.deskripsi.toLowerCase().includes(query));
