@@ -11,107 +11,12 @@ Anda tidak perlu menghapus data apa pun di Google Sheets. Kita hanya akan menamb
 ### Langkah-langkah:
 1.  Buka Google Sheets Anda.
 2.  Klik menu **Extensions** > **Apps Script**.
-3.  Hapus semua kode yang ada di editor, lalu masukkan kode berikut:
+3.  Hapus semua kode yang ada di editor, lalu masukkan kode GAS yang mendukung doGet(e) dan doPost(e).
 
-```javascript
-/**
- * GOOGLE APPS SCRIPT API FOR PAKET SEMBAKO
- * Fitur: CRUD (Read, Create, Update, Delete) & Search
- */
-
-const SHEET_NAME = "Sheet1"; // Sesuaikan dengan nama sheet produk Anda
-
-function doGet(e) {
-  const action = e.parameter.action;
-  const sheetName = e.parameter.sheet || SHEET_NAME;
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
-  
-  if (!sheet) return errorResponse("Sheet not found");
-
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const rows = data.slice(1);
-
-  // ACTION: READ ALL
-  if (!action || action === "read") {
-    const json = rows.map(row => {
-      let obj = {};
-      headers.forEach((header, i) => obj[header] = row[i]);
-      return obj;
-    });
-    return successResponse(json);
-  }
-
-  // ACTION: SEARCH BY ID
-  if (action === "search" && e.parameter.id) {
-    const id = e.parameter.id;
-    const rowData = rows.find(r => r[headers.indexOf("id")].toString() === id.toString());
-    if (rowData) {
-      let obj = {};
-      headers.forEach((header, i) => obj[header] = rowData[i]);
-      return successResponse([obj]);
-    }
-    return errorResponse("Data not found");
-  }
-}
-
-function doPost(e) {
-  const params = JSON.parse(e.postData.contents);
-  const action = params.action;
-  const sheetName = params.sheet || SHEET_NAME;
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
-  
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-
-  // ACTION: CREATE
-  if (action === "create") {
-    const newRow = headers.map(h => params.data[h] || "");
-    sheet.appendRow(newRow);
-    return successResponse({ message: "Created successfully" });
-  }
-
-  // ACTION: UPDATE
-  if (action === "update") {
-    const id = params.id;
-    const idIndex = headers.indexOf("id");
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][idIndex].toString() === id.toString()) {
-        headers.forEach((h, j) => {
-          if (params.data[h] !== undefined) {
-            sheet.getRange(i + 1, j + 1).setValue(params.data[h]);
-          }
-        });
-        return successResponse({ message: "Updated successfully" });
-      }
-    }
-  }
-
-  // ACTION: DELETE
-  if (action === "delete") {
-    const id = params.id;
-    const idIndex = headers.indexOf("id");
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][idIndex].toString() === id.toString()) {
-        sheet.deleteRow(i + 1);
-        return successResponse({ message: "Deleted successfully" });
-      }
-    }
-  }
-}
-
-function successResponse(data) {
-  return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function errorResponse(msg) {
-  return ContentService.createTextOutput(JSON.stringify({ error: msg }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-```
+**Format Request dari Frontend:**
+- Semua operasi write (create/update/delete) menggunakan POST dengan FormData
+- FormData berisi field `json` dengan stringified payload
+- GAS membaca dari `e.parameter.json` atau `e.postData.contents`
 
 4.  Klik tombol **Save** (ikon disket) dan beri nama "Paket Sembako API".
 5.  Klik tombol **Deploy** > **New Deployment**.
@@ -125,98 +30,137 @@ function errorResponse(msg) {
 
 ## 2. Perubahan di Sisi Website (Frontend)
 
-Anda perlu mengubah cara website memanggil API karena struktur URL GAS berbeda dengan SheetDB.
+Semua operasi write (create/update/delete) telah direfaktor untuk menggunakan **GASActions** helper yang menggunakan FormData tanpa setting headers, menghindari CORS preflight.
 
 ### A. File `assets/js/config.js`
-Ubah URL API utama Anda:
+URL API sudah dikonfigurasi untuk menggunakan GAS Web App:
 ```javascript
 const CONFIG = {
-    // Ganti URL SheetDB lama dengan URL Web App GAS Anda
-    API_URL: "https://script.google.com/macros/s/XXXXX_ID_SCRIPT_ANDA_XXXXX/exec",
-    
-    getMainApiUrl() {
-        return this.API_URL;
-    },
-    getAdminApiUrl() {
-        return this.API_URL;
+    DEFAULTS: {
+        MAIN_API: 'https://script.google.com/macros/s/AKfycbwDmh_cc-J9c0cuzcSThFQBdiZ7lpy3oUjDENZhHW-4UszuKwPB20g6OeRccVsgvp79hw/exec',
+        ADMIN_API: 'https://script.google.com/macros/s/AKfycbwDmh_cc-J9c0cuzcSThFQBdiZ7lpy3oUjDENZhHW-4UszuKwPB20g6OeRccVsgvp79hw/exec'
     }
 };
 ```
 
-### B. File `assets/js/script.js` (Fungsi Fetch)
-GAS menggunakan metode `GET` untuk membaca data. Fungsi `fetchProducts` Anda tetap sama, namun pastikan URL-nya benar.
+### B. File `assets/js/gas-actions.js` (Helper Baru)
+Helper ini menyediakan metode untuk semua operasi write menggunakan FormData:
 
-### C. File `admin/js/admin-script.js` (Fungsi CRUD)
-Ini adalah bagian yang paling banyak berubah karena SheetDB menggunakan metode HTTP (PATCH/DELETE), sedangkan GAS Web App paling stabil menggunakan `POST` dengan parameter `action`.
-
-#### 1. Fungsi Update Status Pesanan:
-**Lama (SheetDB):**
 ```javascript
-fetch(`${API_URL}/id/${id}?sheet=orders`, { method: 'PATCH', ... })
+const GASActions = {
+    async post(payload) {
+        const formData = new FormData();
+        formData.append('json', JSON.stringify(payload));
+        const response = await fetch(CONFIG.getAdminApiUrl(), {
+            method: 'POST',
+            body: formData  // NO Content-Type header - browser sets multipart/form-data
+        });
+        return response.json();
+    },
+    
+    async create(sheet, data) {
+        return this.post({ action: 'create', sheet, data });
+    },
+    
+    async update(sheet, id, data) {
+        return this.post({ action: 'update', sheet, id, data });
+    },
+    
+    async delete(sheet, id) {
+        return this.post({ action: 'delete', sheet, id });
+    }
+};
 ```
-**Baru (GAS):**
+
+### C. File `admin/js/admin-script.js` (Operasi CRUD)
+
+#### 1. Update Status Pesanan:
 ```javascript
-fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify({
-        action: 'update',
-        sheet: 'orders',
-        id: id,
-        data: { status: newStatus }
-    })
+// Menggunakan GASActions.update
+await GASActions.update('orders', id, { status: newStatus });
+```
+
+#### 2. Simpan Produk (Tambah/Edit):
+```javascript
+if (id) {
+    await GASActions.update('products', id, data);
+} else {
+    await GASActions.create('products', { ...data, id: Date.now().toString() });
+}
+```
+
+#### 3. Hapus Produk:
+```javascript
+await GASActions.delete('products', id);
+```
+
+### D. File `admin/js/banner-management.js`
+
+```javascript
+// Create banner
+await GASActions.create('banners', bannerData);
+
+// Update banner
+await GASActions.update('banners', id, bannerData);
+
+// Delete banner
+await GASActions.delete('banners', id);
+```
+
+### E. File `admin/js/tiered-pricing.js`
+
+```javascript
+// Update product with tiered pricing
+await GASActions.update('products', productId, { grosir: JSON.stringify(tiers) });
+```
+
+---
+
+## 3. Keuntungan Pendekatan FormData
+
+### Menghindari CORS Preflight
+- **FormData tanpa custom headers** tidak memicu preflight OPTIONS request
+- Browser otomatis set `Content-Type: multipart/form-data` dengan boundary
+- GAS Web App dapat langsung memproses request tanpa masalah CORS
+
+### Perbandingan Metode
+
+❌ **Metode Lama (Trigger Preflight):**
+```javascript
+fetch(url, {
+    method: 'PATCH',  // Non-simple method
+    headers: { 'Content-Type': 'application/json' },  // Simple type but with PATCH/DELETE triggers preflight
+    body: JSON.stringify(data)
 })
 ```
 
-#### 2. Fungsi Simpan Produk (Tambah/Edit):
-**Lama (SheetDB):**
+✅ **Metode Baru (No Preflight):**
 ```javascript
-const method = id ? 'PATCH' : 'POST';
-const url = id ? `${API_URL}/id/${id}` : API_URL;
-```
-**Baru (GAS):**
-```javascript
-const action = id ? 'update' : 'create';
-fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify({
-        action: action,
-        sheet: 'Sheet1',
-        id: id, // Hanya untuk update
-        data: data
-    })
-})
-```
-
-#### 3. Fungsi Hapus Produk:
-**Lama (SheetDB):**
-```javascript
-fetch(`${API_URL}/id/${id}`, { method: 'DELETE' })
-```
-**Baru (GAS):**
-```javascript
-fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify({
-        action: 'delete',
-        sheet: 'Sheet1',
-        id: id
-    })
+const formData = new FormData();
+formData.append('json', JSON.stringify(data));
+fetch(url, {
+    method: 'POST',  // Simple method
+    body: formData  // No headers set - browser handles it
 })
 ```
 
 ---
 
-## 3. Apa yang Dihapus?
-1.  **Ketergantungan SheetDB:** Anda bisa menghapus akun SheetDB atau membiarkannya sebagai cadangan.
-2.  **API Key SheetDB:** Jika sebelumnya Anda menggunakan API Key di header, ini tidak lagi diperlukan di GAS (kecuali Anda menambahkan sistem token sendiri).
+## 4. Apa yang Dihapus?
+1.  **Metode HTTP PATCH/DELETE:** Tidak lagi digunakan, semua operasi melalui POST
+2.  **Custom Headers:** Content-Type tidak di-set manual untuk write operations
+3.  **Ketergantungan SheetDB:** Anda bisa menghapus akun SheetDB atau membiarkannya sebagai cadangan.
 
 ---
 
-## 4. Keuntungan Setelah Migrasi
+## 5. Keuntungan Setelah Migrasi
 *   **Tanpa Batas:** Tidak ada lagi batasan 500 request per bulan.
+*   **No CORS Issues:** FormData approach menghindari preflight OPTIONS yang GAS tidak bisa handle.
 *   **Kontrol Penuh:** Anda bisa menambahkan logika custom di sisi server (misal: kirim email otomatis saat ada pesanan baru) langsung di Apps Script.
 *   **Gratis:** Selama Google Sheets gratis, API Anda juga gratis.
 
 ---
 **Catatan Penting:** 
-Saat melakukan `fetch` ke Google Apps Script, browser akan melakukan *redirect*. Pastikan kode JavaScript Anda tidak memblokir redirect (secara default aman). Jika muncul error CORS, pastikan saat Deploy di GAS, bagian "Who has access" sudah diset ke **Anyone**.
+- GAS Web App hanya mendukung doGet(e) dan doPost(e). Metode PATCH/DELETE tidak didukung.
+- Semua write operations harus menggunakan POST dengan FormData berisi field 'json'
+- Sheet whitelist: products, categories, orders, users, user_points, tukar_poin, banners, claims, settings
