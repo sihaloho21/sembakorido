@@ -1164,25 +1164,6 @@ function closeOrderTracking() {
 /**
  * Open reward modal (using existing modal from homepage)
  */
-function openRewardModal() {
-    // Get user's WhatsApp number
-    const user = getLoggedInUser();
-    if (!user) return;
-    
-    // Set WhatsApp input in reward modal
-    const whatsappInput = document.getElementById('reward-phone');
-    if (whatsappInput) {
-        whatsappInput.value = user.whatsapp;
-    }
-    
-    // Show the reward modal from homepage script
-    if (typeof showRewardModal === 'function') {
-        showRewardModal();
-    } else {
-        alert('Fitur reward akan segera hadir!');
-    }
-}
-
 /**
  * Update order card to add tracking button
  */
