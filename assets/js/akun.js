@@ -1422,6 +1422,17 @@ function escapeHtml(text) {
 }
 
 /**
+ * Hide all reward loaders (for akun page modal)
+ */
+function hideRewardLoaders() {
+    const loadingEl = document.getElementById('reward-items-loading');
+    const legacyLoadingEl = document.getElementById('rewards-loading');
+    
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (legacyLoadingEl) legacyLoadingEl.classList.add('hidden');
+}
+
+/**
  * Fetch reward items from tukar_poin sheet for akun page
  */
 async function fetchRewardItemsForAkun() {
@@ -1447,17 +1458,13 @@ async function fetchRewardItemsForAkun() {
         const data = await response.json();
         const items = parseSheetResponse(data);
         
-        // Hide loading state
-        if (loadingEl) loadingEl.classList.add('hidden');
-        
         // Render items
         renderRewardItemsListAkun(items);
         
     } catch (error) {
         console.error('Error fetching reward items:', error);
         
-        // Hide loading and empty states
-        if (loadingEl) loadingEl.classList.add('hidden');
+        // Hide empty state
         if (emptyEl) emptyEl.classList.add('hidden');
         
         // Show error message
@@ -1466,6 +1473,9 @@ async function fetchRewardItemsForAkun() {
                 <p class="text-xs text-red-600 font-semibold">Gagal memuat hadiah. Silakan coba lagi nanti.</p>
             </div>
         `;
+    } finally {
+        // Always hide loaders in finally block
+        hideRewardLoaders();
     }
 }
 
