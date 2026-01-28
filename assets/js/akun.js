@@ -39,6 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loggedInUser) {
         // User already logged in, show dashboard
         showDashboard(loggedInUser);
+        
+        // Set global AkunUser for reward context
+        window.AkunUser = loggedInUser;
     } else {
         // Show login form
         showLogin();
@@ -167,6 +170,10 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         // Login successful
         foundUser.whatsapp = normalizePhoneTo08(foundUser.whatsapp || foundUser.phone || normalizedPhone);
         saveLoggedInUser(foundUser);
+        
+        // Set global AkunUser for reward context
+        window.AkunUser = foundUser;
+        
         showDashboard(foundUser);
         document.getElementById('dashboard-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
         
@@ -1363,12 +1370,17 @@ function closeLoyaltyModal() {
 /**
  * Update openRewardModal to load points and open modal
  */
-function openRewardModal() {
+async function openRewardModal() {
     const user = getLoggedInUser();
     if (!user) return;
     
     // Load and display user's current points
-    loadModalPoints();
+    await loadModalPoints();
+    
+    // Set reward context from user data
+    const pointsEl = document.getElementById('loyalty-modal-points');
+    const userPoints = pointsEl ? parseInt(pointsEl.textContent || '0') : 0;
+    setRewardContextFromAkun(user.whatsapp, userPoints);
     
     // Show modal
     document.getElementById('loyalty-modal').classList.remove('hidden');
@@ -1527,10 +1539,53 @@ function renderRewardItemsListAkun(items) {
                 </div>
                 
                 <!-- Full-width Button -->
-                <button class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg transition text-sm" onclick="showConfirmTukarModal('${id}')">
+                <button class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg transition text-sm" onclick="handleTukarSekarangAkun('${id}')">
                     Tukar Sekarang
                 </button>
             </div>
         `;
     }).join('');
+}
+
+/**
+ * Set reward context from akun page automatically
+ * @param {string} userPhone - User's phone number
+ * @param {number} userPoints - User's current points
+ */
+function setRewardContextFromAkun(userPhone, userPoints) {
+    if (userPhone) {
+        sessionStorage.setItem('reward_phone', userPhone);
+        console.log('✅ Reward context set - phone:', userPhone);
+    }
+    if (userPoints !== undefined && userPoints !== null) {
+        sessionStorage.setItem('user_points', userPoints.toString());
+        console.log('✅ Reward context set - points:', userPoints);
+    }
+}
+
+/**
+ * Handle "Tukar Sekarang" button click from akun page
+ * Ensures reward context is set before opening confirmation modal
+ * @param {string} rewardId - ID of the reward to exchange
+ */
+function handleTukarSekarangAkun(rewardId) {
+    const user = getLoggedInUser();
+    if (!user) {
+        showToast('Mohon login terlebih dahulu.');
+        return;
+    }
+    
+    // Get user's current points from the modal display
+    const pointsEl = document.getElementById('loyalty-modal-points');
+    const userPoints = pointsEl ? parseInt(pointsEl.textContent || '0') : 0;
+    
+    // Set reward context automatically
+    setRewardContextFromAkun(user.whatsapp, userPoints);
+    
+    // Call the existing showConfirmTukarModal function
+    if (typeof showConfirmTukarModal === 'function') {
+        showConfirmTukarModal(rewardId);
+    } else {
+        showToast('Fitur tukar poin akan segera hadir!');
+    }
 }
