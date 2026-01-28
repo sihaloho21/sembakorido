@@ -293,9 +293,15 @@ async function loadLoyaltyPoints(user) {
             const points = parseInt(userPoints.points || userPoints.poin || 0);
             console.log(`✅ User points: ${points}`);
             document.getElementById('loyalty-points').textContent = points;
+            
+            // Auto-set reward context for seamless redemption
+            setRewardContextFromAkun(user.whatsapp, points, user.nama);
         } else {
             console.log('⚠️ No points record found for user');
             document.getElementById('loyalty-points').textContent = '0';
+            
+            // Set context with 0 points
+            setRewardContextFromAkun(user.whatsapp, 0, user.nama);
         }
         
     } catch (error) {
@@ -1354,7 +1360,7 @@ async function openRewardModal() {
     // Set reward context from user data
     const pointsEl = document.getElementById('loyalty-modal-points');
     const userPoints = pointsEl ? parseInt(pointsEl.textContent || '0') : 0;
-    setRewardContextFromAkun(user.whatsapp, userPoints);
+    setRewardContextFromAkun(user.whatsapp, userPoints, user.nama);
     
     // Show modal
     document.getElementById('loyalty-modal').classList.remove('hidden');
@@ -1526,8 +1532,9 @@ function renderRewardItemsListAkun(items) {
  * Set reward context from akun page automatically
  * @param {string} userPhone - User's phone number
  * @param {number} userPoints - User's current points
+ * @param {string} userName - User's name
  */
-function setRewardContextFromAkun(userPhone, userPoints) {
+function setRewardContextFromAkun(userPhone, userPoints, userName) {
     if (userPhone) {
         sessionStorage.setItem('reward_phone', userPhone);
         console.log('✅ Reward context set - phone:', userPhone);
@@ -1535,6 +1542,10 @@ function setRewardContextFromAkun(userPhone, userPoints) {
     if (userPoints !== undefined && userPoints !== null) {
         sessionStorage.setItem('user_points', userPoints.toString());
         console.log('✅ Reward context set - points:', userPoints);
+    }
+    if (userName) {
+        sessionStorage.setItem('reward_customer_name', userName);
+        console.log('✅ Reward context set - name:', userName);
     }
 }
 
@@ -1550,16 +1561,19 @@ function handleTukarSekarangAkun(rewardId) {
         return;
     }
     
-    // Get user's current points from the modal display
-    const pointsEl = document.getElementById('loyalty-modal-points');
+    // Get user's current points from the akun page display
+    const pointsEl = document.getElementById('loyalty-points');
     const userPoints = pointsEl ? parseInt(pointsEl.textContent || '0') : 0;
     
-    // Set reward context automatically
-    setRewardContextFromAkun(user.whatsapp, userPoints);
+    // Set reward context automatically with phone, points, and name
+    setRewardContextFromAkun(user.whatsapp, userPoints, user.nama);
     
     // Call the existing showConfirmTukarModal function
     if (typeof showConfirmTukarModal === 'function') {
         showConfirmTukarModal(rewardId);
+    } else if (typeof window.claimReward === 'function') {
+        // Fallback to claimReward if showConfirmTukarModal is not available
+        window.claimReward(rewardId);
     } else {
         showToast('Fitur tukar poin akan segera hadir!');
     }
