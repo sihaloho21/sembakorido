@@ -174,16 +174,9 @@ async function deleteBanner(bannerId) {
     }
 
     try {
-        const apiUrl = CONFIG.getAdminApiUrl();
         console.log('🗑️ [BANNER-ADMIN] Deleting banner:', bannerId);
         
-        const response = await fetch(`${apiUrl}/id/${bannerId}?sheet=banners`, {
-            method: 'DELETE'
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+        await GASActions.delete('banners', bannerId);
 
         console.log('✅ [BANNER-ADMIN] Banner deleted successfully');
         alert('Banner berhasil dihapus!');
@@ -224,41 +217,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     status: document.getElementById('form-banner-status').value
                 };
 
-                const apiUrl = CONFIG.getAdminApiUrl();
-
                 if (currentBannerEdit) {
                     // Update existing banner
                     console.log('📝 [BANNER-ADMIN] Updating banner:', bannerData);
                     
-                    const response = await fetch(`${apiUrl}/id/${currentBannerEdit.id}?sheet=banners`, {
-                        method: 'PATCH',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ data: bannerData })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
+                    await GASActions.update('banners', currentBannerEdit.id, bannerData);
 
                     console.log('✅ [BANNER-ADMIN] Banner updated successfully');
                     alert('Banner berhasil diperbarui!');
                 } else {
-                    // Create new banner
+                    // Create new banner - ensure ID is present
+                    if (!bannerId) {
+                        bannerData.id = Date.now().toString();
+                    }
                     console.log('➕ [BANNER-ADMIN] Creating banner:', bannerData);
                     
-                    const response = await fetch(`${apiUrl}?sheet=banners`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ data: [bannerData] })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
+                    await GASActions.create('banners', bannerData);
 
                     console.log('✅ [BANNER-ADMIN] Banner created successfully');
                     alert('Banner berhasil ditambahkan!');
