@@ -196,12 +196,7 @@ async function updateOrderStatus(id, newStatus) {
             return;
         }
 
-        const result = await apiPost(API_URL, { 
-            action: 'update',
-            sheet: ORDERS_SHEET,
-            id: id,
-            data: { status: newStatus } 
-        });
+        const result = await GASActions.update(ORDERS_SHEET, id, { status: newStatus });
         
         if (result.affected > 0) {
             if (newStatus === 'Terima' && order.point_processed !== 'Yes') {
@@ -216,37 +211,23 @@ async function updateOrderStatus(id, newStatus) {
                     let pointUpdateSuccess = false;
                     if (Array.isArray(userData) && userData.length > 0) {
                         const currentPoints = parseFloat(userData[0].points) || 0;
-                        const updateRes = await apiPost(API_URL, { 
-                            action: 'update',
-                            sheet: 'user_points',
-                            id: userData[0].id,
-                            data: { 
-                                points: currentPoints + pointsToAdd,
-                                last_updated: new Date().toLocaleString('id-ID')
-                            } 
+                        const updateRes = await GASActions.update('user_points', userData[0].id, { 
+                            points: currentPoints + pointsToAdd,
+                            last_updated: new Date().toLocaleString('id-ID')
                         });
                         if (updateRes.affected > 0) pointUpdateSuccess = true;
                     } else {
-                        const createRes = await apiPost(API_URL, { 
-                            action: 'create',
-                            sheet: 'user_points',
-                            data: { 
-                                id: Date.now().toString(),
-                                phone: phone,
-                                points: pointsToAdd,
-                                last_updated: new Date().toLocaleString('id-ID')
-                            } 
+                        const createRes = await GASActions.create('user_points', { 
+                            id: Date.now().toString(),
+                            phone: phone,
+                            points: pointsToAdd,
+                            last_updated: new Date().toLocaleString('id-ID')
                         });
                         if (createRes.created > 0) pointUpdateSuccess = true;
                     }
 
                     if (pointUpdateSuccess) {
-                        await apiPost(API_URL, { 
-                            action: 'update',
-                            sheet: ORDERS_SHEET,
-                            id: id,
-                            data: { point_processed: 'Yes' } 
-                        });
+                        await GASActions.update(ORDERS_SHEET, id, { point_processed: 'Yes' });
                         
 
                         
@@ -320,12 +301,7 @@ function openEditCategory(id, nama, deskripsi) {
 
 async function handleEditCategory(id, nama, deskripsi) {
     try {
-        const result = await apiPost(API_URL, { 
-            action: 'update',
-            sheet: CATEGORIES_SHEET,
-            id: id,
-            data: { nama, deskripsi } 
-        });
+        const result = await GASActions.update(CATEGORIES_SHEET, id, { nama, deskripsi });
         if (result.affected > 0) {
             showAdminToast('Kategori berhasil diperbarui!', 'success');
             fetchCategories();
@@ -339,11 +315,7 @@ async function handleEditCategory(id, nama, deskripsi) {
 async function handleDeleteCategory(id) {
     if (!confirm('Apakah Anda yakin ingin menghapus kategori ini?')) return;
     try {
-        const result = await apiPost(API_URL, { 
-            action: 'delete',
-            sheet: CATEGORIES_SHEET,
-            id: id
-        });
+        const result = await GASActions.delete(CATEGORIES_SHEET, id);
         if (result.deleted > 0) {
             showAdminToast('Kategori berhasil dihapus!', 'success');
             fetchCategories();
@@ -480,12 +452,12 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
         const action = id ? 'update' : 'create';
         const productId = id || Date.now().toString();
         
-        const result = await apiPost(API_URL, { 
-            action: action,
-            sheet: PRODUCTS_SHEET,
-            id: productId,
-            data: id ? data : { ...data, id: productId }
-        });
+        let result;
+        if (id) {
+            result = await GASActions.update(PRODUCTS_SHEET, productId, data);
+        } else {
+            result = await GASActions.create(PRODUCTS_SHEET, { ...data, id: productId });
+        }
         if (result.affected > 0 || result.created > 0) {
             showAdminToast(id ? 'Produk berhasil diperbarui!' : 'Produk berhasil ditambahkan!', 'success');
             closeModal();
@@ -503,11 +475,7 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
 async function handleDelete(id) {
     if (!confirm('Apakah Anda yakin ingin menghapus produk ini?')) return;
     try {
-        const result = await apiPost(API_URL, { 
-            action: 'delete',
-            sheet: PRODUCTS_SHEET,
-            id: id
-        });
+        const result = await GASActions.delete(PRODUCTS_SHEET, id);
         if (result.deleted > 0) {
             showAdminToast('Produk berhasil dihapus!', 'success');
             fetchAdminProducts();
@@ -529,11 +497,7 @@ document.getElementById('category-form').addEventListener('submit', async (e) =>
     submitBtn.innerHTML = 'Menyimpan...';
 
     try {
-        const result = await apiPost(API_URL, { 
-            action: 'create',
-            sheet: CATEGORIES_SHEET,
-            data: { id: Date.now().toString(), nama, deskripsi }
-        });
+        const result = await GASActions.create(CATEGORIES_SHEET, { id: Date.now().toString(), nama, deskripsi });
         if (result.created > 0) {
             showAdminToast('Kategori berhasil ditambahkan!', 'success');
             e.target.reset();
@@ -627,11 +591,7 @@ async function handleDeleteTukarPoin(id) {
     if (!confirm('Apakah Anda yakin ingin menghapus produk tukar poin ini?')) return;
     
     try {
-        const result = await apiPost(API_URL, { 
-            action: 'delete',
-            sheet: TUKAR_POIN_SHEET,
-            id: id
-        });
+        const result = await GASActions.delete(TUKAR_POIN_SHEET, id);
         if (result.deleted > 0) {
             showAdminToast('Produk tukar poin berhasil dihapus!', 'success');
             fetchTukarPoin();
@@ -674,12 +634,12 @@ document.getElementById('tukar-poin-form').addEventListener('submit', async (e) 
         const action = id ? 'update' : 'create';
         const productId = id || Date.now().toString();
         
-        const result = await apiPost(API_URL, { 
-            action: action,
-            sheet: TUKAR_POIN_SHEET,
-            id: productId,
-            data: id ? data : { ...data, id: productId }
-        });
+        let result;
+        if (id) {
+            result = await GASActions.update(TUKAR_POIN_SHEET, productId, data);
+        } else {
+            result = await GASActions.create(TUKAR_POIN_SHEET, { ...data, id: productId });
+        }
         
         if (result.created > 0 || result.affected > 0) {
             showAdminToast(id ? 'Produk tukar poin berhasil diperbarui!' : 'Produk tukar poin berhasil ditambahkan!', 'success');
@@ -736,14 +696,9 @@ async function editUserPoints(phone, currentPoints) {
             return;
         }
         
-        const result = await apiPost(API_URL, { 
-            action: 'update',
-            sheet: 'user_points',
-            id: user.id,
-            data: { 
-                points: parseFloat(newPoints),
-                last_updated: new Date().toLocaleString('id-ID')
-            } 
+        const result = await GASActions.update('user_points', user.id, { 
+            points: parseFloat(newPoints),
+            last_updated: new Date().toLocaleString('id-ID')
         });
         if (result.affected > 0) {
             showAdminToast('Saldo poin diperbarui!', 'success');
