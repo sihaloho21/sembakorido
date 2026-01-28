@@ -1489,6 +1489,18 @@ function handleLogoClick() {
 }
 
 // ============ REWARD MODAL FUNCTIONS ============
+
+/**
+ * Hide global reward loader (for index.html modal)
+ */
+function hideGlobalRewardLoader() {
+    const loadingEl = document.getElementById('reward-items-loading');
+    const legacyLoadingEl = document.getElementById('rewards-loading');
+    
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (legacyLoadingEl) legacyLoadingEl.classList.add('hidden');
+}
+
 async function fetchTukarPoin() {
     const rewardList = document.getElementById('reward-items-list');
     if (!rewardList) return;
@@ -1506,6 +1518,9 @@ async function fetchTukarPoin() {
                 <p class="text-xs text-red-600 font-semibold">Gagal memuat hadiah. Silakan coba lagi nanti.</p>
             </div>
         `;
+    } finally {
+        // Always hide loaders in finally block
+        hideGlobalRewardLoader();
     }
 }
 
