@@ -1217,6 +1217,9 @@ function switchRewardTab(tab) {
         
         exchangeContent.classList.remove('hidden');
         historyContent.classList.add('hidden');
+        
+        // Load reward items when switching to exchange tab
+        fetchRewardItemsForAkun();
     } else if (tab === 'history') {
         // Activate history tab
         historyTab.classList.add('text-amber-600', 'border-amber-600');
@@ -1372,6 +1375,9 @@ function openRewardModal() {
     
     // Default to exchange tab
     switchRewardTab('exchange');
+    
+    // Fetch reward items for the exchange tab
+    fetchRewardItemsForAkun();
 }
 
 /**
@@ -1404,4 +1410,117 @@ async function loadModalPoints() {
         console.error('Error loading modal points:', error);
         document.getElementById('loyalty-modal-points').textContent = '0';
     }
+}
+
+/**
+ * HTML escape helper to prevent XSS
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
+ * Fetch reward items from tukar_poin sheet for akun page
+ */
+async function fetchRewardItemsForAkun() {
+    const loadingEl = document.getElementById('reward-items-loading');
+    const emptyEl = document.getElementById('reward-items-empty');
+    const listEl = document.getElementById('reward-items-list');
+    
+    if (!listEl) return;
+    
+    // Show loading state
+    if (loadingEl) loadingEl.classList.remove('hidden');
+    if (emptyEl) emptyEl.classList.add('hidden');
+    listEl.innerHTML = '';
+    
+    try {
+        const apiUrl = CONFIG.getMainApiUrl();
+        const response = await fetch(`${apiUrl}?sheet=tukar_poin`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch reward items');
+        }
+        
+        const data = await response.json();
+        const items = parseSheetResponse(data);
+        
+        // Hide loading state
+        if (loadingEl) loadingEl.classList.add('hidden');
+        
+        // Render items
+        renderRewardItemsListAkun(items);
+        
+    } catch (error) {
+        console.error('Error fetching reward items:', error);
+        
+        // Hide loading and empty states
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (emptyEl) emptyEl.classList.add('hidden');
+        
+        // Show error message
+        listEl.innerHTML = `
+            <div class="text-center py-6 bg-red-50 rounded-2xl border-2 border-dashed border-red-200">
+                <p class="text-xs text-red-600 font-semibold">Gagal memuat hadiah. Silakan coba lagi nanti.</p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Render reward items list for akun page
+ */
+function renderRewardItemsListAkun(items) {
+    const emptyEl = document.getElementById('reward-items-empty');
+    const listEl = document.getElementById('reward-items-list');
+    
+    if (!listEl) return;
+    
+    // Check if items is empty
+    if (!items || items.length === 0) {
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        listEl.innerHTML = '';
+        return;
+    }
+    
+    // Hide empty state
+    if (emptyEl) emptyEl.classList.add('hidden');
+    
+    // Render items with image on left, matching reference style
+    listEl.innerHTML = items.map(item => {
+        const id = escapeHtml((item.id || '').toString());
+        const nama = escapeHtml((item.nama || item.judul || 'Hadiah').toString());
+        const poin = parseInt(item.poin || item.Poin || 0);
+        const gambar = escapeHtml((item.gambar || 'https://via.placeholder.com/80?text=Reward').toString());
+        const deskripsi = escapeHtml((item.deskripsi || '').toString());
+        
+        return `
+            <div class="border-2 border-gray-200 rounded-xl p-4 hover:border-amber-500 transition">
+                <div class="flex gap-3 mb-3">
+                    <!-- Left: Image -->
+                    <div class="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                        <img src="${gambar}" alt="${nama}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/80?text=Reward'">
+                    </div>
+                    
+                    <!-- Middle: Title & Description -->
+                    <div class="flex-1 min-w-0">
+                        <p class="font-bold text-gray-800 text-sm mb-1">${nama}</p>
+                        <p class="text-xs text-gray-500 line-clamp-2">${deskripsi}</p>
+                    </div>
+                    
+                    <!-- Right: Badge -->
+                    <div class="flex-shrink-0">
+                        <span class="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">${poin} Poin</span>
+                    </div>
+                </div>
+                
+                <!-- Full-width Button -->
+                <button class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg transition text-sm" onclick="showConfirmTukarModal('${id}')">
+                    Tukar Sekarang
+                </button>
+            </div>
+        `;
+    }).join('');
 }
