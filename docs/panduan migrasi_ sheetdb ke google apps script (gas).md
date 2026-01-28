@@ -14,8 +14,10 @@ Anda tidak perlu menghapus data apa pun di Google Sheets. Kita hanya akan menamb
 3.  Hapus semua kode yang ada di editor, lalu masukkan kode GAS yang mendukung doGet(e) dan doPost(e).
 
 **Format Request dari Frontend:**
-- Semua operasi write (create/update/delete) menggunakan POST dengan FormData
+- **PENTING:** Semua operasi write (create/update/delete) HARUS menggunakan POST dengan FormData
 - FormData berisi field `json` dengan stringified payload
+- **TIDAK BOLEH** menggunakan metode HTTP PATCH atau DELETE
+- **TIDAK BOLEH** men-set header `Content-Type` secara manual untuk operasi write
 - GAS membaca dari `e.parameter.json` atau `e.postData.contents`
 
 4.  Klik tombol **Save** (ikon disket) dan beri nama "Paket Sembako API".
@@ -72,7 +74,62 @@ const GASActions = {
 };
 ```
 
-### C. File `admin/js/admin-script.js` (Operasi CRUD)
+### C. File `assets/js/api-service.js` (Updated)
+ApiService.post() telah direfaktor untuk menggunakan FormData:
+
+```javascript
+async post(endpoint, data, options = {}) {
+    // Create FormData to avoid preflight
+    const formData = new FormData();
+    formData.append('json', JSON.stringify(data));
+    
+    return this.fetch(endpoint, {
+        ...options,
+        method: 'POST',
+        body: formData,
+        cache: false
+    });
+}
+```
+
+**CATATAN PENTING:** ApiService.patch() sudah deprecated. Gunakan GASActions.update() untuk semua operasi update.
+
+### D. File `assets/js/script.js` (Checkout Flow)
+
+Fungsi checkout telah diperbarui untuk menggunakan `logOrderToGAS()`:
+
+```javascript
+async function logOrderToGAS(order) {
+    const orderData = {
+        id: order.id || generateOrderId(),
+        pelanggan: order.pelanggan || '',
+        produk: order.produk || '',
+        qty: order.qty || 0,
+        total: order.total || 0,
+        status: order.status || 'Pending',
+        tanggal: order.tanggal || new Date().toLocaleString('id-ID'),
+        phone: order.phone || '',
+        poin: order.poin || 0,
+        point_processed: order.point_processed || 'No'
+    };
+    
+    return await GASActions.create('orders', orderData);
+}
+
+async function sendToWA() {
+    // ... validations ...
+    
+    try {
+        await logOrderToGAS(orderData);  // Log to GAS first
+        // ... clear cart and show success ...
+        showSuccessNotification(orderId, waUrl);  // Then redirect to WhatsApp
+    } catch (err) {
+        alert('Gagal menyimpan pesanan. Silakan coba lagi.');
+    }
+}
+```
+
+### E. File `admin/js/admin-script.js` (Operasi CRUD)
 
 #### 1. Update Status Pesanan:
 ```javascript
@@ -94,7 +151,7 @@ if (id) {
 await GASActions.delete('products', id);
 ```
 
-### D. File `admin/js/banner-management.js`
+### F. File `admin/js/banner-management.js`
 
 ```javascript
 // Create banner
@@ -107,7 +164,7 @@ await GASActions.update('banners', id, bannerData);
 await GASActions.delete('banners', id);
 ```
 
-### E. File `admin/js/tiered-pricing.js`
+### G. File `admin/js/tiered-pricing.js`
 
 ```javascript
 // Update product with tiered pricing
@@ -122,14 +179,28 @@ await GASActions.update('products', productId, { grosir: JSON.stringify(tiers) }
 - **FormData tanpa custom headers** tidak memicu preflight OPTIONS request
 - Browser otomatis set `Content-Type: multipart/form-data` dengan boundary
 - GAS Web App dapat langsung memproses request tanpa masalah CORS
+- **CRITICAL:** Setting `Content-Type: application/json` AKAN memicu preflight yang GAS tidak bisa handle
 
 ### Perbandingan Metode
 
 ❌ **Metode Lama (Trigger Preflight):**
 ```javascript
+// JANGAN LAKUKAN INI - Akan trigger preflight!
 fetch(url, {
-    method: 'PATCH',  // Non-simple method
-    headers: { 'Content-Type': 'application/json' },  // Simple type but with PATCH/DELETE triggers preflight
+    method: 'PATCH',  // Non-simple method triggers preflight
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+})
+
+// JANGAN LAKUKAN INI - Akan trigger preflight!
+fetch(url, {
+    method: 'DELETE'  // Non-simple method triggers preflight
+})
+
+// JANGAN LAKUKAN INI - Akan trigger preflight!
+fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },  // Custom header triggers preflight
     body: JSON.stringify(data)
 })
 ```
@@ -140,16 +211,18 @@ const formData = new FormData();
 formData.append('json', JSON.stringify(data));
 fetch(url, {
     method: 'POST',  // Simple method
-    body: formData  // No headers set - browser handles it
+    body: formData  // No headers set - browser handles it automatically
 })
 ```
 
 ---
 
 ## 4. Apa yang Dihapus?
-1.  **Metode HTTP PATCH/DELETE:** Tidak lagi digunakan, semua operasi melalui POST
-2.  **Custom Headers:** Content-Type tidak di-set manual untuk write operations
-3.  **Ketergantungan SheetDB:** Anda bisa menghapus akun SheetDB atau membiarkannya sebagai cadangan.
+1.  **Metode HTTP PATCH/DELETE:** ❌ TIDAK LAGI DIGUNAKAN - Semua operasi melalui POST
+2.  **Custom Headers pada Write Operations:** ❌ TIDAK BOLEH set Content-Type manual
+3.  **ApiService.patch():** ⚠️ DEPRECATED - Gunakan GASActions.update()
+4.  **JSON.stringify() di body tanpa FormData:** ❌ Akan trigger preflight
+5.  **Ketergantungan SheetDB:** ✅ Anda bisa menghapus akun SheetDB atau membiarkannya sebagai cadangan.
 
 ---
 
@@ -158,9 +231,39 @@ fetch(url, {
 *   **No CORS Issues:** FormData approach menghindari preflight OPTIONS yang GAS tidak bisa handle.
 *   **Kontrol Penuh:** Anda bisa menambahkan logika custom di sisi server (misal: kirim email otomatis saat ada pesanan baru) langsung di Apps Script.
 *   **Gratis:** Selama Google Sheets gratis, API Anda juga gratis.
+*   **Checkout Flow Fixed:** Order logging berhasil sebelum redirect ke WhatsApp, tidak ada lagi CORS error.
 
 ---
+
+## 6. Checklist Validasi
+
+Setelah migrasi, pastikan:
+
+✅ **Grep Checks:**
+```bash
+# Harus return 0 matches
+grep -R "method:\s*'PATCH'\|\"PATCH\"" admin/js
+grep -R "method:\s*'DELETE'\|\"DELETE\"" admin/js
+
+# Content-Type tidak boleh di-set untuk write operations
+grep -R "Content-Type.*application/json" admin/js
+```
+
+✅ **Manual Tests:**
+- Checkout: Click "Kirim Pesanan ke WhatsApp" → Order logged (check Network tab: 200 OK, no OPTIONS) → WhatsApp redirect
+- Admin Products: Create/Update/Delete works without preflight
+- Admin Banners: Create/Update/Delete works without preflight  
+- Admin Categories: Create/Update/Delete works without preflight
+- Admin Tukar Poin: Create/Update/Delete works without preflight
+- Admin User Points: Update works without preflight
+- Tiered Pricing: Update works without preflight
+
+---
+
 **Catatan Penting:** 
 - GAS Web App hanya mendukung doGet(e) dan doPost(e). Metode PATCH/DELETE tidak didukung.
-- Semua write operations harus menggunakan POST dengan FormData berisi field 'json'
+- **SEMUA write operations HARUS menggunakan POST dengan FormData berisi field 'json'**
+- **JANGAN PERNAH set Content-Type header untuk write operations - biarkan browser yang handle**
 - Sheet whitelist: products, categories, orders, users, user_points, tukar_poin, banners, claims, settings
+- Setelah checkout berhasil, order akan tercatat di sheet 'orders' SEBELUM redirect ke WhatsApp
+
