@@ -826,19 +826,15 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
 
         
         // Create new user
-        const createResult = await apiPost(apiUrl, {
-            action: 'create',
-            sheet: 'users',
-            data: {
-                id: userId,
-                nama: name,
-                whatsapp: normalizedPhone,
-                pin: pin,
-                tanggal_daftar: today,
-                status: 'aktif',
-                total_points: 0,
-                created_at: now
-            }
+        const createResult = await GASActions.create('users', {
+            id: userId,
+            nama: name,
+            whatsapp: normalizedPhone,
+            pin: pin,
+            tanggal_daftar: today,
+            status: 'aktif',
+            total_points: 0,
+            created_at: now
         });
         
         if (!createResult.created || createResult.created < 1) {
@@ -1040,12 +1036,7 @@ document.getElementById('edit-profile-form').addEventListener('submit', async (e
             updateData.pin = newPin;
         }
         
-        const updateResult = await apiPost(apiUrl, {
-            action: 'update',
-            sheet: 'users',
-            id: user.id,
-            data: updateData
-        });
+        const updateResult = await GASActions.update('users', user.id, updateData);
         
         if (!updateResult.affected || updateResult.affected < 1) {
             throw new Error('Failed to update');
