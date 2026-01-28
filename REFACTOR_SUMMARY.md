@@ -157,6 +157,8 @@ Setelah perubahan ini di-merge, lakukan pengujian fungsional pada panel admin un
 7. **Tiered Pricing:**
    - ✅ Toggle harga grosir
    - ✅ Update tier pricing
+   - ✅ Works with string/numeric product IDs
+   - ✅ No NaN prices with invalid base prices
 
 ### 🔍 Network DevTools Check
 
@@ -168,6 +170,42 @@ Verify in browser DevTools Network tab:
 - ✅ Response status 200 without CORS errors
 
 ## Catatan Penting
+
+### Phone Normalization (akun.js)
+
+**Problem:** Google Sheets may return phone/whatsapp values as numbers instead of strings, causing TypeError when `.replace()` is called.
+
+**Solution:**
+```javascript
+const normalizePhoneTo08 = (phone) => {
+    // Safely convert to string first to handle numbers, null, undefined
+    const phoneStr = String(phone == null ? '' : phone);
+    const digits = phoneStr.replace(/[^0-9]/g, '');
+    // ... rest of normalization
+};
+```
+
+### Tiered Pricing Robustness (admin/js/tiered-pricing.js)
+
+**Problem 1:** Product ID type mismatch (string vs number) causes `find()` to return undefined.
+**Solution:** Use `String(p.id) === String(productId)` for comparison.
+
+**Problem 2:** `parseInt(product.harga) * 0.95` produces NaN when harga is not numeric.
+**Solution:**
+```javascript
+const basePrice = parseInt(product.harga) || 0;
+const defaultPrice = basePrice > 0 ? Math.floor(basePrice * 0.95) : 0;
+```
+
+**Problem 3:** Invalid tier entries (NaN values) cause issues in display and calculations.
+**Solution:** Filter in `parseGrosirData`:
+```javascript
+const validTiers = parsed.filter(tier => {
+    const minQty = parseInt(tier.min_qty);
+    const price = parseInt(tier.price);
+    return !isNaN(minQty) && !isNaN(price) && minQty > 0 && price >= 0;
+});
+```
 
 ### Backend Google Apps Script
 
@@ -272,5 +310,8 @@ Refactoring ini menyelesaikan eliminasi CORS errors dengan:
 - ✅ Memastikan tidak ada metode PATCH/DELETE yang tersisa
 - ✅ Menyediakan pendekatan konsisten untuk semua write operations
 - ✅ Menghindari CORS preflight OPTIONS requests sepenuhnya
+- ✅ **Safe phone normalization** di akun.js untuk handle nilai numerik dari Sheets
+- ✅ **Robust tiered pricing** dengan String ID matching dan validasi data
+- ✅ **NaN-free default prices** dengan penanganan base price yang aman
 
-Proyek `sembakorido` kini memiliki implementasi yang benar-benar bebas dari CORS issues, menggunakan FormData approach yang sesuai dengan limitasi GAS Web App.
+Proyek `sembakorido` kini memiliki implementasi yang benar-benar bebas dari CORS issues, menggunakan FormData approach yang sesuai dengan limitasi GAS Web App, serta penanganan data yang robust untuk mencegah TypeError dan nilai NaN.
