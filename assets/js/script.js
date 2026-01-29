@@ -175,6 +175,62 @@ function renderCategoryFilters() {
     
     container.innerHTML = html;
     console.log('✅ Category filters rendered:', categories.length, 'categories');
+    
+    // Add desktop scroll functionality
+    initCategoryCarouselScroll();
+}
+
+/**
+ * Initialize carousel scroll functionality for desktop
+ * Adds mouse wheel horizontal scroll and drag-to-scroll
+ */
+function initCategoryCarouselScroll() {
+    const container = document.getElementById('category-filters');
+    if (!container) return;
+    
+    // Mouse wheel horizontal scroll
+    container.addEventListener('wheel', (e) => {
+        if (e.deltaY !== 0) {
+            e.preventDefault();
+            container.scrollLeft += e.deltaY;
+        }
+    }, { passive: false });
+    
+    // Drag to scroll
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+    
+    container.addEventListener('mousedown', (e) => {
+        // Only enable drag on container, not on buttons
+        if (e.target.classList.contains('filter-btn')) return;
+        
+        isDown = true;
+        container.style.cursor = 'grabbing';
+        startX = e.pageX - container.offsetLeft;
+        scrollLeft = container.scrollLeft;
+    });
+    
+    container.addEventListener('mouseleave', () => {
+        isDown = false;
+        container.style.cursor = 'grab';
+    });
+    
+    container.addEventListener('mouseup', () => {
+        isDown = false;
+        container.style.cursor = 'grab';
+    });
+    
+    container.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - container.offsetLeft;
+        const walk = (x - startX) * 2; // Scroll speed multiplier
+        container.scrollLeft = scrollLeft - walk;
+    });
+    
+    // Set initial cursor
+    container.style.cursor = 'grab';
 }
 
 /**
