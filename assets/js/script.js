@@ -1919,15 +1919,47 @@ async function processClaimReward(rewardId, customerName) {
         // 2. Get user data to find ID, then deduct points
         const userRes = await fetch(`${API_URL}?sheet=user_points`);
         const allUsers = await userRes.json();
-        const userData = allUsers.find(u => u.phone === phone);
         
-        if (!userData || !userData.id) {
-            alert('Data pengguna tidak ditemukan.');
+        // Normalize phone and try multiple variants
+        const normalizedPhone = normalizePhone(phone);
+        const phoneVariants = [
+            normalizedPhone,
+            normalizedPhone.replace(/^0/, '62'),
+            normalizedPhone.replace(/^0/, '+62'),
+            normalizedPhone.replace(/^0/, '')
+        ];
+        
+        // Try to find user with any phone variant
+        let userData = null;
+        for (const variant of phoneVariants) {
+            userData = allUsers.find(u => {
+                const userPhone = normalizePhone(u.phone || u.whatsapp || '');
+                return userPhone === normalizedPhone;
+            });
+            if (userData) {
+                console.log(`✅ Found user data with phone variant: ${variant}`);
+                break;
+            }
+        }
+        
+        if (!userData) {
+            console.error('❌ User not found. Phone:', phone, 'Normalized:', normalizedPhone);
+            console.error('Available users:', allUsers.map(u => ({
+                phone: u.phone,
+                normalized: normalizePhone(u.phone || u.whatsapp || '')
+            })));
+            alert('Data pengguna tidak ditemukan. Pastikan nomor WhatsApp Anda sudah terdaftar di sistem poin.');
             return;
         }
         
+        console.log('✅ User found:', userData);
+        
         const newPoints = userPoints - requiredPoints;
-        await GASActions.update('user_points', userData.id, {
+        
+        // Use phone as identifier since user_points sheet doesn't have id column
+        const userPhoneForUpdate = userData.phone || userData.whatsapp;
+        
+        await GASActions.update('user_points', userPhoneForUpdate, {
             points: newPoints,
             last_updated: new Date().toLocaleString('id-ID')
         });
