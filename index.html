@@ -106,20 +106,20 @@
                 <!-- Category Filters Carousel -->
                 <div class="relative">
                     <!-- Left Arrow Button -->
-                    <button id="category-scroll-left" class="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full w-10 h-10 items-center justify-center hover:bg-gray-100 transition opacity-0 pointer-events-none" onclick="scrollCategoryCarousel('left')">
+                    <button id="category-scroll-left" class="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full w-10 h-10 items-center justify-center hover:bg-gray-100 transition opacity-0 pointer-events-none" onclick="scrollCategoryCarousel('left')">
                         <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                         </svg>
                     </button>
                     
-                    <!-- Carousel Container -->
-                    <div id="category-filters" class="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                    <!-- Carousel Container with padding for arrows -->
+                    <div id="category-filters" class="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2 md:px-12" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
                         <!-- Categories will be dynamically loaded here -->
                         <button onclick="setCategory('Semua')" class="filter-btn active snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-green-500 bg-green-50 text-green-700 text-sm font-bold transition hover:border-green-600 hover:bg-green-100">Semua</button>
                     </div>
                     
                     <!-- Right Arrow Button -->
-                    <button id="category-scroll-right" class="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full w-10 h-10 items-center justify-center hover:bg-gray-100 transition" onclick="scrollCategoryCarousel('right')">
+                    <button id="category-scroll-right" class="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full w-10 h-10 items-center justify-center hover:bg-gray-100 transition" onclick="scrollCategoryCarousel('right')">
                         <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                         </svg>
