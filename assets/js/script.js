@@ -1966,17 +1966,32 @@ async function processClaimReward(rewardId, customerName) {
 
         // 3. Record claim in claims sheet
         const claimId = 'CLM-' + Date.now().toString().slice(-6);
-        await ApiService.post('?sheet=claims', {
-            data: [{
-                id: claimId,
-                phone: phone,
-                nama: customerName,
-                hadiah: rewardName,
-                poin: requiredPoints,
-                status: 'Menunggu',
-                tanggal: new Date().toLocaleString('id-ID')
-            }]
+        console.log('📝 Recording claim to sheet:', {
+            claimId,
+            phone,
+            customerName,
+            rewardName,
+            requiredPoints
         });
+        
+        try {
+            const claimResponse = await ApiService.post('?sheet=claims', {
+                data: [{
+                    id: claimId,
+                    phone: phone,
+                    nama: customerName,
+                    hadiah: rewardName,
+                    poin: requiredPoints,
+                    status: 'Pending',
+                    tanggal: new Date().toLocaleString('id-ID')
+                }]
+            });
+            console.log('✅ Claim recorded successfully:', claimResponse);
+        } catch (claimError) {
+            console.error('❌ Error recording claim:', claimError);
+            // Continue anyway to show success modal, but log the error
+            // Admin can manually add the claim based on WhatsApp message
+        }
 
         // 4. Update local state and UI
         sessionStorage.setItem('user_points', newPoints);
