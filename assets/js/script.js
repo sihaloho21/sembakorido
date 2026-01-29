@@ -2152,6 +2152,8 @@ async function renderWishlistItems() {
     const wishlistIds = getWishlist();
     const container = document.getElementById('wishlist-items-container');
     
+    console.log('🔍 Rendering wishlist items:', { wishlistIds, containerFound: !!container });
+    
     if (!container) return;
 
     if (wishlistIds.length === 0) {
@@ -2170,13 +2172,34 @@ async function renderWishlistItems() {
     // Use global allProducts which already has complete structure with hargaGajian, etc.
     // If allProducts is empty, fetch it first
     if (!allProducts || allProducts.length === 0) {
-        await fetchProducts();
+        console.log('📦 Fetching products for wishlist...');
+        try {
+            await fetchProducts();
+            console.log('✅ Products fetched:', allProducts.length);
+        } catch (error) {
+            console.error('❌ Failed to fetch products:', error);
+            container.innerHTML = '<p class="text-center text-red-500 py-4">Gagal memuat produk. Silakan refresh halaman.</p>';
+            return;
+        }
     }
     
-    const wishlistProducts = allProducts.filter(p => wishlistIds.includes(p.id || p.sku));
+    // ✅ FIX: Normalize IDs to string for comparison
+    const wishlistSet = new Set(wishlistIds.map(id => String(id).trim()));
+    console.log('🔍 Wishlist Set:', Array.from(wishlistSet));
+    
+    const wishlistProducts = allProducts.filter(p => {
+        const productId = String(p.id || p.sku || '').trim();
+        const isInWishlist = wishlistSet.has(productId);
+        if (isInWishlist) {
+            console.log('✅ Found wishlist product:', productId, p.nama);
+        }
+        return isInWishlist;
+    });
+
+    console.log('📊 Wishlist products found:', wishlistProducts.length);
 
     if (wishlistProducts.length === 0) {
-        container.innerHTML = '<p class="text-center text-gray-500 py-4">Produk tidak ditemukan.</p>';
+        container.innerHTML = '<p class="text-center text-gray-500 py-4">Produk tidak ditemukan. Mungkin produk sudah tidak tersedia.</p>';
         return;
     }
 
@@ -2203,6 +2226,8 @@ async function renderWishlistItems() {
             </div>
         `;
     }).join('');
+    
+    console.log('✅ Wishlist rendered successfully');
 }
 
 // Panggil saat website pertama kali dimuat
