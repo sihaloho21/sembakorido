@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Manager - GoSembako</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">📦 Category Manager</h1>
+            <p class="text-gray-600 mb-4">Tool untuk set kategori produk secara bulk</p>
+            
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                <p class="text-sm text-blue-800">
+                    <strong>⚠️ Important:</strong> Kategori harus <strong>exact match</strong> dengan nama di admin panel (case-sensitive)
+                </p>
+            </div>
+
+            <!-- Step 1: Load Data -->
+            <div class="mb-6">
+                <h2 class="text-xl font-bold mb-3">Step 1: Load Data</h2>
+                <button onclick="loadData()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold transition">
+                    🔄 Load Products & Categories
+                </button>
+                <div id="load-status" class="mt-3 text-sm"></div>
+            </div>
+
+            <!-- Step 2: Available Categories -->
+            <div id="categories-section" class="mb-6 hidden">
+                <h2 class="text-xl font-bold mb-3">Step 2: Available Categories</h2>
+                <div id="categories-list" class="bg-gray-50 p-4 rounded-lg"></div>
+            </div>
+
+            <!-- Step 3: Products Table -->
+            <div id="products-section" class="mb-6 hidden">
+                <h2 class="text-xl font-bold mb-3">Step 3: Assign Categories</h2>
+                
+                <!-- Bulk Actions -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <h3 class="font-bold mb-2">Bulk Actions:</h3>
+                    <div class="flex gap-2 flex-wrap">
+                        <select id="bulk-category" class="border border-gray-300 rounded px-3 py-2">
+                            <option value="">Select Category...</option>
+                        </select>
+                        <button onclick="applyBulkCategory()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold transition">
+                            Apply to Selected
+                        </button>
+                        <button onclick="selectAll()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded font-bold transition">
+                            Select All
+                        </button>
+                        <button onclick="deselectAll()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded font-bold transition">
+                            Deselect All
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Products Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="border border-gray-300 px-3 py-2 w-12">
+                                    <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this)">
+                                </th>
+                                <th class="border border-gray-300 px-3 py-2 text-left">ID</th>
+                                <th class="border border-gray-300 px-3 py-2 text-left">Nama Produk</th>
+                                <th class="border border-gray-300 px-3 py-2 text-left">Harga</th>
+                                <th class="border border-gray-300 px-3 py-2 text-left">Current Category</th>
+                                <th class="border border-gray-300 px-3 py-2 text-left">New Category</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-table-body">
+                            <!-- Products will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Step 4: Save Changes -->
+            <div id="save-section" class="mb-6 hidden">
+                <h2 class="text-xl font-bold mb-3">Step 4: Save Changes</h2>
+                <button onclick="saveChanges()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold transition">
+                    💾 Save All Changes
+                </button>
+                <div id="save-status" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div id="summary-section" class="bg-white rounded-lg shadow-lg p-6 hidden">
+            <h2 class="text-xl font-bold mb-3">📊 Summary</h2>
+            <div id="summary-content"></div>
+        </div>
+    </div>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api-service.js"></script>
+    <script>
+        let allProducts = [];
+        let allCategories = [];
+        let productChanges = {};
+
+        async function loadData() {
+            const statusDiv = document.getElementById('load-status');
+            statusDiv.innerHTML = '<p class="text-blue-600">⏳ Loading data...</p>';
+
+            try {
+                // Load products
+                const products = await ApiService.get('?sheet=products');
+                allProducts = products;
+                console.log('Products loaded:', allProducts.length);
+
+                // Load categories
+                const categories = await ApiService.get('?sheet=categories');
+                allCategories = categories;
+                console.log('Categories loaded:', allCategories.length);
+
+                statusDiv.innerHTML = `
+                    <p class="text-green-600">✅ Loaded ${allProducts.length} products and ${allCategories.length} categories</p>
+                `;
+
+                // Show categories section
+                displayCategories();
+                
+                // Show products table
+                displayProducts();
+
+                // Show save section
+                document.getElementById('save-section').classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                statusDiv.innerHTML = `<p class="text-red-600">❌ Error: ${error.message}</p>`;
+            }
+        }
+
+        function displayCategories() {
+            const section = document.getElementById('categories-section');
+            const listDiv = document.getElementById('categories-list');
+            const bulkSelect = document.getElementById('bulk-category');
+
+            section.classList.remove('hidden');
+
+            let html = '<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">';
+            
+            allCategories.forEach(cat => {
+                html += `
+                    <div class="bg-white border border-gray-300 rounded px-3 py-2 text-sm">
+                        <strong>${cat.nama}</strong>
+                        ${cat.deskripsi ? `<br><span class="text-gray-600 text-xs">${cat.deskripsi}</span>` : ''}
+                    </div>
+                `;
+                
+                // Add to bulk select
+                bulkSelect.innerHTML += `<option value="${cat.nama}">${cat.nama}</option>`;
+            });
+
+            html += '</div>';
+            listDiv.innerHTML = html;
+        }
+
+        function displayProducts() {
+            const section = document.getElementById('products-section');
+            const tbody = document.getElementById('products-table-body');
+
+            section.classList.remove('hidden');
+
+            let html = '';
+            allProducts.forEach((product, index) => {
+                const productId = product.id || product.sku || index;
+                const currentCategory = product.kategori || '(empty)';
+                const price = parseInt(product.harga || 0).toLocaleString('id-ID');
+
+                html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="border border-gray-300 px-3 py-2 text-center">
+                            <input type="checkbox" class="product-checkbox" data-id="${productId}">
+                        </td>
+                        <td class="border border-gray-300 px-3 py-2 text-sm">${productId}</td>
+                        <td class="border border-gray-300 px-3 py-2 text-sm font-medium">${product.nama}</td>
+                        <td class="border border-gray-300 px-3 py-2 text-sm">Rp ${price}</td>
+                        <td class="border border-gray-300 px-3 py-2 text-sm">
+                            <span class="bg-gray-200 px-2 py-1 rounded text-xs">${currentCategory}</span>
+                        </td>
+                        <td class="border border-gray-300 px-3 py-2">
+                            <select class="w-full border border-gray-300 rounded px-2 py-1 text-sm" 
+                                    data-id="${productId}" 
+                                    onchange="markChanged('${productId}', this.value)">
+                                <option value="">-- No Change --</option>
+                                ${allCategories.map(cat => `
+                                    <option value="${cat.nama}" ${currentCategory === cat.nama ? 'selected' : ''}>
+                                        ${cat.nama}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+            updateSummary();
+        }
+
+        function markChanged(productId, newCategory) {
+            if (newCategory === '') {
+                delete productChanges[productId];
+            } else {
+                productChanges[productId] = newCategory;
+            }
+            updateSummary();
+        }
+
+        function toggleSelectAll(checkbox) {
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            checkboxes.forEach(cb => cb.checked = checkbox.checked);
+        }
+
+        function selectAll() {
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            checkboxes.forEach(cb => cb.checked = true);
+            document.getElementById('select-all-checkbox').checked = true;
+        }
+
+        function deselectAll() {
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            checkboxes.forEach(cb => cb.checked = false);
+            document.getElementById('select-all-checkbox').checked = false;
+        }
+
+        function applyBulkCategory() {
+            const selectedCategory = document.getElementById('bulk-category').value;
+            if (!selectedCategory) {
+                alert('Please select a category first!');
+                return;
+            }
+
+            const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('Please select at least one product!');
+                return;
+            }
+
+            let count = 0;
+            checkboxes.forEach(checkbox => {
+                const productId = checkbox.dataset.id;
+                const select = document.querySelector(`select[data-id="${productId}"]`);
+                if (select) {
+                    select.value = selectedCategory;
+                    markChanged(productId, selectedCategory);
+                    count++;
+                }
+            });
+
+            alert(`✅ Applied "${selectedCategory}" to ${count} products`);
+            deselectAll();
+        }
+
+        function updateSummary() {
+            const summarySection = document.getElementById('summary-section');
+            const summaryContent = document.getElementById('summary-content');
+
+            const changesCount = Object.keys(productChanges).length;
+
+            if (changesCount === 0) {
+                summarySection.classList.add('hidden');
+                return;
+            }
+
+            summarySection.classList.remove('hidden');
+
+            let html = `<p class="mb-3"><strong>${changesCount} product(s) will be updated:</strong></p>`;
+            html += '<div class="space-y-2">';
+
+            Object.entries(productChanges).forEach(([productId, newCategory]) => {
+                const product = allProducts.find(p => (p.id || p.sku) == productId);
+                if (product) {
+                    html += `
+                        <div class="flex items-center justify-between bg-gray-50 p-2 rounded">
+                            <span class="text-sm">${product.nama}</span>
+                            <span class="text-sm font-bold text-green-600">→ ${newCategory}</span>
+                        </div>
+                    `;
+                }
+            });
+
+            html += '</div>';
+            summaryContent.innerHTML = html;
+        }
+
+        async function saveChanges() {
+            if (Object.keys(productChanges).length === 0) {
+                alert('No changes to save!');
+                return;
+            }
+
+            if (!confirm(`Save ${Object.keys(productChanges).length} changes?`)) {
+                return;
+            }
+
+            const statusDiv = document.getElementById('save-status');
+            statusDiv.innerHTML = '<p class="text-blue-600">⏳ Saving changes...</p>';
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const [productId, newCategory] of Object.entries(productChanges)) {
+                try {
+                    await ApiService.update('products', productId, {
+                        kategori: newCategory
+                    });
+                    successCount++;
+                    console.log(`✅ Updated ${productId} to ${newCategory}`);
+                } catch (error) {
+                    errorCount++;
+                    console.error(`❌ Failed to update ${productId}:`, error);
+                }
+            }
+
+            statusDiv.innerHTML = `
+                <div class="space-y-2">
+                    <p class="text-green-600">✅ Successfully updated: ${successCount}</p>
+                    ${errorCount > 0 ? `<p class="text-red-600">❌ Failed: ${errorCount}</p>` : ''}
+                    <p class="text-gray-600">Please refresh the homepage to see changes.</p>
+                </div>
+            `;
+
+            // Clear changes
+            productChanges = {};
+            updateSummary();
+
+            // Reload data
+            setTimeout(() => {
+                loadData();
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
