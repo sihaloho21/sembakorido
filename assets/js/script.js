@@ -231,6 +231,56 @@ function initCategoryCarouselScroll() {
     
     // Set initial cursor
     container.style.cursor = 'grab';
+    
+    // Update arrow visibility on scroll
+    updateCategoryArrowsVisibility();
+    container.addEventListener('scroll', updateCategoryArrowsVisibility);
+}
+
+/**
+ * Scroll category carousel left or right
+ * @param {string} direction - 'left' or 'right'
+ */
+function scrollCategoryCarousel(direction) {
+    const container = document.getElementById('category-filters');
+    if (!container) return;
+    
+    const scrollAmount = 300; // Pixels to scroll
+    
+    if (direction === 'left') {
+        container.scrollLeft -= scrollAmount;
+    } else if (direction === 'right') {
+        container.scrollLeft += scrollAmount;
+    }
+}
+
+/**
+ * Update arrow button visibility based on scroll position
+ * Hide left arrow at start, hide right arrow at end
+ */
+function updateCategoryArrowsVisibility() {
+    const container = document.getElementById('category-filters');
+    const leftArrow = document.getElementById('category-scroll-left');
+    const rightArrow = document.getElementById('category-scroll-right');
+    
+    if (!container || !leftArrow || !rightArrow) return;
+    
+    const isAtStart = container.scrollLeft <= 10;
+    const isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 10;
+    
+    // Show/hide left arrow
+    if (isAtStart) {
+        leftArrow.classList.add('opacity-0', 'pointer-events-none');
+    } else {
+        leftArrow.classList.remove('opacity-0', 'pointer-events-none');
+    }
+    
+    // Show/hide right arrow
+    if (isAtEnd) {
+        rightArrow.classList.add('opacity-0', 'pointer-events-none');
+    } else {
+        rightArrow.classList.remove('opacity-0', 'pointer-events-none');
+    }
 }
 
 /**
