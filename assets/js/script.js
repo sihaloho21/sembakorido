@@ -131,6 +131,7 @@ async function fetchProducts() {
                 slug: createSlug(p.nama) // Add slug for deep linking
             };
         });
+        renderCategoryFilters(); // Render dynamic categories
         filterProducts();
         updateCartUI();
         checkStoreStatus();
@@ -142,6 +143,38 @@ async function fetchProducts() {
             grid.innerHTML = '<p class="text-center col-span-full text-red-500">Gagal memuat produk. Silakan coba lagi nanti.</p>';
         }
     }
+}
+
+/**
+ * Renders category filter buttons dynamically based on products.
+ * Only shows categories that have at least one product.
+ */
+function renderCategoryFilters() {
+    const container = document.getElementById('category-filters');
+    if (!container || !allProducts || allProducts.length === 0) return;
+    
+    console.log('🏷️ Rendering category filters...');
+    
+    // Get unique categories from products
+    const categoriesSet = new Set();
+    allProducts.forEach(p => {
+        if (p.category && p.category.trim() !== '') {
+            categoriesSet.add(p.category.trim());
+        }
+    });
+    
+    const categories = Array.from(categoriesSet).sort();
+    console.log('📊 Categories found:', categories);
+    
+    // Keep "Semua" button and add dynamic categories
+    let html = '<button onclick="setCategory(\'Semua\')" class="filter-btn active px-6 py-2 rounded-full border-2 border-gray-200 text-sm font-bold transition hover:border-green-500">Semua</button>';
+    
+    categories.forEach(cat => {
+        html += `<button onclick="setCategory('${cat}')" class="filter-btn px-6 py-2 rounded-full border-2 border-gray-200 text-sm font-bold transition hover:border-green-500">${cat}</button>`;
+    });
+    
+    container.innerHTML = html;
+    console.log('✅ Category filters rendered:', categories.length, 'categories');
 }
 
 /**
