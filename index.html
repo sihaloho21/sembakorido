@@ -10,6 +10,26 @@
     <link rel="stylesheet" href="assets/css/banner-carousel.min.css">
     <link rel="stylesheet" href="assets/css/promo-banner-carousel.min.css">
     <link rel="stylesheet" href="assets/css/skeleton-loading.min.css">
+    <style>
+        /* Hide scrollbar for category carousel */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Category button styles */
+        .filter-btn {
+            white-space: nowrap;
+        }
+        .filter-btn.active {
+            border-color: #16a34a;
+            background-color: #f0fdf4;
+            color: #15803d;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <!-- Store Closed Banner -->
@@ -83,10 +103,19 @@
                     </svg>
                 </div>
 
-                <!-- Category Filters -->
-                <div id="category-filters" class="flex flex-wrap justify-center gap-2">
-                    <!-- Categories will be dynamically loaded here -->
-                    <button onclick="setCategory('Semua')" class="filter-btn active px-6 py-2 rounded-full border-2 border-gray-200 text-sm font-bold transition hover:border-green-500">Semua</button>
+                <!-- Category Filters Carousel -->
+                <div class="relative">
+                    <!-- Carousel Container -->
+                    <div id="category-filters" class="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                        <!-- Categories will be dynamically loaded here -->
+                        <button onclick="setCategory('Semua')" class="filter-btn active snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-green-500 bg-green-50 text-green-700 text-sm font-bold transition hover:border-green-600 hover:bg-green-100">Semua</button>
+                    </div>
+                    
+                    <!-- Scroll Indicators (optional) -->
+                    <div class="flex justify-center gap-1 mt-2">
+                        <div class="h-1 w-8 bg-green-500 rounded-full"></div>
+                        <div class="h-1 w-8 bg-gray-300 rounded-full"></div>
+                    </div>
                 </div>
             </div>
 

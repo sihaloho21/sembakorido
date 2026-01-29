@@ -166,11 +166,11 @@ function renderCategoryFilters() {
     const categories = Array.from(categoriesSet).sort();
     console.log('📊 Categories found:', categories);
     
-    // Keep "Semua" button and add dynamic categories
-    let html = '<button onclick="setCategory(\'Semua\')" class="filter-btn active px-6 py-2 rounded-full border-2 border-gray-200 text-sm font-bold transition hover:border-green-500">Semua</button>';
+    // Keep "Semua" button and add dynamic categories with carousel styling
+    let html = '<button onclick="setCategory(\'Semua\')" class="filter-btn active snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-green-500 bg-green-50 text-green-700 text-sm font-bold transition hover:border-green-600 hover:bg-green-100">Semua</button>';
     
     categories.forEach(cat => {
-        html += `<button onclick="setCategory('${cat}')" class="filter-btn px-6 py-2 rounded-full border-2 border-gray-200 text-sm font-bold transition hover:border-green-500">${cat}</button>`;
+        html += `<button onclick="setCategory('${cat}')" class="filter-btn snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-gray-300 bg-white text-gray-700 text-sm font-bold transition hover:border-green-500 hover:bg-green-50">${cat}</button>`;
     });
     
     container.innerHTML = html;
@@ -415,8 +415,20 @@ function changePage(page) {
 function setCategory(cat) {
     currentCategory = cat;
     document.querySelectorAll('.filter-btn').forEach(btn => {
-        if (btn.innerText === cat) btn.classList.add('active');
-        else btn.classList.remove('active');
+        if (btn.innerText === cat) {
+            btn.classList.add('active');
+            // Update styling for active state
+            btn.classList.remove('border-gray-300', 'bg-white', 'text-gray-700');
+            btn.classList.add('border-green-500', 'bg-green-50', 'text-green-700');
+            
+            // Scroll button into view smoothly
+            btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } else {
+            btn.classList.remove('active');
+            // Reset styling for inactive state
+            btn.classList.remove('border-green-500', 'bg-green-50', 'text-green-700');
+            btn.classList.add('border-gray-300', 'bg-white', 'text-gray-700');
+        }
     });
     filterProducts();
 }
