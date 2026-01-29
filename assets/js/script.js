@@ -1942,7 +1942,7 @@ async function processClaimReward(rewardId, customerName) {
             }
         }
         
-        if (!userData || !userData.id) {
+        if (!userData) {
             console.error('❌ User not found. Phone:', phone, 'Normalized:', normalizedPhone);
             console.error('Available users:', allUsers.map(u => ({
                 phone: u.phone,
@@ -1952,8 +1952,14 @@ async function processClaimReward(rewardId, customerName) {
             return;
         }
         
+        console.log('✅ User found:', userData);
+        
         const newPoints = userPoints - requiredPoints;
-        await GASActions.update('user_points', userData.id, {
+        
+        // Use phone as identifier since user_points sheet doesn't have id column
+        const userPhoneForUpdate = userData.phone || userData.whatsapp;
+        
+        await GASActions.update('user_points', userPhoneForUpdate, {
             points: newPoints,
             last_updated: new Date().toLocaleString('id-ID')
         });
