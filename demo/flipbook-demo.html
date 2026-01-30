@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Demo Flipbook - StPageFlip (HTML & Canvas)</title>
+  <title>Demo Flipbook Canvas - Katalog Produk</title>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,44 +36,18 @@
     .subtitle {
       font-size: 16px;
       opacity: 0.9;
-      margin-bottom: 24px;
+      margin-bottom: 32px;
     }
     
-    /* Tab Buttons */
-    .tab-buttons {
-      display: flex;
-      gap: 0;
-      justify-content: center;
-      margin-bottom: 24px;
-    }
-    
-    .tab-btn {
+    .badge {
+      display: inline-block;
       background: rgba(255,255,255,0.2);
-      color: #fff;
-      border: none;
-      padding: 12px 32px;
-      font-size: 16px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
       font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
+      margin-bottom: 24px;
       backdrop-filter: blur(10px);
-    }
-    
-    .tab-btn:first-child {
-      border-radius: 8px 0 0 8px;
-    }
-    
-    .tab-btn:last-child {
-      border-radius: 0 8px 8px 0;
-    }
-    
-    .tab-btn:hover {
-      background: rgba(255,255,255,0.3);
-    }
-    
-    .tab-btn.active {
-      background: #667eea;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
     }
     
     /* Book Container */
@@ -90,27 +64,6 @@
       background: transparent;
       margin: 0 auto;
       position: relative;
-    }
-    
-    /* Page styling for HTML mode */
-    .page { 
-      background: linear-gradient(to bottom, #f9f9f9 0%, #e8e8e8 100%);
-      border: 1px solid #ddd;
-      box-shadow: inset 0 0 30px rgba(0,0,0,0.1);
-      padding: 40px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .page img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     
     /* Controls */
@@ -135,7 +88,7 @@
       transition: all 0.3s ease;
     }
     
-    .controls button:hover {
+    .controls button:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
     }
@@ -154,6 +107,7 @@
       padding: 10px 20px;
       border-radius: 50px;
       backdrop-filter: blur(10px);
+      min-width: 100px;
     }
     
     /* Loading */
@@ -163,12 +117,38 @@
       left: 50%;
       transform: translate(-50%, -50%);
       font-size: 18px;
-      color: rgba(255,255,255,0.8);
+      color: rgba(255,255,255,0.9);
+      text-align: center;
     }
     
-    /* Hidden */
-    .hidden {
-      display: none !important;
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Info box */
+    .info-box {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin-top: 24px;
+      display: inline-block;
+    }
+    
+    .info-box p {
+      margin: 4px 0;
+      font-size: 14px;
+      opacity: 0.9;
     }
     
     /* Responsive */
@@ -179,6 +159,10 @@
       }
       h1 { font-size: 24px; }
       .subtitle { font-size: 14px; }
+      .controls button {
+        padding: 12px 20px;
+        font-size: 14px;
+      }
     }
     
     @media (prefers-reduced-motion: reduce) {
@@ -188,44 +172,35 @@
 </head>
 <body>
   <div class="container">
-    <h1>🎯 Demo Flipbook Interaktif</h1>
-    <p class="subtitle">Pilih mode HTML atau Canvas • Klik dan drag untuk flip halaman</p>
-
-    <!-- Tab Buttons -->
-    <div class="tab-buttons">
-      <button class="tab-btn active" data-mode="html">HTML</button>
-      <button class="tab-btn" data-mode="canvas">CANVAS</button>
-    </div>
+    <h1>📚 Katalog Produk Flipbook</h1>
+    <p class="subtitle">Klik dan drag untuk flip halaman • Gunakan tombol atau keyboard arrow keys</p>
+    <div class="badge">🎨 Canvas Mode - Optimized Performance</div>
 
     <div class="demo-wrap" aria-live="polite">
-      <div id="bookWrapper" aria-roledescription="flipbook" aria-label="Demo katalog flipbook">
-        <div class="loading">Loading flipbook...</div>
-        
-        <!-- HTML Mode Content -->
-        <div id="flipbook-html" style="display:none;">
-          <div class="page">
-            <img src="../assets/demo-pages/page1.jpg" alt="Halaman 1">
-          </div>
-          <div class="page">
-            <img src="../assets/demo-pages/page2.jpg" alt="Halaman 2">
-          </div>
-          <div class="page">
-            <img src="../assets/demo-pages/page3.jpg" alt="Halaman 3">
-          </div>
+      <div id="bookWrapper" aria-roledescription="flipbook" aria-label="Katalog produk flipbook">
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          <div>Loading flipbook...</div>
         </div>
       </div>
 
       <div>
         <div class="controls" role="toolbar" aria-label="Kontrol Buku">
           <button id="prevBtn" aria-label="Halaman sebelumnya">◀ Sebelumnya</button>
-          <div class="page-indicator" id="pageIndicator" aria-live="polite">1 / 3</div>
+          <div class="page-indicator" id="pageIndicator" aria-live="polite">- / -</div>
           <button id="nextBtn" aria-label="Halaman berikutnya">Berikut ▶</button>
         </div>
       </div>
     </div>
+
+    <div class="info-box">
+      <p>💡 <strong>Tips:</strong> Drag corner halaman untuk flip effect</p>
+      <p>⌨️ Gunakan arrow keys (← →) untuk navigasi cepat</p>
+      <p>📱 Support touch swipe di mobile devices</p>
+    </div>
   </div>
 
-  <!-- Page-Flip JS from CDN - using St namespace -->
+  <!-- Page-Flip JS from CDN -->
   <script src="https://unpkg.com/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 
   <script>
@@ -233,14 +208,11 @@
       const prevBtn = document.getElementById('prevBtn');
       const nextBtn = document.getElementById('nextBtn');
       const indicator = document.getElementById('pageIndicator');
-      const loading = document.querySelector('.loading');
       const bookWrapper = document.getElementById('bookWrapper');
-      const tabButtons = document.querySelectorAll('.tab-btn');
       
       let pageFlip = null;
-      let currentMode = 'html';
       let currentIndex = 0;
-      const totalPages = 3;
+      let totalPages = 0;
       
       // Image paths for canvas mode
       const imagePages = [
@@ -248,6 +220,29 @@
         '../assets/demo-pages/page2.jpg',
         '../assets/demo-pages/page3.jpg'
       ];
+
+      totalPages = imagePages.length;
+
+      function updateUI(i) {
+        currentIndex = i;
+        indicator.textContent = (i + 1) + ' / ' + totalPages;
+        prevBtn.disabled = i <= 0;
+        nextBtn.disabled = i >= totalPages - 1;
+      }
+
+      function hideLoading() {
+        const loading = document.querySelector('.loading');
+        if (loading) {
+          loading.style.display = 'none';
+        }
+      }
+
+      function showError(message) {
+        const loading = document.querySelector('.loading');
+        if (loading) {
+          loading.innerHTML = '<div style="color: #ff6b6b;">⚠️ ' + message + '</div>';
+        }
+      }
 
       // Wait for library to load
       function waitForPageFlip(callback) {
@@ -257,222 +252,118 @@
         const checkInterval = setInterval(function() {
           attempts++;
           
-          // Check multiple possible namespaces
           if (window.St && window.St.PageFlip) {
             clearInterval(checkInterval);
-            console.log('PageFlip found in St namespace');
+            console.log('✅ PageFlip loaded (St namespace)');
             callback(window.St.PageFlip);
           } else if (window.PageFlip) {
             clearInterval(checkInterval);
-            console.log('PageFlip found in global namespace');
+            console.log('✅ PageFlip loaded (global namespace)');
             callback(window.PageFlip);
           } else if (attempts >= maxAttempts) {
             clearInterval(checkInterval);
-            console.error('PageFlip library not loaded after', maxAttempts, 'attempts');
-            loading.textContent = 'Error: PageFlip library gagal dimuat';
+            console.error('❌ PageFlip library failed to load');
+            showError('Error: Library gagal dimuat. Refresh halaman.');
             callback(null);
           }
         }, 100);
       }
 
-      function updateUI(i) {
-        indicator.textContent = (i + 1) + ' / ' + totalPages;
-        prevBtn.disabled = i <= 0;
-        nextBtn.disabled = i >= totalPages - 1;
-      }
-
-      function destroyBook() {
-        if (pageFlip && typeof pageFlip.destroy === 'function') {
-          try {
-            pageFlip.destroy();
-          } catch (e) {
-            console.warn('Error destroying book:', e);
-          }
-        }
-        pageFlip = null;
-        // Clear book wrapper
-        bookWrapper.innerHTML = '<div class="loading">Loading flipbook...</div>';
-      }
-
-      function initHTMLMode(PageFlipConstructor) {
-        console.log('Initializing HTML mode...');
+      function initCanvasFlipbook(PageFlipConstructor) {
+        console.log('🎨 Initializing Canvas flipbook...');
         
-        // Add HTML content
-        const htmlContent = document.createElement('div');
-        htmlContent.id = 'flipbook-html';
-        htmlContent.innerHTML = `
-          <div class="page">
-            <img src="../assets/demo-pages/page1.jpg" alt="Halaman 1">
-          </div>
-          <div class="page">
-            <img src="../assets/demo-pages/page2.jpg" alt="Halaman 2">
-          </div>
-          <div class="page">
-            <img src="../assets/demo-pages/page3.jpg" alt="Halaman 3">
-          </div>
-        `;
-        bookWrapper.appendChild(htmlContent);
-        
-        try {
-          pageFlip = new PageFlipConstructor(bookWrapper, {
-            width: 400,
-            height: 600,
-            size: "stretch",
-            minWidth: 315,
-            maxWidth: 1000,
-            minHeight: 400,
-            maxHeight: 1533,
-            maxShadowOpacity: 0.8,
-            showCover: true,
-            mobileScrollSupport: true,
-            swipeDistance: 30,
-            clickEventForward: true,
-            usePortrait: true,
-            startPage: 0,
-            drawShadow: true,
-            flippingTime: 1000,
-            useMouseEvents: true,
-            autoSize: true,
-            showPageCorners: true,
-            disableFlipByClick: false
-          });
-
-          pageFlip.loadFromHTML(document.querySelectorAll('#flipbook-html .page'));
-          
-          // Setup events
-          if (typeof pageFlip.on === 'function') {
-            pageFlip.on('flip', function (e) {
-              currentIndex = e && e.data !== undefined ? e.data : 0;
-              updateUI(currentIndex);
-            });
-          }
-          
-          document.querySelector('.loading').style.display = 'none';
-          updateUI(0);
-          console.log('HTML mode initialized successfully');
-        } catch (err) {
-          console.error('Failed to init HTML mode:', err);
-          document.querySelector('.loading').textContent = 'Error loading flipbook: ' + err.message;
-        }
-      }
-
-      function initCanvasMode(PageFlipConstructor) {
-        console.log('Initializing Canvas mode...');
-        
-        try {
-          pageFlip = new PageFlipConstructor(bookWrapper, {
-            width: 400,
-            height: 600,
-            size: "stretch",
-            minWidth: 315,
-            maxWidth: 1000,
-            minHeight: 400,
-            maxHeight: 1533,
-            maxShadowOpacity: 0.8,
-            showCover: true,
-            mobileScrollSupport: true,
-            swipeDistance: 30,
-            usePortrait: true,
-            startPage: 0,
-            drawShadow: true,
-            flippingTime: 1000,
-            useMouseEvents: true,
-            autoSize: true,
-            showPageCorners: true,
-            disableFlipByClick: false
-          });
-
-          pageFlip.loadFromImages(imagePages);
-          
-          // Setup events
-          if (typeof pageFlip.on === 'function') {
-            pageFlip.on('flip', function (e) {
-              currentIndex = e && e.data !== undefined ? e.data : 0;
-              updateUI(currentIndex);
-            });
-          }
-          
-          document.querySelector('.loading').style.display = 'none';
-          updateUI(0);
-          console.log('Canvas mode initialized successfully');
-        } catch (err) {
-          console.error('Failed to init Canvas mode:', err);
-          document.querySelector('.loading').textContent = 'Error loading flipbook: ' + err.message;
-        }
-      }
-
-      function switchMode(mode, PageFlipConstructor) {
-        if (mode === currentMode) return;
-        
-        console.log('Switching to', mode, 'mode');
-        currentMode = mode;
-        
-        // Update tab buttons
-        tabButtons.forEach(btn => {
-          if (btn.dataset.mode === mode) {
-            btn.classList.add('active');
-          } else {
-            btn.classList.remove('active');
-          }
-        });
-        
-        // Destroy current book
-        destroyBook();
-        
-        // Show loading
-        const newLoading = document.querySelector('.loading');
-        if (newLoading) {
-          newLoading.style.display = 'block';
-          newLoading.textContent = 'Loading flipbook...';
-        }
-        
-        // Initialize new mode
-        setTimeout(() => {
-          if (mode === 'html') {
-            initHTMLMode(PageFlipConstructor);
-          } else {
-            initCanvasMode(PageFlipConstructor);
-          }
-        }, 100);
-      }
-
-      // Wait for PageFlip library to load
-      waitForPageFlip(function(PageFlipConstructor) {
         if (!PageFlipConstructor) {
-          console.error('PageFlip constructor not available');
+          showError('PageFlip constructor not available');
           return;
         }
 
-        console.log('PageFlip constructor loaded:', PageFlipConstructor);
-
-        // Tab button click handlers
-        tabButtons.forEach(btn => {
-          btn.addEventListener('click', function() {
-            switchMode(this.dataset.mode, PageFlipConstructor);
+        try {
+          // Create PageFlip instance with optimized settings for canvas
+          pageFlip = new PageFlipConstructor(bookWrapper, {
+            width: 400,              // Single page width
+            height: 600,             // Page height
+            size: "stretch",         // Stretch to fit container
+            minWidth: 315,
+            maxWidth: 1000,
+            minHeight: 400,
+            maxHeight: 1533,
+            maxShadowOpacity: 0.8,   // Strong shadow for depth
+            showCover: true,         // Show cover page
+            mobileScrollSupport: true,
+            swipeDistance: 30,       // Swipe sensitivity
+            usePortrait: true,       // Portrait mode support
+            startPage: 0,            // Start from first page
+            drawShadow: true,        // Enable shadows
+            flippingTime: 1000,      // 1 second flip animation
+            useMouseEvents: true,    // Enable mouse interactions
+            autoSize: true,          // Auto-size to container
+            showPageCorners: true,   // Show corner curl
+            disableFlipByClick: false // Allow click to flip
           });
-        });
 
-        // Control buttons
-        prevBtn.addEventListener('click', function(){ 
-          if (pageFlip && typeof pageFlip.flipPrev === 'function') {
-            pageFlip.flipPrev(); 
+          // Load images into canvas
+          pageFlip.loadFromImages(imagePages);
+          
+          console.log('📸 Loading', totalPages, 'images...');
+
+          // Setup flip event
+          if (typeof pageFlip.on === 'function') {
+            pageFlip.on('flip', function (e) {
+              const newIndex = e && e.data !== undefined ? e.data : 0;
+              updateUI(newIndex);
+              console.log('📖 Flipped to page', newIndex + 1);
+            });
+
+            pageFlip.on('changeState', function(e) {
+              console.log('📌 State:', e.data);
+            });
+
+            pageFlip.on('init', function(e) {
+              console.log('✅ Flipbook initialized:', e.data);
+              hideLoading();
+              updateUI(0);
+            });
+          } else {
+            // Fallback if event system not available
+            hideLoading();
+            updateUI(0);
           }
-        });
-        
-        nextBtn.addEventListener('click', function(){ 
-          if (pageFlip && typeof pageFlip.flipNext === 'function') {
-            pageFlip.flipNext(); 
-          }
-        });
+          
+          console.log('✅ Canvas flipbook initialized successfully');
+        } catch (err) {
+          console.error('❌ Failed to init Canvas flipbook:', err);
+          showError('Error: ' + err.message);
+        }
+      }
 
-        // Keyboard navigation
-        document.addEventListener('keydown', function(e){
-          if (e.key === 'ArrowLeft') prevBtn.click();
-          if (e.key === 'ArrowRight') nextBtn.click();
-        });
+      // Control buttons
+      prevBtn.addEventListener('click', function(){ 
+        if (pageFlip && typeof pageFlip.flipPrev === 'function') {
+          pageFlip.flipPrev('top');
+        }
+      });
+      
+      nextBtn.addEventListener('click', function(){ 
+        if (pageFlip && typeof pageFlip.flipNext === 'function') {
+          pageFlip.flipNext('top');
+        }
+      });
 
-        // Initialize HTML mode on load
-        initHTMLMode(PageFlipConstructor);
+      // Keyboard navigation
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'ArrowLeft' && !prevBtn.disabled) {
+          prevBtn.click();
+        }
+        if (e.key === 'ArrowRight' && !nextBtn.disabled) {
+          nextBtn.click();
+        }
+      });
+
+      // Initialize on load
+      waitForPageFlip(function(PageFlipConstructor) {
+        if (PageFlipConstructor) {
+          initCanvasFlipbook(PageFlipConstructor);
+        }
       });
     })();
   </script>
