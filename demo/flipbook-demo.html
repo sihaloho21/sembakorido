@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Demo Flipbook Canvas - Katalog Produk</title>
+  
+  <!-- jsPDF for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,11 +22,24 @@
       padding: 20px;
     }
     
+    body.fullscreen {
+      padding: 0;
+      background: #1a1a1a;
+    }
+    
     .container { 
       max-width: 1200px; 
       width: 100%;
       margin: 0 auto; 
       text-align: center;
+    }
+    
+    .container.fullscreen {
+      max-width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     
     h1 { 
@@ -50,6 +66,89 @@
       backdrop-filter: blur(10px);
     }
     
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    
+    .toolbar button {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .toolbar button:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+    }
+    
+    .toolbar button:active {
+      transform: translateY(0);
+    }
+    
+    .toolbar .icon {
+      font-size: 18px;
+    }
+    
+    /* Dropdown menu */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      right: 0;
+      background: rgba(255,255,255,0.95);
+      min-width: 180px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      border-radius: 8px;
+      z-index: 1000;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+    
+    .dropdown-content.show {
+      display: block;
+    }
+    
+    .dropdown-content button {
+      width: 100%;
+      padding: 12px 16px;
+      text-align: left;
+      background: transparent;
+      color: #333;
+      border: none;
+      border-radius: 0;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: background 0.2s;
+    }
+    
+    .dropdown-content button:hover {
+      background: rgba(102, 126, 234, 0.1);
+      transform: none;
+    }
+    
     /* Book Container */
     .demo-wrap { 
       display: flex; 
@@ -64,6 +163,15 @@
       background: transparent;
       margin: 0 auto;
       position: relative;
+      transition: all 0.3s ease;
+    }
+    
+    #bookWrapper.zoomed-in {
+      transform: scale(1.2);
+    }
+    
+    #bookWrapper.zoomed-out {
+      transform: scale(0.8);
     }
     
     /* Controls */
@@ -151,6 +259,14 @@
       opacity: 0.9;
     }
     
+    /* Hide elements in fullscreen */
+    .fullscreen h1,
+    .fullscreen .subtitle,
+    .fullscreen .badge,
+    .fullscreen .info-box {
+      display: none;
+    }
+    
     /* Responsive */
     @media (max-width: 900px) {
       #bookWrapper {
@@ -162,6 +278,16 @@
       .controls button {
         padding: 12px 20px;
         font-size: 14px;
+      }
+      .toolbar {
+        gap: 4px;
+      }
+      .toolbar button {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+      .toolbar button span:not(.icon) {
+        display: none;
       }
     }
     
@@ -175,6 +301,43 @@
     <h1>📚 Katalog Produk Flipbook</h1>
     <p class="subtitle">Klik dan drag untuk flip halaman • Gunakan tombol atau keyboard arrow keys</p>
     <div class="badge">🎨 Canvas Mode - Optimized Performance</div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button id="zoomOutBtn" title="Zoom Out">
+        <span class="icon">−</span>
+        <span>Zoom Out</span>
+      </button>
+      <button id="zoomInBtn" title="Zoom In">
+        <span class="icon">+</span>
+        <span>Zoom In</span>
+      </button>
+      <button id="shareBtn" title="Share ke WhatsApp">
+        <span class="icon">📤</span>
+        <span>Share WA</span>
+      </button>
+      <button id="fullscreenBtn" title="Fullscreen">
+        <span class="icon">⛶</span>
+        <span>Fullscreen</span>
+      </button>
+      
+      <div class="dropdown">
+        <button id="moreBtn" title="More Options">
+          <span class="icon">⋮</span>
+          <span>More</span>
+        </button>
+        <div id="dropdownMenu" class="dropdown-content">
+          <button id="printBtn">
+            <span class="icon">🖨️</span>
+            <span>Print</span>
+          </button>
+          <button id="downloadPdfBtn">
+            <span class="icon">📄</span>
+            <span>Download PDF</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div class="demo-wrap" aria-live="polite">
       <div id="bookWrapper" aria-roledescription="flipbook" aria-label="Katalog produk flipbook">
@@ -209,10 +372,23 @@
       const nextBtn = document.getElementById('nextBtn');
       const indicator = document.getElementById('pageIndicator');
       const bookWrapper = document.getElementById('bookWrapper');
+      const container = document.querySelector('.container');
+      
+      // Toolbar buttons
+      const zoomInBtn = document.getElementById('zoomInBtn');
+      const zoomOutBtn = document.getElementById('zoomOutBtn');
+      const shareBtn = document.getElementById('shareBtn');
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      const moreBtn = document.getElementById('moreBtn');
+      const dropdownMenu = document.getElementById('dropdownMenu');
+      const printBtn = document.getElementById('printBtn');
+      const downloadPdfBtn = document.getElementById('downloadPdfBtn');
       
       let pageFlip = null;
       let currentIndex = 0;
       let totalPages = 0;
+      let zoomLevel = 0; // -1: zoomed out, 0: normal, 1: zoomed in
+      let isFullscreen = false;
       
       // Image paths for canvas mode
       const imagePages = [
@@ -243,6 +419,126 @@
           loading.innerHTML = '<div style="color: #ff6b6b;">⚠️ ' + message + '</div>';
         }
       }
+
+      // Zoom functions
+      function zoomIn() {
+        if (zoomLevel < 1) {
+          zoomLevel++;
+          updateZoom();
+        }
+      }
+
+      function zoomOut() {
+        if (zoomLevel > -1) {
+          zoomLevel--;
+          updateZoom();
+        }
+      }
+
+      function updateZoom() {
+        bookWrapper.classList.remove('zoomed-in', 'zoomed-out');
+        if (zoomLevel === 1) {
+          bookWrapper.classList.add('zoomed-in');
+        } else if (zoomLevel === -1) {
+          bookWrapper.classList.add('zoomed-out');
+        }
+        console.log('🔍 Zoom level:', zoomLevel);
+      }
+
+      // Fullscreen function
+      function toggleFullscreen() {
+        isFullscreen = !isFullscreen;
+        if (isFullscreen) {
+          document.body.classList.add('fullscreen');
+          container.classList.add('fullscreen');
+          fullscreenBtn.innerHTML = '<span class="icon">✕</span><span>Exit</span>';
+          console.log('📺 Fullscreen mode ON');
+        } else {
+          document.body.classList.remove('fullscreen');
+          container.classList.remove('fullscreen');
+          fullscreenBtn.innerHTML = '<span class="icon">⛶</span><span>Fullscreen</span>';
+          console.log('📺 Fullscreen mode OFF');
+        }
+      }
+
+      // Share to WhatsApp
+      function shareToWhatsApp() {
+        const url = window.location.href;
+        const text = 'Lihat katalog produk kami di flipbook ini!';
+        const waUrl = 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url);
+        window.open(waUrl, '_blank');
+        console.log('📤 Sharing to WhatsApp');
+      }
+
+      // Print function
+      function printFlipbook() {
+        console.log('🖨️ Printing flipbook...');
+        window.print();
+      }
+
+      // Download PDF function
+      function downloadPDF() {
+        console.log('📄 Generating PDF...');
+        
+        if (typeof window.jspdf === 'undefined') {
+          alert('PDF library not loaded. Please refresh the page.');
+          return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+
+        let loadedImages = 0;
+        const images = [];
+
+        // Load all images
+        imagePages.forEach((src, index) => {
+          const img = new Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = function() {
+            images[index] = img;
+            loadedImages++;
+            
+            if (loadedImages === totalPages) {
+              // All images loaded, generate PDF
+              images.forEach((img, i) => {
+                if (i > 0) {
+                  pdf.addPage();
+                }
+                
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = (img.height * imgWidth) / img.width;
+                
+                pdf.addImage(img, 'JPEG', 0, 0, imgWidth, imgHeight);
+              });
+              
+              pdf.save('katalog-produk.pdf');
+              console.log('✅ PDF downloaded successfully');
+            }
+          };
+          img.onerror = function() {
+            console.error('❌ Failed to load image:', src);
+            loadedImages++;
+          };
+          img.src = src;
+        });
+      }
+
+      // Toggle dropdown menu
+      function toggleDropdown() {
+        dropdownMenu.classList.toggle('show');
+      }
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!moreBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+          dropdownMenu.classList.remove('show');
+        }
+      });
 
       // Wait for library to load
       function waitForPageFlip(callback) {
@@ -336,7 +632,7 @@
         }
       }
 
-      // Control buttons
+      // Navigation buttons
       prevBtn.addEventListener('click', function(){ 
         if (pageFlip && typeof pageFlip.flipPrev === 'function') {
           pageFlip.flipPrev('top');
@@ -349,6 +645,21 @@
         }
       });
 
+      // Toolbar buttons
+      zoomInBtn.addEventListener('click', zoomIn);
+      zoomOutBtn.addEventListener('click', zoomOut);
+      shareBtn.addEventListener('click', shareToWhatsApp);
+      fullscreenBtn.addEventListener('click', toggleFullscreen);
+      moreBtn.addEventListener('click', toggleDropdown);
+      printBtn.addEventListener('click', function() {
+        dropdownMenu.classList.remove('show');
+        printFlipbook();
+      });
+      downloadPdfBtn.addEventListener('click', function() {
+        dropdownMenu.classList.remove('show');
+        downloadPDF();
+      });
+
       // Keyboard navigation
       document.addEventListener('keydown', function(e){
         if (e.key === 'ArrowLeft' && !prevBtn.disabled) {
@@ -356,6 +667,15 @@
         }
         if (e.key === 'ArrowRight' && !nextBtn.disabled) {
           nextBtn.click();
+        }
+        if (e.key === 'Escape' && isFullscreen) {
+          toggleFullscreen();
+        }
+        if (e.key === '+' || e.key === '=') {
+          zoomIn();
+        }
+        if (e.key === '-' || e.key === '_') {
+          zoomOut();
         }
       });
 
