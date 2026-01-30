@@ -368,10 +368,6 @@
       <h1>🛒 Katalog Promo Spesial</h1>
       <p class="subtitle">Belanja Hemat Setiap Hari</p>
       <div class="promo-period">📅 Periode: 1 Jan - 31 Jan 2026</div>
-      <div>
-        <span class="badge">🎨 Canvas Mode</span>
-        <span class="badge">📱 Touch Optimized</span>
-      </div>
     </div>
 
     <!-- Toolbar -->
@@ -433,11 +429,7 @@
       </div>
     </div>
 
-    <div class="info-box">
-      <p>💡 <strong>Tips:</strong> Drag corner halaman untuk flip effect</p>
-      <p>⌨️ Gunakan arrow keys (← →) untuk navigasi cepat</p>
-      <p>📱 Support pinch-to-zoom & touch swipe di mobile</p>
-    </div>
+
   </div>
 
   <!-- Page-Flip JS from CDN -->
@@ -544,18 +536,23 @@
       
       // Pinch-to-zoom handlers
       function handleTouchStart(e) {
-        if (e.touches.length === 2) {
+        // If more than 1 finger, disable flip completely
+        if (e.touches.length > 1) {
           e.preventDefault();
           isPinching = true;
-          initialDistance = getDistance(e.touches[0], e.touches[1]);
-          initialScale = currentScale;
           
-          // Disable flip interactions during pinch
+          // Disable flip interactions when multiple fingers detected
           if (pageFlip && typeof pageFlip.disableFlipByClick !== 'undefined') {
             pageFlip.disableFlipByClick = true;
           }
           
-          console.log('👆 Pinch start, distance:', initialDistance);
+          if (e.touches.length === 2) {
+            initialDistance = getDistance(e.touches[0], e.touches[1]);
+            initialScale = currentScale;
+            console.log('👆 Pinch start, distance:', initialDistance);
+          } else {
+            console.log('👆 Multi-finger touch detected:', e.touches.length, 'fingers');
+          }
         }
         
         // Double-tap detection
@@ -579,26 +576,30 @@
       }
       
       function handleTouchMove(e) {
-        if (e.touches.length === 2) {
+        // Block all movement if more than 1 finger
+        if (e.touches.length > 1) {
           e.preventDefault();
           
-          const currentDistance = getDistance(e.touches[0], e.touches[1]);
-          const scale = (currentDistance / initialDistance) * initialScale;
-          
-          // Limit scale: minimum 1.0 (no smaller than default), maximum 2.0
-          const limitedScale = Math.min(Math.max(scale, 1.0), 2.0);
-          
-          bookWrapper.style.transform = 'scale(' + limitedScale + ')';
-          currentScale = limitedScale;
-          
-          // Update zoom level based on scale
-          if (limitedScale > 1.15) {
-            zoomLevel = 1;
-          } else {
-            zoomLevel = 0;
+          // Only process zoom for exactly 2 fingers
+          if (e.touches.length === 2) {
+            const currentDistance = getDistance(e.touches[0], e.touches[1]);
+            const scale = (currentDistance / initialDistance) * initialScale;
+            
+            // Limit scale: minimum 1.0 (no smaller than default), maximum 2.0
+            const limitedScale = Math.min(Math.max(scale, 1.0), 2.0);
+            
+            bookWrapper.style.transform = 'scale(' + limitedScale + ')';
+            currentScale = limitedScale;
+            
+            // Update zoom level based on scale
+            if (limitedScale > 1.15) {
+              zoomLevel = 1;
+            } else {
+              zoomLevel = 0;
+            }
+            
+            console.log('🤏 Pinching, scale:', limitedScale.toFixed(2));
           }
-          
-          console.log('🤏 Pinching, scale:', limitedScale.toFixed(2));
         }
       }
       
