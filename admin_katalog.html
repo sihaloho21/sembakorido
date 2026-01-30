@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Katalog Promo - GoSembako Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 font-['Poppins']">
+    <!-- Header -->
+    <header class="bg-green-700 text-white py-4 shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <img src="assets/img/logo.webp" alt="GoSembako Logo" class="h-12 w-auto">
+                <div>
+                    <h1 class="text-xl font-bold">GoSembako Admin</h1>
+                    <p class="text-xs opacity-90">Kelola Katalog Promo</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="/promo_katalog.html" class="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition" title="Lihat Katalog">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                </a>
+                <a href="/" class="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition" title="Kembali">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Add New Catalog Button -->
+        <div class="mb-6">
+            <button onclick="openAddModal()" class="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg transition active:scale-95 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Tambah Katalog Baru
+            </button>
+        </div>
+
+        <!-- Catalog List -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="px-6 py-4 bg-green-600 text-white">
+                <h2 class="text-xl font-bold">Daftar Katalog Promo</h2>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thumbnail</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Judul</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Periode</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Badge</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="catalogTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Catalog rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div id="catalogModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-green-600 text-white flex justify-between items-center sticky top-0">
+                <h3 id="modalTitle" class="text-xl font-bold">Tambah Katalog Baru</h3>
+                <button onclick="closeModal()" class="p-1 hover:bg-white/20 rounded-lg transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <form id="catalogForm" class="p-6 space-y-6">
+                <input type="hidden" id="catalogId">
+
+                <!-- Judul -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Judul Katalog <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="catalogTitle" required 
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition"
+                        placeholder="Contoh: Katalog Promo Januari 2026">
+                </div>
+
+                <!-- Periode -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Periode Promo <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="catalogPeriod" required 
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition"
+                        placeholder="Contoh: 1-15 Januari 2026">
+                </div>
+
+                <!-- Badge -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Badge <span class="text-red-500">*</span>
+                    </label>
+                    <select id="catalogBadge" required 
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition">
+                        <option value="BARU">BARU</option>
+                        <option value="HOT">HOT</option>
+                        <option value="SPESIAL">SPESIAL</option>
+                    </select>
+                </div>
+
+                <!-- Thumbnail Upload -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Thumbnail Katalog <span class="text-red-500">*</span>
+                    </label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-green-500 transition">
+                        <input type="file" id="thumbnailInput" accept="image/*" class="hidden" onchange="previewThumbnail(event)">
+                        <button type="button" onclick="document.getElementById('thumbnailInput').click()" 
+                            class="bg-green-100 text-green-700 px-6 py-3 rounded-lg font-semibold hover:bg-green-200 transition">
+                            <i class="fas fa-image mr-2"></i>
+                            Pilih Gambar Thumbnail
+                        </button>
+                        <p class="text-sm text-gray-500 mt-2">Format: JPG, PNG (Max 5MB)</p>
+                        <div id="thumbnailPreview" class="mt-4 hidden">
+                            <img id="thumbnailImage" class="max-w-full h-48 mx-auto rounded-lg shadow-md">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PDF Upload -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        File PDF Katalog <span class="text-red-500">*</span>
+                    </label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-green-500 transition">
+                        <input type="file" id="pdfInput" accept=".pdf" class="hidden" onchange="previewPDF(event)">
+                        <button type="button" onclick="document.getElementById('pdfInput').click()" 
+                            class="bg-red-100 text-red-700 px-6 py-3 rounded-lg font-semibold hover:bg-red-200 transition">
+                            <i class="fas fa-file-pdf mr-2"></i>
+                            Pilih File PDF
+                        </button>
+                        <p class="text-sm text-gray-500 mt-2">Format: PDF (Max 20MB)</p>
+                        <div id="pdfPreview" class="mt-4 hidden">
+                            <div class="bg-gray-100 px-4 py-3 rounded-lg flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-file-pdf text-red-600 text-2xl"></i>
+                                    <div class="text-left">
+                                        <p id="pdfFileName" class="font-semibold text-gray-800"></p>
+                                        <p id="pdfFileSize" class="text-sm text-gray-500"></p>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="clearPDF()" class="text-red-600 hover:text-red-800">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="flex gap-3 pt-4">
+                    <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-xl transition active:scale-95">
+                        <i class="fas fa-save mr-2"></i>
+                        Simpan Katalog
+                    </button>
+                    <button type="button" onclick="closeModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-6 py-3 rounded-xl transition active:scale-95">
+                        <i class="fas fa-times mr-2"></i>
+                        Batal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Sample catalog data (in production, this would be fetched from database)
+        let catalogs = [
+            {
+                id: 1,
+                title: "Katalog Promo Januari 2026",
+                period: "1-15 Januari 2026",
+                thumbnail: "assets/demo-pages/page1.jpg",
+                pdfUrl: "assets/catalogs/katalog-januari-2026.pdf",
+                badge: "BARU"
+            },
+            {
+                id: 2,
+                title: "Katalog Promo Akhir Januari",
+                period: "16-31 Januari 2026",
+                thumbnail: "assets/demo-pages/page2.jpg",
+                pdfUrl: "assets/catalogs/katalog-akhir-januari-2026.pdf",
+                badge: "HOT"
+            },
+            {
+                id: 3,
+                title: "Katalog Spesial Imlek",
+                period: "22 Jan - 4 Feb 2026",
+                thumbnail: "assets/demo-pages/page3.jpg",
+                pdfUrl: "assets/catalogs/katalog-spesial-imlek-2026.pdf",
+                badge: "SPESIAL"
+            }
+        ];
+
+        let editingId = null;
+
+        // Render catalog table
+        function renderCatalogTable() {
+            const tbody = document.getElementById('catalogTableBody');
+            
+            if (catalogs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-2"></i>
+                            <p>Belum ada katalog</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = catalogs.map(catalog => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <img src="${catalog.thumbnail}" alt="${catalog.title}" class="w-20 h-28 object-cover rounded-lg shadow-sm">
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="font-semibold text-gray-900">${catalog.title}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-gray-600">
+                            <i class="far fa-calendar-alt mr-1"></i>
+                            ${catalog.period}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="inline-block px-3 py-1 text-xs font-bold text-white rounded-full ${getBadgeColor(catalog.badge)}">
+                            ${catalog.badge}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex gap-2">
+                            <button onclick="viewCatalog(${catalog.id})" class="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition" title="Lihat">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button onclick="editCatalog(${catalog.id})" class="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteCatalog(${catalog.id})" class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition" title="Hapus">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getBadgeColor(badge) {
+            const colors = {
+                'BARU': 'bg-green-500',
+                'HOT': 'bg-red-500',
+                'SPESIAL': 'bg-purple-500'
+            };
+            return colors[badge] || 'bg-gray-500';
+        }
+
+        // Open add modal
+        function openAddModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = 'Tambah Katalog Baru';
+            document.getElementById('catalogForm').reset();
+            document.getElementById('catalogId').value = '';
+            document.getElementById('thumbnailPreview').classList.add('hidden');
+            document.getElementById('pdfPreview').classList.add('hidden');
+            document.getElementById('catalogModal').classList.remove('hidden');
+            document.getElementById('catalogModal').classList.add('flex');
+        }
+
+        // Edit catalog
+        function editCatalog(id) {
+            const catalog = catalogs.find(c => c.id === id);
+            if (!catalog) return;
+
+            editingId = id;
+            document.getElementById('modalTitle').textContent = 'Edit Katalog';
+            document.getElementById('catalogId').value = catalog.id;
+            document.getElementById('catalogTitle').value = catalog.title;
+            document.getElementById('catalogPeriod').value = catalog.period;
+            document.getElementById('catalogBadge').value = catalog.badge;
+            
+            // Show existing thumbnail
+            document.getElementById('thumbnailImage').src = catalog.thumbnail;
+            document.getElementById('thumbnailPreview').classList.remove('hidden');
+            
+            // Show existing PDF info
+            document.getElementById('pdfFileName').textContent = catalog.pdfUrl.split('/').pop();
+            document.getElementById('pdfFileSize').textContent = 'File sudah ada';
+            document.getElementById('pdfPreview').classList.remove('hidden');
+            
+            document.getElementById('catalogModal').classList.remove('hidden');
+            document.getElementById('catalogModal').classList.add('flex');
+        }
+
+        // View catalog
+        function viewCatalog(id) {
+            const catalog = catalogs.find(c => c.id === id);
+            if (catalog) {
+                window.open(catalog.pdfUrl, '_blank');
+            }
+        }
+
+        // Delete catalog
+        function deleteCatalog(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus katalog ini?')) {
+                catalogs = catalogs.filter(c => c.id !== id);
+                renderCatalogTable();
+                alert('Katalog berhasil dihapus!');
+            }
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('catalogModal').classList.add('hidden');
+            document.getElementById('catalogModal').classList.remove('flex');
+        }
+
+        // Preview thumbnail
+        function previewThumbnail(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('thumbnailImage').src = e.target.result;
+                    document.getElementById('thumbnailPreview').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Preview PDF
+        function previewPDF(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+                document.getElementById('pdfFileName').textContent = file.name;
+                document.getElementById('pdfFileSize').textContent = `${sizeMB} MB`;
+                document.getElementById('pdfPreview').classList.remove('hidden');
+            }
+        }
+
+        // Clear PDF
+        function clearPDF() {
+            document.getElementById('pdfInput').value = '';
+            document.getElementById('pdfPreview').classList.add('hidden');
+        }
+
+        // Form submit
+        document.getElementById('catalogForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const title = document.getElementById('catalogTitle').value;
+            const period = document.getElementById('catalogPeriod').value;
+            const badge = document.getElementById('catalogBadge').value;
+            const thumbnailFile = document.getElementById('thumbnailInput').files[0];
+            const pdfFile = document.getElementById('pdfInput').files[0];
+
+            if (editingId) {
+                // Update existing catalog
+                const catalog = catalogs.find(c => c.id === editingId);
+                catalog.title = title;
+                catalog.period = period;
+                catalog.badge = badge;
+                
+                if (thumbnailFile) {
+                    // In production, upload to server
+                    catalog.thumbnail = URL.createObjectURL(thumbnailFile);
+                }
+                
+                if (pdfFile) {
+                    // In production, upload to server
+                    catalog.pdfUrl = URL.createObjectURL(pdfFile);
+                }
+                
+                alert('Katalog berhasil diupdate!');
+            } else {
+                // Add new catalog
+                if (!thumbnailFile || !pdfFile) {
+                    alert('Harap pilih thumbnail dan file PDF!');
+                    return;
+                }
+
+                const newCatalog = {
+                    id: Date.now(),
+                    title: title,
+                    period: period,
+                    badge: badge,
+                    thumbnail: URL.createObjectURL(thumbnailFile),
+                    pdfUrl: URL.createObjectURL(pdfFile)
+                };
+
+                catalogs.unshift(newCatalog);
+                alert('Katalog berhasil ditambahkan!');
+            }
+
+            renderCatalogTable();
+            closeModal();
+        });
+
+        // Initial render
+        renderCatalogTable();
+
+        // Close modal on outside click
+        document.getElementById('catalogModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
