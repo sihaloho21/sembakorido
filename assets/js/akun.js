@@ -1578,3 +1578,50 @@ function handleTukarSekarangAkun(rewardId) {
         showToast('Fitur tukar poin akan segera hadir!');
     }
 }
+
+
+/**
+ * Hide mobile bottom navigation when user is logged in (dashboard view)
+ */
+function hideMobileBottomNavOnDashboard() {
+    const bottomNav = document.getElementById('mobile-bottom-nav');
+    const dashboardSection = document.getElementById('dashboard-section');
+    
+    if (bottomNav && dashboardSection) {
+        // Check if dashboard is visible (user is logged in)
+        if (!dashboardSection.classList.contains('hidden')) {
+            bottomNav.classList.add('hidden');
+        } else {
+            bottomNav.classList.remove('hidden');
+        }
+    }
+}
+
+// Call on page load and after login
+document.addEventListener('DOMContentLoaded', function() {
+    // Initial check
+    setTimeout(hideMobileBottomNavOnDashboard, 100);
+});
+
+// Hook into showDashboard to hide bottom nav
+const originalShowDashboard = showDashboard;
+showDashboard = function(user) {
+    if (typeof originalShowDashboard === 'function') {
+        originalShowDashboard(user);
+    }
+    // Hide bottom nav after showing dashboard
+    setTimeout(hideMobileBottomNavOnDashboard, 100);
+};
+
+// Hook into showLoginSection to show bottom nav
+const originalShowLoginSection = showLoginSection;
+showLoginSection = function() {
+    if (typeof originalShowLoginSection === 'function') {
+        originalShowLoginSection();
+    }
+    // Show bottom nav when back to login
+    const bottomNav = document.getElementById('mobile-bottom-nav');
+    if (bottomNav) {
+        bottomNav.classList.remove('hidden');
+    }
+};
