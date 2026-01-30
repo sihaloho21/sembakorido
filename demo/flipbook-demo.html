@@ -174,6 +174,11 @@
       transform: scale(0.8);
     }
     
+    /* Touch zoom support */
+    #bookWrapper {
+      touch-action: pan-x pan-y pinch-zoom;
+    }
+    
     /* Controls */
     .controls { 
       display: flex; 
@@ -389,6 +394,12 @@
       let totalPages = 0;
       let zoomLevel = 0; // -1: zoomed out, 0: normal, 1: zoomed in
       let isFullscreen = false;
+      let currentScale = 1;
+      let lastTap = 0;
+      
+      // Pinch zoom variables
+      let initialDistance = 0;
+      let initialScale = 1;
       
       // Image paths for canvas mode
       const imagePages = [
@@ -439,10 +450,85 @@
         bookWrapper.classList.remove('zoomed-in', 'zoomed-out');
         if (zoomLevel === 1) {
           bookWrapper.classList.add('zoomed-in');
+          currentScale = 1.2;
         } else if (zoomLevel === -1) {
           bookWrapper.classList.add('zoomed-out');
+          currentScale = 0.8;
+        } else {
+          currentScale = 1;
         }
-        console.log('🔍 Zoom level:', zoomLevel);
+        console.log('🔍 Zoom level:', zoomLevel, 'Scale:', currentScale);
+      }
+      
+      // Get distance between two touch points
+      function getDistance(touch1, touch2) {
+        const dx = touch1.clientX - touch2.clientX;
+        const dy = touch1.clientY - touch2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+      
+      // Pinch-to-zoom handlers
+      function handleTouchStart(e) {
+        if (e.touches.length === 2) {
+          initialDistance = getDistance(e.touches[0], e.touches[1]);
+          initialScale = currentScale;
+          console.log('👆 Pinch start, distance:', initialDistance);
+        }
+        
+        // Double-tap detection
+        if (e.touches.length === 1) {
+          const currentTime = new Date().getTime();
+          const tapLength = currentTime - lastTap;
+          
+          if (tapLength < 300 && tapLength > 0) {
+            // Double tap detected
+            e.preventDefault();
+            if (zoomLevel === 0) {
+              zoomIn();
+            } else {
+              zoomLevel = 0;
+              updateZoom();
+            }
+            console.log('👆👆 Double tap detected');
+          }
+          
+          lastTap = currentTime;
+        }
+      }
+      
+      function handleTouchMove(e) {
+        if (e.touches.length === 2) {
+          e.preventDefault();
+          
+          const currentDistance = getDistance(e.touches[0], e.touches[1]);
+          const scale = (currentDistance / initialDistance) * initialScale;
+          
+          // Limit scale between 0.5 and 2
+          const limitedScale = Math.min(Math.max(scale, 0.5), 2);
+          
+          // Apply scale
+          bookWrapper.style.transform = 'scale(' + limitedScale + ')';
+          currentScale = limitedScale;
+          
+          // Update zoom level based on scale
+          if (limitedScale > 1.1) {
+            zoomLevel = 1;
+          } else if (limitedScale < 0.9) {
+            zoomLevel = -1;
+          } else {
+            zoomLevel = 0;
+          }
+          
+          console.log('🤏 Pinching, scale:', limitedScale.toFixed(2));
+        }
+      }
+      
+      function handleTouchEnd(e) {
+        if (e.touches.length < 2) {
+          // Snap to nearest zoom level
+          updateZoom();
+          console.log('👆 Touch end, final zoom:', zoomLevel);
+        }
       }
 
       // Fullscreen function
@@ -679,6 +765,11 @@
         }
       });
 
+      // Add touch event listeners for pinch-to-zoom
+      bookWrapper.addEventListener('touchstart', handleTouchStart, { passive: false });
+      bookWrapper.addEventListener('touchmove', handleTouchMove, { passive: false });
+      bookWrapper.addEventListener('touchend', handleTouchEnd, { passive: false });
+      
       // Initialize on load
       waitForPageFlip(function(PageFlipConstructor) {
         if (PageFlipConstructor) {
