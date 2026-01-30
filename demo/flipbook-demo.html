@@ -225,8 +225,8 @@
     </div>
   </div>
 
-  <!-- Page-Flip JS from CDN -->
-  <script src="https://unpkg.com/page-flip/dist/page-flip.browser.min.js"></script>
+  <!-- Page-Flip JS from CDN - using St namespace -->
+  <script src="https://unpkg.com/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 
   <script>
     (function () {
@@ -249,8 +249,31 @@
         '../assets/demo-pages/page3.jpg'
       ];
 
-      // Get PageFlip constructor
-      const PageFlipConstructor = window.PageFlip || window.St?.PageFlip || null;
+      // Wait for library to load
+      function waitForPageFlip(callback) {
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        const checkInterval = setInterval(function() {
+          attempts++;
+          
+          // Check multiple possible namespaces
+          if (window.St && window.St.PageFlip) {
+            clearInterval(checkInterval);
+            console.log('PageFlip found in St namespace');
+            callback(window.St.PageFlip);
+          } else if (window.PageFlip) {
+            clearInterval(checkInterval);
+            console.log('PageFlip found in global namespace');
+            callback(window.PageFlip);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            console.error('PageFlip library not loaded after', maxAttempts, 'attempts');
+            loading.textContent = 'Error: PageFlip library gagal dimuat';
+            callback(null);
+          }
+        }, 100);
+      }
 
       function updateUI(i) {
         indicator.textContent = (i + 1) + ' / ' + totalPages;
@@ -271,7 +294,7 @@
         bookWrapper.innerHTML = '<div class="loading">Loading flipbook...</div>';
       }
 
-      function initHTMLMode() {
+      function initHTMLMode(PageFlipConstructor) {
         console.log('Initializing HTML mode...');
         
         // Add HTML content
@@ -290,11 +313,6 @@
         `;
         bookWrapper.appendChild(htmlContent);
         
-        if (!PageFlipConstructor) {
-          console.error('PageFlip not available');
-          return;
-        }
-
         try {
           pageFlip = new PageFlipConstructor(bookWrapper, {
             width: 400,
@@ -329,23 +347,18 @@
             });
           }
           
-          loading.style.display = 'none';
+          document.querySelector('.loading').style.display = 'none';
           updateUI(0);
-          console.log('HTML mode initialized');
+          console.log('HTML mode initialized successfully');
         } catch (err) {
           console.error('Failed to init HTML mode:', err);
-          loading.textContent = 'Error loading flipbook';
+          document.querySelector('.loading').textContent = 'Error loading flipbook: ' + err.message;
         }
       }
 
-      function initCanvasMode() {
+      function initCanvasMode(PageFlipConstructor) {
         console.log('Initializing Canvas mode...');
         
-        if (!PageFlipConstructor) {
-          console.error('PageFlip not available');
-          return;
-        }
-
         try {
           pageFlip = new PageFlipConstructor(bookWrapper, {
             width: 400,
@@ -379,16 +392,16 @@
             });
           }
           
-          loading.style.display = 'none';
+          document.querySelector('.loading').style.display = 'none';
           updateUI(0);
-          console.log('Canvas mode initialized');
+          console.log('Canvas mode initialized successfully');
         } catch (err) {
           console.error('Failed to init Canvas mode:', err);
-          loading.textContent = 'Error loading flipbook';
+          document.querySelector('.loading').textContent = 'Error loading flipbook: ' + err.message;
         }
       }
 
-      function switchMode(mode) {
+      function switchMode(mode, PageFlipConstructor) {
         if (mode === currentMode) return;
         
         console.log('Switching to', mode, 'mode');
@@ -403,56 +416,64 @@
           }
         });
         
-        // Show loading
-        loading.style.display = 'block';
-        loading.textContent = 'Loading flipbook...';
-        
         // Destroy current book
         destroyBook();
+        
+        // Show loading
+        const newLoading = document.querySelector('.loading');
+        if (newLoading) {
+          newLoading.style.display = 'block';
+          newLoading.textContent = 'Loading flipbook...';
+        }
         
         // Initialize new mode
         setTimeout(() => {
           if (mode === 'html') {
-            initHTMLMode();
+            initHTMLMode(PageFlipConstructor);
           } else {
-            initCanvasMode();
+            initCanvasMode(PageFlipConstructor);
           }
         }, 100);
       }
 
-      // Tab button click handlers
-      tabButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-          switchMode(this.dataset.mode);
+      // Wait for PageFlip library to load
+      waitForPageFlip(function(PageFlipConstructor) {
+        if (!PageFlipConstructor) {
+          console.error('PageFlip constructor not available');
+          return;
+        }
+
+        console.log('PageFlip constructor loaded:', PageFlipConstructor);
+
+        // Tab button click handlers
+        tabButtons.forEach(btn => {
+          btn.addEventListener('click', function() {
+            switchMode(this.dataset.mode, PageFlipConstructor);
+          });
         });
-      });
 
-      // Control buttons
-      prevBtn.addEventListener('click', function(){ 
-        if (pageFlip && typeof pageFlip.flipPrev === 'function') {
-          pageFlip.flipPrev(); 
-        }
-      });
-      
-      nextBtn.addEventListener('click', function(){ 
-        if (pageFlip && typeof pageFlip.flipNext === 'function') {
-          pageFlip.flipNext(); 
-        }
-      });
+        // Control buttons
+        prevBtn.addEventListener('click', function(){ 
+          if (pageFlip && typeof pageFlip.flipPrev === 'function') {
+            pageFlip.flipPrev(); 
+          }
+        });
+        
+        nextBtn.addEventListener('click', function(){ 
+          if (pageFlip && typeof pageFlip.flipNext === 'function') {
+            pageFlip.flipNext(); 
+          }
+        });
 
-      // Keyboard navigation
-      document.addEventListener('keydown', function(e){
-        if (e.key === 'ArrowLeft') prevBtn.click();
-        if (e.key === 'ArrowRight') nextBtn.click();
-      });
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e){
+          if (e.key === 'ArrowLeft') prevBtn.click();
+          if (e.key === 'ArrowRight') nextBtn.click();
+        });
 
-      // Initialize HTML mode on load
-      if (PageFlipConstructor) {
-        initHTMLMode();
-      } else {
-        loading.textContent = 'PageFlip library not loaded';
-        console.error('PageFlip constructor not found');
-      }
+        // Initialize HTML mode on load
+        initHTMLMode(PageFlipConstructor);
+      });
     })();
   </script>
 </body>
