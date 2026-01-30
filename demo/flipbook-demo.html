@@ -5,46 +5,153 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Demo Flipbook - StPageFlip (CDN)</title>
 
-  <!-- Page-Flip CSS (CDN) -->
-  <link rel="stylesheet" href="https://unpkg.com/page-flip/dist/page-flip.min.css">
-
   <style>
     /* Minimal styling for demo */
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 0; padding: 24px; background:#f6f8f7; color:#0f1720; }
-    .container { max-width: 980px; margin: 0 auto; }
-    h1 { margin: 0 0 12px; font-size: 20px; }
-    .demo-wrap { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
-    #bookWrapper { width: 640px; height: 420px; background: #fff; border-radius: 8px; box-shadow: 0 8px 22px rgba(0,0,0,.08); overflow: hidden; }
-    .controls { display:flex; gap:8px; align-items:center; margin-top:8px; }
-    .controls button { background:#15803d; color:white; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:600; }
-    .controls button:disabled { opacity:.45; cursor:not-allowed; }
-    .page-indicator { font-size:14px; color:#1f2937; margin-left:8px; }
+    body { 
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; 
+      margin: 0; 
+      padding: 24px; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff; 
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container { 
+      max-width: 1200px; 
+      margin: 0 auto; 
+      text-align: center;
+    }
+    h1 { 
+      margin: 0 0 8px; 
+      font-size: 32px; 
+      font-weight: 700;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    .subtitle {
+      font-size: 16px;
+      opacity: 0.9;
+      margin-bottom: 32px;
+    }
+    .demo-wrap { 
+      display: flex; 
+      flex-direction: column;
+      gap: 20px; 
+      align-items: center;
+    }
+    #bookWrapper { 
+      width: 800px; 
+      height: 600px; 
+      background: transparent;
+      margin: 0 auto;
+      position: relative;
+    }
+    /* Page styling */
+    .page { 
+      background: linear-gradient(to bottom, #f9f9f9 0%, #e8e8e8 100%);
+      border: 1px solid #ddd;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.1);
+      padding: 40px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .page img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .controls { 
+      display: flex; 
+      gap: 12px; 
+      align-items: center; 
+      justify-content: center;
+      margin-top: 24px;
+    }
+    .controls button { 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; 
+      border: none; 
+      padding: 14px 28px; 
+      border-radius: 50px; 
+      cursor: pointer; 
+      font-weight: 600;
+      font-size: 15px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      transition: all 0.3s ease;
+    }
+    .controls button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+    .controls button:disabled { 
+      opacity: 0.4; 
+      cursor: not-allowed;
+      transform: none;
+    }
+    .page-indicator { 
+      font-size: 16px; 
+      color: #fff; 
+      font-weight: 600;
+      background: rgba(255,255,255,0.2);
+      padding: 10px 20px;
+      border-radius: 50px;
+      backdrop-filter: blur(10px);
+    }
+    @media (max-width: 900px) {
+      #bookWrapper {
+        width: 90vw;
+        height: calc(90vw * 0.75);
+      }
+    }
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; animation: none !important; }
     }
     noscript .fallback { display:block; }
     .fallback { display:none; padding:12px; }
+    
+    /* Loading indicator */
+    .loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 18px;
+      color: rgba(255,255,255,0.8);
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Demo Flipbook (StPageFlip via CDN)</h1>
-    <p>Letakkan tiga gambar contoh di <code>assets/demo-pages/</code> bernama <code>page1.jpg</code>, <code>page2.jpg</code>, <code>page3.jpg</code>.</p>
+    <h1>🎯 Demo Flipbook Interaktif</h1>
+    <p class="subtitle">Klik dan drag untuk flip halaman • Gunakan tombol atau keyboard arrow keys</p>
 
     <div class="demo-wrap" aria-live="polite">
       <div id="bookWrapper" aria-roledescription="flipbook" aria-label="Demo katalog flipbook">
-        <div id="flipbook">
-          <div class="page"><img src="../assets/demo-pages/page1.jpg" alt="Halaman 1" style="width:100%;height:100%;object-fit:cover;"></div>
-          <div class="page"><img src="../assets/demo-pages/page2.jpg" alt="Halaman 2" style="width:100%;height:100%;object-fit:cover;"></div>
-          <div class="page"><img src="../assets/demo-pages/page3.jpg" alt="Halaman 3" style="width:100%;height:100%;object-fit:cover;"></div>
+        <div class="loading">Loading flipbook...</div>
+        <div id="flipbook" style="display:none;">
+          <div class="page">
+            <img src="../assets/demo-pages/page1.jpg" alt="Halaman 1">
+          </div>
+          <div class="page">
+            <img src="../assets/demo-pages/page2.jpg" alt="Halaman 2">
+          </div>
+          <div class="page">
+            <img src="../assets/demo-pages/page3.jpg" alt="Halaman 3">
+          </div>
         </div>
       </div>
 
       <div>
         <div class="controls" role="toolbar" aria-label="Kontrol Buku">
           <button id="prevBtn" aria-label="Halaman sebelumnya">◀ Sebelumnya</button>
-          <button id="nextBtn" aria-label="Halaman berikutnya">Berikut ▶</button>
           <div class="page-indicator" id="pageIndicator" aria-live="polite">1 / 3</div>
+          <button id="nextBtn" aria-label="Halaman berikutnya">Berikut ▶</button>
         </div>
       </div>
     </div>
@@ -70,6 +177,8 @@
       const prevBtn = document.getElementById('prevBtn');
       const nextBtn = document.getElementById('nextBtn');
       const indicator = document.getElementById('pageIndicator');
+      const loading = document.querySelector('.loading');
+      const flipbookEl = document.getElementById('flipbook');
       let currentIndex = 0;
       const totalPages = pages.length;
 
@@ -123,42 +232,73 @@
         });
 
         updateUI(currentIndex);
+        if (loading) loading.style.display = 'none';
       }
 
       if (PageFlipConstructor && typeof PageFlipConstructor === 'function') {
         try {
+          // Show flipbook before init
+          flipbookEl.style.display = 'block';
+          
+          // Enhanced configuration for realistic 3D flip effect
           const book = new PageFlipConstructor(document.getElementById('bookWrapper'), {
-            width: 640,
-            height: 420,
+            width: 400,  // Single page width
+            height: 600, // Page height
             size: "stretch",
-            maxShadowOpacity: 0.5,
+            minWidth: 315,
+            maxWidth: 1000,
+            minHeight: 400,
+            maxHeight: 1533,
+            maxShadowOpacity: 0.8,  // Enhanced shadow
+            showCover: true,
+            mobileScrollSupport: true,
+            swipeDistance: 30,
+            clickEventForward: true,
             usePortrait: true,
-            showCover: false
+            startPage: 0,
+            drawShadow: true,
+            flippingTime: 1000,  // Smooth animation (1 second)
+            useMouseEvents: true,
+            autoSize: true,
+            showPageCorners: true,
+            disableFlipByClick: false
           });
 
           book.loadFromHTML(Array.from(document.querySelectorAll('#flipbook .page')));
 
+          // Hide loading after init
+          if (loading) loading.style.display = 'none';
+
+          // Event listener for flip
           if (typeof book.on === 'function') {
             book.on('flip', function (e) {
-              if (typeof book.getCurrentPageIndex === 'function') {
+              if (e && e.data !== undefined) {
+                currentIndex = e.data;
+              } else if (typeof book.getCurrentPageIndex === 'function') {
                 currentIndex = book.getCurrentPageIndex();
-              } else if (typeof book.getCurrentPage === 'function') {
-                currentIndex = book.getCurrentPage();
-              } else {
-                const data = e && e.data;
-                if (typeof data === 'number') currentIndex = data;
               }
               updateUI(currentIndex);
             });
-          } else if (typeof book.getCurrentPageIndex === 'function') {
-            setInterval(function(){
-              const idx = book.getCurrentPageIndex();
-              if (idx !== undefined) { currentIndex = idx; updateUI(currentIndex); }
-            }, 300);
+
+            book.on('changeState', function(e) {
+              console.log('State changed:', e);
+            });
           }
 
-          prevBtn.addEventListener('click', function(){ if (typeof book.flipPrev === 'function') book.flipPrev(); });
-          nextBtn.addEventListener('click', function(){ if (typeof book.flipNext === 'function') book.flipNext(); });
+          // Button controls
+          prevBtn.addEventListener('click', function(){ 
+            if (typeof book.flipPrev === 'function') {
+              book.flipPrev(); 
+            }
+          });
+          
+          nextBtn.addEventListener('click', function(){ 
+            if (typeof book.flipNext === 'function') {
+              book.flipNext(); 
+            }
+          });
+
+          // Keyboard navigation
           document.addEventListener('keydown', function(e){
             if (e.key === 'ArrowLeft') prevBtn.click();
             if (e.key === 'ArrowRight') nextBtn.click();
@@ -170,6 +310,7 @@
           fallbackInit();
         }
       } else {
+        console.warn('PageFlip constructor not found, using fallback.');
         fallbackInit();
       }
     })();
