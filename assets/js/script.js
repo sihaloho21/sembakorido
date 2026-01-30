@@ -2556,3 +2556,150 @@ function updatePaymentMethodInfo(method) {
         }
     }, 150); // Half of transition duration
 }
+
+
+// ============ CATEGORY SIDEBAR FUNCTIONS ============
+
+/**
+ * Open category sidebar with animation
+ */
+function openCategorySidebar() {
+    const sidebar = document.getElementById('category-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    if (sidebar && overlay) {
+        // Show overlay first
+        overlay.classList.remove('hidden');
+        
+        // Then slide in sidebar
+        setTimeout(() => {
+            sidebar.classList.remove('-translate-x-full');
+            sidebar.classList.add('translate-x-0');
+        }, 10);
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+        
+        // Load categories if not already loaded
+        loadSidebarCategories();
+    }
+}
+
+/**
+ * Close category sidebar with animation
+ */
+function closeCategorySidebar() {
+    const sidebar = document.getElementById('category-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    if (sidebar && overlay) {
+        // Slide out sidebar
+        sidebar.classList.remove('translate-x-0');
+        sidebar.classList.add('-translate-x-full');
+        
+        // Hide overlay after animation
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+        }, 300);
+        
+        // Re-enable body scroll
+        document.body.style.overflow = '';
+    }
+}
+
+/**
+ * Load categories dynamically from products into sidebar
+ */
+function loadSidebarCategories() {
+    const categoryList = document.getElementById('sidebar-category-list');
+    if (!categoryList) return;
+    
+    // Get unique categories from products
+    const categories = [...new Set(allProducts.map(p => p.kategori).filter(k => k))];
+    
+    // Sort alphabetically
+    categories.sort();
+    
+    // Generate category items HTML
+    const categoryItems = categories.map(category => {
+        // Generate a simple icon based on category name
+        const iconSvg = getCategoryIcon(category);
+        
+        return `
+            <li class="border-b border-gray-100 last:border-0">
+                <a href="javascript:void(0)" onclick="selectSidebarCategory('${category}')" class="flex items-center gap-3 py-3 px-2 hover:bg-green-50 rounded-lg transition group">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition">
+                        ${iconSvg}
+                    </div>
+                    <span class="font-semibold text-gray-700 group-hover:text-green-700">${category}</span>
+                </a>
+            </li>
+        `;
+    }).join('');
+    
+    // Keep "Semua Produk" and add dynamic categories
+    const semuaItem = categoryList.querySelector('li');
+    categoryList.innerHTML = semuaItem ? semuaItem.outerHTML + categoryItems : categoryItems;
+}
+
+/**
+ * Get icon SVG for category (simple fallback icons)
+ */
+function getCategoryIcon(category) {
+    // Default icon
+    return `
+        <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+        </svg>
+    `;
+}
+
+/**
+ * Select category from sidebar and filter products
+ */
+function selectSidebarCategory(category) {
+    // Set category and filter products
+    setCategory(category);
+    
+    // Close sidebar
+    closeCategorySidebar();
+    
+    // Scroll to products section
+    const productsSection = document.getElementById('products');
+    if (productsSection) {
+        productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+/**
+ * Sync mobile cart count with header cart count
+ */
+function updateMobileCartCount() {
+    const mobileCartCount = document.getElementById('mobile-cart-count');
+    const headerCartCount = document.getElementById('cart-count');
+    
+    if (mobileCartCount && headerCartCount) {
+        const count = cart.length;
+        
+        if (count > 0) {
+            mobileCartCount.textContent = count;
+            mobileCartCount.classList.remove('hidden');
+        } else {
+            mobileCartCount.classList.add('hidden');
+        }
+    }
+}
+
+// Hook into existing updateCartUI to sync mobile count
+const originalUpdateCartUI = updateCartUI;
+updateCartUI = function() {
+    if (typeof originalUpdateCartUI === 'function') {
+        originalUpdateCartUI();
+    }
+    updateMobileCartCount();
+};
+
+// Initialize mobile cart count on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateMobileCartCount();
+});
