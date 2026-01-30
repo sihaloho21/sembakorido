@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promo Katalog - GoSembakoRido</title>
+    <link rel="stylesheet" href="assets/css/style.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Catalog Page Styles */
+        .catalog-hero {
+            background: linear-gradient(135deg, #00a651 0%, #008a43 100%);
+            padding: 80px 20px 40px;
+            text-align: center;
+            color: white;
+        }
+
+        .catalog-hero h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .catalog-hero p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        .catalog-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .catalog-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .catalog-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+
+        .catalog-thumbnail {
+            position: relative;
+            width: 100%;
+            padding-top: 141.4%; /* 1:√2 aspect ratio (A4) */
+            background: #f5f5f5;
+            overflow: hidden;
+        }
+
+        .catalog-thumbnail img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .catalog-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ff4444;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .catalog-info {
+            padding: 20px;
+        }
+
+        .catalog-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .catalog-period {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .catalog-period i {
+            color: #00a651;
+        }
+
+        .catalog-download-btn {
+            display: block;
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #00a651 0%, #008a43 100%);
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .catalog-download-btn:hover {
+            background: linear-gradient(135deg, #008a43 0%, #007236 100%);
+            transform: scale(1.02);
+        }
+
+        .catalog-download-btn i {
+            margin-right: 8px;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .catalog-hero h1 {
+                font-size: 2rem;
+            }
+
+            .catalog-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <a href="/">
+                        <img src="assets/images/logo.png" alt="GoSembakoRido" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                        <span style="display:none; font-weight: 700; color: #00a651; font-size: 1.5rem;">GoSembakoRido</span>
+                    </a>
+                </div>
+                <button class="cart-btn" onclick="toggleCartModal()">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count" id="headerCartCount">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="catalog-hero">
+        <h1><i class="fas fa-book"></i> Promo Katalog</h1>
+        <p>Download katalog promo terbaru dan dapatkan penawaran menarik!</p>
+    </section>
+
+    <!-- Catalog Grid -->
+    <div class="catalog-container">
+        <div class="catalog-grid" id="catalogGrid">
+            <!-- Catalog cards will be inserted here by JavaScript -->
+        </div>
+
+        <!-- Empty State (hidden by default) -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <i class="fas fa-book-open"></i>
+            <h3>Belum Ada Katalog</h3>
+            <p>Katalog promo akan segera tersedia</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 GoSembakoRido. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Mobile Bottom Navigation -->
+    <div class="mobile-menu">
+        <a href="/" title="Home">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <button title="Kategori" class="cate-btn" onclick="openCategorySidebar()">
+            <i class="fas fa-list"></i>
+            <span>Kategori</span>
+        </button>
+        <button title="Keranjang" class="cart-btn" onclick="toggleCartModal()">
+            <i class="fas fa-shopping-basket"></i>
+            <span>Keranjang</span>
+            <span class="cart-count" id="mobileCartCount">0</span>
+        </button>
+        <a href="/promo.html" title="Promo">
+            <i class="fas fa-tags"></i>
+            <span>Promo</span>
+        </a>
+        <a href="/akun.html" title="Akun">
+            <i class="fas fa-user"></i>
+            <span>Akun</span>
+        </a>
+    </div>
+
+    <!-- Category Sidebar -->
+    <div class="category-sidebar" id="categorySidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-bars"></i> Kategori</h3>
+            <button class="close-btn" onclick="closeCategorySidebar()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="sidebar-content" id="sidebarCategories">
+            <!-- Categories will be loaded here -->
+        </div>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeCategorySidebar()"></div>
+
+    <!-- Cart Modal -->
+    <div class="modal" id="cartModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-shopping-cart"></i> Keranjang Belanja</h3>
+                <button class="close-btn" onclick="toggleCartModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="cartItems">
+                <!-- Cart items will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <div class="cart-total">
+                    <span>Total:</span>
+                    <span id="cartTotal">Rp 0</span>
+                </div>
+                <button class="checkout-btn" onclick="checkout()">
+                    <i class="fas fa-check"></i> Checkout
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="modalOverlay" onclick="toggleCartModal()"></div>
+
+    <script src="assets/js/script.min.js"></script>
+    <script>
+        // Catalog data (in real app, this would come from database)
+        const catalogs = [
+            {
+                id: 1,
+                title: "Katalog Promo Januari 2026",
+                period: "1-15 Januari 2026",
+                thumbnail: "assets/demo-pages/page1.jpg",
+                pdfUrl: "demo/flipbook-demo.html", // Using flipbook demo as PDF viewer
+                badge: "BARU"
+            },
+            {
+                id: 2,
+                title: "Katalog Promo Akhir Januari",
+                period: "16-31 Januari 2026",
+                thumbnail: "assets/demo-pages/page2.jpg",
+                pdfUrl: "demo/flipbook-demo.html",
+                badge: "HOT"
+            },
+            {
+                id: 3,
+                title: "Katalog Spesial Imlek",
+                period: "22 Jan - 4 Feb 2026",
+                thumbnail: "assets/demo-pages/page3.jpg",
+                pdfUrl: "demo/flipbook-demo.html",
+                badge: "SPESIAL"
+            }
+        ];
+
+        // Render catalog grid
+        function renderCatalogs() {
+            const grid = document.getElementById('catalogGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            if (catalogs.length === 0) {
+                grid.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            grid.innerHTML = catalogs.map(catalog => `
+                <div class="catalog-card">
+                    <div class="catalog-thumbnail">
+                        <img src="${catalog.thumbnail}" alt="${catalog.title}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22424%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22300%22 height=%22424%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2220%22 fill=%22%23999%22%3EKatalog%3C/text%3E%3C/svg%3E'">
+                        <span class="catalog-badge">${catalog.badge}</span>
+                    </div>
+                    <div class="catalog-info">
+                        <h3 class="catalog-title">${catalog.title}</h3>
+                        <div class="catalog-period">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Periode: ${catalog.period}</span>
+                        </div>
+                        <a href="${catalog.pdfUrl}" class="catalog-download-btn" target="_blank">
+                            <i class="fas fa-download"></i>
+                            DOWNLOAD
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            renderCatalogs();
+            
+            // Load cart count
+            updateCartCount();
+        });
+
+        // Update cart count
+        function updateCartCount() {
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            
+            const headerCount = document.getElementById('headerCartCount');
+            const mobileCount = document.getElementById('mobileCartCount');
+            
+            if (headerCount) headerCount.textContent = count;
+            if (mobileCount) mobileCount.textContent = count;
+        }
+    </script>
+</body>
+</html>
