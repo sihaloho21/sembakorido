@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Demo Flipbook - StPageFlip (CDN)</title>
+
+  <!-- Page-Flip CSS (CDN) -->
+  <link rel="stylesheet" href="https://unpkg.com/page-flip/dist/page-flip.min.css">
+
+  <style>
+    /* Minimal styling for demo */
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 0; padding: 24px; background:#f6f8f7; color:#0f1720; }
+    .container { max-width: 980px; margin: 0 auto; }
+    h1 { margin: 0 0 12px; font-size: 20px; }
+    .demo-wrap { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+    #bookWrapper { width: 640px; height: 420px; background: #fff; border-radius: 8px; box-shadow: 0 8px 22px rgba(0,0,0,.08); overflow: hidden; }
+    .controls { display:flex; gap:8px; align-items:center; margin-top:8px; }
+    .controls button { background:#15803d; color:white; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:600; }
+    .controls button:disabled { opacity:.45; cursor:not-allowed; }
+    .page-indicator { font-size:14px; color:#1f2937; margin-left:8px; }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
+    noscript .fallback { display:block; }
+    .fallback { display:none; padding:12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Demo Flipbook (StPageFlip via CDN)</h1>
+    <p>Letakkan tiga gambar contoh di <code>assets/demo-pages/</code> bernama <code>page1.jpg</code>, <code>page2.jpg</code>, <code>page3.jpg</code>.</p>
+
+    <div class="demo-wrap" aria-live="polite">
+      <div id="bookWrapper" aria-roledescription="flipbook" aria-label="Demo katalog flipbook">
+        <div id="flipbook">
+          <div class="page"><img src="../assets/demo-pages/page1.jpg" alt="Halaman 1" style="width:100%;height:100%;object-fit:cover;"></div>
+          <div class="page"><img src="../assets/demo-pages/page2.jpg" alt="Halaman 2" style="width:100%;height:100%;object-fit:cover;"></div>
+          <div class="page"><img src="../assets/demo-pages/page3.jpg" alt="Halaman 3" style="width:100%;height:100%;object-fit:cover;"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="controls" role="toolbar" aria-label="Kontrol Buku">
+          <button id="prevBtn" aria-label="Halaman sebelumnya">◀ Sebelumnya</button>
+          <button id="nextBtn" aria-label="Halaman berikutnya">Berikut ▶</button>
+          <div class="page-indicator" id="pageIndicator" aria-live="polite">1 / 3</div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <div class="fallback">
+        <p>Javascript tidak aktif — tampilkan gambar secara statis:</p>
+        <ul>
+          <li><img src="../assets/demo-pages/page1.jpg" alt="Halaman 1" style="max-width:240px"></li>
+          <li><img src="../assets/demo-pages/page2.jpg" alt="Halaman 2" style="max-width:240px"></li>
+          <li><img src="../assets/demo-pages/page3.jpg" alt="Halaman 3" style="max-width:240px"></li>
+        </ul>
+      </div>
+    </noscript>
+  </div>
+
+  <!-- Page-Flip JS (browser bundle) dari CDN -->
+  <script src="https://unpkg.com/page-flip/dist/page-flip.browser.min.js"></script>
+
+  <script>
+    (function () {
+      const pages = document.querySelectorAll('#flipbook .page');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const indicator = document.getElementById('pageIndicator');
+      let currentIndex = 0;
+      const totalPages = pages.length;
+
+      // Try to get constructor exported by page-flip bundle
+      const PageFlipConstructor = window.PageFlip || window.Pageflip || window.pageFlip || window.HTMLPageFlip || null;
+
+      function updateUI(i) {
+        indicator.textContent = (i + 1) + ' / ' + totalPages;
+        prevBtn.disabled = i <= 0;
+        nextBtn.disabled = i >= totalPages - 1;
+      }
+
+      function fallbackInit() {
+        const wrapper = document.getElementById('bookWrapper');
+        const container = document.getElementById('flipbook');
+        container.style.display = 'flex';
+        container.style.gap = '0';
+        container.style.overflowX = 'auto';
+        container.style.scrollSnapType = 'x mandatory';
+        container.style.height = '100%';
+        container.style.width = '100%';
+        pages.forEach(function(p){
+          p.style.minWidth = '100%';
+          p.style.scrollSnapAlign = 'center';
+        });
+
+        prevBtn.addEventListener('click', function(){
+          currentIndex = Math.max(0, currentIndex - 1);
+          container.scrollTo({ left: container.clientWidth * currentIndex, behavior: 'smooth' });
+          updateUI(currentIndex);
+        });
+        nextBtn.addEventListener('click', function(){
+          currentIndex = Math.min(totalPages - 1, currentIndex + 1);
+          container.scrollTo({ left: container.clientWidth * currentIndex, behavior: 'smooth' });
+          updateUI(currentIndex);
+        });
+
+        let isScrolling;
+        container.addEventListener('scroll', function(){
+          window.clearTimeout(isScrolling);
+          isScrolling = setTimeout(function(){
+            const idx = Math.round(container.scrollLeft / container.clientWidth);
+            currentIndex = Math.min(totalPages - 1, Math.max(0, idx));
+            updateUI(currentIndex);
+          }, 80);
+        });
+
+        document.addEventListener('keydown', function(e){
+          if (e.key === 'ArrowLeft') prevBtn.click();
+          if (e.key === 'ArrowRight') nextBtn.click();
+        });
+
+        updateUI(currentIndex);
+      }
+
+      if (PageFlipConstructor && typeof PageFlipConstructor === 'function') {
+        try {
+          const book = new PageFlipConstructor(document.getElementById('bookWrapper'), {
+            width: 640,
+            height: 420,
+            size: "stretch",
+            maxShadowOpacity: 0.5,
+            usePortrait: true,
+            showCover: false
+          });
+
+          book.loadFromHTML(Array.from(document.querySelectorAll('#flipbook .page')));
+
+          if (typeof book.on === 'function') {
+            book.on('flip', function (e) {
+              if (typeof book.getCurrentPageIndex === 'function') {
+                currentIndex = book.getCurrentPageIndex();
+              } else if (typeof book.getCurrentPage === 'function') {
+                currentIndex = book.getCurrentPage();
+              } else {
+                const data = e && e.data;
+                if (typeof data === 'number') currentIndex = data;
+              }
+              updateUI(currentIndex);
+            });
+          } else if (typeof book.getCurrentPageIndex === 'function') {
+            setInterval(function(){
+              const idx = book.getCurrentPageIndex();
+              if (idx !== undefined) { currentIndex = idx; updateUI(currentIndex); }
+            }, 300);
+          }
+
+          prevBtn.addEventListener('click', function(){ if (typeof book.flipPrev === 'function') book.flipPrev(); });
+          nextBtn.addEventListener('click', function(){ if (typeof book.flipNext === 'function') book.flipNext(); });
+          document.addEventListener('keydown', function(e){
+            if (e.key === 'ArrowLeft') prevBtn.click();
+            if (e.key === 'ArrowRight') nextBtn.click();
+          });
+
+          updateUI(0);
+        } catch (err) {
+          console.warn('PageFlip init failed, falling back to scroll-snap paging.', err);
+          fallbackInit();
+        }
+      } else {
+        fallbackInit();
+      }
+    })();
+  </script>
+</body>
+</html>
