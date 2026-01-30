@@ -191,12 +191,14 @@
     }
     
     #bookWrapper { 
-      width: 900px; 
-      height: 675px; 
+      width: 95vw;  /* Wider - almost full viewport width */
+      max-width: 1200px;
+      height: auto;
+      aspect-ratio: 4 / 3;
       background: transparent;
       margin: 0 auto;
       position: relative;
-      transition: all 0.3s ease;
+      transition: transform 0.3s ease;
       box-shadow: 0 20px 60px rgba(0,0,0,0.4);
       border-radius: 8px;
     }
@@ -263,16 +265,7 @@
     }
     
     .page-indicator { 
-      font-size: 18px; 
-      color: #fff; 
-      font-weight: 700;
-      background: rgba(255,255,255,0.25);
-      padding: 12px 28px;
-      border-radius: 50px;
-      backdrop-filter: blur(10px);
-      min-width: 120px;
-      border: 2px solid rgba(255,255,255,0.3);
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      display: none; /* Hidden - line dots removed */
     }
     
     /* Loading */
@@ -325,10 +318,11 @@
     }
     
     /* Responsive */
-    @media (max-width: 1000px) {
+      @media (max-width: 1000px) {
       #bookWrapper {
-        width: 85vw;
-        height: calc(85vw * 0.75);
+        width: 95vw;  /* Wider on mobile */
+        max-width: none;
+        height: auto;
       }
       .book-frame {
         padding: 16px;
@@ -460,7 +454,7 @@
       let zoomLevel = 0; // 0: normal (1x), 1: zoomed in (1.3x) - no zoom out
       let isFullscreen = false;
       let currentScale = 1;
-      let lastTap = 0;
+      // lastTap variable removed (double-tap disabled)
       
       // Pinch zoom variables
       let initialDistance = 0;
@@ -555,24 +549,8 @@
           }
         }
         
-        // Double-tap detection
-        if (e.touches.length === 1) {
-          const currentTime = new Date().getTime();
-          const tapLength = currentTime - lastTap;
-          
-          if (tapLength < 300 && tapLength > 0) {
-            e.preventDefault();
-            if (zoomLevel === 0) {
-              zoomIn();
-            } else {
-              zoomLevel = 0;
-              updateZoom();
-            }
-            console.log('👆👆 Double tap detected');
-          }
-          
-          lastTap = currentTime;
-        }
+        // Double-tap zoom disabled for mobile
+        // (Removed to prevent accidental zoom)
       }
       
       function handleTouchMove(e) {
