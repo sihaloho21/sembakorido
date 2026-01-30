@@ -477,6 +477,7 @@
       // Pinch zoom variables
       let initialDistance = 0;
       let initialScale = 1;
+      let isPinching = false;
       
       // Image paths for canvas mode
       const imagePages = [
@@ -549,8 +550,16 @@
       // Pinch-to-zoom handlers
       function handleTouchStart(e) {
         if (e.touches.length === 2) {
+          e.preventDefault();
+          isPinching = true;
           initialDistance = getDistance(e.touches[0], e.touches[1]);
           initialScale = currentScale;
+          
+          // Disable flip interactions during pinch
+          if (pageFlip && typeof pageFlip.disableFlipByClick !== 'undefined') {
+            pageFlip.disableFlipByClick = true;
+          }
+          
           console.log('👆 Pinch start, distance:', initialDistance);
         }
         
@@ -599,8 +608,17 @@
       }
       
       function handleTouchEnd(e) {
-        if (e.touches.length < 2) {
+        if (e.touches.length < 2 && isPinching) {
           updateZoom();
+          isPinching = false;
+          
+          // Re-enable flip interactions after pinch
+          setTimeout(function() {
+            if (pageFlip && typeof pageFlip.disableFlipByClick !== 'undefined') {
+              pageFlip.disableFlipByClick = false;
+            }
+          }, 300);
+          
           console.log('👆 Touch end, final zoom:', zoomLevel);
         }
       }
