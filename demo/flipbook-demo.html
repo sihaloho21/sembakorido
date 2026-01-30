@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="utf-8" />
@@ -13,8 +13,8 @@
     
     body { 
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; 
-      background: linear-gradient(135deg, #0d7a3f 0%, #0a5c2f 100%);
-      color: #fff; 
+      background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+      color: #333; 
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -22,127 +22,130 @@
       padding: 20px;
     }
     
-    body.fullscreen {
-      padding: 0;
-      background: #1a1a1a;
-    }
-    
     .container { 
-      max-width: 1400px; 
+      max-width: 480px;
       width: 100%;
       margin: 0 auto; 
-      text-align: center;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
     }
     
-    .container.fullscreen {
-      max-width: 100%;
-      height: 100vh;
+    /* Flipbook Wrapper */
+    .flipbook-wrapper {
+      background: #fff;
+      padding: 20px;
+      position: relative;
+    }
+    
+    #bookWrapper { 
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      background: #f5f5f5;
+      margin: 0 auto;
+      position: relative;
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    /* Page Counter Badge (Top-Left inside flipbook) */
+    .page-counter-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0,0,0,0.75);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 100;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    /* Bottom Toolbar */
+    .bottom-toolbar {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 16px 20px;
+      background: #fff;
+      border-top: 1px solid #e0e0e0;
+    }
+    
+    .bottom-toolbar button {
+      background: none;
+      border: none;
+      color: #666;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 8px;
+      transition: all 0.2s;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      align-items: center;
+      gap: 4px;
     }
     
-    /* Hero Section */
-    .hero-section {
-      margin-bottom: 32px;
+    .bottom-toolbar button:hover {
+      color: #4a90e2;
+      transform: scale(1.1);
     }
     
-    h1 { 
-      margin: 0 0 12px; 
-      font-size: 48px; 
-      font-weight: 700;
-      text-shadow: 0 4px 20px rgba(0,0,0,0.4);
-      letter-spacing: 1px;
+    .bottom-toolbar button:active {
+      transform: scale(0.95);
     }
     
-    .subtitle {
-      font-size: 18px;
-      opacity: 0.95;
-      margin-bottom: 16px;
+    .bottom-toolbar button span.label {
+      font-size: 11px;
       font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     
-    .promo-period {
-      display: inline-block;
-      background: rgba(255,255,255,0.25);
-      padding: 10px 24px;
-      border-radius: 25px;
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 24px;
-      backdrop-filter: blur(10px);
-      border: 2px solid rgba(255,255,255,0.3);
+    /* Loading */
+    .loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: #666;
     }
     
-    .badge {
-      display: inline-block;
-      background: rgba(255,255,255,0.2);
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: 600;
-      margin: 0 8px 16px;
-      backdrop-filter: blur(10px);
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e0e0e0;
+      border-top-color: #4a90e2;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
     }
     
-    /* Toolbar */
-    .toolbar {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
     
-    .toolbar button {
-      background: rgba(255,255,255,0.25);
-      color: #fff;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      backdrop-filter: blur(10px);
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border: 2px solid rgba(255,255,255,0.2);
-    }
-    
-    .toolbar button:hover {
-      background: rgba(255,255,255,0.35);
-      transform: translateY(-2px);
-      border-color: rgba(255,255,255,0.4);
-    }
-    
-    .toolbar button:active {
-      transform: translateY(0);
-    }
-    
-    .toolbar .icon {
-      font-size: 18px;
-    }
-    
-    /* Dropdown menu */
+    /* Dropdown Menu */
     .dropdown {
       position: relative;
-      display: inline-block;
     }
     
     .dropdown-content {
       display: none;
       position: absolute;
+      bottom: 100%;
       right: 0;
-      background: rgba(255,255,255,0.95);
+      margin-bottom: 8px;
+      background: #fff;
       min-width: 180px;
       box-shadow: 0 8px 16px rgba(0,0,0,0.2);
       border-radius: 8px;
-      z-index: 1000;
       overflow: hidden;
-      backdrop-filter: blur(10px);
+      z-index: 1000;
     }
     
     .dropdown-content.show {
@@ -153,12 +156,11 @@
       width: 100%;
       padding: 12px 16px;
       text-align: left;
-      background: transparent;
-      color: #333;
+      background: #fff;
       border: none;
-      border-radius: 0;
-      cursor: pointer;
+      color: #333;
       font-size: 14px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -166,45 +168,59 @@
     }
     
     .dropdown-content button:hover {
-      background: rgba(13, 122, 63, 0.1);
-      transform: none;
+      background: #f5f5f5;
     }
     
-    /* Book Container with Frame */
-    .demo-wrap { 
-      display: flex; 
+    .dropdown-content button .icon {
+      font-size: 18px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 600px) {
+      .container {
+        max-width: 100%;
+        border-radius: 0;
+      }
+      
+      body {
+        padding: 0;
+      }
+      
+      .bottom-toolbar button span.label {
+        display: none;
+      }
+    }
+    
+    /* Fullscreen Mode */
+    body.fullscreen {
+      padding: 0;
+    }
+    
+    .container.fullscreen {
+      max-width: 100%;
+      height: 100vh;
+      border-radius: 0;
+      display: flex;
       flex-direction: column;
-      gap: 24px; 
+    }
+    
+    .fullscreen .flipbook-wrapper {
+      flex: 1;
+      display: flex;
       align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
     }
     
-    .book-frame {
-      position: relative;
-      padding: 24px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 16px;
-      border: 3px dashed rgba(255,255,255,0.3);
-      box-shadow: 
-        0 10px 40px rgba(0,0,0,0.3),
-        inset 0 0 0 1px rgba(255,255,255,0.1);
-      backdrop-filter: blur(10px);
+    .fullscreen #bookWrapper {
+      max-width: 800px;
+      max-height: 90vh;
     }
     
-    #bookWrapper { 
-      width: 95vw;  /* Wider - almost full viewport width */
-      max-width: 1200px;
-      height: auto;
-      aspect-ratio: 4 / 3;
-      background: transparent;
-      margin: 0 auto;
-      position: relative;
-      transition: transform 0.3s ease;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-      border-radius: 8px;
-    }
-    
+    /* Zoom Transform */
     #bookWrapper.zoomed-in {
       transform: scale(1.3);
+      transform-origin: center;
     }
     
     /* Touch zoom support */
@@ -212,181 +228,49 @@
       touch-action: pan-x pan-y pinch-zoom;
     }
     
-    /* Page Counter Badge (Bottom-Left like Indomaret) */
-    .page-counter-badge {
-      position: absolute;
-      bottom: 16px;
-      left: 16px;
-      background: rgba(0,0,0,0.75);
-      color: #fff;
-      padding: 10px 18px;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 700;
-      z-index: 100;
-      backdrop-filter: blur(10px);
-      border: 2px solid rgba(255,255,255,0.2);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    
-    /* Controls */
-    .controls { 
-      display: flex; 
-      gap: 16px; 
-      align-items: center; 
-      justify-content: center;
-      margin-top: 24px;
-    }
-    
-    .controls button { 
-      background: linear-gradient(135deg, #0d7a3f 0%, #0a5c2f 100%);
-      color: white; 
-      border: none; 
-      padding: 16px 32px; 
-      border-radius: 50px; 
-      cursor: pointer; 
-      font-weight: 700;
-      font-size: 16px;
-      box-shadow: 0 6px 20px rgba(13, 122, 63, 0.4);
-      transition: all 0.3s ease;
-      border: 2px solid rgba(255,255,255,0.2);
-    }
-    
-    .controls button:hover:not(:disabled) {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(13, 122, 63, 0.6);
-      border-color: rgba(255,255,255,0.4);
-    }
-    
-    .controls button:disabled { 
-      opacity: 0.4; 
-      cursor: not-allowed;
-      transform: none;
-    }
-    
-    .page-indicator { 
-      display: none; /* Hidden - line dots removed */
-    }
-    
-    /* Loading */
-    .loading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 18px;
-      color: rgba(255,255,255,0.9);
-      text-align: center;
-    }
-    
-    .loading-spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid rgba(255,255,255,0.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 16px;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    /* Info box */
-    .info-box {
-      background: rgba(255,255,255,0.15);
-      backdrop-filter: blur(10px);
-      border-radius: 12px;
-      padding: 20px 32px;
-      margin-top: 32px;
-      display: inline-block;
-      border: 2px solid rgba(255,255,255,0.2);
-    }
-    
-    .info-box p {
-      margin: 6px 0;
-      font-size: 15px;
-      opacity: 0.95;
-      font-weight: 500;
-    }
-    
     /* Hide elements in fullscreen */
-    .fullscreen .hero-section,
-    .fullscreen .info-box {
+    .fullscreen .page-counter-badge {
       display: none;
-    }
-    
-    /* Responsive */
-      @media (max-width: 1000px) {
-      #bookWrapper {
-        width: 95vw;  /* Wider on mobile */
-        max-width: none;
-        height: auto;
-      }
-      .book-frame {
-        padding: 16px;
-      }
-      h1 { font-size: 36px; }
-      .subtitle { font-size: 16px; }
-      .controls button {
-        padding: 14px 24px;
-        font-size: 15px;
-      }
-      .toolbar {
-        gap: 6px;
-      }
-      .toolbar button {
-        padding: 10px 14px;
-        font-size: 13px;
-      }
-      .toolbar button span:not(.icon) {
-        display: none;
-      }
-      .page-counter-badge {
-        bottom: 12px;
-        left: 12px;
-        padding: 8px 14px;
-        font-size: 14px;
-      }
-    }
-    
-    @media (prefers-reduced-motion: reduce) {
-      * { transition: none !important; animation: none !important; }
     }
   </style>
 </head>
 <body>
+
   <div class="container">
-    <div class="hero-section">
-      <h1>🛒 Katalog Promo Spesial</h1>
-      <p class="subtitle">Belanja Hemat Setiap Hari</p>
-      <div class="promo-period">📅 Periode: 1 Jan - 31 Jan 2026</div>
+    <!-- Flipbook Area -->
+    <div class="flipbook-wrapper">
+      <div id="bookWrapper" aria-roledescription="flipbook" aria-label="Katalog produk flipbook">
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          <div>Loading...</div>
+        </div>
+        
+        <!-- Page Counter Badge -->
+        <div class="page-counter-badge" id="pageCounterBadge">1 / 3</div>
+      </div>
     </div>
 
-    <!-- Toolbar -->
-    <div class="toolbar">
-      <button id="zoomOutBtn" title="Zoom Out">
-        <span class="icon">−</span>
-        <span>Zoom Out</span>
+    <!-- Bottom Toolbar -->
+    <div class="bottom-toolbar">
+      <button id="gridBtn" title="Grid View" aria-label="Grid view">
+        <span>☷</span>
+        <span class="label">Grid</span>
       </button>
-      <button id="zoomInBtn" title="Zoom In">
-        <span class="icon">+</span>
-        <span>Zoom In</span>
+      
+      <button id="listBtn" title="List View" aria-label="List view">
+        <span>☰</span>
+        <span class="label">List</span>
       </button>
-      <button id="shareBtn" title="Share ke WhatsApp">
-        <span class="icon">📤</span>
-        <span>Share WA</span>
-      </button>
-      <button id="fullscreenBtn" title="Fullscreen">
-        <span class="icon">⛶</span>
-        <span>Fullscreen</span>
+      
+      <button id="shareBtn" title="Share" aria-label="Share via WhatsApp">
+        <span>↗</span>
+        <span class="label">Share</span>
       </button>
       
       <div class="dropdown">
-        <button id="moreBtn" title="More Options">
-          <span class="icon">⋮</span>
-          <span>More</span>
+        <button id="moreBtn" title="More Options" aria-label="More options">
+          <span>⋮</span>
+          <span class="label">More</span>
         </button>
         <div id="dropdownMenu" class="dropdown-content">
           <button id="printBtn">
@@ -397,33 +281,22 @@
             <span class="icon">📄</span>
             <span>Download PDF</span>
           </button>
+          <button id="zoomInBtn">
+            <span class="icon">🔍+</span>
+            <span>Zoom In</span>
+          </button>
+          <button id="zoomOutBtn">
+            <span class="icon">🔍−</span>
+            <span>Zoom Out</span>
+          </button>
         </div>
       </div>
+      
+      <button id="fullscreenBtn" title="Fullscreen" aria-label="Toggle fullscreen">
+        <span>⛶</span>
+        <span class="label">Full</span>
+      </button>
     </div>
-
-    <div class="demo-wrap" aria-live="polite">
-      <div class="book-frame">
-        <div id="bookWrapper" aria-roledescription="flipbook" aria-label="Katalog produk flipbook">
-          <div class="loading">
-            <div class="loading-spinner"></div>
-            <div>Loading flipbook...</div>
-          </div>
-          
-          <!-- Page Counter Badge (like Indomaret) -->
-          <div class="page-counter-badge" id="pageCounterBadge">1 / 3</div>
-        </div>
-      </div>
-
-      <div>
-        <div class="controls" role="toolbar" aria-label="Kontrol Buku">
-          <button id="prevBtn" aria-label="Halaman sebelumnya">◀ Sebelumnya</button>
-          <div class="page-indicator" id="pageIndicator" aria-live="polite">1 / 3</div>
-          <button id="nextBtn" aria-label="Halaman berikutnya">Berikut ▶</button>
-        </div>
-      </div>
-    </div>
-
-
   </div>
 
   <!-- Page-Flip JS from CDN -->
@@ -431,29 +304,28 @@
 
   <script>
     (function () {
-      const prevBtn = document.getElementById('prevBtn');
-      const nextBtn = document.getElementById('nextBtn');
-      const indicator = document.getElementById('pageIndicator');
       const pageCounterBadge = document.getElementById('pageCounterBadge');
       const bookWrapper = document.getElementById('bookWrapper');
       const container = document.querySelector('.container');
       
       // Toolbar buttons
-      const zoomInBtn = document.getElementById('zoomInBtn');
-      const zoomOutBtn = document.getElementById('zoomOutBtn');
+      const gridBtn = document.getElementById('gridBtn');
+      const listBtn = document.getElementById('listBtn');
       const shareBtn = document.getElementById('shareBtn');
       const fullscreenBtn = document.getElementById('fullscreenBtn');
       const moreBtn = document.getElementById('moreBtn');
       const dropdownMenu = document.getElementById('dropdownMenu');
       const printBtn = document.getElementById('printBtn');
       const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+      const zoomInBtn = document.getElementById('zoomInBtn');
+      const zoomOutBtn = document.getElementById('zoomOutBtn');
       
-      let pageFlip = null;
-      let currentIndex = 0;
-      let totalPages = 0;
-      let zoomLevel = 0; // 0: normal (1x), 1: zoomed in (1.3x) - no zoom out
+      let pageFlip;
+      let totalPages = 3;
+      let zoomLevel = 0; // 0: normal (1x), 1: zoomed in (1.3x)
       let isFullscreen = false;
       let currentScale = 1;
+      
       // lastTap variable removed (double-tap disabled)
       
       // Pinch zoom variables
@@ -468,41 +340,13 @@
         '../assets/demo-pages/page3.jpg'
       ];
 
-      totalPages = imagePages.length;
-
-      function updateUI(i) {
-        currentIndex = i;
-        const pageNum = (i + 1) + ' / ' + totalPages;
-        indicator.textContent = pageNum;
-        pageCounterBadge.textContent = pageNum;
-        prevBtn.disabled = i <= 0;
-        nextBtn.disabled = i >= totalPages - 1;
-      }
-
-      function hideLoading() {
-        const loading = document.querySelector('.loading');
-        if (loading) {
-          loading.style.display = 'none';
-        }
-      }
-
-      function showError(message) {
-        const loading = document.querySelector('.loading');
-        if (loading) {
-          loading.innerHTML = '<div style="color: #ff6b6b;">⚠️ ' + message + '</div>';
-        }
-      }
-
       // Zoom functions
       function zoomIn() {
-        if (zoomLevel < 1) {
-          zoomLevel = 1;
-          updateZoom();
-        }
+        zoomLevel = 1;
+        updateZoom();
       }
 
       function zoomOut() {
-        // Only zoom out to normal (1x), never smaller
         if (zoomLevel > 0) {
           zoomLevel = 0;
           updateZoom();
@@ -510,122 +354,50 @@
       }
 
       function updateZoom() {
-        bookWrapper.classList.remove('zoomed-in', 'zoomed-out');
-        if (zoomLevel === 1) {
+        if (zoomLevel === 0) {
+          bookWrapper.classList.remove('zoomed-in');
+          currentScale = 1;
+        } else {
           bookWrapper.classList.add('zoomed-in');
           currentScale = 1.3;
-        } else {
-          // Default: normal size (1x)
-          currentScale = 1;
         }
         console.log('🔍 Zoom level:', zoomLevel, 'Scale:', currentScale);
       }
-      
-      // Get distance between two touch points
-      function getDistance(touch1, touch2) {
-        const dx = touch1.clientX - touch2.clientX;
-        const dy = touch1.clientY - touch2.clientY;
-        return Math.sqrt(dx * dx + dy * dy);
-      }
-      
-      // Pinch-to-zoom handlers
-      function handleTouchStart(e) {
-        // If more than 1 finger, disable flip completely
-        if (e.touches.length > 1) {
-          e.preventDefault();
-          isPinching = true;
-          
-          // Disable flip interactions when multiple fingers detected
-          if (pageFlip && typeof pageFlip.disableFlipByClick !== 'undefined') {
-            pageFlip.disableFlipByClick = true;
-          }
-          
-          if (e.touches.length === 2) {
-            initialDistance = getDistance(e.touches[0], e.touches[1]);
-            initialScale = currentScale;
-            console.log('👆 Pinch start, distance:', initialDistance);
-          } else {
-            console.log('👆 Multi-finger touch detected:', e.touches.length, 'fingers');
-          }
-        }
-        
-        // Double-tap zoom disabled for mobile
-        // (Removed to prevent accidental zoom)
-      }
-      
-      function handleTouchMove(e) {
-        // Block all movement if more than 1 finger
-        if (e.touches.length > 1) {
-          e.preventDefault();
-          
-          // Only process zoom for exactly 2 fingers
-          if (e.touches.length === 2) {
-            const currentDistance = getDistance(e.touches[0], e.touches[1]);
-            const scale = (currentDistance / initialDistance) * initialScale;
-            
-            // Limit scale: minimum 1.0 (no smaller than default), maximum 2.0
-            const limitedScale = Math.min(Math.max(scale, 1.0), 2.0);
-            
-            bookWrapper.style.transform = 'scale(' + limitedScale + ')';
-            currentScale = limitedScale;
-            
-            // Update zoom level based on scale
-            if (limitedScale > 1.15) {
-              zoomLevel = 1;
-            } else {
-              zoomLevel = 0;
-            }
-            
-            console.log('🤏 Pinching, scale:', limitedScale.toFixed(2));
-          }
-        }
-      }
-      
-      function handleTouchEnd(e) {
-        if (e.touches.length < 2 && isPinching) {
-          updateZoom();
-          isPinching = false;
-          
-          // Re-enable flip interactions after pinch
-          setTimeout(function() {
-            if (pageFlip && typeof pageFlip.disableFlipByClick !== 'undefined') {
-              pageFlip.disableFlipByClick = false;
-            }
-          }, 300);
-          
-          console.log('👆 Touch end, final zoom:', zoomLevel);
-        }
-      }
 
-      // Fullscreen function
-      function toggleFullscreen() {
-        isFullscreen = !isFullscreen;
-        if (isFullscreen) {
-          document.body.classList.add('fullscreen');
-          container.classList.add('fullscreen');
-          fullscreenBtn.innerHTML = '<span class="icon">✕</span><span>Exit</span>';
-          console.log('📺 Fullscreen mode ON');
-        } else {
-          document.body.classList.remove('fullscreen');
-          container.classList.remove('fullscreen');
-          fullscreenBtn.innerHTML = '<span class="icon">⛶</span><span>Fullscreen</span>';
-          console.log('📺 Fullscreen mode OFF');
-        }
-      }
-
-      // Share to WhatsApp
+      // Share function
       function shareToWhatsApp() {
         const url = window.location.href;
-        const text = 'Lihat katalog promo spesial kami! 🛒';
-        const waUrl = 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url);
-        window.open(waUrl, '_blank');
+        const text = 'Lihat katalog produk kami di flipbook ini!';
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`;
+        window.open(whatsappUrl, '_blank');
         console.log('📤 Sharing to WhatsApp');
       }
 
+      // Fullscreen toggle
+      function toggleFullscreen() {
+        isFullscreen = !isFullscreen;
+        document.body.classList.toggle('fullscreen');
+        container.classList.toggle('fullscreen');
+        fullscreenBtn.querySelector('span:first-child').textContent = isFullscreen ? '✕' : '⛶';
+        console.log('⛶ Fullscreen:', isFullscreen);
+      }
+
+      // Dropdown toggle
+      function toggleDropdown() {
+        dropdownMenu.classList.toggle('show');
+      }
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!moreBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+          dropdownMenu.classList.remove('show');
+        }
+      });
+
       // Print function
-      function printFlipbook() {
-        console.log('🖨️ Printing flipbook...');
+      function printCatalog() {
         window.print();
+        console.log('🖨️ Printing catalog');
       }
 
       // Download PDF function
@@ -678,24 +450,147 @@
         });
       }
 
-      // Toggle dropdown menu
-      function toggleDropdown() {
-        dropdownMenu.classList.toggle('show');
-      }
+      // Event listeners
+      gridBtn.addEventListener('click', () => {
+        alert('Grid view - Coming soon!');
+        console.log('☷ Grid view clicked');
+      });
 
-      // Close dropdown when clicking outside
-      document.addEventListener('click', function(e) {
-        if (!moreBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
-          dropdownMenu.classList.remove('show');
+      listBtn.addEventListener('click', () => {
+        alert('List view - Coming soon!');
+        console.log('☰ List view clicked');
+      });
+
+      shareBtn.addEventListener('click', shareToWhatsApp);
+      fullscreenBtn.addEventListener('click', toggleFullscreen);
+      moreBtn.addEventListener('click', toggleDropdown);
+      printBtn.addEventListener('click', printCatalog);
+      downloadPdfBtn.addEventListener('click', downloadPDF);
+      zoomInBtn.addEventListener('click', zoomIn);
+      zoomOutBtn.addEventListener('click', zoomOut);
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowLeft' && pageFlip) {
+          pageFlip.flipPrev('top');
+        } else if (e.key === 'ArrowRight' && pageFlip) {
+          pageFlip.flipNext('top');
+        } else if (e.key === '+' || e.key === '=') {
+          zoomIn();
+        } else if (e.key === '-' || e.key === '_') {
+          zoomOut();
+        } else if (e.key === 'Escape' && isFullscreen) {
+          toggleFullscreen();
         }
       });
 
-      // Wait for library to load
+      // Touch event handlers for pinch-to-zoom
+      function handleTouchStart(e) {
+        // Multi-finger detection
+        if (e.touches.length > 1) {
+          e.preventDefault();
+          isPinching = true;
+          if (pageFlip) {
+            pageFlip.disableFlipByClick = true;
+          }
+          
+          if (e.touches.length === 2) {
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            initialDistance = getDistance(touch1, touch2);
+            initialScale = currentScale;
+            console.log('👆 Pinch start, distance:', initialDistance);
+          } else {
+            console.log('👆 Multi-finger touch detected:', e.touches.length, 'fingers');
+          }
+        }
+        
+        // Double-tap zoom disabled for mobile
+        // (Removed to prevent accidental zoom)
+      }
+      
+      function handleTouchMove(e) {
+        // Block all movement if more than 1 finger
+        if (e.touches.length > 1) {
+          e.preventDefault();
+          
+          // Only process zoom for exactly 2 fingers
+          if (e.touches.length === 2 && initialDistance > 0) {
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            const currentDistance = getDistance(touch1, touch2);
+            
+            let scale = (currentDistance / initialDistance) * initialScale;
+            
+            // Limit scale: min 1.0x, max 2.0x (no zoom out below default)
+            const limitedScale = Math.min(Math.max(scale, 1.0), 2.0);
+            
+            bookWrapper.style.transform = `scale(${limitedScale})`;
+            currentScale = limitedScale;
+            
+            console.log('🤏 Pinching, scale:', limitedScale.toFixed(2));
+          }
+        }
+      }
+      
+      function handleTouchEnd(e) {
+        if (e.touches.length < 2 && isPinching) {
+          isPinching = false;
+          
+          // Snap to nearest zoom level
+          if (currentScale > 1.1) {
+            zoomLevel = 1;
+            currentScale = 1.3;
+            bookWrapper.classList.add('zoomed-in');
+          } else {
+            zoomLevel = 0;
+            currentScale = 1.0;
+            bookWrapper.classList.remove('zoomed-in');
+          }
+          
+          bookWrapper.style.transform = `scale(${currentScale})`;
+          console.log('👆 Touch end, final zoom:', zoomLevel);
+          
+          // Re-enable flip after delay
+          if (pageFlip) {
+            setTimeout(() => {
+              pageFlip.disableFlipByClick = false;
+              console.log('✅ Flip re-enabled');
+            }, 300);
+          }
+        }
+      }
+      
+      function getDistance(touch1, touch2) {
+        const dx = touch2.clientX - touch1.clientX;
+        const dy = touch2.clientY - touch1.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      // Attach touch event listeners
+      bookWrapper.addEventListener('touchstart', handleTouchStart, { passive: false });
+      bookWrapper.addEventListener('touchmove', handleTouchMove, { passive: false });
+      bookWrapper.addEventListener('touchend', handleTouchEnd);
+
+      // Update UI
+      function updateUI(pageIndex) {
+        const currentPage = pageIndex + 1;
+        pageCounterBadge.textContent = `${currentPage} / ${totalPages}`;
+        console.log('📄 Page:', currentPage, '/', totalPages);
+      }
+
+      function showError(message) {
+        const loading = bookWrapper.querySelector('.loading');
+        if (loading) {
+          loading.innerHTML = `<div style="color: #e74c3c;">${message}</div>`;
+        }
+      }
+
       function waitForPageFlip(callback) {
         let attempts = 0;
         const maxAttempts = 50;
         
-        const checkInterval = setInterval(function() {
+        const checkInterval = setInterval(() => {
           attempts++;
           
           if (window.St && window.St.PageFlip) {
@@ -726,7 +621,7 @@
         try {
           pageFlip = new PageFlipConstructor(bookWrapper, {
             width: 450,
-            height: 675,
+            height: 600,
             size: "stretch",
             minWidth: 315,
             maxWidth: 1200,
@@ -757,85 +652,29 @@
               console.log('📖 Flipped to page', newIndex + 1);
             });
 
-            pageFlip.on('changeState', function(e) {
-              console.log('📌 State:', e.data);
+            pageFlip.on('changeState', function (e) {
+              console.log('🔄 State changed:', e.data);
             });
-
-            pageFlip.on('init', function(e) {
-              console.log('✅ Flipbook initialized:', e.data);
-              hideLoading();
-              updateUI(0);
-            });
-          } else {
-            hideLoading();
-            updateUI(0);
           }
-          
-          console.log('✅ Canvas flipbook initialized successfully');
-        } catch (err) {
-          console.error('❌ Failed to init Canvas flipbook:', err);
-          showError('Error: ' + err.message);
+
+          // Hide loading
+          const loading = bookWrapper.querySelector('.loading');
+          if (loading) {
+            loading.style.display = 'none';
+          }
+
+          console.log('✅ Canvas flipbook initialized');
+          updateUI(0);
+
+        } catch (error) {
+          console.error('❌ Error initializing flipbook:', error);
+          showError('Error: ' + error.message);
         }
       }
 
-      // Navigation buttons
-      prevBtn.addEventListener('click', function(){ 
-        if (pageFlip && typeof pageFlip.flipPrev === 'function') {
-          pageFlip.flipPrev('top');
-        }
-      });
-      
-      nextBtn.addEventListener('click', function(){ 
-        if (pageFlip && typeof pageFlip.flipNext === 'function') {
-          pageFlip.flipNext('top');
-        }
-      });
-
-      // Toolbar buttons
-      zoomInBtn.addEventListener('click', zoomIn);
-      zoomOutBtn.addEventListener('click', zoomOut);
-      shareBtn.addEventListener('click', shareToWhatsApp);
-      fullscreenBtn.addEventListener('click', toggleFullscreen);
-      moreBtn.addEventListener('click', toggleDropdown);
-      printBtn.addEventListener('click', function() {
-        dropdownMenu.classList.remove('show');
-        printFlipbook();
-      });
-      downloadPdfBtn.addEventListener('click', function() {
-        dropdownMenu.classList.remove('show');
-        downloadPDF();
-      });
-
-      // Keyboard navigation
-      document.addEventListener('keydown', function(e){
-        if (e.key === 'ArrowLeft' && !prevBtn.disabled) {
-          prevBtn.click();
-        }
-        if (e.key === 'ArrowRight' && !nextBtn.disabled) {
-          nextBtn.click();
-        }
-        if (e.key === 'Escape' && isFullscreen) {
-          toggleFullscreen();
-        }
-        if (e.key === '+' || e.key === '=') {
-          zoomIn();
-        }
-        if (e.key === '-' || e.key === '_') {
-          zoomOut();
-        }
-      });
-
-      // Add touch event listeners for pinch-to-zoom
-      bookWrapper.addEventListener('touchstart', handleTouchStart, { passive: false });
-      bookWrapper.addEventListener('touchmove', handleTouchMove, { passive: false });
-      bookWrapper.addEventListener('touchend', handleTouchEnd, { passive: false });
-      
       // Initialize on load
-      waitForPageFlip(function(PageFlipConstructor) {
-        if (PageFlipConstructor) {
-          initCanvasFlipbook(PageFlipConstructor);
-        }
-      });
+      waitForPageFlip(initCanvasFlipbook);
+
     })();
   </script>
 </body>
