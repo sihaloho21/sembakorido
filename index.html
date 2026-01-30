@@ -48,12 +48,6 @@
                 <h1 class="text-2xl font-bold">GoSembako</h1>
             </div>
             <div class="flex items-center gap-4">
-                <!-- Account Button -->
-                <a href="akun.html" class="p-2 bg-blue-500 hover:bg-blue-600 rounded-full transition" title="Akun Saya">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                    </svg>
-                </a>
                 <!-- Wishlist Button -->
                 <button onclick="openWishlistModal()" class="relative p-2 bg-red-500 hover:bg-red-600 rounded-full transition" title="Daftar Keinginan">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,6 +62,12 @@
                     </svg>
                     <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
                 </button>
+                <!-- Account Button -->
+                <a href="akun.html" class="p-2 bg-blue-500 hover:bg-blue-600 rounded-full transition" title="Akun Saya">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                </a>
                 <!-- Admin button removed for aesthetics, access via hidden trigger on logo -->
             </div>
         </div>
@@ -272,7 +272,7 @@
                     <div class="space-y-3">
                         <h4 class="font-bold text-gray-700 flex items-center gap-2">
                             <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                            Deskripsi / Isi Paket:
+                            Deskripsi/Isi Paket:
                         </h4>
                         <div id="modal-items-list" class="grid grid-cols-1 gap-2">
                             <!-- Items with icons injected here -->
@@ -303,22 +303,23 @@
                     </div>
 
                     <!-- Shipping Info -->
-                    <div class="flex items-center gap-2 text-xs text-gray-500 bg-blue-50/50 p-3 rounded-xl">
+                   <!-- <div class="flex items-center gap-2 text-xs text-gray-500 bg-blue-50/50 p-3 rounded-xl">
                         <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         <p>Tersedia untuk antar Nikomas & Ambil di Tempat</p>
-                    </div>
+                    </div>-->
                 </div>
             </div>
 
             <!-- Footer Actions -->
             <div class="p-6 pt-0 flex flex-col gap-3">
+                <button id="modal-buy-now" onclick="directOrderFromModal()" class="flex-1 bg-green-100 hover:bg-green-200 text-green-700 font-bold py-4 rounded-xl transition">
+                    Beli Sekarang
+                </button>
                 <button id="modal-add-cart" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-green-200 flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                     + Keranjang
                 </button>
-                <button id="modal-buy-now" onclick="directOrderFromModal()" class="flex-1 bg-green-100 hover:bg-green-200 text-green-700 font-bold py-4 rounded-xl transition">
-                    Beli Sekarang
-                </button>
+
             </div>
         </div>
     </div>
@@ -458,12 +459,12 @@
                         <button id="get-location-btn" onclick="getCurrentLocation()" class="w-full p-3 bg-white border-2 border-blue-200 text-blue-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition text-sm">
                             <span>📍 Bagikan Lokasi Saya</span>
                         </button>
-                        <p class="text-[10px] text-blue-600 mt-2 italic text-center">Klik tombol di atas agar kurir mudah menemukan rumah Anda</p>
+                        <p class="text-[10px] text-blue-600 mt-2 italic text-center">Klik tombol di atas agar kami mudah menemukan rumah Anda</p>
                     </div>
 
                     <!-- UI for Pickup -->
                     <div id="pickup-location-ui" class="hidden">
-                        <p class="text-[10px] text-blue-800 mb-2">📍 Kp. Baru, Kec. Kibin, Serang (Dekat Gerbang Nikomas)</p>
+                        <p class="text-[10px] text-blue-800 mb-2">📍Jl. Nambo, Kaserangan, Kec. Ciruas, Kabupaten Serang</p>
                         <a href="https://maps.app.goo.gl/JExkrRvR5PBah9oaA" target="_blank" class="w-full p-2 bg-blue-600 text-white rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition text-xs">
                             <span>📍 Lihat di Google Maps</span>
                         </a>
@@ -482,7 +483,7 @@
                         <label class="radio-card relative cursor-pointer">
                             <input type="radio" name="pay-method" value="Cash / Transfer" onchange="updatePaymentMethodInfo('tunai'); updateOrderTotal()" class="absolute opacity-0">
                             <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
-                                <p class="font-bold text-gray-800 text-[10px]">TUNAI</p>
+                                <p class="font-bold text-gray-800 text-[10px]">TUNAI/COD</p>
                             </div>
                         </label>
                         <label class="radio-card relative cursor-pointer">
@@ -639,10 +640,8 @@
                         Informasi Poin:
                     </p>
                     <ul class="list-disc pl-5 space-y-1.5 text-blue-700">
-                        <li>Setiap belanja Rp 1.000 mendapatkan 1 Poin.</li>
+                        <li>Setiap belanja Rp 50.000 mendapatkan 1 Poin.</li>
                         <li>Poin dihitung dari harga Tunai maupun Gajian.</li>
-                        <li>Maksimal poin kategori Paket: 10 Poin.</li>
-                        <li>Maksimal poin kategori lainnya: 100 Poin.</li>
                         <li>Poin tercatat berdasarkan nomor WhatsApp Anda.</li>
                     </ul>
                 </div>
