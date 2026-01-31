@@ -7,305 +7,407 @@
     <link rel="stylesheet" href="assets/css/style.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Catalog Page Styles */
         body {
             background: #f8f9fa;
         }
 
+        /* Catalog Hero Section */
         .catalog-hero {
             background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-            padding: 120px 20px 60px;
-            text-align: center;
-            color: white;
-            position: relative;
-            overflow: hidden;
+            padding: 100px 20px 80px;
             margin-top: 68px;
         }
 
-        .catalog-hero::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 500px;
-            height: 500px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
+        .catalog-hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
         }
 
-        .catalog-hero::after {
-            content: '';
-            position: absolute;
-            bottom: -30%;
-            left: -10%;
-            width: 400px;
-            height: 400px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
-        }
-
-        .catalog-hero-content {
+        .catalog-preview {
             position: relative;
-            z-index: 1;
+            perspective: 1000px;
         }
 
-        .catalog-hero h1 {
-            font-size: 2.8rem;
-            font-weight: 700;
-            margin-bottom: 15px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .catalog-hero h1 i {
-            color: #fbbf24;
-            margin-right: 15px;
-        }
-
-        .catalog-hero p {
-            font-size: 1.2rem;
-            opacity: 0.95;
-            max-width: 600px;
+        .catalog-stack {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
             margin: 0 auto;
         }
 
-        .catalog-container {
-            max-width: 1200px;
-            margin: -40px auto 0;
-            padding: 0 20px 60px;
-            position: relative;
-            z-index: 2;
-        }
-
-        .catalog-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 35px;
-            margin-top: 30px;
-        }
-
-        .catalog-card {
+        .catalog-page {
             background: white;
-            border-radius: 20px;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
         }
 
-        .catalog-card::before {
+        .catalog-page img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .catalog-page::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(22, 163, 74, 0.05), rgba(251, 191, 36, 0.05));
-            opacity: 0;
-            transition: opacity 0.4s ease;
-            z-index: 0;
-        }
-
-        .catalog-card:hover::before {
-            opacity: 1;
-        }
-
-        .catalog-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 60px rgba(22, 163, 74, 0.2);
-        }
-
-        .catalog-thumbnail {
-            position: relative;
-            width: 100%;
-            padding-top: 141.4%; /* 1:√2 aspect ratio (A4) */
-            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-            overflow: hidden;
-        }
-
-        .catalog-thumbnail img {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
+            top: 10px;
+            left: -5px;
+            right: -5px;
             height: 100%;
-            object-fit: cover;
-            transition: transform 0.4s ease;
+            background: rgba(255,255,255,0.6);
+            border-radius: 8px;
+            z-index: -1;
+            transform: rotate(-2deg);
         }
 
-        .catalog-card:hover .catalog-thumbnail img {
-            transform: scale(1.05);
-        }
-
-        .catalog-badge {
+        .catalog-page::after {
+            content: '';
             position: absolute;
             top: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 25px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-            z-index: 2;
-        }
-
-        .catalog-badge.hot {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
-        }
-
-        .catalog-badge.special {
-            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            left: -10px;
+            right: -10px;
+            height: 100%;
+            background: rgba(255,255,255,0.3);
+            border-radius: 8px;
+            z-index: -2;
+            transform: rotate(-4deg);
         }
 
         .catalog-info {
-            padding: 25px;
-            position: relative;
-            z-index: 1;
+            color: white;
         }
 
-        .catalog-title {
-            font-size: 1.4rem;
+        .catalog-info h1 {
+            font-size: 3rem;
             font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 12px;
-            line-height: 1.3;
-        }
-
-        .catalog-period {
-            color: #6b7280;
-            font-size: 0.95rem;
             margin-bottom: 20px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .catalog-info h1 i {
+            color: #fbbf24;
+        }
+
+        .catalog-period-selector {
+            background: rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .catalog-period-selector label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .catalog-period-selector select {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1f2937;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .catalog-period-selector select:hover {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .catalog-actions {
             display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 0;
-            border-top: 1px solid #f3f4f6;
-            border-bottom: 1px solid #f3f4f6;
+            gap: 15px;
+            flex-wrap: wrap;
         }
 
-        .catalog-period i {
-            color: #16a34a;
+        .btn-view-catalog {
+            flex: 1;
+            min-width: 200px;
+            padding: 16px 32px;
+            background: #f97316;
+            color: white;
+            border: none;
+            border-radius: 12px;
             font-size: 1.1rem;
-        }
-
-        .catalog-download-btn {
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            width: 100%;
-            padding: 14px 24px;
-            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-            color: white;
-            text-align: center;
-            text-decoration: none;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
         }
 
-        .catalog-download-btn:hover {
-            background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+        .btn-view-catalog:hover {
+            background: #ea580c;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(22, 163, 74, 0.4);
+            box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
         }
 
-        .catalog-download-btn:active {
-            transform: translateY(0);
-        }
-
-        .catalog-download-btn i {
+        .btn-download {
+            padding: 16px 32px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+            border-radius: 12px;
             font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
-        /* Section Header */
+        .btn-download:hover {
+            background: white;
+            color: #16a34a;
+        }
+
+        .catalog-stats {
+            display: flex;
+            gap: 30px;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            display: block;
+            color: #fbbf24;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* PDF Viewer Modal */
+        .pdf-viewer-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 9999;
+            overflow: hidden;
+        }
+
+        .pdf-viewer-modal.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pdf-viewer-header {
+            background: #1f2937;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .pdf-viewer-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .pdf-viewer-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .pdf-viewer-controls button {
+            background: #374151;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .pdf-viewer-controls button:hover {
+            background: #4b5563;
+        }
+
+        .btn-close-viewer {
+            background: #dc2626 !important;
+            padding: 8px 20px !important;
+            font-weight: 600;
+        }
+
+        .btn-close-viewer:hover {
+            background: #b91c1c !important;
+        }
+
+        .pdf-viewer-content {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .pdf-viewer-content iframe {
+            width: 100%;
+            max-width: 1200px;
+            height: 100%;
+            min-height: 800px;
+            border: none;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        /* Featured Products Section */
+        .featured-products {
+            max-width: 1200px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+
         .section-header {
             text-align: center;
             margin-bottom: 40px;
         }
 
         .section-header h2 {
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: 700;
             color: #1f2937;
             margin-bottom: 10px;
         }
 
         .section-header p {
-            color: #6b7280;
             font-size: 1.1rem;
+            color: #6b7280;
         }
 
-        /* Mobile Responsive */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px;
+        }
+
+        .product-card {
+            background: white;
+            border: 2px dashed #16a34a;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(22, 163, 74, 0.2);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 180px;
+            object-fit: contain;
+            margin-bottom: 15px;
+        }
+
+        .product-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 10px;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .product-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #dc2626;
+            margin-bottom: 5px;
+        }
+
+        .product-unit {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        /* Responsive */
         @media (max-width: 768px) {
             .catalog-hero {
-                padding: 80px 20px 50px;
+                padding: 80px 20px 60px;
             }
 
-            .catalog-hero h1 {
+            .catalog-hero-container {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .catalog-info h1 {
                 font-size: 2rem;
             }
 
-            .catalog-hero p {
-                font-size: 1rem;
+            .catalog-actions {
+                flex-direction: column;
             }
 
-            .catalog-grid {
-                grid-template-columns: 1fr;
-                gap: 25px;
+            .btn-view-catalog {
+                min-width: 100%;
             }
 
-            .catalog-container {
-                margin-top: -30px;
-                padding-bottom: 100px;
+            .catalog-stats {
+                gap: 20px;
             }
-        }
 
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 80px 20px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-        }
+            .stat-number {
+                font-size: 1.5rem;
+            }
 
-        .empty-state i {
-            font-size: 5rem;
-            margin-bottom: 25px;
-            color: #d1d5db;
-        }
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 15px;
+            }
 
-        .empty-state h3 {
-            font-size: 1.8rem;
-            margin-bottom: 15px;
-            color: #1f2937;
-            font-weight: 700;
-        }
+            .product-card {
+                padding: 15px;
+            }
 
-        .empty-state p {
-            color: #6b7280;
-            font-size: 1.1rem;
-        }
+            .product-image {
+                height: 120px;
+            }
 
-        /* Decorative Elements */
-        .catalog-card .corner-accent {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, transparent 50%, rgba(22, 163, 74, 0.05) 50%);
-            z-index: 0;
+            .pdf-viewer-content iframe {
+                min-height: 600px;
+            }
         }
     </style>
 </head>
@@ -342,25 +444,92 @@
         </div>
     </header>
 
-    <!-- Hero Section -->
+    <!-- Catalog Hero Section -->
     <section class="catalog-hero">
-        <div class="catalog-hero-content">
-            <h1><i class="fas fa-book-open"></i> Katalog Promo</h1>
-            <p>Temukan penawaran terbaik dan hemat lebih banyak dengan katalog promo kami!</p>
+        <div class="catalog-hero-container">
+            <!-- Catalog Preview -->
+            <div class="catalog-preview">
+                <div class="catalog-stack">
+                    <div class="catalog-page">
+                        <img id="catalogPreviewImage" src="https://via.placeholder.com/400x550/16a34a/ffffff?text=Katalog+Promo" alt="Katalog Preview">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Catalog Info -->
+            <div class="catalog-info">
+                <h1><i class="fas fa-book-open"></i> Katalog Promo</h1>
+                <p style="font-size: 1.2rem; margin-bottom: 30px; opacity: 0.95;">Temukan penawaran terbaik dan hemat lebih banyak dengan katalog promo kami!</p>
+
+                <!-- Period Selector -->
+                <div class="catalog-period-selector">
+                    <label for="periodSelect"><i class="fas fa-calendar-alt"></i> Pilih Periode Katalog</label>
+                    <select id="periodSelect" onchange="updateCatalog()">
+                        <option value="1">01 - 15 Januari 2026</option>
+                        <option value="2" selected>16 - 31 Januari 2026</option>
+                        <option value="3">01 - 15 Februari 2026</option>
+                    </select>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="catalog-actions">
+                    <button class="btn-view-catalog" onclick="openPDFViewer()">
+                        <i class="fas fa-eye"></i>
+                        LIHAT KATALOG
+                    </button>
+                    <button class="btn-download" onclick="downloadCatalog()">
+                        <i class="fas fa-download"></i>
+                        DOWNLOAD
+                    </button>
+                </div>
+
+                <!-- Stats -->
+                <div class="catalog-stats">
+                    <div class="stat-item">
+                        <span class="stat-number" id="catalogPages">24</span>
+                        <span class="stat-label">Halaman</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="catalogProducts">150+</span>
+                        <span class="stat-label">Produk Promo</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">50%</span>
+                        <span class="stat-label">Diskon s/d</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
-    <!-- Catalog Grid -->
-    <div class="catalog-container">
-        <div class="catalog-grid" id="catalogGrid">
-            <!-- Catalog cards will be inserted here by JavaScript -->
+    <!-- Featured Products -->
+    <section class="featured-products">
+        <div class="section-header">
+            <h2>Produk Pilihan dari Katalog</h2>
+            <p>Beberapa produk unggulan dengan harga spesial periode ini</p>
         </div>
+        <div class="products-grid" id="productsGrid">
+            <!-- Products will be loaded here -->
+        </div>
+    </section>
 
-        <!-- Empty State (hidden by default) -->
-        <div class="empty-state" id="emptyState" style="display: none;">
-            <i class="fas fa-book-open"></i>
-            <h3>Belum Ada Katalog</h3>
-            <p>Katalog promo akan segera tersedia. Nantikan penawaran menarik dari kami!</p>
+    <!-- PDF Viewer Modal -->
+    <div class="pdf-viewer-modal" id="pdfViewerModal">
+        <div class="pdf-viewer-header">
+            <div class="pdf-viewer-title">
+                <i class="fas fa-book-open"></i> <span id="viewerTitle">Katalog Promo GoSembako</span>
+            </div>
+            <div class="pdf-viewer-controls">
+                <button onclick="downloadCatalog()">
+                    <i class="fas fa-download"></i> Download
+                </button>
+                <button class="btn-close-viewer" onclick="closePDFViewer()">
+                    <i class="fas fa-times"></i> Tutup
+                </button>
+            </div>
+        </div>
+        <div class="pdf-viewer-content">
+            <iframe id="pdfFrame" src=""></iframe>
         </div>
     </div>
 
@@ -514,89 +683,159 @@
 
     <script src="assets/js/script.min.js"></script>
     <script>
-        // Catalog data (in real app, this would come from database)
-        const catalogs = [
+        // Catalog data
+        const catalogs = {
+            1: {
+                title: "Katalog Promo 01-15 Januari 2026",
+                period: "01 - 15 Januari 2026",
+                pdfUrl: "assets/catalogs/katalog-januari-1-2026.pdf",
+                previewImage: "https://via.placeholder.com/400x550/16a34a/ffffff?text=Katalog+01-15+Jan",
+                pages: 20,
+                products: "120+"
+            },
+            2: {
+                title: "Katalog Promo 16-31 Januari 2026",
+                period: "16 - 31 Januari 2026",
+                pdfUrl: "assets/catalogs/katalog-januari-2-2026.pdf",
+                previewImage: "https://via.placeholder.com/400x550/16a34a/ffffff?text=Katalog+16-31+Jan",
+                pages: 24,
+                products: "150+"
+            },
+            3: {
+                title: "Katalog Promo 01-15 Februari 2026",
+                period: "01 - 15 Februari 2026",
+                pdfUrl: "assets/catalogs/katalog-februari-1-2026.pdf",
+                previewImage: "https://via.placeholder.com/400x550/16a34a/ffffff?text=Katalog+01-15+Feb",
+                pages: 22,
+                products: "130+"
+            }
+        };
+
+        // Featured products
+        const featuredProducts = [
             {
-                id: 1,
-                title: "Katalog Promo Januari 2026",
-                period: "1-15 Januari 2026",
-                thumbnail: "assets/demo-pages/page1.jpg",
-                pdfUrl: "assets/catalogs/katalog-januari-2026.pdf",
-                badge: "BARU",
-                badgeClass: ""
+                name: "Beras Premium 5kg",
+                price: "Rp. 75.000",
+                unit: "Harga /pack",
+                image: "https://via.placeholder.com/200x200/ffffff/16a34a?text=Beras"
             },
             {
-                id: 2,
-                title: "Katalog Promo Akhir Januari",
-                period: "16-31 Januari 2026",
-                thumbnail: "assets/demo-pages/page2.jpg",
-                pdfUrl: "assets/catalogs/katalog-akhir-januari-2026.pdf",
-                badge: "HOT",
-                badgeClass: "hot"
+                name: "Minyak Goreng 2L",
+                price: "Rp. 32.500",
+                unit: "Harga /btl",
+                image: "https://via.placeholder.com/200x200/ffffff/16a34a?text=Minyak"
             },
             {
-                id: 3,
-                title: "Katalog Spesial Imlek",
-                period: "22 Jan - 4 Feb 2026",
-                thumbnail: "assets/demo-pages/page3.jpg",
-                pdfUrl: "assets/catalogs/katalog-spesial-imlek-2026.pdf",
-                badge: "SPESIAL",
-                badgeClass: "special"
+                name: "Gula Pasir 1kg",
+                price: "Rp. 15.900",
+                unit: "Harga /pack",
+                image: "https://via.placeholder.com/200x200/ffffff/16a34a?text=Gula"
+            },
+            {
+                name: "Telur Ayam 1kg",
+                price: "Rp. 28.500",
+                unit: "Harga /kg",
+                image: "https://via.placeholder.com/200x200/ffffff/16a34a?text=Telur"
+            },
+            {
+                name: "Susu UHT 1L",
+                price: "Rp. 18.900",
+                unit: "Harga /pack",
+                image: "https://via.placeholder.com/200x200/ffffff/16a34a?text=Susu"
+            },
+            {
+                name: "Tepung Terigu 1kg",
+                price: "Rp. 12.500",
+                unit: "Harga /pack",
+                image: "https://via.placeholder.com/200x200/ffffff/16a34a?text=Tepung"
+            },
+            {
+                name: "Kecap Manis 600ml",
+                price: "Rp. 16.900",
+                unit: "Harga /btl",
+                image: "https://via.placeholder.com/200x200/ffffff/16a34a?text=Kecap"
+            },
+            {
+                name: "Sabun Mandi 3pcs",
+                price: "Rp. 9.900",
+                unit: "Harga /pack",
+                image: "https://via.placeholder.com/200x200/ffffff/16a34a?text=Sabun"
             }
         ];
 
-        // Render catalog grid
-        function renderCatalogs() {
-            const grid = document.getElementById('catalogGrid');
-            const emptyState = document.getElementById('emptyState');
+        let currentCatalogId = 2;
 
-            if (catalogs.length === 0) {
-                grid.style.display = 'none';
-                emptyState.style.display = 'block';
-                return;
-            }
+        // Update catalog based on selection
+        function updateCatalog() {
+            const select = document.getElementById('periodSelect');
+            currentCatalogId = parseInt(select.value);
+            const catalog = catalogs[currentCatalogId];
 
-            grid.innerHTML = catalogs.map(catalog => `
-                <div class="catalog-card">
-                    <div class="catalog-thumbnail">
-                        <img src="${catalog.thumbnail}" alt="${catalog.title}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22424%22%3E%3Crect fill=%22%23f3f4f6%22 width=%22300%22 height=%22424%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2220%22 fill=%22%239ca3af%22%3EKatalog%3C/text%3E%3C/svg%3E'">
-                        <span class="catalog-badge ${catalog.badgeClass}">${catalog.badge}</span>
-                    </div>
-                    <div class="catalog-info">
-                        <h3 class="catalog-title">${catalog.title}</h3>
-                        <div class="catalog-period">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>${catalog.period}</span>
-                        </div>
-                        <a href="${catalog.pdfUrl}" class="catalog-download-btn" target="_blank">
-                            <i class="fas fa-eye"></i>
-                            <span>LIHAT KATALOG</span>
-                        </a>
-                    </div>
-                    <div class="corner-accent"></div>
+            // Update preview image
+            document.getElementById('catalogPreviewImage').src = catalog.previewImage;
+
+            // Update stats
+            document.getElementById('catalogPages').textContent = catalog.pages;
+            document.getElementById('catalogProducts').textContent = catalog.products;
+        }
+
+        // Open PDF viewer
+        function openPDFViewer() {
+            const catalog = catalogs[currentCatalogId];
+            const modal = document.getElementById('pdfViewerModal');
+            const iframe = document.getElementById('pdfFrame');
+            const title = document.getElementById('viewerTitle');
+
+            title.textContent = catalog.title;
+            iframe.src = catalog.pdfUrl;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close PDF viewer
+        function closePDFViewer() {
+            const modal = document.getElementById('pdfViewerModal');
+            const iframe = document.getElementById('pdfFrame');
+
+            modal.classList.remove('active');
+            iframe.src = '';
+            document.body.style.overflow = '';
+        }
+
+        // Download catalog
+        function downloadCatalog() {
+            const catalog = catalogs[currentCatalogId];
+            const link = document.createElement('a');
+            link.href = catalog.pdfUrl;
+            link.download = `katalog-promo-gosembako-${catalog.period.replace(/\s/g, '-')}.pdf`;
+            link.click();
+        }
+
+        // Load featured products
+        function loadFeaturedProducts() {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = featuredProducts.map(product => `
+                <div class="product-card">
+                    <img src="${product.image}" alt="${product.name}" class="product-image">
+                    <div class="product-name">${product.name}</div>
+                    <div class="product-price">${product.price}</div>
+                    <div class="product-unit">${product.unit}</div>
                 </div>
             `).join('');
         }
 
-        // Initialize page
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            renderCatalogs();
-            
-            // Load cart count
-            updateCartCount();
+            updateCatalog();
+            loadFeaturedProducts();
         });
 
-        // Update cart count
-        function updateCartCount() {
-            const cart = JSON.parse(localStorage.getItem('cart')) || [];
-            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-            
-            const headerCount = document.getElementById('headerCartCount');
-            const mobileCount = document.getElementById('mobileCartCount');
-            
-            if (headerCount) headerCount.textContent = count;
-            if (mobileCount) mobileCount.textContent = count;
-        }
+        // Close viewer with ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closePDFViewer();
+            }
+        });
     </script>
 </body>
 </html>
