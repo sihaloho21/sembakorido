@@ -1,181 +1,380 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Promo - GoSembako</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Promo Katalog - GoSembakoRido</title>
+
+    <link rel="stylesheet" href="assets/css/style.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Theme variables */
+        :root {
+            --brand: #00a651;
+            --brand-dark: #008a43;
+            --muted: #6b7280;
+            --bg: #f6f8f7;
+            --surface: #ffffff;
+            --text: #0f1720;
+            --elev: rgba(15,23,32,0.06);
+        }
+
+        /* Container helper */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        /* ---------- HEADER ---------- */
+        .site-header {
+            background: var(--surface);
+            box-shadow: 0 6px 18px var(--elev);
+            position: sticky;
+            top: 0;
+            z-index: 60;
+        }
+
+        .site-header .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            height: 68px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo img {
+            height: 42px;
+            width: auto;
+            display: block;
+            border-radius: 6px;
+        }
+
+        /* Fallback text logo hidden initially; shown on image error via inline onerror or JS */
+        .logo .text-logo {
+            display: none;
+            font-weight: 800;
+            color: var(--brand);
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+
+        /* If you prefer to always show text on small screens */
+        @media (max-width: 420px) {
+            .logo img { display: none; }
+            .logo .text-logo { display: inline-block; }
+        }
+
+        /* Header actions */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: transparent;
+            border: 1px solid transparent;
+            padding: 8px 10px;
+            border-radius: 10px;
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .icon-btn:hover {
+            background: rgba(0,0,0,0.04);
+        }
+
+        /* Cart button with badge */
+        .cart-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--brand);
+            border: none;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(0,166,81,0.14);
+        }
+
+        .cart-btn .fa-shopping-cart {
+            font-size: 16px;
+        }
+
+        .cart-count {
+            background: #ff3b30;
+            color: #fff;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            margin-left: 6px;
+            min-width: 22px;
+            text-align: center;
+            display: inline-block;
+        }
+
+        /* Small-screen header layout */
+        @media (max-width: 768px) {
+            .site-header .header-inner { height: 64px; gap: 8px; }
+            .cart-btn { padding: 8px 10px; }
+        }
+
+        /* ---------- HERO (kept minimal changes) ---------- */
+        .catalog-hero {
+            background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+            padding: 72px 20px 36px;
+            text-align: center;
+            color: white;
+        }
+
+        .catalog-hero h1 { font-size: 2.25rem; margin: 0 0 8px; }
+        .catalog-hero p  { margin: 0; opacity: 0.98; }
+
+        /* ---------- FOOTER ---------- */
+        .site-footer {
+            background: #0b1220;
+            color: #e6eef0;
+            padding: 36px 0;
+            margin-top: 40px;
+            border-top: 1px solid rgba(255,255,255,0.02);
+        }
+
+        .site-footer .footer-inner {
+            display: flex;
+            gap: 32px;
+            align-items: flex-start;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .footer-brand {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            min-width: 220px;
+        }
+
+        .footer-brand img { height: 44px; border-radius: 6px; }
+        .footer-brand .brand-title { font-weight: 800; color: #fff; font-size: 1.05rem; }
+
+        .footer-col {
+            min-width: 180px;
+            flex: 1;
+            max-width: 320px;
+        }
+
+        .footer-col h4 {
+            margin: 0 0 10px;
+            font-size: 1rem;
+            color: #fff;
+        }
+
+        .footer-col p, .footer-col a {
+            color: #cbd5db;
+            font-size: 0.95rem;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .footer-bottom {
+            margin-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            padding-top: 18px;
+            color: #93a2ad;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        @media (max-width: 800px) {
+            .site-footer .footer-inner { gap: 16px; }
+            .footer-col { max-width: 100%; }
+            .footer-brand { min-width: 120px; }
+        }
+
+        /* small helper for mobile-menu spacing so it doesn't overlap footer */
+        body { padding-bottom: 84px; } /* adjust to match mobile-menu height if present */
+
+        /* Respect reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            * { transition: none !important; animation: none !important; }
+        }
+
+    </style>
 </head>
-<body class="bg-gray-50 font-['Poppins']">
+<body>
     <!-- Header -->
-    <header class="bg-green-700 text-white py-4 shadow-md">
-        <div class="container mx-auto px-4 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <img src="assets/img/logo.webp" alt="GoSembako Logo" class="h-12 w-auto">
-                <h1 class="text-xl font-bold">GoSembako</h1>
-            </div>
-            <a href="/" class="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                </svg>
+    <header class="site-header" role="banner" aria-label="Header utama">
+        <div class="container header-inner">
+            <a href="/" class="logo" aria-label="Beranda GoSembakoRido">
+                <img src="assets/images/logo.png" alt="GoSembakoRido Logo"
+                     onerror="this.style.display='none'; this.parentElement.querySelector('.text-logo').style.display='inline-block';">
+                <span class="text-logo" aria-hidden="false">GoSembakoRido</span>
             </a>
+
+            <div class="header-actions" role="navigation" aria-label="Aksi header">
+                <!-- Example search (keystroke-friendly) -->
+                <button class="icon-btn" aria-label="Cari produk" title="Cari produk" onclick="document.getElementById('searchInput')?.focus?.()">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <span class="sr-only">Cari</span>
+                </button>
+
+                <!-- Cart button -->
+                <button class="cart-btn" id="headerCartBtn" onclick="toggleCartModal()" aria-label="Buka keranjang">
+                    <i class="fas fa-shopping-cart" aria-hidden="true"></i>
+                    <span class="cart-count" id="headerCartCount">0</span>
+                </button>
+            </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8 min-h-screen">
-        <div class="max-w-4xl mx-auto">
-            <!-- Page Title -->
-            <div class="text-center mb-12">
-                <div class="w-24 h-24 bg-gradient-to-br from-red-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg class="w-12 h-12 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
-                    </svg>
-                </div>
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">Halaman Promo</h2>
-                <p class="text-gray-600">
-                    Temukan berbagai promo menarik dari GoSembako!
-                </p>
-            </div>
+    <!-- Hero Section -->
+    <section class="catalog-hero" role="region" aria-label="Promo katalog">
+        <div class="container">
+            <h1><i class="fas fa-book" aria-hidden="true"></i> Promo Katalog</h1>
+            <p>Download katalog promo terbaru dan dapatkan penawaran menarik!</p>
+        </div>
+    </section>
 
-            <!-- Promo Menu Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <!-- Promo Katalog Card -->
-                <a href="/promo_katalog.html" class="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all p-6 border-2 border-transparent hover:border-green-500">
-                    <div class="flex items-start gap-4">
-                        <div class="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                            <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-xl font-bold text-gray-800 mb-2 group-hover:text-green-600 transition-colors">Promo Katalog</h3>
-                            <p class="text-gray-600 text-sm mb-3">Lihat katalog promo terbaru dan dapatkan penawaran menarik</p>
-                            <div class="flex items-center text-green-600 font-semibold text-sm">
-                                <span>Lihat Katalog</span>
-                                <svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </a>
+    <!-- Catalog Grid (kept original content) -->
+    <div class="catalog-container container" style="padding-top: 28px; padding-bottom: 28px;">
+        <div class="catalog-grid" id="catalogGrid">
+            <!-- Catalog cards will be inserted here by JavaScript -->
+        </div>
 
-                <!-- Promo Produk Card (Coming Soon) -->
-                <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 opacity-60">
-                    <div class="flex items-start gap-4">
-                        <div class="w-16 h-16 bg-gradient-to-br from-orange-100 to-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <svg class="w-8 h-8 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-xl font-bold text-gray-800 mb-2">Promo Produk</h3>
-                            <p class="text-gray-600 text-sm mb-3">Produk pilihan dengan harga spesial</p>
-                            <div class="inline-block bg-gradient-to-r from-orange-500 to-red-600 text-white px-3 py-1 rounded-full font-bold text-xs">
-                                🚀 Segera Hadir
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <i class="fas fa-book-open" aria-hidden="true"></i>
+            <h3>Belum Ada Katalog</h3>
+            <p>Katalog promo akan segera tersedia</p>
+        </div>
+    </div>
 
-                <!-- Flash Sale Card (Coming Soon) -->
-                <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 opacity-60">
-                    <div class="flex items-start gap-4">
-                        <div class="w-16 h-16 bg-gradient-to-br from-yellow-100 to-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <svg class="w-8 h-8 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-xl font-bold text-gray-800 mb-2">Flash Sale</h3>
-                            <p class="text-gray-600 text-sm mb-3">Promo kilat dengan diskon hingga 70%</p>
-                            <div class="inline-block bg-gradient-to-r from-yellow-500 to-amber-600 text-white px-3 py-1 rounded-full font-bold text-xs">
-                                🚀 Segera Hadir
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Voucher Card (Coming Soon) -->
-                <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 opacity-60">
-                    <div class="flex items-start gap-4">
-                        <div class="w-16 h-16 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <svg class="w-8 h-8 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M5 5a3 3 0 015-2.236A3 3 0 0114.83 6H16a2 2 0 110 4h-5V9a1 1 0 10-2 0v1H4a2 2 0 110-4h1.17C5.06 5.687 5 5.35 5 5zm4 1V5a1 1 0 10-1 1h1zm3 0a1 1 0 10-1-1v1h1z" clip-rule="evenodd"/>
-                                <path d="M9 11H3v5a2 2 0 002 2h4v-7zM11 18h4a2 2 0 002-2v-5h-6v7z"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-xl font-bold text-gray-800 mb-2">Voucher & Kupon</h3>
-                            <p class="text-gray-600 text-sm mb-3">Kumpulkan voucher untuk hemat lebih banyak</p>
-                            <div class="inline-block bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-1 rounded-full font-bold text-xs">
-                                🚀 Segera Hadir
-                            </div>
-                        </div>
-                    </div>
+    <!-- Footer -->
+    <footer class="site-footer" role="contentinfo" aria-label="Footer">
+        <div class="container footer-inner">
+            <div class="footer-brand">
+                <img src="assets/images/logo.png" alt="GoSembakoRido">
+                <div>
+                    <div class="brand-title">GoSembakoRido</div>
+                    <div style="color:#9fb3b6; font-size:0.95rem;">Belanja kebutuhan pokok mudah & hemat</div>
                 </div>
             </div>
 
-            <!-- Back Button -->
-            <div class="text-center">
-                <a href="/" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-8 py-3 rounded-xl transition shadow-lg active:scale-95">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                    </svg>
-                    Kembali ke Beranda
-                </a>
+            <div class="footer-col">
+                <h4>Link Cepat</h4>
+                <a href="/">Beranda</a>
+                <a href="/promo.html">Promo</a>
+                <a href="/akun.html">Akun</a>
+                <a href="/kontak.html">Kontak</a>
+            </div>
+
+            <div class="footer-col">
+                <h4>Hubungi Kami</h4>
+                <p>Email: <a href="mailto:info@gosembakorido.example">info@gosembakorido.example</a></p>
+                <p>Telp: <a href="tel:+628000000000">+62 800 0000 000</a></p>
+                <p style="margin-top:8px; color:#9fb3b6;">Jam operasional: Sen–Ming 08:00–21:00</p>
             </div>
         </div>
-    </main>
 
-    <!-- Mobile Bottom Navigation -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
-        <div class="flex justify-around items-center h-16">
-            <!-- Home -->
-            <a href="/" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600" title="Home">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-                </svg>
-                <span class="text-xs mt-1 font-medium">Home</span>
-            </a>
-            
-            <!-- Kategori -->
-            <a href="/" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600" title="Kategori">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/>
-                </svg>
-                <span class="text-xs mt-1 font-medium">Kategori</span>
-            </a>
-            
-            <!-- Keranjang -->
-            <a href="/" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600 relative" title="Keranjang">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
-                </svg>
-                <span class="text-xs mt-1 font-medium">Keranjang</span>
-            </a>
-            
-            <!-- Promo -->
-            <a href="/promo.html" class="flex flex-col items-center justify-center flex-1 text-green-600" title="Promo">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
-                </svg>
-                <span class="text-xs mt-1 font-medium">Promo</span>
-            </a>
-            
-            <!-- Daftar -->
-            <a href="/akun.html" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600" title="Daftar">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                </svg>
-                <span class="text-xs mt-1 font-medium">Daftar</span>
-            </a>
+        <div class="container footer-bottom">
+            <p>&copy; 2026 GoSembakoRido. All rights reserved.</p>
         </div>
-    </nav>
+    </footer>
 
-    <!-- Footer Spacer for Mobile -->
-    <div class="h-16 md:hidden"></div>
+    <!-- Mobile Bottom Navigation (kept) -->
+    <div class="mobile-menu" aria-hidden="false" style="position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid rgba(0,0,0,0.06); display:flex; justify-content:space-around; padding:8px 0; z-index:70;">
+        <a href="/" title="Home" style="text-align:center; color:var(--text); text-decoration:none;">
+            <i class="fas fa-home"></i>
+            <div style="font-size:12px">Home</div>
+        </a>
+        <button title="Kategori" class="cate-btn" onclick="openCategorySidebar()" style="background:none; border:none; text-align:center; color:var(--text); padding:0;">
+            <i class="fas fa-list"></i>
+            <div style="font-size:12px">Kategori</div>
+        </button>
+        <button title="Keranjang" class="cart-btn" onclick="toggleCartModal()" style="background:var(--brand); border:none; color:#fff; padding:6px 10px; border-radius:10px;">
+            <i class="fas fa-shopping-basket"></i>
+            <div style="font-size:12px">Keranjang</div>
+        </button>
+        <a href="/promo.html" title="Promo" style="text-align:center; color:var(--text); text-decoration:none;">
+            <i class="fas fa-tags"></i>
+            <div style="font-size:12px">Promo</div>
+        </a>
+        <a href="/akun.html" title="Akun" style="text-align:center; color:var(--text); text-decoration:none;">
+            <i class="fas fa-user"></i>
+            <div style="font-size:12px">Akun</div>
+        </a>
+    </div>
+
+    <!-- Keep your existing modals, sidebars and scripts (unchanged) -->
+    <div class="category-sidebar" id="categorySidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-bars"></i> Kategori</h3>
+            <button class="close-btn" onclick="closeCategorySidebar()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="sidebar-content" id="sidebarCategories"></div>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeCategorySidebar()"></div>
+
+    <div class="modal" id="cartModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-shopping-cart"></i> Keranjang Belanja</h3>
+                <button class="close-btn" onclick="toggleCartModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="cartItems"></div>
+            <div class="modal-footer">
+                <div class="cart-total"><span>Total:</span><span id="cartTotal">Rp 0</span></div>
+                <button class="checkout-btn" onclick="checkout()">
+                    <i class="fas fa-check"></i> Checkout
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="modalOverlay" onclick="toggleCartModal()"></div>
+
+    <!-- Existing scripts -->
+    <script src="assets/js/script.min.js"></script>
+
+    <script>
+        // If logo image fails to load the inline onerror sets fallback; ensure it's applied on DOM load for cached errors
+        document.addEventListener('DOMContentLoaded', function(){
+            const logoImg = document.querySelector('.logo img');
+            if (logoImg && logoImg.complete && logoImg.naturalWidth === 0) {
+                logoImg.style.display = 'none';
+                const txt = document.querySelector('.logo .text-logo');
+                if (txt) txt.style.display = 'inline-block';
+            }
+        });
+
+        // Keep existing cart count update if present
+        function updateCartCount() {
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const count = cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
+            const headerCount = document.getElementById('headerCartCount');
+            if (headerCount) headerCount.textContent = count;
+        }
+        updateCartCount();
+    </script>
 </body>
 </html>
