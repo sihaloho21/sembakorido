@@ -1,0 +1,153 @@
+/* Promo Katalog Page Styles */
+
+.catalog-hero {
+    background: linear-gradient(135deg, #00a651 0%, #008a43 100%);
+    padding: 80px 20px 40px;
+    text-align: center;
+    color: white;
+}
+
+.catalog-hero h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.catalog-hero p {
+    font-size: 1.1rem;
+    opacity: 0.95;
+}
+
+.catalog-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.catalog-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.catalog-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+.catalog-thumbnail {
+    position: relative;
+    width: 100%;
+    padding-top: 141.4%; /* 1:√2 aspect ratio (A4) */
+    background: #f5f5f5;
+    overflow: hidden;
+}
+
+.catalog-thumbnail img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.catalog-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #ff4444;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.catalog-info {
+    padding: 20px;
+}
+
+.catalog-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.catalog-period {
+    color: #666;
+    font-size: 0.95rem;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.catalog-period i {
+    color: #00a651;
+}
+
+.catalog-download-btn {
+    display: block;
+    width: 100%;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #00a651 0%, #008a43 100%);
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.catalog-download-btn:hover {
+    background: linear-gradient(135deg, #008a43 0%, #007236 100%);
+    transform: scale(1.02);
+}
+
+.catalog-download-btn i {
+    margin-right: 8px;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .catalog-hero h1 {
+        font-size: 2rem;
+    }
+
+    .catalog-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
