@@ -3,122 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Promo Katalog - GoSembako</title>
+    <title>Promo Katalog - GoSembakoRido</title>
     <link rel="stylesheet" href="assets/css/style.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* Catalog Page Styles */
-        body {
-            background: #f8f9fa;
-        }
-
         .catalog-hero {
-            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-            padding: 120px 20px 60px;
+            background: linear-gradient(135deg, #00a651 0%, #008a43 100%);
+            padding: 80px 20px 40px;
             text-align: center;
             color: white;
-            position: relative;
-            overflow: hidden;
-            margin-top: 68px;
-        }
-
-        .catalog-hero::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 500px;
-            height: 500px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
-        }
-
-        .catalog-hero::after {
-            content: '';
-            position: absolute;
-            bottom: -30%;
-            left: -10%;
-            width: 400px;
-            height: 400px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
-        }
-
-        .catalog-hero-content {
-            position: relative;
-            z-index: 1;
         }
 
         .catalog-hero h1 {
-            font-size: 2.8rem;
+            font-size: 2.5rem;
             font-weight: 700;
-            margin-bottom: 15px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .catalog-hero h1 i {
-            color: #fbbf24;
-            margin-right: 15px;
+            margin-bottom: 10px;
         }
 
         .catalog-hero p {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             opacity: 0.95;
-            max-width: 600px;
-            margin: 0 auto;
         }
 
         .catalog-container {
             max-width: 1200px;
-            margin: -40px auto 0;
-            padding: 0 20px 60px;
-            position: relative;
-            z-index: 2;
+            margin: 0 auto;
+            padding: 40px 20px;
         }
 
         .catalog-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 35px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
             margin-top: 30px;
         }
 
         .catalog-card {
             background: white;
-            border-radius: 20px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-        }
-
-        .catalog-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(22, 163, 74, 0.05), rgba(251, 191, 36, 0.05));
-            opacity: 0;
-            transition: opacity 0.4s ease;
-            z-index: 0;
-        }
-
-        .catalog-card:hover::before {
-            opacity: 1;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .catalog-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 60px rgba(22, 163, 74, 0.2);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
         }
 
         .catalog-thumbnail {
             position: relative;
             width: 100%;
             padding-top: 141.4%; /* 1:√2 aspect ratio (A4) */
-            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            background: #f5f5f5;
             overflow: hidden;
         }
 
@@ -129,204 +67,145 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.4s ease;
-        }
-
-        .catalog-card:hover .catalog-thumbnail img {
-            transform: scale(1.05);
         }
 
         .catalog-badge {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            top: 15px;
+            right: 15px;
+            background: #ff4444;
             color: white;
-            padding: 8px 16px;
-            border-radius: 25px;
+            padding: 5px 12px;
+            border-radius: 20px;
             font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-            z-index: 2;
-        }
-
-        .catalog-badge.hot {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
-        }
-
-        .catalog-badge.special {
-            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            font-weight: 600;
         }
 
         .catalog-info {
-            padding: 25px;
-            position: relative;
-            z-index: 1;
+            padding: 20px;
         }
 
         .catalog-title {
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 12px;
-            line-height: 1.3;
+            color: #333;
+            margin-bottom: 8px;
         }
 
         .catalog-period {
-            color: #6b7280;
+            color: #666;
             font-size: 0.95rem;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 0;
-            border-top: 1px solid #f3f4f6;
-            border-bottom: 1px solid #f3f4f6;
+            gap: 8px;
         }
 
         .catalog-period i {
-            color: #16a34a;
-            font-size: 1.1rem;
+            color: #00a651;
         }
 
         .catalog-download-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
+            display: block;
             width: 100%;
-            padding: 14px 24px;
-            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #00a651 0%, #008a43 100%);
             color: white;
             text-align: center;
             text-decoration: none;
-            border-radius: 12px;
-            font-weight: 700;
+            border-radius: 8px;
+            font-weight: 600;
             font-size: 1rem;
             transition: all 0.3s ease;
             border: none;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);
         }
 
         .catalog-download-btn:hover {
-            background: linear-gradient(135deg, #15803d 0%, #166534 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(22, 163, 74, 0.4);
-        }
-
-        .catalog-download-btn:active {
-            transform: translateY(0);
+            background: linear-gradient(135deg, #008a43 0%, #007236 100%);
+            transform: scale(1.02);
         }
 
         .catalog-download-btn i {
-            font-size: 1.1rem;
-        }
-
-        /* Section Header */
-        .section-header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .section-header h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 10px;
-        }
-
-        .section-header p {
-            color: #6b7280;
-            font-size: 1.1rem;
+            margin-right: 8px;
         }
 
         /* Mobile Responsive */
         @media (max-width: 768px) {
-            .catalog-hero {
-                padding: 80px 20px 50px;
-            }
-
             .catalog-hero h1 {
                 font-size: 2rem;
             }
 
-            .catalog-hero p {
-                font-size: 1rem;
-            }
-
             .catalog-grid {
                 grid-template-columns: 1fr;
-                gap: 25px;
-            }
-
-            .catalog-container {
-                margin-top: -30px;
-                padding-bottom: 100px;
+                gap: 20px;
             }
         }
 
         /* Empty State */
         .empty-state {
             text-align: center;
-            padding: 80px 20px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            padding: 60px 20px;
+            color: #999;
         }
 
         .empty-state i {
-            font-size: 5rem;
-            margin-bottom: 25px;
-            color: #d1d5db;
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
         }
 
         .empty-state h3 {
-            font-size: 1.8rem;
-            margin-bottom: 15px;
-            color: #1f2937;
-            font-weight: 700;
-        }
-
-        .empty-state p {
-            color: #6b7280;
-            font-size: 1.1rem;
-        }
-
-        /* Decorative Elements */
-        .catalog-card .corner-accent {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, transparent 50%, rgba(22, 163, 74, 0.05) 50%);
-            z-index: 0;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
     <!-- Header -->
-    <header class="bg-green-700 text-white py-0 shadow-md fixed z-50 w-full left-0 right-0" id="main-header" style="top: 0;">
-        <div class="container mx-auto px-4 flex justify-between items-center">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='/'">
-                <img src="assets/img/logo.webp" alt="GoSembako Logo" class="h-16 w-auto">
-                <h1 class="text-2xl font-bold">GoSembako</h1>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <a href="/">
+                        <img src="assets/images/logo.png" alt="GoSembakoRido" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                        <span style="display:none; font-weight: 700; color: #00a651; font-size: 1.5rem;">GoSembakoRido</span>
+                    </a>
+                </div>
+                <button class="cart-btn" onclick="toggleCartModal()">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count" id="headerCartCount">0</span>
+                </button>
             </div>
         </div>
     </header>
 
     <!-- Hero Section -->
     <section class="catalog-hero">
-        <div class="catalog-hero-content">
-            <h1><i class="fas fa-book-open"></i> Katalog Promo</h1>
-            <p>Temukan penawaran terbaik dan hemat lebih banyak dengan katalog promo kami!</p>
-        </div>
+        <h1><i class="fas fa-book"></i> Promo Katalog</h1>
+        <p>Download katalog promo terbaru dan dapatkan penawaran menarik!</p>
     </section>
+
+    <!-- Catalog Grid -->
+    <div class="catalog-container">
+        <div class="catalog-grid" id="catalogGrid">
+            <!-- Catalog cards will be inserted here by JavaScript -->
+        </div>
+
+        <!-- Empty State (hidden by default) -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <i class="fas fa-book-open"></i>
+            <h3>Belum Ada Katalog</h3>
+            <p>Katalog promo akan segera tersedia</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 GoSembakoRido. All rights reserved.</p>
+        </div>
+    </footer>
 
     <!-- Mobile Bottom Navigation -->
     <div class="mobile-menu">
@@ -343,7 +222,7 @@
             <span>Keranjang</span>
             <span class="cart-count" id="mobileCartCount">0</span>
         </button>
-        <a href="/promo.html" title="Promo" class="active">
+        <a href="/promo.html" title="Promo">
             <i class="fas fa-tags"></i>
             <span>Promo</span>
         </a>
@@ -401,27 +280,24 @@
                 title: "Katalog Promo Januari 2026",
                 period: "1-15 Januari 2026",
                 thumbnail: "assets/demo-pages/page1.jpg",
-                pdfUrl: "assets/catalogs/katalog-januari-2026.pdf",
-                badge: "BARU",
-                badgeClass: ""
+                pdfUrl: "demo/flipbook-demo.html", // Using flipbook demo as PDF viewer
+                badge: "BARU"
             },
             {
                 id: 2,
                 title: "Katalog Promo Akhir Januari",
                 period: "16-31 Januari 2026",
                 thumbnail: "assets/demo-pages/page2.jpg",
-                pdfUrl: "assets/catalogs/katalog-akhir-januari-2026.pdf",
-                badge: "HOT",
-                badgeClass: "hot"
+                pdfUrl: "demo/flipbook-demo.html",
+                badge: "HOT"
             },
             {
                 id: 3,
                 title: "Katalog Spesial Imlek",
                 period: "22 Jan - 4 Feb 2026",
                 thumbnail: "assets/demo-pages/page3.jpg",
-                pdfUrl: "assets/catalogs/katalog-spesial-imlek-2026.pdf",
-                badge: "SPESIAL",
-                badgeClass: "special"
+                pdfUrl: "demo/flipbook-demo.html",
+                badge: "SPESIAL"
             }
         ];
 
@@ -439,21 +315,20 @@
             grid.innerHTML = catalogs.map(catalog => `
                 <div class="catalog-card">
                     <div class="catalog-thumbnail">
-                        <img src="${catalog.thumbnail}" alt="${catalog.title}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22424%22%3E%3Crect fill=%22%23f3f4f6%22 width=%22300%22 height=%22424%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2220%22 fill=%22%239ca3af%22%3EKatalog%3C/text%3E%3C/svg%3E'">
-                        <span class="catalog-badge ${catalog.badgeClass}">${catalog.badge}</span>
+                        <img src="${catalog.thumbnail}" alt="${catalog.title}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22424%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22300%22 height=%22424%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2220%22 fill=%22%23999%22%3EKatalog%3C/text%3E%3C/svg%3E'">
+                        <span class="catalog-badge">${catalog.badge}</span>
                     </div>
                     <div class="catalog-info">
                         <h3 class="catalog-title">${catalog.title}</h3>
                         <div class="catalog-period">
                             <i class="fas fa-calendar-alt"></i>
-                            <span>${catalog.period}</span>
+                            <span>Periode: ${catalog.period}</span>
                         </div>
                         <a href="${catalog.pdfUrl}" class="catalog-download-btn" target="_blank">
-                            <i class="fas fa-eye"></i>
-                            <span>LIHAT KATALOG</span>
+                            <i class="fas fa-download"></i>
+                            DOWNLOAD
                         </a>
                     </div>
-                    <div class="corner-accent"></div>
                 </div>
             `).join('');
         }
