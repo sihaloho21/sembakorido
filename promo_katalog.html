@@ -3,39 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Download katalog promo terbaru GoSembako dan dapatkan penawaran menarik untuk kebutuhan sembako Anda">
     <title>Promo Katalog - GoSembako</title>
     <link rel="stylesheet" href="assets/css/style.min.css">
     <link rel="stylesheet" href="assets/css/promo_katalog.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Accessibility and UI improvements */
+        *:focus {
+            outline: 2px solid #00a651;
+            outline-offset: 2px;
+        }
+        
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #00a651;
+            color: white;
+            padding: 8px;
+            text-decoration: none;
+            z-index: 100;
+        }
+        
+        .skip-link:focus {
+            top: 0;
+        }
+    </style>
 </head>
 <body>
+    <!-- Skip to main content link for keyboard navigation -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
     <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
+    <header class="bg-green-700 text-white py-0 shadow-md fixed z-50 w-full left-0 right-0" id="main-header" style="top: 0;" role="banner">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='index.html'">
+                <img src="assets/img/logo.webp" alt="GoSembako Logo - Kembali ke beranda" class="h-16 w-auto" width="64" height="64">
+                <h1 class="text-2xl font-bold">GoSembako</h1>
             </div>
+            <nav aria-label="Navigasi utama">
+                <a href="index.html" class="text-white hover:text-green-200 transition px-4 py-2 rounded" aria-label="Kembali ke halaman utama">
+                    <i class="fas fa-home" aria-hidden="true"></i>
+                    <span class="ml-2">Beranda</span>
+                </a>
+            </nav>
         </div>
     </header>
 
     <!-- Hero Section -->
-    <section class="catalog-hero">
-        <h1><i class="fas fa-book"></i> Promo Katalog</h1>
+    <section class="catalog-hero" role="region" aria-labelledby="hero-title" style="margin-top: 64px;">
+        <h1 id="hero-title"><i class="fas fa-book" aria-hidden="true"></i> Promo Katalog</h1>
         <p>Download katalog promo terbaru dan dapatkan penawaran menarik!</p>
     </section>
 
     <!-- Catalog Grid -->
-    <div class="catalog-container">
-        <div class="catalog-grid" id="catalogGrid">
+    <main id="main-content" class="catalog-container" role="main">
+        <!-- Status message for screen readers -->
+        <div class="sr-only" role="status" aria-live="polite" aria-atomic="true" id="catalogStatus">
+            Memuat katalog...
+        </div>
+        
+        <div class="catalog-grid" id="catalogGrid" role="list">
             <!-- Catalog cards will be inserted here by JavaScript -->
         </div>
 
         <!-- Empty State (hidden by default) -->
-        <div class="empty-state" id="emptyState" style="display: none;">
-            <i class="fas fa-book-open"></i>
+        <div class="empty-state" id="emptyState" style="display: none;" role="status">
+            <i class="fas fa-book-open" aria-hidden="true"></i>
             <h3>Belum Ada Katalog</h3>
             <p>Katalog promo akan segera tersedia</p>
         </div>
-    </div>
+    </main>
     <script src="assets/js/script.min.js"></script>
     <script>
         // Catalog data (in real app, this would come from database)
@@ -45,56 +84,87 @@
                 title: "Katalog Promo Januari 2026",
                 period: "1-15 Januari 2026",
                 thumbnail: "assets/demo-pages/page1.jpg",
+                thumbnailWebP: "assets/demo-pages/page1.webp",
                 pdfUrl: "assets/catalogs/katalog-januari-2026.pdf",
-                badge: "BARU"
+                badge: "BARU",
+                badgeColor: "#ff4444"
             },
             {
                 id: 2,
                 title: "Katalog Promo Akhir Januari",
                 period: "16-31 Januari 2026",
                 thumbnail: "assets/demo-pages/page2.jpg",
+                thumbnailWebP: "assets/demo-pages/page2.webp",
                 pdfUrl: "assets/catalogs/katalog-akhir-januari-2026.pdf",
-                badge: "HOT"
+                badge: "HOT",
+                badgeColor: "#ff6b00"
             },
             {
                 id: 3,
                 title: "Katalog Spesial Imlek",
                 period: "22 Jan - 4 Feb 2026",
                 thumbnail: "assets/demo-pages/page3.jpg",
+                thumbnailWebP: "assets/demo-pages/page3.webp",
                 pdfUrl: "assets/catalogs/katalog-spesial-imlek-2026.pdf",
-                badge: "SPESIAL"
+                badge: "SPESIAL",
+                badgeColor: "#9333ea"
             }
         ];
 
-        // Render catalog grid
+        // Render catalog grid with accessibility and performance optimizations
         function renderCatalogs() {
             const grid = document.getElementById('catalogGrid');
             const emptyState = document.getElementById('emptyState');
+            const statusElement = document.getElementById('catalogStatus');
 
             if (catalogs.length === 0) {
                 grid.style.display = 'none';
                 emptyState.style.display = 'block';
+                statusElement.textContent = 'Belum ada katalog tersedia.';
                 return;
             }
 
             grid.innerHTML = catalogs.map(catalog => `
-                <div class="catalog-card">
+                <article class="catalog-card" role="listitem">
                     <div class="catalog-thumbnail">
-                        <img src="${catalog.thumbnail}" alt="${catalog.title}" onerror="this.src='https://via.placeholder.com/400x565/00a651/ffffff?text=Katalog'">
-                        <span class="catalog-badge">${catalog.badge}</span>
+                        <picture>
+                            <source 
+                                type="image/webp" 
+                                srcset="${catalog.thumbnailWebP || catalog.thumbnail}"
+                                onerror="this.remove()">
+                            <img 
+                                src="${catalog.thumbnail}" 
+                                alt="Thumbnail ${catalog.title} - Periode ${catalog.period}"
+                                loading="lazy"
+                                width="400"
+                                height="565"
+                                onerror="this.src='https://via.placeholder.com/400x565/00a651/ffffff?text=Katalog'"
+                                decoding="async">
+                        </picture>
+                        <span class="catalog-badge" style="background-color: ${catalog.badgeColor || '#ff4444'}" role="status" aria-label="Status: ${catalog.badge}">
+                            ${catalog.badge}
+                        </span>
                     </div>
                     <div class="catalog-info">
-                        <h3 class="catalog-title">${catalog.title}</h3>
+                        <h2 class="catalog-title">${catalog.title}</h2>
                         <div class="catalog-period">
-                            <i class="fas fa-calendar-alt"></i>
+                            <i class="fas fa-calendar-alt" aria-hidden="true"></i>
                             <span>Periode: ${catalog.period}</span>
                         </div>
-                        <a href="${catalog.pdfUrl}" class="catalog-download-btn" target="_blank">
-                            <i class="fas fa-eye"></i> LIHAT KATALOG
+                        <a 
+                            href="${catalog.pdfUrl}" 
+                            class="catalog-download-btn" 
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Lihat katalog ${catalog.title} - Periode ${catalog.period} (membuka di tab baru)">
+                            <i class="fas fa-eye" aria-hidden="true"></i> LIHAT KATALOG
                         </a>
                     </div>
-                </div>
+                </article>
             `).join('');
+            
+            // Update status for screen readers
+            statusElement.textContent = `${catalogs.length} katalog promo tersedia.`;
         }
 
         // Initialize on page load
