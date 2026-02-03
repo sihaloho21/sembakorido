@@ -39,8 +39,8 @@
     <header class="bg-green-700 text-white py-0 shadow-md fixed z-50 w-full left-0 right-0" id="main-header" style="top: 0;" role="banner">
         <div class="container mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='index.html'">
-                <img src="assets/img/logo.webp" alt="GoSembako Logo - Kembali ke beranda" class="h-16 w-auto" width="64" height="64">
-                <h1 class="text-2xl font-bold">GoSembako</h1>
+                <img src="assets/img/logo.webp" alt="GoSembako Logo" class="h-16 w-auto" width="64" height="64">
+                <div class="text-2xl font-bold">GoSembako</div>
             </div>
             <nav aria-label="Navigasi utama">
                 <a href="index.html" class="text-white hover:text-green-200 transition px-4 py-2 rounded" aria-label="Kembali ke halaman utama">
@@ -130,8 +130,7 @@
                         <picture>
                             <source 
                                 type="image/webp" 
-                                srcset="${catalog.thumbnailWebP || catalog.thumbnail}"
-                                onerror="this.remove()">
+                                srcset="${catalog.thumbnailWebP || catalog.thumbnail}">
                             <img 
                                 src="${catalog.thumbnail}" 
                                 alt="Thumbnail ${catalog.title} - Periode ${catalog.period}"
@@ -141,12 +140,12 @@
                                 onerror="this.src='https://via.placeholder.com/400x565/00a651/ffffff?text=Katalog'"
                                 decoding="async">
                         </picture>
-                        <span class="catalog-badge" style="background-color: ${catalog.badgeColor || '#ff4444'}" role="status" aria-label="Status: ${catalog.badge}">
+                        <span class="catalog-badge" style="background-color: ${catalog.badgeColor || '#ff4444'}" aria-label="Status: ${catalog.badge}">
                             ${catalog.badge}
                         </span>
                     </div>
                     <div class="catalog-info">
-                        <h2 class="catalog-title">${catalog.title}</h2>
+                        <h3 class="catalog-title">${catalog.title}</h3>
                         <div class="catalog-period">
                             <i class="fas fa-calendar-alt" aria-hidden="true"></i>
                             <span>Periode: ${catalog.period}</span>

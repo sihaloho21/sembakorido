@@ -142,7 +142,7 @@
 
 .catalog-download-btn:focus {
     outline: 3px solid #00a651;
-    outline-offset: 3px;
+    outline-offset: 2px;
 }
 
 .catalog-download-btn:active {
