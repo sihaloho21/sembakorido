@@ -53,6 +53,7 @@ function lintHtml(file) {
   const isFrontendPage = !isAdminPage && file.endsWith('.html');
   let hasAdminSanitizeScript = false;
   let hasFrontendSanitizeScript = false;
+  let hasFrontendBundle = false;
   lines.forEach((line, idx) => {
     const lineNo = idx + 1;
     const onclickMatch = line.match(/\sonclick=/);
@@ -64,6 +65,9 @@ function lintHtml(file) {
     }
     if (isFrontendPage && /assets\/js\/sanitize\.min\.js/.test(line)) {
       hasFrontendSanitizeScript = true;
+    }
+    if (isFrontendPage && /assets\/js\/index\.bundle\.min\.js/.test(line)) {
+      hasFrontendBundle = true;
     }
     const hrefVoid = line.match(/href="javascript:void\(0\)"/);
     if (hrefVoid) {
@@ -103,8 +107,8 @@ function lintHtml(file) {
   if (isAdminPage && !hasAdminSanitizeScript) {
     report(file, 1, 'Admin page missing assets/js/sanitize.min.js');
   }
-  if (isFrontendPage && !hasFrontendSanitizeScript) {
-    report(file, 1, 'Frontend page missing assets/js/sanitize.min.js');
+  if (isFrontendPage && !hasFrontendSanitizeScript && !hasFrontendBundle) {
+    report(file, 1, 'Frontend page missing assets/js/sanitize.min.js (or index.bundle.min.js)');
   }
 }
 
