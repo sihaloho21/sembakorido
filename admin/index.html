@@ -23,47 +23,47 @@
         
         <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
             <button onclick="showSection('dashboard')" id="nav-dashboard" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                 Dashboard
             </button>
             <button onclick="showSection('produk')" id="nav-produk" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                 Produk
             </button>
             <button onclick="showSection('kategori')" id="nav-kategori" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z"></path></svg>
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z"></path></svg>
                 Kategori
             </button>
             <button onclick="showSection('pesanan')" id="nav-pesanan" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                 Pesanan
             </button>
             <button onclick="showSection('tukar-poin')" id="nav-tukar-poin" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.407 2.67 1L12 11m0-3V7m0 11v1m0-1c-1.11 0-2.08-.407-2.67-1L12 13m0 5v1m-4.788-3.99a4.032 4.032 0 01-.788-2.01c0-2.21 1.79-4 4-4s4 1.79 4 4a4.032 4.032 0 01-.788 2.01M12 13v-1"></path></svg>
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.407 2.67 1L12 11m0-3V7m0 11v1m0-1c-1.11 0-2.08-.407-2.67-1L12 13m0 5v1m-4.788-3.99a4.032 4.032 0 01-.788-2.01c0-2.21 1.79-4 4-4s4 1.79 4 4a4.032 4.032 0 01-.788 2.01M12 13v-1"></path></svg>
                 Tukar Poin
             </button>
             <button onclick="showSection('banners')" id="nav-banners" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 Banner Promosi
             </button>
             <button onclick="showSection('user-points')" id="nav-user-points" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                 Poin Pengguna
             </button>
             <button onclick="showSection('tiered-pricing')" id="nav-tiered-pricing" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
                 Harga Grosir
             </button>
 
             <button onclick="showSection('pengaturan')" id="nav-pengaturan" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 Pengaturan
             </button>
         </nav>
 
         <div class="p-4 border-t border-slate-800">
             <button onclick="logout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-900/20 text-red-400 transition font-medium">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                 Keluar
             </button>
         </div>
@@ -76,7 +76,7 @@
             <h2 id="section-title" class="text-xl font-bold text-gray-800">Dashboard</h2>
             <div class="flex items-center gap-4">
                 <span class="text-sm text-gray-500">Logged in as: <span class="font-bold text-gray-700">admin</span></span>
-                <a href="../index.html" class="bg-green-50 text-green-700 hover:bg-green-100 px-4 py-2 rounded-xl text-sm font-bold transition">Lihat Website</a>
+                <a href="/" class="bg-green-50 text-green-700 hover:bg-green-100 px-4 py-2 rounded-xl text-sm font-bold transition">Lihat Website</a>
             </div>
         </header>
 
@@ -107,7 +107,7 @@
                             <div class="flex items-center gap-3">
                                 <span id="store-status-label" class="text-sm font-bold px-3 py-1 rounded-full">Memuat...</span>
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" id="store-closed-toggle" class="sr-only peer" onchange="toggleStoreStatus()">
+                                    <input type="checkbox" id="store-closed-toggle" class="sr-only peer" onchange="toggleStoreStatus()" aria-label="Status operasional toko">
                                     <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
                                 </label>
                             </div>
@@ -124,7 +124,7 @@
                 <div class="flex justify-between items-center">
                     <h3 class="text-lg font-bold text-gray-800">Daftar Produk</h3>
                     <button onclick="openAddModal()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-green-100">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                         Tambah Produk
                     </button>
                 </div>
@@ -164,7 +164,7 @@
                         </div>
                         <div class="flex justify-end">
                             <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-green-100">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                 Tambah
                             </button>
                         </div>
@@ -280,7 +280,7 @@
                 <div class="flex justify-between items-center">
                     <h3 class="text-lg font-bold text-gray-800">Produk Tukar Poin</h3>
                     <button onclick="openAddTukarPoinModal()" class="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-amber-100">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                         Tambah Produk Tukar
                     </button>
                 </div>
@@ -310,7 +310,7 @@
                         <p class="text-sm text-gray-500 mt-1">Kelola banner promosi yang ditampilkan di halaman utama</p>
                     </div>
                     <button onclick="openAddBannerModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-blue-100">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                         Tambah Banner
                     </button>
                 </div>
@@ -464,7 +464,7 @@
                                         </table>
                                     </div>
                                     <button type="button" onclick="openAddOverrideModal()" class="mt-4 text-amber-600 hover:text-amber-700 font-bold text-sm flex items-center gap-1">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                         Tambah Override Manual
                                     </button>
                                 </div>
@@ -542,22 +542,22 @@
                     <div class="flex justify-end gap-3 pt-4">
 
                         <button onclick="saveSettings()" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-green-100">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                            <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
                             Simpan Pengaturan
                         </button>
                     </div>
 
-                    <div id="edit-markup-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+                    <div id="edit-markup-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-labelledby="edit-markup-title" tabindex="-1" data-modal>
                         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-8">
-                            <h3 class="text-2xl font-bold text-gray-800 mb-6">Edit Persentase Markup</h3>
+                            <h3 id="edit-markup-title" class="text-2xl font-bold text-gray-800 mb-6">Edit Persentase Markup</h3>
                             <form id="edit-markup-form" class="space-y-4">
                                 <input type="hidden" id="edit-markup-index">
                                 <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">Sisa Hari Minimum</label>
+                                    <label for="edit-markup-min-days" class="block text-sm font-bold text-gray-700 mb-2">Sisa Hari Minimum</label>
                                     <input type="number" id="edit-markup-min-days" min="0" class="w-full p-3 border rounded-xl outline-none focus:border-green-500">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">Persentase (%)</label>
+                                    <label for="edit-markup-rate" class="block text-sm font-bold text-gray-700 mb-2">Persentase (%)</label>
                                     <input type="number" id="edit-markup-rate" min="0" max="100" step="0.1" class="w-full p-3 border rounded-xl outline-none focus:border-green-500">
                                 </div>
                                 <div class="flex gap-3 pt-4">
@@ -569,18 +569,18 @@
                     </div>
 
                     <!-- Add/Edit Reward Override Modal -->
-                    <div id="reward-override-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+                    <div id="reward-override-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-labelledby="override-modal-title" tabindex="-1" data-modal>
                         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-8">
                             <h3 id="override-modal-title" class="text-2xl font-bold text-gray-800 mb-6">Tambah Override Poin</h3>
                             <form id="reward-override-form" class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">Pilih Produk</label>
+                                    <label for="override-product-name" class="block text-sm font-bold text-gray-700 mb-2">Pilih Produk</label>
                                     <select id="override-product-name" required class="w-full p-3 border rounded-xl outline-none focus:border-amber-500">
                                         <option value="">-- Pilih Produk --</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">Nilai Poin Manual</label>
+                                    <label for="override-point-value" class="block text-sm font-bold text-gray-700 mb-2">Nilai Poin Manual</label>
                                     <input type="number" id="override-point-value" required min="0" step="0.1" class="w-full p-3 border rounded-xl outline-none focus:border-amber-500">
                                 </div>
                                 <div class="flex gap-3 pt-4">
@@ -597,25 +597,25 @@
     </div>
 
     <!-- Add/Edit Tukar Poin Modal -->
-    <div id="tukar-poin-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div id="tukar-poin-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-labelledby="tukar-poin-modal-title" tabindex="-1" data-modal>
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <h3 id="tukar-poin-modal-title" class="text-2xl font-bold text-gray-800 mb-6">Tambah Produk Tukar Poin</h3>
             <form id="tukar-poin-form" class="space-y-4">
                 <input type="hidden" id="tukar-poin-id">
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Judul Produk</label>
+                    <label for="form-tukar-judul" class="block text-sm font-bold text-gray-700 mb-1">Judul Produk</label>
                     <input type="text" id="form-tukar-judul" required class="w-full p-3 border rounded-xl outline-none focus:border-amber-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Nilai Poin</label>
+                    <label for="form-tukar-poin" class="block text-sm font-bold text-gray-700 mb-1">Nilai Poin</label>
                     <input type="number" id="form-tukar-poin" required class="w-full p-3 border rounded-xl outline-none focus:border-amber-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">URL Gambar</label>
+                    <label for="form-tukar-gambar" class="block text-sm font-bold text-gray-700 mb-1">URL Gambar</label>
                     <input type="text" id="form-tukar-gambar" required class="w-full p-3 border rounded-xl outline-none focus:border-amber-500" placeholder="https://example.com/image.jpg">
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Deskripsi</label>
+                    <label for="form-tukar-deskripsi" class="block text-sm font-bold text-gray-700 mb-1">Deskripsi</label>
                     <textarea id="form-tukar-deskripsi" rows="3" class="w-full p-3 border rounded-xl outline-none focus:border-amber-500" placeholder="Deskripsi produk yang dapat ditukar"></textarea>
                 </div>
                 <div class="flex gap-3 pt-4">
@@ -627,48 +627,48 @@
     </div>
 
     <!-- Add/Edit Banner Modal -->
-    <div id="banner-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div id="banner-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-labelledby="banner-modal-title" tabindex="-1" data-modal>
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <h3 id="banner-modal-title" class="text-2xl font-bold text-gray-800 mb-6">Tambah Banner Promosi</h3>
             <form id="banner-form" class="space-y-4">
                 <input type="hidden" id="banner-id">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">ID Banner <span class="text-red-500">*</span></label>
+                        <label for="form-banner-id-input" class="block text-sm font-bold text-gray-700 mb-1">ID Banner <span class="text-red-500">*</span></label>
                         <input type="text" id="form-banner-id-input" required class="w-full p-3 border rounded-xl outline-none focus:border-blue-500" placeholder="promo-jan-2026">
                         <p class="text-xs text-gray-500 mt-1">ID unik untuk banner (gunakan huruf kecil, angka, dan tanda hubung)</p>
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">URL Gambar <span class="text-red-500">*</span></label>
+                        <label for="form-banner-image" class="block text-sm font-bold text-gray-700 mb-1">URL Gambar <span class="text-red-500">*</span></label>
                         <input type="url" id="form-banner-image" required class="w-full p-3 border rounded-xl outline-none focus:border-blue-500" placeholder="https://example.com/banner.jpg">
                         <p class="text-xs text-gray-500 mt-1">Resolusi yang disarankan: 1200x400 piksel</p>
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Judul Banner</label>
+                        <label for="form-banner-title" class="block text-sm font-bold text-gray-700 mb-1">Judul Banner</label>
                         <input type="text" id="form-banner-title" class="w-full p-3 border rounded-xl outline-none focus:border-blue-500" placeholder="Promo Awal Tahun!">
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Subtitle</label>
+                        <label for="form-banner-subtitle" class="block text-sm font-bold text-gray-700 mb-1">Subtitle</label>
                         <textarea id="form-banner-subtitle" rows="2" class="w-full p-3 border rounded-xl outline-none focus:border-blue-500" placeholder="Diskon hingga 50% untuk produk pilihan"></textarea>
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Teks Tombol CTA</label>
+                        <label for="form-banner-cta-text" class="block text-sm font-bold text-gray-700 mb-1">Teks Tombol CTA</label>
                         <input type="text" id="form-banner-cta-text" class="w-full p-3 border rounded-xl outline-none focus:border-blue-500" placeholder="Belanja Sekarang">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">URL Tujuan CTA</label>
+                        <label for="form-banner-cta-url" class="block text-sm font-bold text-gray-700 mb-1">URL Tujuan CTA</label>
                         <input type="url" id="form-banner-cta-url" class="w-full p-3 border rounded-xl outline-none focus:border-blue-500" placeholder="https://example.com/promo">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Tanggal Mulai</label>
+                        <label for="form-banner-start-date" class="block text-sm font-bold text-gray-700 mb-1">Tanggal Mulai</label>
                         <input type="date" id="form-banner-start-date" class="w-full p-3 border rounded-xl outline-none focus:border-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Tanggal Akhir</label>
+                        <label for="form-banner-end-date" class="block text-sm font-bold text-gray-700 mb-1">Tanggal Akhir</label>
                         <input type="date" id="form-banner-end-date" class="w-full p-3 border rounded-xl outline-none focus:border-blue-500">
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>
+                        <label for="form-banner-status" class="block text-sm font-bold text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>
                         <select id="form-banner-status" required class="w-full p-3 border rounded-xl outline-none focus:border-blue-500">
                             <option value="active">Aktif</option>
                             <option value="inactive">Tidak Aktif</option>
@@ -684,43 +684,43 @@
     </div>
 
     <!-- Add/Edit Product Modal -->
-    <div id="product-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div id="product-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1" data-modal>
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <h3 id="modal-title" class="text-2xl font-bold text-gray-800 mb-6">Tambah Produk</h3>
             <form id="product-form" class="space-y-4">
                 <input type="hidden" id="product-id">
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Nama Produk</label>
+                    <label for="form-nama" class="block text-sm font-bold text-gray-700 mb-1">Nama Produk</label>
                     <input type="text" id="form-nama" required class="w-full p-3 border rounded-xl outline-none focus:border-green-500">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Harga Cash (Rp)</label>
+                        <label for="form-harga" class="block text-sm font-bold text-gray-700 mb-1">Harga Cash (Rp)</label>
                         <input type="number" id="form-harga" required class="w-full p-3 border rounded-xl outline-none focus:border-green-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Harga Coret (Rp) <span class="text-[10px] font-normal text-gray-400 italic">Opsional</span></label>
+                        <label for="form-harga-coret" class="block text-sm font-bold text-gray-700 mb-1">Harga Coret (Rp) <span class="text-[10px] font-normal text-gray-400 italic">Opsional</span></label>
                         <input type="number" id="form-harga-coret" class="w-full p-3 border rounded-xl outline-none focus:border-green-500" placeholder="Contoh: 50000">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Stok</label>
+                        <label for="form-stok" class="block text-sm font-bold text-gray-700 mb-1">Stok</label>
                         <input type="number" id="form-stok" required class="w-full p-3 border rounded-xl outline-none focus:border-green-500">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Kategori</label>
+                    <label for="form-category" class="block text-sm font-bold text-gray-700 mb-1">Kategori</label>
                     <select id="form-category" class="w-full p-3 border rounded-xl outline-none focus:border-green-500">
                         <option value="">-- Pilih Kategori --</option>
                     </select>
                 </div>
                 <div class="space-y-2">
-                    <label class="block text-sm font-bold text-gray-700 mb-1">URL Gambar (Maksimal 3)</label>
+                    <label for="form-gambar-1" class="block text-sm font-bold text-gray-700 mb-1">URL Gambar (Maksimal 3)</label>
                     <input type="text" id="form-gambar-1" required class="w-full p-3 border rounded-xl outline-none focus:border-green-500" placeholder="URL Gambar 1 (Utama)">
                     <input type="text" id="form-gambar-2" class="w-full p-3 border rounded-xl outline-none focus:border-green-500" placeholder="URL Gambar 2 (Opsional)">
                     <input type="text" id="form-gambar-3" class="w-full p-3 border rounded-xl outline-none focus:border-green-500" placeholder="URL Gambar 3 (Opsional)">
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Deskripsi / Isi Paket</label>
+                    <label for="form-deskripsi" class="block text-sm font-bold text-gray-700 mb-1">Deskripsi / Isi Paket</label>
                     <textarea id="form-deskripsi" rows="3" class="w-full p-3 border rounded-xl outline-none focus:border-green-500" placeholder="Contoh: Beras 5kg, Minyak 1L, Gula 1kg"></textarea>
                 </div>
 
@@ -729,7 +729,7 @@
                     <div class="flex justify-between items-center mb-4">
                         <label class="block text-sm font-bold text-gray-700">Varian Produk (Opsional)</label>
                         <button type="button" onclick="addVariantRow()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-sm font-bold transition flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                             Tambah Varian
                         </button>
                     </div>
@@ -755,6 +755,65 @@
     <script src="js/tiered-pricing.min.js"></script>
     <script src="js/banner-management.min.js"></script>
     
+    <script>
+        (function () {
+            const focusableSelector = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+            const modals = document.querySelectorAll('[data-modal]');
+
+            modals.forEach((modal) => {
+                let lastFocused = null;
+
+                const focusFirst = () => {
+                    const target = modal.querySelector('[data-autofocus]') || modal.querySelector(focusableSelector);
+                    if (target) {
+                        target.focus();
+                    } else {
+                        modal.focus();
+                    }
+                };
+
+                const observer = new MutationObserver(() => {
+                    const isHidden = modal.classList.contains('hidden');
+                    if (!isHidden) {
+                        lastFocused = document.activeElement;
+                        focusFirst();
+                    } else if (lastFocused && typeof lastFocused.focus === 'function') {
+                        lastFocused.focus();
+                    }
+                });
+
+                observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
+
+                modal.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') {
+                        const closeBtn = modal.querySelector('[data-modal-close], button[aria-label="Tutup"], button[aria-label="Close"], button[onclick*="close"]');
+                        if (closeBtn) closeBtn.click();
+                        return;
+                    }
+                    if (event.key !== 'Tab') return;
+
+                    const focusables = Array.from(modal.querySelectorAll(focusableSelector))
+                        .filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
+
+                    if (focusables.length === 0) {
+                        event.preventDefault();
+                        modal.focus();
+                        return;
+                    }
+
+                    const first = focusables[0];
+                    const last = focusables[focusables.length - 1];
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault();
+                        last.focus();
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault();
+                        first.focus();
+                    }
+                });
+            });
+        })();
+    </script>
 
     <!-- Toast Container -->
     <div id="admin-toast-container" class="fixed bottom-8 right-8 z-[100] flex flex-col gap-3"></div>
