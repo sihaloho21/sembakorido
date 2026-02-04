@@ -4,10 +4,9 @@
  * Mendukung manajemen konten terpusat dengan status dan tanggal
  */
 
-const FrontendSanitize = window.FrontendSanitize || {};
-const escapeHtml = FrontendSanitize.escapeHtml || ((value) => String(value || ''));
-const sanitizeUrl = FrontendSanitize.sanitizeUrl || ((url) => String(url || ''));
-const ensureImageFallbackHandler = FrontendSanitize.ensureImageFallbackHandler || (() => {});
+const escapeHtml = (window.FrontendSanitize && window.FrontendSanitize.escapeHtml) || ((value) => String(value || ''));
+const sanitizeUrl = (window.FrontendSanitize && window.FrontendSanitize.sanitizeUrl) || ((url) => String(url || ''));
+const ensureImageFallbackHandler = (window.FrontendSanitize && window.FrontendSanitize.ensureImageFallbackHandler) || (() => {});
 
 class PromotionalBannerCarousel {
     constructor() {

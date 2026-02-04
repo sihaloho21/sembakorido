@@ -1406,14 +1406,13 @@ async function loadModalPoints() {
     }
 }
 
-const FrontendSanitize = window.FrontendSanitize || {};
-const escapeHtml = FrontendSanitize.escapeHtml || ((text) => {
+const escapeHtml = (window.FrontendSanitize && window.FrontendSanitize.escapeHtml) || ((text) => {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 });
-const sanitizeUrl = FrontendSanitize.sanitizeUrl || ((url) => String(url || ''));
-const ensureImageFallbackHandler = FrontendSanitize.ensureImageFallbackHandler || (() => {});
+const sanitizeUrl = (window.FrontendSanitize && window.FrontendSanitize.sanitizeUrl) || ((url) => String(url || ''));
+const ensureImageFallbackHandler = (window.FrontendSanitize && window.FrontendSanitize.ensureImageFallbackHandler) || (() => {});
 
 ensureImageFallbackHandler();
 
