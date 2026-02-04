@@ -1,8 +1,7 @@
 
-var AdminSanitize = window.AdminSanitize || {};
-var escapeHtml = AdminSanitize.escapeHtml || ((value) => String(value || ''));
-var escapeAttr = AdminSanitize.escapeAttr || ((value) => String(value || ''));
-var sanitizeUrl = AdminSanitize.sanitizeUrl || ((url) => String(url || ''));
+var escapeHtml = (window.AdminSanitize && window.AdminSanitize.escapeHtml) || ((value) => String(value || ''));
+var escapeAttr = (window.AdminSanitize && window.AdminSanitize.escapeAttr) || ((value) => String(value || ''));
+var sanitizeUrl = (window.AdminSanitize && window.AdminSanitize.sanitizeUrl) || ((url) => String(url || ''));
 
 // Auth Check
 if (localStorage.getItem('admin_logged_in') !== 'true') {
