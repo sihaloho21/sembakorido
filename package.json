@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "test": "node scripts/lint-basic.js"
+  },
   "devDependencies": {
     "cssnano": "^7.1.2",
     "giflossy": "^3.0.41",

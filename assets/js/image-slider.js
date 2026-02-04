@@ -4,6 +4,9 @@
  * Fitur: navigasi, dots, keyboard support, touch swipe
  */
 
+const FrontendSanitize = window.FrontendSanitize || {};
+const sanitizeUrl = FrontendSanitize.sanitizeUrl || ((url) => String(url || ''));
+
 let currentSlideIndex = 0;
 let totalSlides = 0;
 let sliderImages = [];
@@ -38,12 +41,10 @@ function initializeSlider(images) {
     // Create image elements
     sliderImages.forEach((imgUrl, index) => {
         const imgEl = document.createElement('img');
-        imgEl.src = imgUrl;
+        imgEl.src = sanitizeUrl(imgUrl, 'https://placehold.co/300x200?text=Produk');
+        imgEl.setAttribute('data-fallback-src', 'https://placehold.co/300x200?text=Produk');
         imgEl.alt = `Slide ${index + 1}`;
         imgEl.className = `absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${index === 0 ? 'opacity-100' : 'opacity-0'}`;
-        imgEl.onerror = function() {
-            this.src = 'https://placehold.co/300x200?text=Gambar+Error';
-        };
         imgEl.onload = function() {
             if (skeletonLoader) {
                 skeletonLoader.classList.add('hidden');
@@ -198,7 +199,7 @@ function initializeSliderFallback() {
                 src="https://placehold.co/300x200?text=Produk" 
                 alt="Produk" 
                 class="w-full h-full object-cover"
-                onerror="this.src='https://placehold.co/300x200?text=Produk'"
+                data-fallback-src="https://placehold.co/300x200?text=Produk"
             >
         `;
     }

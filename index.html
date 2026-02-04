@@ -44,7 +44,7 @@
     <header class="bg-green-700 text-white py-0 shadow-md fixed z-50 w-full left-0 right-0" id="main-header" style="top: 0;">
         <div class="container mx-auto px-4 flex justify-between items-center">
             <button type="button" class="flex items-center gap-3 cursor-pointer" data-action="logo-click" aria-label="Logo GoSembako">
-                <img src="assets/img/logo.webp" alt="GoSembako Logo" class="h-16 w-auto">
+                <img src="assets/img/logo.webp" alt="GoSembako Logo" class="h-16 w-auto" data-fallback-src="assets/img/logo.webp">
                 <h1 class="text-2xl font-bold">GoSembako</h1>
             </button>
             <div class="flex items-center gap-4">
@@ -137,7 +137,7 @@
             <div id="product-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <!-- Products will be loaded here -->
                 <div class="text-center col-span-full py-10 text-gray-500">
-                    <img src="https://ik.imagekit.io/gosembako/logo.gif" alt="Loading..." class="mx-auto mb-4" style="max-width: 200px; height: auto;">
+                    <img src="https://ik.imagekit.io/gosembako/logo.gif" alt="Loading..." class="mx-auto mb-4 max-w-[200px] h-auto" data-fallback-src="https://ik.imagekit.io/gosembako/logo.gif">
                     <p>Memuat produk...</p>
                 </div>
             </div>
@@ -328,7 +328,7 @@
     <!-- Lightbox Modal for zoomed images -->
     <div id="lightbox-modal" class="fixed inset-0 bg-black/95 backdrop-blur-sm z-[60] hidden flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Tampilan gambar" tabindex="-1" data-modal>
         <div class="relative w-full h-full flex items-center justify-center p-4">
-            <img id="lightbox-image" class="max-w-full max-h-full object-contain transition-transform duration-300 cursor-zoom-in" src="" alt="Product Image">
+            <img id="lightbox-image" class="max-w-full max-h-full object-contain transition-transform duration-300 cursor-zoom-in" src="" alt="Product Image" data-fallback-src="https://placehold.co/600x600?text=Produk">
             <button class="absolute top-6 right-6 text-white hover:text-gray-300 transition" data-action="close-lightbox" aria-label="Tutup">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
@@ -514,7 +514,7 @@
                         <div class="text-center space-y-3">
                             <p class="text-xs font-bold text-gray-700">Scan QRIS untuk Pembayaran</p>
                             <div class="bg-gray-50 p-3 rounded-xl">
-                                <img src="https://ik.imagekit.io/gosembako/BAHAN%20POKOK/QRIS-GOSEMBAKO.webp" alt="QRIS GoSembako" class="mx-auto max-w-[200px] w-full">
+                                <img src="https://ik.imagekit.io/gosembako/BAHAN%20POKOK/QRIS-GOSEMBAKO.webp" alt="QRIS GoSembako" class="mx-auto max-w-[200px] w-full" data-fallback-src="https://ik.imagekit.io/gosembako/BAHAN%20POKOK/QRIS-GOSEMBAKO.webp">
                             </div>
                             <a href="https://ik.imagekit.io/gosembako/BAHAN%20POKOK/QRIS-GOSEMBAKO.webp" download="QRIS_GoSembako.webp" target="_blank" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
                                 <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -548,7 +548,7 @@
                 </button>
             </div>
             <div class="bg-white p-2 border-2 border-gray-100 rounded-xl mb-4">
-                <img src="https://ik.imagekit.io/gosembako/BAHAN%20POKOK/QRIS-GOSEMBAKO.webp" alt="QRIS GoSembako" class="mx-auto">
+                <img src="https://ik.imagekit.io/gosembako/BAHAN%20POKOK/QRIS-GOSEMBAKO.webp" alt="QRIS GoSembako" class="mx-auto" data-fallback-src="https://ik.imagekit.io/gosembako/BAHAN%20POKOK/QRIS-GOSEMBAKO.webp">
             </div>
             <p class="text-xs text-gray-600 mb-4">Silakan screenshot atau scan langsung QRIS di atas untuk melakukan pembayaran.</p>
             <a href="https://ik.imagekit.io/gosembako/BAHAN%20POKOK/QRIS-GOSEMBAKO.webp" download="QRIS_GoSembako.webp" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
@@ -896,6 +896,7 @@
                             alt="Metode Pembayaran" 
                             class="w-full max-w-[200px] h-auto"
                             loading="lazy"
+                            data-fallback-src="https://placehold.co/200x80?text=Metode"
                         >
                     </div>
                 </div>
@@ -909,12 +910,14 @@
                             alt="Kurir Pengiriman" 
                             class="h-[40px] w-auto"
                             loading="lazy"
+                            data-fallback-src="https://placehold.co/120x40?text=Kurir"
                         >
                         <img 
                             src="https://ik.imagekit.io/gosembako/Ic_COD.png?updatedAt=1768578368291" 
                             alt="Cash On Delivery (COD)" 
                             class="h-[40px] w-auto"
                             loading="lazy"
+                            data-fallback-src="https://placehold.co/120x40?text=COD"
                         >
                     </div>
                 </div>
@@ -1069,6 +1072,7 @@
     
     <script src="assets/js/promo-banner-carousel.min.js"></script>
     <script src="assets/js/banner-carousel.min.js"></script>
+    <script src="assets/js/sanitize.min.js"></script>
     <script src="assets/js/script.min.js"></script>
 </body>
 </html>

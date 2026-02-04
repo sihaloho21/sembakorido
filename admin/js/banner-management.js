@@ -3,8 +3,14 @@
  * Mengelola banner promosi melalui admin panel
  */
 
+const AdminSanitize = window.AdminSanitize || {};
+const escapeHtml = AdminSanitize.escapeHtml || ((value) => String(value || ''));
+const escapeAttr = AdminSanitize.escapeAttr || ((value) => String(value || ''));
+const sanitizeUrl = AdminSanitize.sanitizeUrl || ((url) => String(url || ''));
+
 // Global variables
 let currentBannerEdit = null;
+let bannerCache = [];
 
 /**
  * Fetch banners from SheetDB
@@ -23,9 +29,11 @@ async function fetchBanners() {
         const banners = await response.json();
         console.log('📥 [BANNER-ADMIN] Received banners:', banners);
         
-        renderBannersTable(banners);
+        bannerCache = Array.isArray(banners) ? banners : [];
+        renderBannersTable(bannerCache);
     } catch (error) {
         console.error('❌ [BANNER-ADMIN] Error fetching banners:', error);
+        bannerCache = [];
         
         // Show error message
         const listElement = document.getElementById('banners-list');
@@ -38,8 +46,8 @@ async function fetchBanners() {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             <p class="font-medium">Gagal memuat data banner</p>
-                            <p class="text-sm">${error.message}</p>
-                            <button onclick="fetchBanners()" class="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">Coba Lagi</button>
+                            <p class="text-sm">${escapeHtml(error.message)}</p>
+                            <button data-action="retry-fetch-banners" class="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">Coba Lagi</button>
                         </div>
                     </td>
                 </tr>
@@ -54,8 +62,9 @@ async function fetchBanners() {
 function renderBannersTable(banners) {
     const listElement = document.getElementById('banners-list');
     if (!listElement) return;
+    bannerCache = Array.isArray(banners) ? banners : [];
 
-    if (banners.length === 0) {
+    if (bannerCache.length === 0) {
         listElement.innerHTML = `
             <tr>
                 <td colspan="5" class="px-6 py-8 text-center text-gray-500">
@@ -72,7 +81,7 @@ function renderBannersTable(banners) {
         return;
     }
 
-    listElement.innerHTML = banners.map(banner => {
+    listElement.innerHTML = bannerCache.map(banner => {
         const statusBadge = banner.status === 'active' 
             ? '<span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold">Aktif</span>'
             : '<span class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full font-bold">Tidak Aktif</span>';
@@ -84,26 +93,30 @@ function renderBannersTable(banners) {
             periodText = `${start} s/d ${end}`;
         }
 
+        const safeTitle = escapeHtml(banner.title || '-');
+        const safeSubtitle = escapeHtml(banner.subtitle || '-');
+        const safeId = escapeAttr(banner.id);
+        const safeImage = sanitizeUrl(banner.image_url, 'https://placehold.co/300x100?text=Banner');
         return `
             <tr class="hover:bg-gray-50">
                 <td class="px-6 py-4">
-                    <img src="${banner.image_url}" alt="${banner.title || 'Banner'}" class="w-32 h-auto rounded-lg object-cover" onerror="this.src='https://placehold.co/300x100?text=Banner'">
+                    <img src="${safeImage}" alt="${safeTitle || 'Banner'}" class="w-32 h-auto rounded-lg object-cover" data-fallback-src="https://placehold.co/300x100?text=Banner">
                 </td>
                 <td class="px-6 py-4">
-                    <div class="font-bold text-gray-800">${banner.title || '-'}</div>
-                    <div class="text-sm text-gray-500 mt-1">${banner.subtitle || '-'}</div>
-                    <div class="text-xs text-gray-400 mt-1">ID: ${banner.id}</div>
+                    <div class="font-bold text-gray-800">${safeTitle}</div>
+                    <div class="text-sm text-gray-500 mt-1">${safeSubtitle}</div>
+                    <div class="text-xs text-gray-400 mt-1">ID: ${safeId}</div>
                 </td>
                 <td class="px-6 py-4">${statusBadge}</td>
                 <td class="px-6 py-4">
                     <div class="text-sm text-gray-700">${periodText}</div>
                 </td>
                 <td class="px-6 py-4 text-right">
-                    <button onclick='editBanner(${JSON.stringify(banner).replace(/'/g, "\\'")})'
+                    <button data-action="edit-banner" data-id="${safeId}"
                         class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition mr-2">
                         Edit
                     </button>
-                    <button onclick="deleteBanner('${banner.id}')"
+                    <button data-action="delete-banner" data-id="${safeId}"
                         class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition">
                         Hapus
                     </button>
@@ -165,6 +178,47 @@ function editBanner(banner) {
     document.getElementById('banner-modal').classList.remove('hidden');
 }
 
+function editBannerById(bannerId) {
+    const banner = bannerCache.find(item => String(item.id) === String(bannerId));
+    if (!banner) {
+        alert('Banner tidak ditemukan.');
+        return;
+    }
+    editBanner(banner);
+}
+
+function bindBannerActions() {
+    document.addEventListener('click', (e) => {
+        const trigger = e.target.closest('[data-action]');
+        if (!trigger) return;
+        const action = trigger.dataset.action;
+
+        if (action === 'retry-fetch-banners') {
+            fetchBanners();
+            return;
+        }
+
+        if (action === 'edit-banner') {
+            editBannerById(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'delete-banner') {
+            deleteBanner(trigger.dataset.id);
+        }
+    });
+
+    document.addEventListener('error', (e) => {
+        const target = e.target;
+        if (target && target.matches && target.matches('img[data-fallback-src]')) {
+            const fallback = target.getAttribute('data-fallback-src');
+            if (fallback && target.src !== fallback) {
+                target.src = fallback;
+            }
+        }
+    }, true);
+}
+
 /**
  * Delete banner
  */
@@ -193,6 +247,7 @@ async function deleteBanner(bannerId) {
  * Handle banner form submission
  */
 document.addEventListener('DOMContentLoaded', () => {
+    bindBannerActions();
     const bannerForm = document.getElementById('banner-form');
     if (bannerForm) {
         bannerForm.addEventListener('submit', async (e) => {

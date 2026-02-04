@@ -4,6 +4,11 @@
  * Menggunakan template card yang sama dengan katalog
  */
 
+const FrontendSanitize = window.FrontendSanitize || {};
+const escapeHtml = FrontendSanitize.escapeHtml || ((value) => String(value || ''));
+const sanitizeUrl = FrontendSanitize.sanitizeUrl || ((url) => String(url || ''));
+const ensureImageFallbackHandler = FrontendSanitize.ensureImageFallbackHandler || (() => {});
+
 class BundleCarousel {
     constructor() {
         this.bundles = [];
@@ -16,6 +21,7 @@ class BundleCarousel {
     async init() {
         await this.fetchBundles();
         if (this.bundles.length > 0) {
+            ensureImageFallbackHandler();
             this.render();
             this.setupEventListeners();
             this.startAutoRotate();
@@ -94,19 +100,21 @@ class BundleCarousel {
     }
 
     renderProductCard(p, index) {
+        const safeName = escapeHtml(p.nama || '');
+        const stokCount = Number.isFinite(p.stok) ? p.stok : parseInt(p.stok || 0);
         // Stok label
         let stokLabel = '';
-        if (p.stok > 5) {
+        if (stokCount > 5) {
             stokLabel = `<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Stok Tersedia</span>`;
-        } else if (p.stok > 0) {
-            stokLabel = `<span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Stok Terbatas (${p.stok})</span>`;
+        } else if (stokCount > 0) {
+            stokLabel = `<span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Stok Terbatas (${stokCount})</span>`;
         } else {
             stokLabel = `<span class="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Stok Habis</span>`;
         }
 
-        const pData = JSON.stringify(p).replace(/'/g, "\\'").replace(/"/g, '&quot;');
         const images = p.gambar ? p.gambar.split(',') : [];
         const mainImage = images[0] || 'https://placehold.co/300x200?text=Produk';
+        const safeImage = sanitizeUrl(mainImage, 'https://placehold.co/300x200?text=Produk');
 
         const rewardPoints = typeof calculateRewardPoints === 'function' ? calculateRewardPoints(p.harga, p.nama) : 0;
         
@@ -133,14 +141,14 @@ class BundleCarousel {
                             +${rewardPoints} Poin
                         </div>
                     </div>
-                    <img src="${mainImage}" alt="${p.nama}" onclick='bundleCarousel.openProductDetail(${index})' class="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity ${p.stok === 0 ? 'grayscale opacity-60' : ''}" onerror="this.src='https://placehold.co/300x200?text=Produk'">
+                    <img src="${safeImage}" alt="${safeName}" data-action="open-detail" data-index="${index}" class="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity ${stokCount === 0 ? 'grayscale opacity-60' : ''}" data-fallback-src="https://placehold.co/300x200?text=Produk">
                     <div class="p-6">
                         <div class="flex justify-between items-start mb-2">
-                            <h4 class="text-lg font-bold text-gray-800">${p.nama}</h4>
+                            <h4 class="text-lg font-bold text-gray-800">${safeName}</h4>
                             ${stokLabel}
                         </div>
                         <div class="flex justify-between items-center mb-4">
-                            <button onclick="shareProduct('${p.nama}')" class="text-green-600 hover:text-green-700 flex items-center gap-1 text-xs font-medium">
+                            <button data-action="share-product" data-index="${index}" class="text-green-600 hover:text-green-700 flex items-center gap-1 text-xs font-medium">
                                 <span>Share</span>
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.631 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                             </button>
@@ -162,19 +170,19 @@ class BundleCarousel {
                             </div>
                         </div>
                         ${hasVariations ? `
-                        <button onclick='bundleCarousel.openProductDetail(${index}); event.stopPropagation();' class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 mb-3">
+                        <button data-action="open-detail" data-index="${index}" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 mb-3">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                             Pilih Variasi
                         </button>
                         ` : `
-                        <button onclick='bundleCarousel.addProductToCart(${index}, event)' ${p.stok === 0 ? 'disabled' : ''} class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 mb-3">
+                        <button data-action="add-to-cart" data-index="${index}" ${stokCount === 0 ? 'disabled' : ''} class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 mb-3">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                             Tambah ke Keranjang
                         </button>
                         `}
                         <div class="grid grid-cols-2 gap-2">
-                            <button onclick='bundleCarousel.openProductDetail(${index}); event.stopPropagation();' class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded-lg text-sm transition">Rincian</button>
-                            <button onclick='bundleCarousel.directOrderProduct(${index}); event.stopPropagation();' ${p.stok === 0 ? 'disabled' : ''} class="bg-green-100 hover:bg-green-200 text-green-700 font-bold py-2 rounded-lg text-sm transition">Beli Sekarang</button>
+                            <button data-action="open-detail" data-index="${index}" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded-lg text-sm transition">Rincian</button>
+                            <button data-action="direct-order" data-index="${index}" ${stokCount === 0 ? 'disabled' : ''} class="bg-green-100 hover:bg-green-200 text-green-700 font-bold py-2 rounded-lg text-sm transition">Beli Sekarang</button>
                         </div>
                     </div>
                 </div>
@@ -186,6 +194,7 @@ class BundleCarousel {
         const prevBtn = document.getElementById('carousel-prev');
         const nextBtn = document.getElementById('carousel-next');
         const dots = document.querySelectorAll('.carousel-dot');
+        const container = document.getElementById('bundle-carousel-container');
 
         if (prevBtn) {
             prevBtn.addEventListener('click', () => this.prev());
@@ -201,6 +210,38 @@ class BundleCarousel {
                 this.goToSlide(index);
             });
         });
+
+        if (container) {
+            container.addEventListener('click', (e) => {
+                const actionEl = e.target.closest('[data-action]');
+                if (!actionEl || !container.contains(actionEl)) return;
+                const action = actionEl.dataset.action;
+                const index = parseInt(actionEl.dataset.index, 10);
+                if (Number.isNaN(index)) return;
+
+                if (action === 'open-detail') {
+                    this.openProductDetail(index);
+                    return;
+                }
+
+                if (action === 'add-to-cart') {
+                    this.addProductToCart(index, e);
+                    return;
+                }
+
+                if (action === 'direct-order') {
+                    this.directOrderProduct(index);
+                    return;
+                }
+
+                if (action === 'share-product') {
+                    const product = this.bundles[index];
+                    if (product && typeof shareProduct === 'function') {
+                        shareProduct(product.nama || '');
+                    }
+                }
+            });
+        }
 
         // Touch/swipe support
         const track = document.getElementById('carousel-track');
