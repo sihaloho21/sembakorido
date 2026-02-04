@@ -1,6 +1,6 @@
-const escapeHtml = (window.FrontendSanitize && window.FrontendSanitize.escapeHtml) || ((value) => String(value || ''));
-const sanitizeUrl = (window.FrontendSanitize && window.FrontendSanitize.sanitizeUrl) || ((url) => String(url || ''));
-const ensureImageFallbackHandler = (window.FrontendSanitize && window.FrontendSanitize.ensureImageFallbackHandler) || (() => {});
+var escapeHtml = (window.FrontendSanitize && window.FrontendSanitize.escapeHtml) || ((value) => String(value || ''));
+var sanitizeUrl = (window.FrontendSanitize && window.FrontendSanitize.sanitizeUrl) || ((url) => String(url || ''));
+var ensureImageFallbackHandler = (window.FrontendSanitize && window.FrontendSanitize.ensureImageFallbackHandler) || (() => {});
 
 ensureImageFallbackHandler();
 
