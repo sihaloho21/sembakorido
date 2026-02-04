@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "test": "node scripts/lint-basic.js"
+    "test": "node scripts/lint-basic.js",
+    "build:bundle": "node scripts/bundle-index.js && node scripts/bundle-akun.js && esbuild assets/js/index.bundle.js --minify --outfile=assets/js/index.bundle.min.js && esbuild assets/js/akun.bundle.js --minify --outfile=assets/js/akun.bundle.min.js"
   },
   "devDependencies": {
     "cssnano": "^7.1.2",
