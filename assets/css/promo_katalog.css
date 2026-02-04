@@ -1,5 +1,18 @@
 /* Promo Katalog Page Styles */
 
+/* Screen reader only class */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
 .catalog-hero {
     background: linear-gradient(135deg, #00a651 0%, #008a43 100%);
     padding: 80px 20px 40px;
@@ -39,7 +52,8 @@
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.catalog-card:hover {
+.catalog-card:hover,
+.catalog-card:focus-within {
     transform: translateY(-5px);
     box-shadow: 0 8px 30px rgba(0,0,0,0.15);
 }
@@ -71,6 +85,8 @@
     border-radius: 20px;
     font-size: 0.85rem;
     font-weight: 600;
+    /* Ensure text has good contrast */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .catalog-info {
@@ -80,12 +96,13 @@
 .catalog-title {
     font-size: 1.3rem;
     font-weight: 700;
-    color: #333;
+    color: #1a1a1a;  /* Improved contrast ratio */
     margin-bottom: 8px;
+    line-height: 1.3;
 }
 
 .catalog-period {
-    color: #666;
+    color: #4a4a4a;  /* Improved contrast ratio from #666 */
     font-size: 0.95rem;
     margin-bottom: 15px;
     display: flex;
@@ -100,7 +117,8 @@
 .catalog-download-btn {
     display: block;
     width: 100%;
-    padding: 12px 24px;
+    padding: 14px 24px;  /* Increased padding for better tap target */
+    min-height: 48px;  /* Minimum touch target size */
     background: linear-gradient(135deg, #00a651 0%, #008a43 100%);
     color: white;
     text-align: center;
@@ -111,11 +129,24 @@
     transition: all 0.3s ease;
     border: none;
     cursor: pointer;
+    /* Improved touch target and focus */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0, 166, 81, 0.3);
 }
 
-.catalog-download-btn:hover {
+.catalog-download-btn:hover,
+.catalog-download-btn:focus {
     background: linear-gradient(135deg, #008a43 0%, #007236 100%);
     transform: scale(1.02);
+}
+
+.catalog-download-btn:focus {
+    outline: 3px solid #00a651;
+    outline-offset: 2px;
+}
+
+.catalog-download-btn:active {
+    transform: scale(0.98);
 }
 
 .catalog-download-btn i {
@@ -126,7 +157,7 @@
 .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: #999;
+    color: #666;
 }
 
 .empty-state i {
@@ -138,16 +169,99 @@
 .empty-state h3 {
     font-size: 1.5rem;
     margin-bottom: 10px;
+    color: #1a1a1a;
 }
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+    .catalog-hero {
+        padding: 70px 16px 30px;
+    }
+    
     .catalog-hero h1 {
-        font-size: 2rem;
+        font-size: 1.75rem;
+    }
+    
+    .catalog-hero p {
+        font-size: 1rem;
     }
 
     .catalog-grid {
         grid-template-columns: 1fr;
         gap: 20px;
+    }
+    
+    .catalog-container {
+        padding: 30px 16px;
+    }
+    
+    .catalog-title {
+        font-size: 1.1rem;
+    }
+    
+    .catalog-download-btn {
+        font-size: 0.95rem;
+        padding: 12px 20px;
+    }
+}
+
+/* Tablet breakpoint */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .catalog-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Large screens */
+@media (min-width: 1025px) {
+    .catalog-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Focus styles for keyboard navigation */
+*:focus-visible {
+    outline: 3px solid #00a651;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .catalog-card {
+        border: 2px solid #000;
+    }
+    
+    .catalog-download-btn {
+        border: 2px solid #fff;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .catalog-card,
+    .catalog-download-btn {
+        transition: none;
+    }
+    
+    .catalog-card:hover {
+        transform: none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .catalog-hero,
+    header {
+        display: none;
+    }
+    
+    .catalog-card {
+        page-break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+    
+    .catalog-download-btn {
+        display: none;
     }
 }
