@@ -3,10 +3,10 @@
  * Mengelola harga grosir bertingkat untuk produk
  */
 
-const AdminSanitize = window.AdminSanitize || {};
-const escapeHtml = AdminSanitize.escapeHtml || ((value) => String(value || ''));
-const escapeAttr = AdminSanitize.escapeAttr || ((value) => String(value || ''));
-const sanitizeUrl = AdminSanitize.sanitizeUrl || ((url) => String(url || ''));
+var AdminSanitize = window.AdminSanitize || {};
+var escapeHtml = AdminSanitize.escapeHtml || ((value) => String(value || ''));
+var escapeAttr = AdminSanitize.escapeAttr || ((value) => String(value || ''));
+var sanitizeUrl = AdminSanitize.sanitizeUrl || ((url) => String(url || ''));
 
 let tieredPricingProducts = [];
 let currentEditingProductId = null;
