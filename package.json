@@ -4,6 +4,7 @@
   },
   "devDependencies": {
     "cssnano": "^7.1.2",
+    "esbuild": "^0.24.2",
     "giflossy": "^3.0.41",
     "gifsicle": "^7.0.1",
     "imagemin": "^9.0.1",
