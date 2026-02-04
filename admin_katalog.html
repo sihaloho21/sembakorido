@@ -20,14 +20,14 @@
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <a href="/promo_katalog.html" class="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition" title="Lihat Katalog">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <a href="/promo_katalog.html" class="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition" title="Lihat Katalog" aria-label="Lihat katalog">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                     </svg>
                 </a>
-                <a href="/" class="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition" title="Kembali">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <a href="/" class="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition" title="Kembali" aria-label="Kembali">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
                 </a>
@@ -40,7 +40,7 @@
         <!-- Add New Catalog Button -->
         <div class="mb-6">
             <button onclick="openAddModal()" class="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg transition active:scale-95 flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
                 Tambah Katalog Baru
@@ -73,13 +73,13 @@
     </main>
 
     <!-- Add/Edit Modal -->
-    <div id="catalogModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+    <div id="catalogModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1" data-modal>
         <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <!-- Modal Header -->
             <div class="px-6 py-4 bg-green-600 text-white flex justify-between items-center sticky top-0">
                 <h3 id="modalTitle" class="text-xl font-bold">Tambah Katalog Baru</h3>
-                <button onclick="closeModal()" class="p-1 hover:bg-white/20 rounded-lg transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onclick="closeModal()" class="p-1 hover:bg-white/20 rounded-lg transition" aria-label="Tutup">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
@@ -91,7 +91,7 @@
 
                 <!-- Judul -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    <label for="catalogTitle" class="block text-sm font-semibold text-gray-700 mb-2">
                         Judul Katalog <span class="text-red-500">*</span>
                     </label>
                     <input type="text" id="catalogTitle" required 
@@ -101,7 +101,7 @@
 
                 <!-- Periode -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    <label for="catalogPeriod" class="block text-sm font-semibold text-gray-700 mb-2">
                         Periode Promo <span class="text-red-500">*</span>
                     </label>
                     <input type="text" id="catalogPeriod" required 
@@ -111,7 +111,7 @@
 
                 <!-- Badge -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    <label for="catalogBadge" class="block text-sm font-semibold text-gray-700 mb-2">
                         Badge <span class="text-red-500">*</span>
                     </label>
                     <select id="catalogBadge" required 
@@ -124,7 +124,7 @@
 
                 <!-- Thumbnail Upload -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    <label for="thumbnailInput" class="block text-sm font-semibold text-gray-700 mb-2">
                         Thumbnail Katalog <span class="text-red-500">*</span>
                     </label>
                     <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-green-500 transition">
@@ -136,14 +136,14 @@
                         </button>
                         <p class="text-sm text-gray-500 mt-2">Format: JPG, PNG (Max 5MB)</p>
                         <div id="thumbnailPreview" class="mt-4 hidden">
-                            <img id="thumbnailImage" class="max-w-full h-48 mx-auto rounded-lg shadow-md">
+                            <img id="thumbnailImage" alt="Preview thumbnail katalog" class="max-w-full h-48 mx-auto rounded-lg shadow-md">
                         </div>
                     </div>
                 </div>
 
                 <!-- PDF Upload -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    <label for="pdfInput" class="block text-sm font-semibold text-gray-700 mb-2">
                         File PDF Katalog <span class="text-red-500">*</span>
                     </label>
                     <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-green-500 transition">
@@ -254,14 +254,14 @@
                     </td>
                     <td class="px-6 py-4">
                         <div class="flex gap-2">
-                            <button onclick="viewCatalog(${catalog.id})" class="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition" title="Lihat">
-                                <i class="fas fa-eye"></i>
+                            <button onclick="viewCatalog(${catalog.id})" class="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition" title="Lihat" aria-label="Lihat katalog">
+                                <i class="fas fa-eye" aria-hidden="true"></i>
                             </button>
-                            <button onclick="editCatalog(${catalog.id})" class="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition" title="Edit">
-                                <i class="fas fa-edit"></i>
+                            <button onclick="editCatalog(${catalog.id})" class="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition" title="Edit" aria-label="Edit katalog">
+                                <i class="fas fa-edit" aria-hidden="true"></i>
                             </button>
-                            <button onclick="deleteCatalog(${catalog.id})" class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition" title="Hapus">
-                                <i class="fas fa-trash"></i>
+                            <button onclick="deleteCatalog(${catalog.id})" class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition" title="Hapus" aria-label="Hapus katalog">
+                                <i class="fas fa-trash" aria-hidden="true"></i>
                             </button>
                         </div>
                     </td>
@@ -429,6 +429,65 @@
                 closeModal();
             }
         });
+    </script>
+    <script>
+        (function () {
+            const focusableSelector = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+            const modals = document.querySelectorAll('[data-modal]');
+
+            modals.forEach((modal) => {
+                let lastFocused = null;
+
+                const focusFirst = () => {
+                    const target = modal.querySelector('[data-autofocus]') || modal.querySelector(focusableSelector);
+                    if (target) {
+                        target.focus();
+                    } else {
+                        modal.focus();
+                    }
+                };
+
+                const observer = new MutationObserver(() => {
+                    const isHidden = modal.classList.contains('hidden');
+                    if (!isHidden) {
+                        lastFocused = document.activeElement;
+                        focusFirst();
+                    } else if (lastFocused && typeof lastFocused.focus === 'function') {
+                        lastFocused.focus();
+                    }
+                });
+
+                observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
+
+                modal.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') {
+                        const closeBtn = modal.querySelector('[data-modal-close], button[aria-label="Tutup"], button[aria-label="Close"], button[onclick*="close"]');
+                        if (closeBtn) closeBtn.click();
+                        return;
+                    }
+                    if (event.key !== 'Tab') return;
+
+                    const focusables = Array.from(modal.querySelectorAll(focusableSelector))
+                        .filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
+
+                    if (focusables.length === 0) {
+                        event.preventDefault();
+                        modal.focus();
+                        return;
+                    }
+
+                    const first = focusables[0];
+                    const last = focusables[focusables.length - 1];
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault();
+                        last.focus();
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault();
+                        first.focus();
+                    }
+                });
+            });
+        })();
     </script>
 </body>
 </html>
