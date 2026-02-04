@@ -12,7 +12,7 @@
     <header class="bg-green-700 text-white py-4 shadow-md fixed top-0 left-0 right-0 z-50">
         <div class="container mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <img src="assets/img/logo.webp" alt="GoSembako Logo" class="h-12 w-auto">
+                <img src="assets/img/logo.webp" alt="GoSembako Logo" class="h-12 w-auto" data-fallback-src="assets/img/logo.webp">
                 <h1 class="text-xl font-bold">GoSembako</h1>
             </div>
             <a href="/" class="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition" aria-label="Kembali ke beranda">
@@ -177,5 +177,6 @@
 
     <!-- Footer Spacer for Mobile -->
     <div class="h-20 md:hidden"></div>
+    <script src="assets/js/sanitize.min.js"></script>
 </body>
 </html>

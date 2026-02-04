@@ -36,6 +36,7 @@
             <p>Katalog promo akan segera tersedia</p>
         </div>
     </div>
+    <script src="assets/js/sanitize.min.js"></script>
     <script src="assets/js/script.min.js"></script>
     <script>
         // Catalog data (in real app, this would come from database)
@@ -77,10 +78,14 @@
                 return;
             }
 
-            grid.innerHTML = catalogs.map(catalog => `
+            const fallbackThumb = 'https://via.placeholder.com/400x565/00a651/ffffff?text=Katalog';
+            grid.innerHTML = catalogs.map(catalog => {
+                const safeThumb = window.sanitizeUrl ? window.sanitizeUrl(catalog.thumbnail, fallbackThumb) : catalog.thumbnail;
+                const safePdf = window.sanitizeUrl ? window.sanitizeUrl(catalog.pdfUrl, '#') : catalog.pdfUrl;
+                return `
                 <div class="catalog-card">
                     <div class="catalog-thumbnail">
-                        <img src="${catalog.thumbnail}" alt="${catalog.title}" onerror="this.src='https://via.placeholder.com/400x565/00a651/ffffff?text=Katalog'">
+                        <img src="${safeThumb}" alt="${catalog.title}" data-fallback-src="${fallbackThumb}">
                         <span class="catalog-badge">${catalog.badge}</span>
                     </div>
                     <div class="catalog-info">
@@ -89,12 +94,13 @@
                             <i class="fas fa-calendar-alt" aria-hidden="true"></i>
                             <span>Periode: ${catalog.period}</span>
                         </div>
-                        <a href="${catalog.pdfUrl}" class="catalog-download-btn" target="_blank" rel="noopener noreferrer" aria-label="Lihat katalog dalam tab baru">
+                        <a href="${safePdf}" class="catalog-download-btn" target="_blank" rel="noopener noreferrer" aria-label="Lihat katalog dalam tab baru">
                             <i class="fas fa-eye" aria-hidden="true"></i> LIHAT KATALOG
                         </a>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         // Initialize on page load

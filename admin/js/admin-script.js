@@ -1,4 +1,9 @@
 
+const AdminSanitize = window.AdminSanitize || {};
+const escapeHtml = AdminSanitize.escapeHtml || ((value) => String(value || ''));
+const escapeAttr = AdminSanitize.escapeAttr || ((value) => String(value || ''));
+const sanitizeUrl = AdminSanitize.sanitizeUrl || ((url) => String(url || ''));
+
 // Auth Check
 if (localStorage.getItem('admin_logged_in') !== 'true') {
     window.location.href = 'login.html';
@@ -125,14 +130,16 @@ function updateOrderStats() {
     document.getElementById('order-count-display').innerText = `(${total})`;
 }
 
-function filterOrders(status) {
+function filterOrders(status, target) {
     currentOrderFilter = status;
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active', 'bg-green-600', 'text-white');
         btn.classList.add('bg-gray-100', 'text-gray-600');
     });
-    event.target.classList.add('active', 'bg-green-600', 'text-white');
-    event.target.classList.remove('bg-gray-100', 'text-gray-600');
+    if (target) {
+        target.classList.add('active', 'bg-green-600', 'text-white');
+        target.classList.remove('bg-gray-100', 'text-gray-600');
+    }
     renderOrderTable();
 }
 
@@ -147,19 +154,27 @@ function renderOrderTable() {
         return;
     }
 
-    tbody.innerHTML = filtered.map(o => `
+    tbody.innerHTML = filtered.map(o => {
+        const safeId = escapeHtml(o.id);
+        const safeCustomer = escapeHtml(o.pelanggan);
+        const safeProduct = escapeHtml(o.produk);
+        const safeQty = escapeHtml(o.qty);
+        const safeStatusText = escapeHtml(o.status);
+        const safeStatusClass = String(o.status || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+        const safeDate = escapeHtml(o.tanggal || '');
+        return `
         <tr class="hover:bg-gray-50 transition">
-            <td class="px-6 py-4 font-bold text-blue-600 text-xs">${o.id}</td>
-            <td class="px-6 py-4 text-sm text-gray-800 font-medium">${o.pelanggan}</td>
-            <td class="px-6 py-4 text-sm text-gray-600">${o.produk}</td>
-            <td class="px-6 py-4 text-sm text-gray-600">${o.qty}</td>
+            <td class="px-6 py-4 font-bold text-blue-600 text-xs">${safeId}</td>
+            <td class="px-6 py-4 text-sm text-gray-800 font-medium">${safeCustomer}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">${safeProduct}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">${safeQty}</td>
             <td class="px-6 py-4 text-sm font-bold text-gray-800">Rp ${parseInt(o.total).toLocaleString('id-ID')}</td>
             <td class="px-6 py-4">
-                <span class="status-badge status-${o.status.toLowerCase()}">${o.status}</span>
+                <span class="status-badge status-${safeStatusClass}">${safeStatusText}</span>
             </td>
-            <td class="px-6 py-4 text-xs text-gray-500">${o.tanggal}</td>
+            <td class="px-6 py-4 text-xs text-gray-500">${safeDate}</td>
             <td class="px-6 py-4 text-right">
-                <select onchange="updateOrderStatus('${o.id}', this.value)" class="text-xs border rounded-lg p-1 outline-none focus:ring-1 focus:ring-green-500">
+                <select data-action="update-order-status" data-id="${escapeAttr(o.id)}" class="text-xs border rounded-lg p-1 outline-none focus:ring-1 focus:ring-green-500">
                     <option value="">Ubah Status</option>
                     <option value="Menunggu">Menunggu</option>
                     <option value="Diproses">Diproses</option>
@@ -169,7 +184,8 @@ function renderOrderTable() {
                 </select>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function normalizePhone(phone) {
@@ -182,10 +198,9 @@ function normalizePhone(phone) {
 }
 
 
-async function updateOrderStatus(id, newStatus) {
+async function updateOrderStatus(id, newStatus, selectElement) {
     if (!newStatus) return;
-    
-    const selectElement = event.target;
+    if (!selectElement) return;
     selectElement.disabled = true;
 
     try {
@@ -274,20 +289,24 @@ function renderCategoryTable() {
         tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-gray-500">Belum ada kategori.</td></tr>';
         return;
     }
-    tbody.innerHTML = allCategories.map(c => `
+    tbody.innerHTML = allCategories.map(c => {
+        const safeName = escapeHtml(c.nama);
+        const safeDesc = escapeHtml(c.deskripsi || '-');
+        return `
         <tr class="hover:bg-gray-50 transition">
-            <td class="px-6 py-4 font-bold text-gray-800 text-sm">${c.nama}</td>
-            <td class="px-6 py-4 text-sm text-gray-600">${c.deskripsi || '-'}</td>
+            <td class="px-6 py-4 font-bold text-gray-800 text-sm">${safeName}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">${safeDesc}</td>
             <td class="px-6 py-4 text-right flex justify-end gap-2">
-                <button onclick="openEditCategory('${c.id}', '${c.nama}', '${c.deskripsi}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                <button data-action="edit-category" data-id="${escapeAttr(c.id)}" data-name="${escapeAttr(c.nama)}" data-description="${escapeAttr(c.deskripsi || '')}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 </button>
-                <button onclick="handleDeleteCategory('${c.id}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
+                <button data-action="delete-category" data-id="${escapeAttr(c.id)}" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                 </button>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
     document.getElementById('category-count').innerText = `(${allCategories.length})`;
 }
 
@@ -331,7 +350,10 @@ function updateCategoryDropdown() {
     if (!select) return;
     const currentVal = select.value;
     select.innerHTML = '<option value="">-- Pilih Kategori --</option>' + 
-        allCategories.map(c => `<option value="${c.nama}">${c.nama}</option>`).join('');
+        allCategories.map(c => {
+            const safeName = escapeHtml(c.nama);
+            return `<option value="${safeName}">${safeName}</option>`;
+        }).join('');
     select.value = currentVal;
 }
 
@@ -353,16 +375,22 @@ function renderAdminTable() {
         tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Belum ada produk.</td></tr>';
         return;
     }
-    tbody.innerHTML = allProducts.map(p => `
+    tbody.innerHTML = allProducts.map(p => {
+        const safeName = escapeHtml(p.nama);
+        const safeCategory = escapeHtml(p.kategori || '-');
+        const safeStock = escapeHtml(p.stok);
+        const imageUrl = p.gambar ? p.gambar.split(',')[0] : 'https://via.placeholder.com/50';
+        const safeImage = sanitizeUrl(imageUrl, 'https://via.placeholder.com/50');
+        return `
         <tr class="hover:bg-gray-50 transition">
             <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                    <img src="${p.gambar ? p.gambar.split(',')[0] : 'https://via.placeholder.com/50'}" class="w-10 h-10 object-cover rounded-lg bg-gray-100">
-                    <span class="font-bold text-gray-800 text-sm">${p.nama}</span>
+                    <img src="${safeImage}" class="w-10 h-10 object-cover rounded-lg bg-gray-100" alt="${safeName}">
+                    <span class="font-bold text-gray-800 text-sm">${safeName}</span>
                 </div>
             </td>
             <td class="px-6 py-4">
-                <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-[10px] font-bold uppercase">${p.kategori || '-'}</span>
+                <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-[10px] font-bold uppercase">${safeCategory}</span>
             </td>
             <td class="px-6 py-4">
                 <div class="flex flex-col">
@@ -371,18 +399,19 @@ function renderAdminTable() {
                 </div>
             </td>
             <td class="px-6 py-4">
-                <span class="text-sm ${parseInt(p.stok) <= 5 ? 'text-red-600 font-bold' : 'text-gray-600'}">${p.stok}</span>
+                <span class="text-sm ${parseInt(p.stok) <= 5 ? 'text-red-600 font-bold' : 'text-gray-600'}">${safeStock}</span>
             </td>
             <td class="px-6 py-4 text-right flex justify-end gap-2">
-                <button onclick="openEditModal('${p.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                <button data-action="edit-product" data-id="${escapeAttr(p.id)}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 </button>
-                <button onclick="handleDelete('${p.id}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
+                <button data-action="delete-product" data-id="${escapeAttr(p.id)}" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                 </button>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function openAddModal() {
@@ -534,26 +563,32 @@ function renderTukarPoinTable() {
         tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Belum ada produk tukar poin.</td></tr>';
         return;
     }
-    tbody.innerHTML = allTukarPoin.map(p => `
+    tbody.innerHTML = allTukarPoin.map(p => {
+        const safeTitle = escapeHtml(p.judul || p.nama || '');
+        const safeDesc = escapeHtml(p.deskripsi || '-');
+        const safePoints = escapeHtml(p.poin);
+        const safeImage = sanitizeUrl(p.gambar, 'https://via.placeholder.com/50');
+        return `
         <tr class="hover:bg-gray-50 transition">
             <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                    <img src="${p.gambar || 'https://via.placeholder.com/50'}" class="w-10 h-10 object-cover rounded-lg bg-gray-100" alt="${p.judul}">
-                    <span class="font-bold text-gray-800 text-sm">${p.judul || p.nama}</span>
+                    <img src="${safeImage}" class="w-10 h-10 object-cover rounded-lg bg-gray-100" alt="${safeTitle}">
+                    <span class="font-bold text-gray-800 text-sm">${safeTitle}</span>
                 </div>
             </td>
-            <td class="px-6 py-4 font-bold text-amber-600 text-sm">${p.poin} Poin</td>
-            <td class="px-6 py-4 text-sm text-gray-600">${p.deskripsi || '-'}</td>
+            <td class="px-6 py-4 font-bold text-amber-600 text-sm">${safePoints} Poin</td>
+            <td class="px-6 py-4 text-sm text-gray-600">${safeDesc}</td>
             <td class="px-6 py-4 text-right flex justify-end gap-2">
-                <button onclick="openEditTukarPoinModal('${p.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit">
+                <button data-action="edit-tukar-poin" data-id="${escapeAttr(p.id)}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 </button>
-                <button onclick="handleDeleteTukarPoin('${p.id}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" title="Hapus">
+                <button data-action="delete-tukar-poin" data-id="${escapeAttr(p.id)}" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" title="Hapus">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                 </button>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function openAddTukarPoinModal() {
@@ -668,16 +703,20 @@ async function fetchUserPoints() {
             tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">Belum ada data poin pengguna.</td></tr>';
             return;
         }
-        tbody.innerHTML = data.map(u => `
+        tbody.innerHTML = data.map(u => {
+            const safePhone = escapeHtml(u.phone);
+            const safeUpdated = escapeHtml(u.last_updated || '-');
+            return `
             <tr class="hover:bg-gray-50 transition">
-                <td class="px-6 py-4 font-bold text-gray-800 text-sm">${u.phone}</td>
+                <td class="px-6 py-4 font-bold text-gray-800 text-sm">${safePhone}</td>
                 <td class="px-6 py-4 font-bold text-green-600 text-sm">${parseFloat(u.points).toFixed(1)} Poin</td>
-                <td class="px-6 py-4 text-xs text-gray-500">${u.last_updated || '-'}</td>
+                <td class="px-6 py-4 text-xs text-gray-500">${safeUpdated}</td>
                 <td class="px-6 py-4 text-right">
-                    <button onclick="editUserPoints('${u.phone}', ${u.points})" class="text-blue-600 hover:underline text-sm font-bold">Edit Poin</button>
+                    <button data-action="edit-user-points" data-phone="${escapeAttr(u.phone)}" data-points="${escapeAttr(u.points)}" class="text-blue-600 hover:underline text-sm font-bold">Edit Poin</button>
                 </td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
     } catch (error) { console.error(error); }
 }
 
@@ -735,28 +774,36 @@ function loadSettings() {
 
 function renderGajianMarkups(markups) {
     const tbody = document.getElementById('gajian-markups-table');
-    tbody.innerHTML = markups.map((m, index) => `
+    tbody.innerHTML = markups.map((m, index) => {
+        const safeMinDays = escapeHtml(m.minDays);
+        const safeRate = escapeHtml((m.rate * 100).toFixed(1));
+        return `
         <tr class="border-b border-gray-50">
-            <td class="py-2 px-2">${m.minDays} Hari</td>
-            <td class="py-2 px-2 font-bold text-green-600">${(m.rate * 100).toFixed(1)}%</td>
+            <td class="py-2 px-2">${safeMinDays} Hari</td>
+            <td class="py-2 px-2 font-bold text-green-600">${safeRate}%</td>
             <td class="py-2 px-2">
-                <button onclick="openEditMarkupModal(${index})" class="text-blue-600 hover:underline">Edit</button>
+                <button data-action="edit-markup" data-index="${index}" class="text-blue-600 hover:underline">Edit</button>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function renderRewardOverrides(overrides) {
     const tbody = document.getElementById('reward-overrides-table');
-    tbody.innerHTML = Object.entries(overrides).map(([name, points]) => `
+    tbody.innerHTML = Object.entries(overrides).map(([name, points]) => {
+        const safeName = escapeHtml(name);
+        const safePoints = escapeHtml(points);
+        return `
         <tr class="border-b border-gray-50">
-            <td class="py-2 px-2">${name}</td>
-            <td class="py-2 px-2 font-bold text-amber-600">${points} Poin</td>
+            <td class="py-2 px-2">${safeName}</td>
+            <td class="py-2 px-2 font-bold text-amber-600">${safePoints} Poin</td>
             <td class="py-2 px-2">
-                <button onclick="deleteRewardOverride('${name}')" class="text-red-600 hover:underline">Hapus</button>
+                <button data-action="delete-reward-override" data-name="${escapeAttr(name)}" class="text-red-600 hover:underline">Hapus</button>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 async function saveSettings() {
@@ -853,7 +900,10 @@ function openAddOverrideModal() {
     
     const select = document.getElementById('override-product-name');
     select.innerHTML = '<option value="">-- Pilih Produk --</option>' + 
-        allProducts.map(p => `<option value="${p.nama}">${p.nama}</option>`).join('');
+        allProducts.map(p => {
+            const safeName = escapeHtml(p.nama);
+            return `<option value="${safeName}">${safeName}</option>`;
+        }).join('');
     
     document.getElementById('reward-override-modal').classList.remove('hidden');
 }
@@ -912,10 +962,11 @@ function showAdminToast(message, type = 'info') {
         info: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
     };
 
+    toast.dataset.toast = 'admin';
     toast.innerHTML = `
         <div class="flex-shrink-0">${icons[type] || icons.info}</div>
-        <div class="flex-1 font-medium text-sm">${message}</div>
-        <button onclick="this.parentElement.remove()" class="flex-shrink-0 hover:bg-white/20 p-1 rounded-lg transition">
+        <div class="flex-1 font-medium text-sm">${escapeHtml(message)}</div>
+        <button data-action="dismiss-admin-toast" class="flex-shrink-0 hover:bg-white/20 p-1 rounded-lg transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
     `;
@@ -930,10 +981,217 @@ function showAdminToast(message, type = 'info') {
     }, 4000);
 }
 
+function bindAdminActions() {
+    document.addEventListener('click', (e) => {
+        const trigger = e.target.closest('[data-action]');
+        if (!trigger) return;
+        const action = trigger.dataset.action;
+
+        if (action === 'show-section') {
+            showSection(trigger.dataset.section);
+            return;
+        }
+
+        if (action === 'logout') {
+            logout();
+            return;
+        }
+
+        if (action === 'open-add-modal') {
+            openAddModal();
+            return;
+        }
+
+        if (action === 'filter-orders') {
+            filterOrders(trigger.dataset.filter || 'semua', trigger);
+            return;
+        }
+
+        if (action === 'open-add-tukar-poin') {
+            openAddTukarPoinModal();
+            return;
+        }
+
+        if (action === 'open-add-banner') {
+            if (typeof openAddBannerModal === 'function') {
+                openAddBannerModal();
+            }
+            return;
+        }
+
+        if (action === 'refresh-user-points') {
+            fetchUserPoints();
+            return;
+        }
+
+        if (action === 'open-add-override') {
+            openAddOverrideModal();
+            return;
+        }
+
+        if (action === 'test-main-api') {
+            testMainApi();
+            return;
+        }
+
+        if (action === 'test-admin-api') {
+            testAdminApi();
+            return;
+        }
+
+        if (action === 'view-cache-stats') {
+            viewCacheStats();
+            return;
+        }
+
+        if (action === 'clear-api-cache') {
+            clearApiCache();
+            return;
+        }
+
+        if (action === 'save-settings') {
+            saveSettings();
+            return;
+        }
+
+        if (action === 'close-edit-markup-modal') {
+            closeEditMarkupModal();
+            return;
+        }
+
+        if (action === 'close-reward-override-modal') {
+            closeRewardOverrideModal();
+            return;
+        }
+
+        if (action === 'close-tukar-poin-modal') {
+            closeTukarPoinModal();
+            return;
+        }
+
+        if (action === 'close-banner-modal') {
+            if (typeof closeBannerModal === 'function') {
+                closeBannerModal();
+            }
+            return;
+        }
+
+        if (action === 'add-variant-row') {
+            addVariantRow();
+            return;
+        }
+
+        if (action === 'close-product-modal') {
+            closeModal();
+            return;
+        }
+
+        if (action === 'edit-category') {
+            openEditCategory(trigger.dataset.id, trigger.dataset.name, trigger.dataset.description);
+            return;
+        }
+
+        if (action === 'delete-category') {
+            handleDeleteCategory(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'edit-product') {
+            openEditModal(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'delete-product') {
+            handleDelete(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'edit-tukar-poin') {
+            openEditTukarPoinModal(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'delete-tukar-poin') {
+            handleDeleteTukarPoin(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'edit-user-points') {
+            editUserPoints(trigger.dataset.phone, trigger.dataset.points);
+            return;
+        }
+
+        if (action === 'edit-markup') {
+            const index = parseInt(trigger.dataset.index, 10);
+            if (!Number.isNaN(index)) {
+                openEditMarkupModal(index);
+            }
+            return;
+        }
+
+        if (action === 'delete-reward-override') {
+            deleteRewardOverride(trigger.dataset.name);
+            return;
+        }
+
+        if (action === 'dismiss-admin-toast') {
+            const toast = trigger.closest('[data-toast="admin"]');
+            if (toast) toast.remove();
+            return;
+        }
+
+        if (action === 'remove-variant-row') {
+            removeVariantRow(trigger);
+            return;
+        }
+    });
+
+    document.addEventListener('change', (e) => {
+        const trigger = e.target.closest('[data-action]');
+        if (!trigger) return;
+        const action = trigger.dataset.action;
+
+        if (action === 'toggle-store-status') {
+            toggleStoreStatus();
+            return;
+        }
+
+        if (action === 'update-order-status') {
+            const id = trigger.dataset.id;
+            updateOrderStatus(id, trigger.value, trigger);
+        }
+    });
+
+    document.addEventListener('input', (e) => {
+        const trigger = e.target.closest('[data-action="preview-variant-image"]');
+        if (!trigger) return;
+        previewVariantImage(trigger);
+    });
+}
+
+function bindAdminImageFallbackHandler() {
+    if (window.__adminImageFallbackHandlerAdded) return;
+    window.__adminImageFallbackHandlerAdded = true;
+    document.addEventListener('error', (event) => {
+        const target = event.target;
+        if (!target || target.tagName !== 'IMG') return;
+        const fallback = target.getAttribute('data-fallback-src');
+        const action = target.getAttribute('data-fallback-action');
+        if (fallback && target.src !== fallback) {
+            target.src = fallback;
+            return;
+        }
+        if (action === 'hide') {
+            target.style.display = 'none';
+        }
+    }, true);
+}
+
 // ============ INITIALIZATION ============
 document.addEventListener('DOMContentLoaded', () => {
     showSection('dashboard');
-
+    bindAdminActions();
+    bindAdminImageFallbackHandler();
 });
 
 // ============ VARIANT MANAGEMENT FUNCTIONS ============
@@ -971,42 +1229,49 @@ function renderVariantRow(variant, index) {
     const hargaCoret = variant.harga_coret || '';
     const gambar = variant.gambar || '';
     const grosir = variant.grosir || '';
+    const safeSku = escapeAttr(variant.sku || '');
+    const safeNama = escapeAttr(variant.nama || '');
+    const safeHarga = escapeAttr(variant.harga || '');
+    const safeHargaCoret = escapeAttr(hargaCoret);
+    const safeStok = escapeAttr(variant.stok || '');
+    const safeGrosir = escapeHtml(grosir);
+    const safeImage = sanitizeUrl(gambar, '');
     
     row.innerHTML = `
         <div class="grid grid-cols-2 gap-3 mb-3">
             <div>
                 <label class="text-xs font-bold text-gray-600">SKU</label>
-                <input type="text" class="variant-sku w-full p-2 border rounded text-sm" value="${variant.sku || ''}" placeholder="MG-1L" required>
+                <input type="text" class="variant-sku w-full p-2 border rounded text-sm" value="${safeSku}" placeholder="MG-1L" required>
             </div>
             <div>
                 <label class="text-xs font-bold text-gray-600">Nama Varian</label>
-                <input type="text" class="variant-nama w-full p-2 border rounded text-sm" value="${variant.nama || ''}" placeholder="1 Liter" required>
+                <input type="text" class="variant-nama w-full p-2 border rounded text-sm" value="${safeNama}" placeholder="1 Liter" required>
             </div>
             <div>
                 <label class="text-xs font-bold text-gray-600">Harga (Rp)</label>
-                <input type="number" class="variant-harga w-full p-2 border rounded text-sm" value="${variant.harga || ''}" placeholder="15000" required>
+                <input type="number" class="variant-harga w-full p-2 border rounded text-sm" value="${safeHarga}" placeholder="15000" required>
             </div>
             <div>
                 <label class="text-xs font-bold text-gray-600">Harga Coret (Rp)</label>
-                <input type="number" class="variant-harga-coret w-full p-2 border rounded text-sm" value="${hargaCoret}" placeholder="16000">
+                <input type="number" class="variant-harga-coret w-full p-2 border rounded text-sm" value="${safeHargaCoret}" placeholder="16000">
             </div>
             <div>
                 <label class="text-xs font-bold text-gray-600">Stok</label>
-                <input type="number" class="variant-stok w-full p-2 border rounded text-sm" value="${variant.stok || ''}" placeholder="10" required>
+                <input type="number" class="variant-stok w-full p-2 border rounded text-sm" value="${safeStok}" placeholder="10" required>
             </div>
             <div class="col-span-2">
                 <label class="text-xs font-bold text-gray-600">URL Gambar Varian (Opsional)</label>
-                <input type="text" class="variant-gambar w-full p-2 border rounded text-sm mb-2" value="${gambar}" placeholder="https://example.com/variant-image.jpg" onchange="previewVariantImage(this)">
+                <input type="text" class="variant-gambar w-full p-2 border rounded text-sm mb-2" value="${escapeAttr(gambar)}" placeholder="https://example.com/variant-image.jpg" data-action="preview-variant-image">
                 <p class="text-[10px] text-gray-500 mb-2">Jika diisi, gambar ini akan tampil saat varian dipilih. Jika kosong, akan gunakan gambar produk utama.</p>
-                ${gambar ? `<img src="${gambar}" class="variant-image-preview w-24 h-24 object-cover rounded border" onerror="this.style.display='none'">` : ''}
+                ${safeImage ? `<img src="${safeImage}" class="variant-image-preview w-24 h-24 object-cover rounded border" data-fallback-src="https://placehold.co/96x96?text=Img" data-fallback-action="hide">` : ''}
             </div>
         </div>
         <div class="mb-3">
             <label class="text-xs font-bold text-gray-600">Harga Grosir (JSON)</label>
-            <textarea class="variant-grosir w-full p-2 border rounded text-xs" rows="2" placeholder='[{"min_qty":5,"price":14000}]'>${grosir}</textarea>
+            <textarea class="variant-grosir w-full p-2 border rounded text-xs" rows="2" placeholder='[{"min_qty":5,"price":14000}]'>${escapeHtml(grosir)}</textarea>
         </div>
         <div class="flex justify-end">
-            <button type="button" onclick="removeVariantRow(this)" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded text-sm font-bold transition">
+            <button type="button" data-action="remove-variant-row" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded text-sm font-bold transition">
                 Hapus Varian
             </button>
         </div>
@@ -1082,8 +1347,13 @@ function previewVariantImage(input) {
     
     // Add new preview if URL is valid
     if (url) {
+        const safeUrl = sanitizeUrl(url, '');
+        if (!safeUrl) {
+            showAdminToast('URL gambar tidak valid.', 'warning');
+            return;
+        }
         const preview = document.createElement('img');
-        preview.src = url;
+        preview.src = safeUrl;
         preview.className = 'variant-image-preview w-24 h-24 object-cover rounded border mt-2';
         preview.onerror = function() {
             this.style.display = 'none';

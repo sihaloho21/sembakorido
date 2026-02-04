@@ -3,6 +3,11 @@
  * Mengelola harga grosir bertingkat untuk produk
  */
 
+const AdminSanitize = window.AdminSanitize || {};
+const escapeHtml = AdminSanitize.escapeHtml || ((value) => String(value || ''));
+const escapeAttr = AdminSanitize.escapeAttr || ((value) => String(value || ''));
+const sanitizeUrl = AdminSanitize.sanitizeUrl || ((url) => String(url || ''));
+
 let tieredPricingProducts = [];
 let currentEditingProductId = null;
 
@@ -40,16 +45,19 @@ function renderTieredPricingList() {
     container.innerHTML = tieredPricingProducts.map(product => {
         const grosirData = parseGrosirData(product.grosir);
         const isEnabled = grosirData && grosirData.length > 0;
+        const safeId = escapeAttr(product.id);
+        const safeName = escapeHtml(product.nama);
+        const imageUrl = product.gambar ? product.gambar.split(',')[0] : 'https://via.placeholder.com/50';
+        const safeImage = sanitizeUrl(imageUrl, 'https://via.placeholder.com/50');
         
         return `
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
                         <div class="flex items-center gap-3 mb-3">
-                            <img src="${product.gambar ? product.gambar.split(',')[0] : 'https://via.placeholder.com/50'}" 
-                                 class="w-12 h-12 object-cover rounded-lg bg-gray-100">
+                            <img src="${safeImage}" alt="${safeName}" class="w-12 h-12 object-cover rounded-lg bg-gray-100">
                             <div>
-                                <h4 class="font-bold text-gray-800">${product.nama}</h4>
+                                <h4 class="font-bold text-gray-800">${safeName}</h4>
                                 <p class="text-xs text-gray-500">Harga Satuan: Rp ${parseInt(product.harga).toLocaleString('id-ID')}</p>
                             </div>
                         </div>
@@ -58,7 +66,7 @@ function renderTieredPricingList() {
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" 
                                    ${isEnabled ? 'checked' : ''} 
-                                   onchange="toggleTieredPricing('${product.id}')" 
+                                   data-action="toggle-tiered" data-product-id="${safeId}"
                                    class="sr-only peer">
                             <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                         </label>
@@ -78,19 +86,19 @@ function renderTieredPricingList() {
                             </div>
                             
                             <button type="button" 
-                                    onclick="addTierInput('${product.id}')" 
+                                    data-action="add-tier" data-product-id="${safeId}"
                                     class="w-full mt-4 py-2 px-4 border-2 border-dashed border-green-300 text-green-600 rounded-lg font-bold hover:bg-green-50 transition text-sm">
                                 + Tambah Tingkatan
                             </button>
                             
                             <div class="flex gap-3 pt-4">
                                 <button type="button" 
-                                        onclick="saveTieredPricing('${product.id}')" 
+                                        data-action="save-tier" data-product-id="${safeId}"
                                         class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition">
                                     Simpan
                                 </button>
                                 <button type="button" 
-                                        onclick="cancelTieredPricing('${product.id}')" 
+                                        data-action="cancel-tier" data-product-id="${safeId}"
                                         class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded-lg transition">
                                     Batal
                                 </button>
@@ -128,7 +136,7 @@ function renderTierInput(productId, tier, index) {
                        min="0">
             </div>
             <button type="button" 
-                    onclick="removeTierInput('${productId}', ${index})" 
+                    data-action="remove-tier" data-product-id="${escapeAttr(productId)}" data-index="${index}"
                     class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -402,3 +410,44 @@ function showAdminToast(message, type = 'info') {
         toast.classList.add('translate-y-20', 'opacity-0');
     }, 3000);
 }
+
+function bindTieredPricingActions() {
+    document.addEventListener('click', (e) => {
+        const trigger = e.target.closest('[data-action]');
+        if (!trigger) return;
+        const action = trigger.dataset.action;
+        const productId = trigger.dataset.productId;
+
+        if (action === 'add-tier') {
+            addTierInput(productId);
+            return;
+        }
+
+        if (action === 'save-tier') {
+            saveTieredPricing(productId);
+            return;
+        }
+
+        if (action === 'cancel-tier') {
+            cancelTieredPricing(productId);
+            return;
+        }
+
+        if (action === 'remove-tier') {
+            const index = parseInt(trigger.dataset.index, 10);
+            if (!Number.isNaN(index)) {
+                removeTierInput(productId, index);
+            }
+        }
+    });
+
+    document.addEventListener('change', (e) => {
+        const trigger = e.target.closest('[data-action="toggle-tiered"]');
+        if (!trigger) return;
+        toggleTieredPricing(trigger.dataset.productId);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    bindTieredPricingActions();
+});

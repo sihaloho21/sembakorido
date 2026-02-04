@@ -31,7 +31,7 @@
         <div class="container mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <a href="/" class="flex items-center gap-3 hover:opacity-80 transition">
-                    <img src="assets/img/logo.webp" alt="GoSembako Logo" class="h-12 w-auto">
+                    <img src="assets/img/logo.webp" alt="GoSembako Logo" class="h-12 w-auto" data-fallback-src="assets/img/logo.webp">
                     <h1 class="text-xl font-bold">GoSembako</h1>
                 </a>
             </div>
@@ -781,7 +781,7 @@
 
             <!-- Icon Gift Box -->
             <div class="mb-6">
-                <img src="assets/images/gift-box.png" alt="Gift Box" class="w-24 h-24 mx-auto animate-bounce">
+                <img src="assets/images/gift-box.png" alt="Gift Box" class="w-24 h-24 mx-auto animate-bounce" data-fallback-src="assets/images/gift-box.png">
             </div>
 
             <!-- Judul -->
@@ -948,6 +948,7 @@
         })();
     </script>
     
+    <script src="assets/js/sanitize.min.js"></script>
     <script src="assets/js/script.min.js"></script>
     <script src="assets/js/akun.min.js"></script>
 </body>

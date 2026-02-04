@@ -4,6 +4,11 @@
  * Mendukung manajemen konten terpusat dengan status dan tanggal
  */
 
+const FrontendSanitize = window.FrontendSanitize || {};
+const escapeHtml = FrontendSanitize.escapeHtml || ((value) => String(value || ''));
+const sanitizeUrl = FrontendSanitize.sanitizeUrl || ((url) => String(url || ''));
+const ensureImageFallbackHandler = FrontendSanitize.ensureImageFallbackHandler || (() => {});
+
 class PromotionalBannerCarousel {
     constructor() {
         this.banners = [];
@@ -17,6 +22,7 @@ class PromotionalBannerCarousel {
     async init() {
         await this.fetchBanners();
         if (this.banners.length > 0) {
+            ensureImageFallbackHandler();
             this.render();
             this.setupEventListeners();
             this.startAutoRotate();
@@ -134,25 +140,30 @@ class PromotionalBannerCarousel {
         const hasCaption = (banner.title && banner.title.trim() !== '') || 
                           (banner.subtitle && banner.subtitle.trim() !== '') || 
                           (banner.cta_text && banner.cta_text.trim() !== '');
+        const safeTitle = escapeHtml(banner.title || '');
+        const safeSubtitle = escapeHtml(banner.subtitle || '');
+        const safeCtaText = escapeHtml(banner.cta_text || '');
+        const safeLink = sanitizeUrl(banner.cta_url, '#');
+        const safeImage = sanitizeUrl(banner.image_url, 'https://placehold.co/1200x400?text=Banner+Promosi');
         
         // Log deep link detection for debugging
-        if (hasLink && banner.cta_url.startsWith('#produk-')) {
+        if (hasLink && typeof banner.cta_url === 'string' && banner.cta_url.startsWith('#produk-')) {
             console.log(`[Banner] Creating deep link for: ${banner.title || 'Untitled'} -> ${banner.cta_url}`);
         }
         
         return `
             <div class="promo-carousel-slide" data-index="${index}">
                 <div class="promo-banner-card">
-                    ${hasLink ? `<a href="${banner.cta_url}" class="promo-banner-link">` : ''}
+                    ${hasLink ? `<a href="${safeLink}" class="promo-banner-link">` : ''}
                         <div class="promo-banner-image-container lazy-image-wrapper">
                             <div class="skeleton skeleton-banner"></div>
-                            <img src="${banner.image_url}" alt="${banner.title || 'Banner Promosi'}" class="promo-banner-image" loading="${index === 0 ? 'eager' : 'lazy'}" onerror="this.src='https://placehold.co/1200x400?text=Banner+Promosi'" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+                            <img src="${safeImage}" alt="${safeTitle || 'Banner Promosi'}" class="promo-banner-image" loading="${index === 0 ? 'eager' : 'lazy'}" data-fallback-src="https://placehold.co/1200x400?text=Banner+Promosi" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
                         </div>
                         ${hasCaption ? `
                         <div class="promo-banner-caption">
-                            ${banner.title ? `<h3 class="promo-banner-title">${banner.title}</h3>` : ''}
-                            ${banner.subtitle ? `<p class="promo-banner-subtitle">${banner.subtitle}</p>` : ''}
-                            ${banner.cta_text && hasLink ? `<button class="promo-cta-button">${banner.cta_text}</button>` : ''}
+                            ${banner.title ? `<h3 class="promo-banner-title">${safeTitle}</h3>` : ''}
+                            ${banner.subtitle ? `<p class="promo-banner-subtitle">${safeSubtitle}</p>` : ''}
+                            ${banner.cta_text && hasLink ? `<button class="promo-cta-button">${safeCtaText}</button>` : ''}
                         </div>
                         ` : ''}
                     ${hasLink ? `</a>` : ''}

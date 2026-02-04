@@ -480,7 +480,7 @@ function createOrderCard(order) {
     card.innerHTML = `
         <div class="flex justify-between items-start mb-2">
             <div class="flex-1">
-                <p class="text-[10px] font-bold text-gray-700 mb-1">Order ID: <span class="text-green-600">${orderId}</span></p>
+                <p class="text-[10px] font-bold text-gray-700 mb-1">Order ID: <span class="text-green-600">${escapeHtml(orderId)}</span></p>
             </div>
             ${statusBadge}
         </div>
@@ -488,8 +488,8 @@ function createOrderCard(order) {
         <div class="border-t border-gray-100 pt-2 space-y-1.5">
             <div class="text-sm">
                 <p class="text-gray-600 text-xs mb-0.5">Produk:</p>
-                <p class="font-semibold text-gray-800 lg:hidden">${truncatedProduct}</p>
-                <p class="font-semibold text-gray-800 hidden lg:block">${productName}</p>
+                <p class="font-semibold text-gray-800 lg:hidden">${escapeHtml(truncatedProduct)}</p>
+                <p class="font-semibold text-gray-800 hidden lg:block">${escapeHtml(productName)}</p>
             </div>
             <div class="flex justify-between text-xs">
                 <span class="text-gray-600">Qty:</span>
@@ -1142,11 +1142,13 @@ function createAnimatedTimeline(currentStatus) {
                 const isActive = index <= currentIndex;
                 const isCurrent = index === currentIndex;
                 const isLast = index === statuses.length - 1;
+                const gifPath = `assets/images/${s.gif}`;
+                const safeImage = sanitizeUrl(gifPath, 'https://placehold.co/32x32?text=Img');
                 
                 return `
                     <div class="flex flex-col items-center flex-1">
                         <div class="${isActive ? 'bg-green-50' : 'bg-gray-100'} w-12 h-12 rounded-full flex items-center justify-center ${isCurrent ? 'ring-2 ring-green-500 ring-offset-2' : ''}">
-                            <img src="assets/images/${s.gif}" alt="${s.name}" class="w-8 h-8 object-contain ${isActive ? '' : 'opacity-40'}">
+                            <img src="${safeImage}" alt="${s.name}" class="w-8 h-8 object-contain ${isActive ? '' : 'opacity-40'}" data-fallback-src="https://placehold.co/32x32?text=Img">
                         </div>
                         <p class="text-[10px] font-semibold mt-2 text-center ${isActive ? 'text-gray-800' : 'text-gray-400'}">${s.name}</p>
                         ${isCurrent ? '<p class="text-[8px] text-green-600 font-bold mt-0.5">● Saat ini</p>' : '<p class="text-[8px] text-transparent mt-0.5">●</p>'}
@@ -1319,10 +1321,10 @@ function createClaimCard(claim) {
     card.innerHTML = `
         <div class="flex justify-between items-start mb-3">
             <div class="flex-1">
-                <h5 class="font-bold text-gray-800">${claim.hadiah || claim.reward || 'Reward'}</h5>
+                <h5 class="font-bold text-gray-800">${escapeHtml(claim.hadiah || claim.reward || 'Reward')}</h5>
                 <p class="text-xs text-gray-500 mt-1">${formattedDate}</p>
             </div>
-            <span class="${statusColor} text-xs font-bold px-3 py-1 rounded-full">${statusLabel}</span>
+            <span class="${statusColor} text-xs font-bold px-3 py-1 rounded-full">${escapeHtml(statusLabel)}</span>
         </div>
         <div class="flex items-center justify-between pt-3 border-t border-gray-100">
             <div class="flex items-center gap-2">
@@ -1331,7 +1333,7 @@ function createClaimCard(claim) {
                 </svg>
                 <span class="text-sm font-semibold text-gray-700">${claim.poin || 0} Poin</span>
             </div>
-            ${claim.id ? `<span class="text-xs text-gray-400">#${claim.id}</span>` : ''}
+            ${claim.id ? `<span class="text-xs text-gray-400">#${escapeHtml(claim.id)}</span>` : ''}
         </div>
     `;
     
@@ -1404,14 +1406,16 @@ async function loadModalPoints() {
     }
 }
 
-/**
- * HTML escape helper to prevent XSS
- */
-function escapeHtml(text) {
+const FrontendSanitize = window.FrontendSanitize || {};
+const escapeHtml = FrontendSanitize.escapeHtml || ((text) => {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-}
+});
+const sanitizeUrl = FrontendSanitize.sanitizeUrl || ((url) => String(url || ''));
+const ensureImageFallbackHandler = FrontendSanitize.ensureImageFallbackHandler || (() => {});
+
+ensureImageFallbackHandler();
 
 /**
  * Hide all reward loaders (for akun page modal)
@@ -1495,8 +1499,8 @@ function renderRewardItemsListAkun(items) {
         const id = escapeHtml((item.id || '').toString());
         const nama = escapeHtml((item.nama || item.judul || 'Hadiah').toString());
         const poin = parseInt(item.poin || item.Poin || 0);
-        // Don't escape URLs - they come from our own database
         const gambar = (item.gambar || 'https://via.placeholder.com/80?text=Reward').toString();
+        const safeImage = sanitizeUrl(gambar, 'https://via.placeholder.com/80?text=Reward');
         const deskripsi = escapeHtml((item.deskripsi || '').toString());
         
         return `
@@ -1504,7 +1508,7 @@ function renderRewardItemsListAkun(items) {
                 <div class="flex gap-3 mb-3">
                     <!-- Left: Image -->
                     <div class="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src="${gambar}" alt="${nama}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/80?text=Reward'">
+                        <img src="${safeImage}" alt="${nama}" class="w-full h-full object-cover" data-fallback-src="https://via.placeholder.com/80?text=Reward">
                     </div>
                     
                     <!-- Middle: Title & Description -->
