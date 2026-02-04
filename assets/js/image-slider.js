@@ -4,8 +4,7 @@
  * Fitur: navigasi, dots, keyboard support, touch swipe
  */
 
-const FrontendSanitize = window.FrontendSanitize || {};
-const sanitizeUrl = FrontendSanitize.sanitizeUrl || ((url) => String(url || ''));
+const sanitizeUrl = (window.FrontendSanitize && window.FrontendSanitize.sanitizeUrl) || ((url) => String(url || ''));
 
 let currentSlideIndex = 0;
 let totalSlides = 0;
