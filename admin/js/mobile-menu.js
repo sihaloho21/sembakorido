@@ -14,7 +14,7 @@ class MobileMenuHandler {
      */
     init() {
         this.createHamburgerButton();
-        this.createSidebarOverlay();
+        // Overlay disabled to avoid blocking sidebar clicks on mobile.
         this.createCloseButton();
         this.attachEventListeners();
         this.handleResize();
@@ -53,13 +53,7 @@ class MobileMenuHandler {
      * Create sidebar overlay for mobile
      */
     createSidebarOverlay() {
-        if (document.querySelector('.sidebar-overlay')) return;
-
-        const overlay = document.createElement('div');
-        overlay.className = 'sidebar-overlay';
-        overlay.addEventListener('click', () => this.closeSidebar());
-
-        document.body.appendChild(overlay);
+        // Intentionally disabled.
     }
 
     createCloseButton() {
@@ -96,16 +90,11 @@ class MobileMenuHandler {
      */
     openSidebar() {
         const sidebar = document.querySelector('aside');
-        const overlay = document.querySelector('.sidebar-overlay');
         const hamburger = document.querySelector('.hamburger-menu');
 
         if (sidebar) {
             sidebar.classList.add('active');
             this.sidebarOpen = true;
-        }
-
-        if (overlay) {
-            overlay.classList.add('active');
         }
 
         if (hamburger) {
@@ -123,16 +112,11 @@ class MobileMenuHandler {
      */
     closeSidebar() {
         const sidebar = document.querySelector('aside');
-        const overlay = document.querySelector('.sidebar-overlay');
         const hamburger = document.querySelector('.hamburger-menu');
 
         if (sidebar) {
             sidebar.classList.remove('active');
             this.sidebarOpen = false;
-        }
-
-        if (overlay) {
-            overlay.classList.remove('active');
         }
 
         if (hamburger) {
@@ -185,10 +169,6 @@ class MobileMenuHandler {
             }
             if (sidebar) {
                 sidebar.classList.remove('active');
-            }
-            const overlay = document.querySelector('.sidebar-overlay');
-            if (overlay) {
-                overlay.classList.remove('active');
             }
             document.body.style.overflow = '';
         } else {
