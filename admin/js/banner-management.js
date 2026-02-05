@@ -98,19 +98,19 @@ function renderBannersTable(banners) {
         const safeImage = sanitizeUrl(banner.image_url, 'https://placehold.co/300x100?text=Banner');
         return `
             <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4">
+                <td class="px-6 py-4" data-label="Gambar">
                     <img src="${safeImage}" alt="${safeTitle || 'Banner'}" class="w-32 h-auto rounded-lg object-cover" data-fallback-src="https://placehold.co/300x100?text=Banner">
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-6 py-4" data-label="Banner">
                     <div class="font-bold text-gray-800">${safeTitle}</div>
                     <div class="text-sm text-gray-500 mt-1">${safeSubtitle}</div>
                     <div class="text-xs text-gray-400 mt-1">ID: ${safeId}</div>
                 </td>
-                <td class="px-6 py-4">${statusBadge}</td>
-                <td class="px-6 py-4">
+                <td class="px-6 py-4" data-label="Status">${statusBadge}</td>
+                <td class="px-6 py-4" data-label="Periode">
                     <div class="text-sm text-gray-700">${periodText}</div>
                 </td>
-                <td class="px-6 py-4 text-right">
+                <td class="px-6 py-4 text-right" data-label="Aksi">
                     <button data-action="edit-banner" data-id="${safeId}"
                         class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition mr-2">
                         Edit
