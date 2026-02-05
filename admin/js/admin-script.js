@@ -163,16 +163,16 @@ function renderOrderTable() {
         const safeDate = escapeHtml(o.tanggal || '');
         return `
         <tr class="hover:bg-gray-50 transition">
-            <td class="px-6 py-4 font-bold text-blue-600 text-xs">${safeId}</td>
-            <td class="px-6 py-4 text-sm text-gray-800 font-medium">${safeCustomer}</td>
-            <td class="px-6 py-4 text-sm text-gray-600">${safeProduct}</td>
-            <td class="px-6 py-4 text-sm text-gray-600">${safeQty}</td>
-            <td class="px-6 py-4 text-sm font-bold text-gray-800">Rp ${parseInt(o.total).toLocaleString('id-ID')}</td>
-            <td class="px-6 py-4">
+            <td class="px-6 py-4 font-bold text-blue-600 text-xs" data-label="ID Pesanan">${safeId}</td>
+            <td class="px-6 py-4 text-sm text-gray-800 font-medium" data-label="Pelanggan">${safeCustomer}</td>
+            <td class="px-6 py-4 text-sm text-gray-600" data-label="Produk">${safeProduct}</td>
+            <td class="px-6 py-4 text-sm text-gray-600" data-label="Qty">${safeQty}</td>
+            <td class="px-6 py-4 text-sm font-bold text-gray-800" data-label="Total">Rp ${parseInt(o.total).toLocaleString('id-ID')}</td>
+            <td class="px-6 py-4" data-label="Status">
                 <span class="status-badge status-${safeStatusClass}">${safeStatusText}</span>
             </td>
-            <td class="px-6 py-4 text-xs text-gray-500">${safeDate}</td>
-            <td class="px-6 py-4 text-right">
+            <td class="px-6 py-4 text-xs text-gray-500" data-label="Tanggal">${safeDate}</td>
+            <td class="px-6 py-4 text-right" data-label="Aksi">
                 <select data-action="update-order-status" data-id="${escapeAttr(o.id)}" class="text-xs border rounded-lg p-1 outline-none focus:ring-1 focus:ring-green-500">
                     <option value="">Ubah Status</option>
                     <option value="Menunggu">Menunggu</option>
@@ -293,9 +293,9 @@ function renderCategoryTable() {
         const safeDesc = escapeHtml(c.deskripsi || '-');
         return `
         <tr class="hover:bg-gray-50 transition">
-            <td class="px-6 py-4 font-bold text-gray-800 text-sm">${safeName}</td>
-            <td class="px-6 py-4 text-sm text-gray-600">${safeDesc}</td>
-            <td class="px-6 py-4 text-right flex justify-end gap-2">
+            <td class="px-6 py-4 font-bold text-gray-800 text-sm" data-label="Nama Kategori">${safeName}</td>
+            <td class="px-6 py-4 text-sm text-gray-600" data-label="Deskripsi">${safeDesc}</td>
+            <td class="px-6 py-4 text-right flex justify-end gap-2" data-label="Aksi">
                 <button data-action="edit-category" data-id="${escapeAttr(c.id)}" data-name="${escapeAttr(c.nama)}" data-description="${escapeAttr(c.deskripsi || '')}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 </button>
@@ -382,25 +382,25 @@ function renderAdminTable() {
         const safeImage = sanitizeUrl(imageUrl, 'https://via.placeholder.com/50');
         return `
         <tr class="hover:bg-gray-50 transition">
-            <td class="px-6 py-4">
+            <td class="px-6 py-4" data-label="Produk">
                 <div class="flex items-center gap-3">
                     <img src="${safeImage}" class="w-10 h-10 object-cover rounded-lg bg-gray-100" alt="${safeName}">
                     <span class="font-bold text-gray-800 text-sm">${safeName}</span>
                 </div>
             </td>
-            <td class="px-6 py-4">
+            <td class="px-6 py-4" data-label="Kategori">
                 <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-[10px] font-bold uppercase">${safeCategory}</span>
             </td>
-            <td class="px-6 py-4">
+            <td class="px-6 py-4" data-label="Harga">
                 <div class="flex flex-col">
                     ${p.harga_coret ? `<span class="text-[10px] text-gray-400 line-through">Rp ${parseInt(p.harga_coret).toLocaleString('id-ID')}</span>` : ''}
                     <span class="font-bold text-green-700 text-sm">Rp ${parseInt(p.harga).toLocaleString('id-ID')}</span>
                 </div>
             </td>
-            <td class="px-6 py-4">
+            <td class="px-6 py-4" data-label="Stok">
                 <span class="text-sm ${parseInt(p.stok) <= 5 ? 'text-red-600 font-bold' : 'text-gray-600'}">${safeStock}</span>
             </td>
-            <td class="px-6 py-4 text-right flex justify-end gap-2">
+            <td class="px-6 py-4 text-right flex justify-end gap-2" data-label="Aksi">
                 <button data-action="edit-product" data-id="${escapeAttr(p.id)}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 </button>
@@ -569,15 +569,15 @@ function renderTukarPoinTable() {
         const safeImage = sanitizeUrl(p.gambar, 'https://via.placeholder.com/50');
         return `
         <tr class="hover:bg-gray-50 transition">
-            <td class="px-6 py-4">
+            <td class="px-6 py-4" data-label="Produk">
                 <div class="flex items-center gap-3">
                     <img src="${safeImage}" class="w-10 h-10 object-cover rounded-lg bg-gray-100" alt="${safeTitle}">
                     <span class="font-bold text-gray-800 text-sm">${safeTitle}</span>
                 </div>
             </td>
-            <td class="px-6 py-4 font-bold text-amber-600 text-sm">${safePoints} Poin</td>
-            <td class="px-6 py-4 text-sm text-gray-600">${safeDesc}</td>
-            <td class="px-6 py-4 text-right flex justify-end gap-2">
+            <td class="px-6 py-4 font-bold text-amber-600 text-sm" data-label="Poin">${safePoints} Poin</td>
+            <td class="px-6 py-4 text-sm text-gray-600" data-label="Deskripsi">${safeDesc}</td>
+            <td class="px-6 py-4 text-right flex justify-end gap-2" data-label="Aksi">
                 <button data-action="edit-tukar-poin" data-id="${escapeAttr(p.id)}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 </button>
@@ -707,10 +707,10 @@ async function fetchUserPoints() {
             const safeUpdated = escapeHtml(u.last_updated || '-');
             return `
             <tr class="hover:bg-gray-50 transition">
-                <td class="px-6 py-4 font-bold text-gray-800 text-sm">${safePhone}</td>
-                <td class="px-6 py-4 font-bold text-green-600 text-sm">${parseFloat(u.points).toFixed(1)} Poin</td>
-                <td class="px-6 py-4 text-xs text-gray-500">${safeUpdated}</td>
-                <td class="px-6 py-4 text-right">
+                <td class="px-6 py-4 font-bold text-gray-800 text-sm" data-label="Telepon">${safePhone}</td>
+                <td class="px-6 py-4 font-bold text-green-600 text-sm" data-label="Poin">${parseFloat(u.points).toFixed(1)} Poin</td>
+                <td class="px-6 py-4 text-xs text-gray-500" data-label="Terakhir Update">${safeUpdated}</td>
+                <td class="px-6 py-4 text-right" data-label="Aksi">
                     <button data-action="edit-user-points" data-phone="${escapeAttr(u.phone)}" data-points="${escapeAttr(u.points)}" class="text-blue-600 hover:underline text-sm font-bold">Edit Poin</button>
                 </td>
             </tr>
