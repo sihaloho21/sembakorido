@@ -40,6 +40,19 @@
             outline: 2px solid #16a34a;
             outline-offset: 2px;
         }
+        .radio-card input:checked + .radio-label {
+            border-color: #16a34a;
+            background-color: #f0fdf4;
+            color: #15803d;
+        }
+        .radio-card input:checked + .radio-label .radio-dot {
+            border-color: #16a34a;
+            background-color: #16a34a;
+            box-shadow: inset 0 0 0 2px #ffffff;
+        }
+        .radio-card input:checked + .radio-label .radio-check {
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -401,6 +414,7 @@
                     <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                         Ringkasan Pesanan
+                        <span class="ml-auto text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Langkah 1/4</span>
                     </h4>
                     <div id="order-summary" class="text-sm text-gray-600 space-y-2">
                         <!-- Summary items injected here -->
@@ -416,6 +430,7 @@
                     <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                         Informasi Pelanggan
+                        <span class="ml-auto text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Langkah 2/4</span>
                     </h4>
                     <div class="grid grid-cols-1 gap-4">
                         <div class="space-y-1.5">
@@ -436,36 +451,40 @@
                     <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Metode Pengiriman
+                        <span class="ml-auto text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Langkah 3/4</span>
                     </h4>
                     <fieldset class="grid grid-cols-1 gap-3">
                         <legend class="sr-only">Metode Pengiriman</legend>
                         <label class="radio-card relative cursor-pointer">
                             <input type="radio" name="ship-method" value="Antar Nikomas" onchange="toggleLocationField()" class="absolute opacity-0">
                             <div class="radio-label p-3 border-2 border-gray-100 rounded-xl flex items-center gap-3 transition">
-                                <div class="w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
+                                <div class="radio-dot w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
                                 <div>
                                     <p class="font-bold text-gray-800 text-xs">Diantar Nikomas</p>
                                     <p class="text-[10px] text-gray-500">Khusus area PT Nikomas Gemilang • Gratis</p>
+                                    <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                                 </div>
                             </div>
                         </label>
                         <label class="radio-card relative cursor-pointer">
                             <input type="radio" name="ship-method" value="Antar Kerumah" onchange="toggleLocationField()" class="absolute opacity-0">
                             <div class="radio-label p-3 border-2 border-gray-100 rounded-xl flex items-center gap-3 transition">
-                                <div class="w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
+                                <div class="radio-dot w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
                                 <div>
                                     <p class="font-bold text-gray-800 text-xs">Diantar Kerumah</p>
                                     <p class="text-[10px] text-gray-500">Area Serang & sekitarnya • Ongkir sesuai area</p>
+                                    <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                                 </div>
                             </div>
                         </label>
                         <label class="radio-card relative cursor-pointer">
                             <input type="radio" name="ship-method" value="Ambil Ditempat" onchange="toggleLocationField()" class="absolute opacity-0">
                             <div class="radio-label p-3 border-2 border-gray-100 rounded-xl flex items-center gap-3 transition">
-                                <div class="w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
+                                <div class="radio-dot w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
                                 <div>
                                     <p class="font-bold text-gray-800 text-xs">Ambil Ditempat</p>
                                     <p class="text-[10px] text-gray-500">Ambil langsung di toko kami • Gratis</p>
+                                    <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                                 </div>
                             </div>
                         </label>
@@ -500,6 +519,7 @@
                     <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                         Metode Pembayaran
+                        <span class="ml-auto text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Langkah 4/4</span>
                     </h4>
                     <fieldset class="grid grid-cols-3 gap-2">
                         <legend class="sr-only">Metode Pembayaran</legend>
@@ -508,6 +528,7 @@
                             <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
                                 <p class="font-bold text-gray-800 text-[10px]">TUNAI/COD</p>
                                 <p class="text-[9px] text-gray-500">Bayar saat terima</p>
+                                <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                             </div>
                         </label>
                         <label class="radio-card relative cursor-pointer">
@@ -515,6 +536,7 @@
                             <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
                                 <p class="font-bold text-gray-800 text-[10px]">QRIS</p>
                                 <p class="text-[9px] text-gray-500">Scan & bayar</p>
+                                <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                             </div>
                         </label>
                         <label class="radio-card relative cursor-pointer">
@@ -522,6 +544,7 @@
                             <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
                                 <p class="font-bold text-gray-800 text-[10px]">GAJIAN</p>
                                 <p class="text-[9px] text-gray-500">Bayar tgl 6–7</p>
+                                <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                             </div>
                         </label>
                     </fieldset>
@@ -556,10 +579,11 @@
                     <span class="text-[10px] text-green-700/80">Pastikan data sudah benar sebelum kirim.</span>
                 </div>
 
-                <button type="button" data-action="send-wa" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
+                <button id="send-order-btn" type="button" data-action="send-wa" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed" disabled>
                     <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.631 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                     Kirim Pesanan ke WhatsApp
                 </button>
+                <p class="text-[10px] text-gray-500 text-center">Pesanan dikirim ke WhatsApp untuk konfirmasi.</p>
             </div>
         </div>
     </div>
