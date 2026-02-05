@@ -58,7 +58,14 @@ class MobileMenuHandler {
         overlay.className = 'sidebar-overlay';
         overlay.addEventListener('click', () => this.closeSidebar());
 
-        document.body.appendChild(overlay);
+        // Insert overlay before aside element for proper stacking
+        const sidebar = document.querySelector('aside');
+        if (sidebar && sidebar.parentNode) {
+            sidebar.parentNode.insertBefore(overlay, sidebar);
+        } else {
+            // Fallback: append to body if sidebar not found
+            document.body.appendChild(overlay);
+        }
     }
 
     /**
