@@ -1143,12 +1143,12 @@ function createAnimatedTimeline(currentStatus) {
                 const isCurrent = index === currentIndex;
                 const isLast = index === statuses.length - 1;
                 const gifPath = `assets/images/${s.gif}`;
-                const safeImage = sanitizeUrl(gifPath, 'https://placehold.co/32x32?text=Img');
+                const safeImage = sanitizeUrl(gifPath, 'assets/images/wait.gif');
                 
                 return `
                     <div class="flex flex-col items-center flex-1">
                         <div class="${isActive ? 'bg-green-50' : 'bg-gray-100'} w-12 h-12 rounded-full flex items-center justify-center ${isCurrent ? 'ring-2 ring-green-500 ring-offset-2' : ''}">
-                            <img src="${safeImage}" alt="${s.name}" class="w-8 h-8 object-contain ${isActive ? '' : 'opacity-40'}" data-fallback-src="https://placehold.co/32x32?text=Img">
+                            <img src="${safeImage}" alt="${s.name}" class="w-8 h-8 object-contain ${isActive ? '' : 'opacity-40'}" data-fallback-src="assets/images/wait.gif">
                         </div>
                         <p class="text-[10px] font-semibold mt-2 text-center ${isActive ? 'text-gray-800' : 'text-gray-400'}">${s.name}</p>
                         ${isCurrent ? '<p class="text-[8px] text-green-600 font-bold mt-0.5">● Saat ini</p>' : '<p class="text-[8px] text-transparent mt-0.5">●</p>'}
