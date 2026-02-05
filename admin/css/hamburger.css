@@ -64,7 +64,6 @@ aside {
 
 aside.active {
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-    pointer-events: auto; /* ensure it accepts pointer events */
 }
 
 /* Mobile Styles */
@@ -85,7 +84,6 @@ aside.active {
         z-index: 1100; /* ensure higher than overlay */
         overflow-y: auto;
         padding-top: 60px;
-        pointer-events: auto;
     }
 
     aside.active {

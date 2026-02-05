@@ -29,7 +29,6 @@
         z-index: 1100; /* ensure higher than overlay */
         transition: left 0.3s ease;
         overflow-y: auto;
-        pointer-events: auto;
     }
 
     aside.active {
