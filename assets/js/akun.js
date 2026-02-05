@@ -317,11 +317,13 @@ async function loadOrderHistory(user) {
     const loadingDiv = document.getElementById('order-loading');
     const emptyDiv = document.getElementById('order-empty');
     const orderList = document.getElementById('order-list');
+    const totalAcceptedEl = document.getElementById('total-accepted-spend');
     
     // Show loading
     loadingDiv.classList.remove('hidden');
     emptyDiv.classList.add('hidden');
     orderList.innerHTML = '';
+    if (totalAcceptedEl) totalAcceptedEl.textContent = 'Rp 0';
     
     try {
         const apiUrl = CONFIG.getMainApiUrl();
@@ -369,6 +371,16 @@ async function loadOrderHistory(user) {
         window.allOrders = orders;
         window.currentPage = 1;
         window.ordersPerPage = 10;
+
+        // Update total accepted spend
+        if (totalAcceptedEl) {
+            const totalAccepted = orders.reduce((sum, order) => {
+                const status = String(order.status || '').toLowerCase();
+                if (status !== 'diterima') return sum;
+                return sum + parseCurrencyValue(order.total || order.total_bayar || 0);
+            }, 0);
+            totalAcceptedEl.textContent = formatCurrency(totalAccepted);
+        }
         
         // Display first page
         displayOrderPage(1);
@@ -386,6 +398,14 @@ async function loadOrderHistory(user) {
             </div>
         `;
     }
+}
+
+function parseCurrencyValue(value) {
+    if (typeof value === 'number') return value;
+    if (!value) return 0;
+    const cleaned = String(value).replace(/[^0-9.-]/g, '');
+    const parsed = parseFloat(cleaned);
+    return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 /**
