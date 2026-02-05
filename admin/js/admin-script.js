@@ -116,8 +116,44 @@ async function updateDashboardStats() {
         const lowStock = prods.filter(p => parseInt(p.stok) <= 5).length;
         document.getElementById('stat-stok-menipis').innerText = lowStock;
 
-        updateRevenueStats(Array.isArray(orders) ? orders : []);
+        const normalizedOrders = Array.isArray(orders) ? orders : [];
+        updateRevenueStats(normalizedOrders);
+        renderRecentOrders(normalizedOrders);
     } catch (e) { console.error(e); }
+}
+
+function renderRecentOrders(orders) {
+    const tableBody = document.getElementById('recent-orders-list');
+    if (!tableBody) return;
+
+    if (!Array.isArray(orders) || orders.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="px-6 py-6 text-center text-gray-500">Belum ada pesanan.</td></tr>';
+        return;
+    }
+
+    const sorted = [...orders].sort((a, b) => {
+        const dateA = parseOrderDate(a.tanggal_pesanan || a.timestamp || a.tanggal || a.date) || new Date(0);
+        const dateB = parseOrderDate(b.tanggal_pesanan || b.timestamp || b.tanggal || b.date) || new Date(0);
+        return dateB - dateA;
+    }).slice(0, 5);
+
+    tableBody.innerHTML = sorted.map((order) => {
+        const safeId = escapeHtml(order.id || '-');
+        const safeCustomer = escapeHtml(order.pelanggan || order.customer || order.nama || '-');
+        const statusText = escapeHtml(order.status || 'Menunggu');
+        const statusClass = String(order.status || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+        const totalText = `Rp ${parseCurrencyValue(order.total || order.total_bayar || 0).toLocaleString('id-ID')}`;
+        return `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-6 py-4 text-xs font-bold text-blue-600" data-label="ID">${safeId}</td>
+                <td class="px-6 py-4 text-sm text-gray-800" data-label="Pelanggan">${safeCustomer}</td>
+                <td class="px-6 py-4" data-label="Status">
+                    <span class="status-badge status-${statusClass}">${statusText}</span>
+                </td>
+                <td class="px-6 py-4 text-right font-bold text-gray-800" data-label="Total">${totalText}</td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function updateRevenueStats(orders) {

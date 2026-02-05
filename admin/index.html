@@ -125,6 +125,30 @@
                     <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
                         <h4 class="font-bold text-gray-800 mb-6">Konfigurasi Bayar Gajian</h4>                 <p class="text-gray-500 text-sm">Belum ada aktivitas terbaru.</p>
                 </div>
+                <!-- Recent Orders -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
+                        <h4 class="font-bold text-gray-800">Pesanan Terbaru</h4>
+                        <button data-action="show-section" data-section="pesanan" class="text-sm font-bold text-green-700 hover:text-green-800">Lihat Semua</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Pelanggan</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-orders-list" class="divide-y divide-gray-100">
+                                <tr>
+                                    <td colspan="4" class="px-6 py-6 text-center text-gray-500">Memuat pesanan...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <!-- Section: Produk -->
