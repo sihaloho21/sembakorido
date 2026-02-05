@@ -866,6 +866,10 @@ function updateCartUI() {
         }).join('');
         const totalEl = document.getElementById('cart-total');
         if (totalEl) totalEl.innerText = `Rp ${total.toLocaleString('id-ID')}`;
+        const summaryTotalEl = document.getElementById('order-summary-total');
+        if (summaryTotalEl) summaryTotalEl.innerText = `Rp ${total.toLocaleString('id-ID')}`;
+        const stickyTotalEl = document.getElementById('sticky-order-total');
+        if (stickyTotalEl) stickyTotalEl.innerText = `Rp ${total.toLocaleString('id-ID')}`;
     }
 }
 

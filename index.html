@@ -392,13 +392,17 @@
             
             <div class="space-y-6">
                 <!-- Section 1: Ringkasan Pesanan -->
-                <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                    <h4 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-100">
+                    <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                         Ringkasan Pesanan
                     </h4>
                     <div id="order-summary" class="text-sm text-gray-600 space-y-2">
                         <!-- Summary items injected here -->
+                    </div>
+                    <div class="mt-3 flex items-center justify-between bg-white/80 border border-green-100 rounded-lg px-3 py-2">
+                        <span class="text-[11px] font-bold text-gray-600 uppercase">Total Bayar</span>
+                        <span id="order-summary-total" class="text-lg font-black text-green-700">Rp 0</span>
                     </div>
                 </div>
 
@@ -410,12 +414,14 @@
                     </h4>
                     <div class="grid grid-cols-1 gap-4">
                         <div class="space-y-1.5">
-                            <label for="customer-name" class="block text-xs font-bold text-gray-500 uppercase">Nama Lengkap</label>
-                            <input type="text" id="customer-name" placeholder="Masukkan nama Anda" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:bg-white outline-none transition text-sm">
+                            <label for="customer-name" class="block text-xs font-bold text-gray-500 uppercase">Nama Lengkap <span class="text-red-500">*</span></label>
+                            <input type="text" id="customer-name" placeholder="Masukkan nama Anda" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:bg-white outline-none transition text-sm" required>
+                            <p class="text-[10px] text-gray-400">Wajib diisi.</p>
                         </div>
                         <div class="space-y-1.5">
-                            <label for="customer-phone" class="block text-xs font-bold text-gray-500 uppercase">No. WhatsApp</label>
-                            <input type="tel" id="customer-phone" placeholder="Contoh: 08123456789" onblur="this.value = normalizePhone(this.value)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:bg-white outline-none transition text-sm">
+                            <label for="customer-phone" class="block text-xs font-bold text-gray-500 uppercase">No. WhatsApp <span class="text-red-500">*</span></label>
+                            <input type="tel" id="customer-phone" placeholder="Contoh: 08123456789" onblur="this.value = normalizePhone(this.value)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:bg-white outline-none transition text-sm" required>
+                            <p class="text-[10px] text-gray-400">Wajib diisi.</p>
                         </div>
                     </div>
                 </div>
@@ -433,7 +439,7 @@
                                 <div class="w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
                                 <div>
                                     <p class="font-bold text-gray-800 text-xs">Diantar Nikomas</p>
-                                    <p class="text-[10px] text-gray-500">Khusus area PT Nikomas Gemilang</p>
+                                    <p class="text-[10px] text-gray-500">Khusus area PT Nikomas Gemilang • Gratis</p>
                                 </div>
                             </div>
                         </label>
@@ -443,7 +449,7 @@
                                 <div class="w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
                                 <div>
                                     <p class="font-bold text-gray-800 text-xs">Diantar Kerumah</p>
-                                    <p class="text-[10px] text-gray-500">Area Serang & sekitarnya</p>
+                                    <p class="text-[10px] text-gray-500">Area Serang & sekitarnya • Ongkir sesuai area</p>
                                 </div>
                             </div>
                         </label>
@@ -453,7 +459,7 @@
                                 <div class="w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
                                 <div>
                                     <p class="font-bold text-gray-800 text-xs">Ambil Ditempat</p>
-                                    <p class="text-[10px] text-gray-500">Ambil langsung di toko kami</p>
+                                    <p class="text-[10px] text-gray-500">Ambil langsung di toko kami • Gratis</p>
                                 </div>
                             </div>
                         </label>
@@ -494,18 +500,21 @@
                             <input type="radio" name="pay-method" value="Cash / Transfer" onchange="updatePaymentMethodInfo('tunai'); updateOrderTotal()" class="absolute opacity-0">
                             <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
                                 <p class="font-bold text-gray-800 text-[10px]">TUNAI/COD</p>
+                                <p class="text-[9px] text-gray-500">Bayar saat terima</p>
                             </div>
                         </label>
                         <label class="radio-card relative cursor-pointer">
                             <input type="radio" name="pay-method" value="QRIS" onchange="updatePaymentMethodInfo('qris'); updateOrderTotal();" class="absolute opacity-0">
                             <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
                                 <p class="font-bold text-gray-800 text-[10px]">QRIS</p>
+                                <p class="text-[9px] text-gray-500">Scan & bayar</p>
                             </div>
                         </label>
                         <label class="radio-card relative cursor-pointer">
                             <input type="radio" name="pay-method" value="Bayar Gajian" onchange="updatePaymentMethodInfo('gajian'); updateOrderTotal()" class="absolute opacity-0">
                             <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
                                 <p class="font-bold text-gray-800 text-[10px]">GAJIAN</p>
+                                <p class="text-[9px] text-gray-500">Bayar tgl 6–7</p>
                             </div>
                         </label>
                     </div>
@@ -534,9 +543,10 @@
                 </div>
 
                 <!-- Final Total Display -->
-                <div class="bg-green-50 p-4 rounded-xl border border-green-100 flex justify-between items-center">
-                    <span class="text-green-800 font-bold text-sm">Total Bayar:</span>
-                    <span id="sticky-order-total" class="text-xl font-black text-green-700">Rp 0</span>
+                <div class="bg-green-50 p-4 rounded-xl border border-green-100 flex flex-col gap-1">
+                    <span class="text-green-800 font-bold text-sm uppercase">Total Bayar</span>
+                    <span id="sticky-order-total" class="text-2xl font-black text-green-700">Rp 0</span>
+                    <span class="text-[10px] text-green-700/80">Pastikan data sudah benar sebelum kirim.</span>
                 </div>
 
                 <button type="button" data-action="send-wa" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
