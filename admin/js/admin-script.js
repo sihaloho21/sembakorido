@@ -29,6 +29,8 @@ function showSection(sectionId) {
     document.getElementById(`section-${sectionId}`).classList.remove('hidden');
     document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
     document.getElementById(`nav-${sectionId}`).classList.add('active');
+
+    closeSidebarOnMobile();
     
     const titles = {
         dashboard: 'Dashboard',
@@ -55,6 +57,23 @@ function showSection(sectionId) {
         loadStoreStatus();
     }
     if (sectionId === 'pengaturan') loadSettings();
+}
+
+function closeSidebarOnMobile() {
+    if (window.innerWidth > 768) return;
+    const sidebar = document.querySelector('aside');
+    const overlay = document.querySelector('.sidebar-overlay');
+    const hamburger = document.querySelector('.hamburger-menu');
+    if (sidebar) sidebar.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
+    if (hamburger) {
+        hamburger.setAttribute('aria-expanded', 'false');
+        const openIcon = hamburger.querySelector('.hamburger-icon');
+        const closeIcon = hamburger.querySelector('.close-icon');
+        if (openIcon) openIcon.classList.remove('hidden');
+        if (closeIcon) closeIcon.classList.add('hidden');
+    }
+    document.body.style.overflow = '';
 }
 
 // ============ DASHBOARD FUNCTIONS ============
