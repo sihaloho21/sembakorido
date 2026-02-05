@@ -48,10 +48,14 @@
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 999;
     animation: fadeIn 0.3s ease;
+    /* Prevent overlay from capturing clicks when not active */
+    pointer-events: none;
 }
 
 .sidebar-overlay.active {
     display: block;
+    /* Allow overlay to capture clicks when active */
+    pointer-events: auto;
 }
 
 /* Sidebar Animation */
@@ -78,9 +82,12 @@ aside.active {
         max-width: 280px;
         height: 100vh;
         background-color: #1e293b;
-        z-index: 1000;
+        /* Higher z-index than overlay to ensure sidebar is above */
+        z-index: 1100;
         overflow-y: auto;
         padding-top: 60px;
+        /* Ensure sidebar receives pointer events */
+        pointer-events: auto;
     }
 
     aside.active {
