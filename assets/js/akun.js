@@ -374,9 +374,10 @@ async function loadOrderHistory(user) {
 
         // Update total accepted spend
         if (totalAcceptedEl) {
+            const acceptedStatuses = new Set(['terima', 'diterima', 'selesai']);
             const totalAccepted = orders.reduce((sum, order) => {
-                const status = String(order.status || '').toLowerCase();
-                if (status !== 'diterima') return sum;
+                const status = String(order.status || '').toLowerCase().trim();
+                if (!acceptedStatuses.has(status)) return sum;
                 return sum + parseCurrencyValue(order.total || order.total_bayar || 0);
             }, 0);
             totalAcceptedEl.textContent = formatCurrency(totalAccepted);
