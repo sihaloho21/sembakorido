@@ -115,7 +115,77 @@ async function updateDashboardStats() {
         document.getElementById('stat-total-pesanan').innerText = orders.length || 0;
         const lowStock = prods.filter(p => parseInt(p.stok) <= 5).length;
         document.getElementById('stat-stok-menipis').innerText = lowStock;
+
+        updateRevenueStats(Array.isArray(orders) ? orders : []);
     } catch (e) { console.error(e); }
+}
+
+function updateRevenueStats(orders) {
+    const dailyEl = document.getElementById('stat-omzet-harian');
+    const weeklyEl = document.getElementById('stat-omzet-mingguan');
+    if (!dailyEl && !weeklyEl) return;
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfWeek.getDate() - 6);
+
+    let dailyTotal = 0;
+    let weeklyTotal = 0;
+
+    orders.forEach((order) => {
+        const orderDate = parseOrderDate(order.tanggal_pesanan || order.timestamp || order.tanggal || order.date);
+        if (!orderDate) return;
+        const amount = parseCurrencyValue(order.total || order.total_bayar || order.totalBayar || 0);
+
+        if (orderDate >= startOfToday) {
+            dailyTotal += amount;
+        }
+        if (orderDate >= startOfWeek) {
+            weeklyTotal += amount;
+        }
+    });
+
+    if (dailyEl) dailyEl.innerText = `Rp ${dailyTotal.toLocaleString('id-ID')}`;
+    if (weeklyEl) weeklyEl.innerText = `Rp ${weeklyTotal.toLocaleString('id-ID')}`;
+}
+
+function parseOrderDate(value) {
+    if (!value) return null;
+    if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+
+    if (typeof value === 'number') {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    const str = String(value).trim();
+    if (!str) return null;
+
+    const byDate = new Date(str);
+    if (!Number.isNaN(byDate.getTime())) return byDate;
+
+    if (str.includes('/')) {
+        const parts = str.split('/').map((p) => p.trim());
+        if (parts.length >= 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10);
+            const year = parseInt(parts[2], 10);
+            if (!Number.isNaN(day) && !Number.isNaN(month) && !Number.isNaN(year)) {
+                return new Date(year, month - 1, day);
+            }
+        }
+    }
+
+    return null;
+}
+
+function parseCurrencyValue(value) {
+    if (typeof value === 'number') return value;
+    if (!value) return 0;
+    const cleaned = String(value).replace(/[^0-9.-]/g, '');
+    const parsed = parseFloat(cleaned);
+    return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 // ============ ORDER FUNCTIONS ============
