@@ -1249,6 +1249,7 @@ function openOrderModal() {
     }
     
     updateOrderTotal();
+    updateOrderCTAState();
 
     const modal = document.getElementById('order-modal');
     if (modal) {
@@ -1373,6 +1374,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeDetailModal();
             }
         });
+    }
+
+    const orderModal = document.getElementById('order-modal');
+    if (orderModal) {
+        const orderInputs = orderModal.querySelectorAll(
+            'input[name="ship-method"], input[name="pay-method"], #customer-name, #customer-phone'
+        );
+        orderInputs.forEach((input) => {
+            const eventName = input.type === 'radio' ? 'change' : 'input';
+            input.addEventListener(eventName, updateOrderCTAState);
+        });
+        updateOrderCTAState();
     }
 
     // Modal variation delegation
@@ -1517,6 +1530,37 @@ function updateOrderTotal() {
     const shippingEl = document.getElementById('order-shipping');
     if (subtotalEl) subtotalEl.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
     if (shippingEl) shippingEl.innerText = `Rp ${shippingFee.toLocaleString('id-ID')}`;
+
+    updateOrderCTAState();
+}
+
+function isOrderFormValid() {
+    const nameEl = document.getElementById('customer-name');
+    const phoneEl = document.getElementById('customer-phone');
+    const payEl = document.querySelector('input[name="pay-method"]:checked');
+    const shipEl = document.querySelector('input[name="ship-method"]:checked');
+
+    if (!nameEl || !phoneEl) return false;
+
+    const name = nameEl.value.trim();
+    const nameWithoutSpaces = name.replace(/\s/g, '');
+    if (!name || nameWithoutSpaces.length < 4) return false;
+
+    const rawPhone = phoneEl.value.trim();
+    if (!rawPhone) return false;
+    const cleanPhone = normalizePhone(rawPhone).replace(/[^0-9]/g, '');
+    if (cleanPhone.length < 10) return false;
+
+    return Boolean(payEl && shipEl);
+}
+
+function updateOrderCTAState() {
+    const sendButton = document.getElementById('send-order-btn') || document.querySelector('[data-action="send-wa"]');
+    if (!sendButton) return;
+
+    const isValid = isOrderFormValid();
+    sendButton.disabled = !isValid;
+    sendButton.setAttribute('aria-disabled', String(!isValid));
 }
 
 function normalizePhone(phone) {
