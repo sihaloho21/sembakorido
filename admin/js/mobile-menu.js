@@ -58,7 +58,13 @@ class MobileMenuHandler {
         overlay.className = 'sidebar-overlay';
         overlay.addEventListener('click', () => this.closeSidebar());
 
-        document.body.appendChild(overlay);
+        // Insert overlay before the aside element if exists, otherwise append to body
+        const sidebar = document.querySelector('aside');
+        if (sidebar && sidebar.parentNode) {
+            sidebar.parentNode.insertBefore(overlay, sidebar);
+        } else {
+            document.body.appendChild(overlay);
+        }
     }
 
     /**
@@ -91,12 +97,16 @@ class MobileMenuHandler {
 
         if (hamburger) {
             hamburger.setAttribute('aria-expanded', 'true');
-            hamburger.querySelector('.hamburger-icon').classList.add('hidden');
-            hamburger.querySelector('.close-icon').classList.remove('hidden');
+            hamburger.querySelector('.hamburger-icon')?.classList.add('hidden');
+            hamburger.querySelector('.close-icon')?.classList.remove('hidden');
         }
 
         // Prevent body scroll
         document.body.style.overflow = 'hidden';
+
+        // Move focus into the sidebar for accessibility
+        const firstItem = sidebar?.querySelector('button, a');
+        if (firstItem) firstItem.focus();
     }
 
     /**
@@ -118,8 +128,9 @@ class MobileMenuHandler {
 
         if (hamburger) {
             hamburger.setAttribute('aria-expanded', 'false');
-            hamburger.querySelector('.hamburger-icon').classList.remove('hidden');
-            hamburger.querySelector('.close-icon').classList.add('hidden');
+            hamburger.querySelector('.hamburger-icon')?.classList.remove('hidden');
+            hamburger.querySelector('.close-icon')?.classList.add('hidden');
+            hamburger.focus();
         }
 
         // Restore body scroll
