@@ -23,6 +23,8 @@ let allCategories = [];
 let allOrders = [];
 let allTukarPoin = [];
 let currentOrderFilter = 'semua';
+let currentOrderPage = 1;
+const ordersPerPage = 10;
 
 function showSection(sectionId) {
     document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
@@ -256,6 +258,7 @@ function updateOrderStats() {
 
 function filterOrders(status, target) {
     currentOrderFilter = status;
+    currentOrderPage = 1;
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active', 'bg-green-600', 'text-white');
         btn.classList.add('bg-gray-100', 'text-gray-600');
@@ -269,6 +272,7 @@ function filterOrders(status, target) {
 
 function renderOrderTable() {
     const tbody = document.getElementById('order-list-body');
+    const pagination = document.getElementById('order-pagination-admin');
     const filtered = (currentOrderFilter === 'semua'
         ? allOrders
         : allOrders.filter(o => String(o.status || '').toLowerCase() === currentOrderFilter.toLowerCase()))
@@ -281,10 +285,16 @@ function renderOrderTable() {
 
     if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-10 text-center text-gray-500">Tidak ada pesanan.</td></tr>';
+        if (pagination) pagination.innerHTML = '';
         return;
     }
 
-    tbody.innerHTML = filtered.map(o => {
+    const totalPages = Math.ceil(filtered.length / ordersPerPage);
+    const startIndex = (currentOrderPage - 1) * ordersPerPage;
+    const endIndex = Math.min(startIndex + ordersPerPage, filtered.length);
+    const visibleOrders = filtered.slice(startIndex, endIndex);
+
+    tbody.innerHTML = visibleOrders.map(o => {
         const safeId = escapeHtml(o.id);
         const safeCustomer = escapeHtml(o.pelanggan);
         const safeProduct = escapeHtml(o.produk);
@@ -316,6 +326,39 @@ function renderOrderTable() {
         </tr>
     `;
     }).join('');
+
+    if (pagination) {
+        pagination.innerHTML = renderOrderPagination(totalPages);
+    }
+}
+
+function renderOrderPagination(totalPages) {
+    if (totalPages <= 1) return '';
+    let html = '<div class="flex flex-wrap justify-center items-center gap-2">';
+    if (currentOrderPage > 1) {
+        html += `<button data-action="order-page" data-page="${currentOrderPage - 1}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold text-xs">← Prev</button>`;
+    }
+
+    const maxButtons = 5;
+    let start = Math.max(1, currentOrderPage - 2);
+    let end = Math.min(totalPages, start + maxButtons - 1);
+    if (end - start < maxButtons - 1) {
+        start = Math.max(1, end - maxButtons + 1);
+    }
+
+    for (let i = start; i <= end; i++) {
+        if (i === currentOrderPage) {
+            html += `<button class="px-4 py-2 bg-green-600 text-white rounded-lg font-bold text-xs">${i}</button>`;
+        } else {
+            html += `<button data-action="order-page" data-page="${i}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-bold text-xs">${i}</button>`;
+        }
+    }
+
+    if (currentOrderPage < totalPages) {
+        html += `<button data-action="order-page" data-page="${currentOrderPage + 1}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold text-xs">Next →</button>`;
+    }
+    html += '</div>';
+    return html;
 }
 
 function normalizePhone(phone) {
@@ -1134,6 +1177,14 @@ function bindAdminActions() {
 
         if (action === 'filter-orders') {
             filterOrders(trigger.dataset.filter || 'semua', trigger);
+            return;
+        }
+        if (action === 'order-page') {
+            const page = parseInt(trigger.dataset.page, 10);
+            if (!Number.isNaN(page)) {
+                currentOrderPage = page;
+                renderOrderTable();
+            }
             return;
         }
 
