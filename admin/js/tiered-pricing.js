@@ -51,7 +51,7 @@ function renderTieredPricingList() {
         
         return `
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
-                <div class="flex items-start justify-between">
+                <div class="flex items-start justify-between mobile-stack">
                     <div class="flex-1">
                         <div class="flex items-center gap-3 mb-3">
                             <img src="${safeImage}" alt="${safeName}" class="w-12 h-12 object-cover rounded-lg bg-gray-100">
@@ -90,7 +90,7 @@ function renderTieredPricingList() {
                                 + Tambah Tingkatan
                             </button>
                             
-                            <div class="flex gap-3 pt-4">
+                            <div class="flex gap-3 pt-4 mobile-actions">
                                 <button type="button" 
                                         data-action="save-tier" data-product-id="${safeId}"
                                         class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition">
@@ -115,7 +115,7 @@ function renderTieredPricingList() {
  */
 function renderTierInput(productId, tier, index) {
     return `
-        <div class="flex gap-3 items-end">
+        <div class="flex gap-3 items-end mobile-stack">
             <div class="flex-1">
                 <label class="block text-xs font-bold text-gray-600 mb-1">Min. Qty</label>
                 <input type="number" 

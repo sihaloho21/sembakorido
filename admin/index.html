@@ -121,7 +121,7 @@
 
             <!-- Section: Produk -->
             <section id="section-produk" class="hidden space-y-6">
-                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-center mobile-stack">
                     <h3 class="text-lg font-bold text-gray-800">Daftar Produk</h3>
                     <button data-action="open-add-modal" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-green-100">
                         <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -162,7 +162,7 @@
                                 <input type="text" id="form-category-deskripsi" placeholder="Contoh: Paket sembako dengan harga terjangkau" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
                             </div>
                         </div>
-                        <div class="flex justify-end">
+                        <div class="flex justify-end mobile-actions">
                             <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-green-100">
                                 <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                 Tambah
@@ -215,7 +215,7 @@
                 </div>
 
                 <!-- Status Filters -->
-                <div class="flex flex-wrap gap-2 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex flex-wrap gap-2 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mobile-wrap">
                     <button data-action="filter-orders" data-filter="semua" class="filter-btn active px-6 py-2 rounded-xl text-sm font-bold transition bg-green-600 text-white">Semua</button>
                     <button data-action="filter-orders" data-filter="menunggu" class="filter-btn px-6 py-2 rounded-xl text-sm font-bold transition bg-gray-100 text-gray-600 hover:bg-gray-200">Menunggu</button>
                     <button data-action="filter-orders" data-filter="diproses" class="filter-btn px-6 py-2 rounded-xl text-sm font-bold transition bg-gray-100 text-gray-600 hover:bg-gray-200">Diproses</button>
@@ -277,7 +277,7 @@
 
             <!-- Section: Tukar Poin -->
             <section id="section-tukar-poin" class="hidden space-y-6">
-                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-center mobile-stack">
                     <h3 class="text-lg font-bold text-gray-800">Produk Tukar Poin</h3>
                     <button data-action="open-add-tukar-poin" class="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-amber-100">
                         <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -304,7 +304,7 @@
 
             <!-- Section: Banner Promosi -->
             <section id="section-banners" class="hidden space-y-6">
-                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-center mobile-stack">
                     <div>
                         <h3 class="text-lg font-bold text-gray-800">Banner Promosi</h3>
                         <p class="text-sm text-gray-500 mt-1">Kelola banner promosi yang ditampilkan di halaman utama</p>
@@ -335,9 +335,9 @@
 
             <!-- Section: User Points -->
             <section id="section-user-points" class="hidden space-y-6">
-                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-center mobile-stack">
                     <h3 class="text-lg font-bold text-gray-800">Saldo Poin Pengguna</h3>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 mobile-actions">
                         <input type="text" id="user-points-search" placeholder="Cari No. WA..." class="p-2 border rounded-lg text-sm outline-none focus:ring-1 focus:ring-green-500">
                         <button data-action="refresh-user-points" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">Refresh</button>
                     </div>
@@ -478,7 +478,7 @@
                             
                             <div>
                                 <label class="block text-xs font-bold text-blue-600 mb-2 uppercase">📦 API Endpoint Halaman Utama</label>
-                                <div class="flex gap-2">
+                                <div class="flex gap-2 mobile-actions">
                                     <input type="text" id="settings-main-api" value="" class="flex-1 p-3 border border-blue-200 rounded-xl outline-none focus:border-blue-500 bg-white text-sm font-mono">
                                     <button data-action="test-main-api" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-sm transition whitespace-nowrap">
                                         🧪 Test API
@@ -490,7 +490,7 @@
                             
                             <div>
                                 <label class="block text-xs font-bold text-blue-600 mb-2 uppercase">API Endpoint Admin Dashboard</label>
-                                <div class="flex gap-2">
+                                <div class="flex gap-2 mobile-actions">
                                     <input type="text" id="settings-admin-api" value="" class="flex-1 p-3 border border-blue-200 rounded-xl outline-none focus:border-blue-500 bg-white text-sm font-mono">
                                     <button data-action="test-admin-api" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-sm transition whitespace-nowrap">
                                         🧪 Test API
