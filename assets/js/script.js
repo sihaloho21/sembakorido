@@ -151,8 +151,7 @@ async function fetchProducts() {
                 stok: parseInt(p.stok) || 0,
                 category: category,
                 deskripsi: (p.deskripsi && p.deskripsi.trim() !== "") ? p.deskripsi : defaultDesc,
-                variations: variations,
-                slug: createSlug(p.nama) // Add slug for deep linking
+                variations: variations
             };
         });
         renderCategoryFilters(); // Render dynamic categories
