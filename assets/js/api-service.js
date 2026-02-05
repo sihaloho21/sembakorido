@@ -202,34 +202,6 @@ const ApiService = {
     },
     
     /**
-     * Clear all cache
-     */
-    clearCache() {
-        const size = this.cache.size;
-        this.cache.clear();
-        console.log(`🗑️ [ApiService] Cache cleared: ${size} entries removed`);
-        return size;
-    },
-    
-    /**
-     * Clear cache for specific endpoint
-     */
-    clearCacheForEndpoint(endpoint) {
-        const url = `${CONFIG.getMainApiUrl()}${endpoint}`;
-        let cleared = 0;
-        
-        for (const [key, value] of this.cache.entries()) {
-            if (key.includes(url)) {
-                this.cache.delete(key);
-                cleared++;
-            }
-        }
-        
-        console.log(`🗑️ [ApiService] Cache cleared for ${endpoint}: ${cleared} entries`);
-        return cleared;
-    },
-    
-    /**
      * Get cache statistics
      */
     getCacheStats() {
