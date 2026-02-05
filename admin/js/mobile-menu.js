@@ -15,6 +15,7 @@ class MobileMenuHandler {
     init() {
         this.createHamburgerButton();
         this.createSidebarOverlay();
+        this.createCloseButton();
         this.attachEventListeners();
         this.handleResize();
     }
@@ -59,6 +60,24 @@ class MobileMenuHandler {
         overlay.addEventListener('click', () => this.closeSidebar());
 
         document.body.appendChild(overlay);
+    }
+
+    createCloseButton() {
+        const sidebar = document.querySelector('aside');
+        if (!sidebar) return;
+        if (sidebar.querySelector('.close-sidebar-btn')) return;
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'close-sidebar-btn show-mobile';
+        closeBtn.setAttribute('aria-label', 'Tutup menu');
+        closeBtn.innerHTML = `
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        `;
+        closeBtn.addEventListener('click', () => this.closeSidebar());
+
+        sidebar.insertBefore(closeBtn, sidebar.firstChild);
     }
 
     /**
