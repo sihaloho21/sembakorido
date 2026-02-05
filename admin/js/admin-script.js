@@ -269,9 +269,15 @@ function filterOrders(status, target) {
 
 function renderOrderTable() {
     const tbody = document.getElementById('order-list-body');
-    const filtered = currentOrderFilter === 'semua' 
-        ? allOrders 
-        : allOrders.filter(o => o.status.toLowerCase() === currentOrderFilter.toLowerCase());
+    const filtered = (currentOrderFilter === 'semua'
+        ? allOrders
+        : allOrders.filter(o => String(o.status || '').toLowerCase() === currentOrderFilter.toLowerCase()))
+        .slice()
+        .sort((a, b) => {
+            const dateA = parseOrderDate(a.tanggal_pesanan || a.timestamp || a.tanggal || a.date) || new Date(0);
+            const dateB = parseOrderDate(b.tanggal_pesanan || b.timestamp || b.tanggal || b.date) || new Date(0);
+            return dateB - dateA;
+        });
 
     if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-10 text-center text-gray-500">Tidak ada pesanan.</td></tr>';
