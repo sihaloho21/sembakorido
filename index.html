@@ -3,9 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GoSembako menyediakan paket sembako murah dan lengkap dengan harga terbaik. Belanja mudah, cepat, dan aman untuk kebutuhan harian keluarga.">
+    <meta name="keywords" content="sembako, paket sembako, bahan pokok, kebutuhan pokok, belanja sembako, GoSembako">
+    <meta name="author" content="GoSembako">
+    <link rel="canonical" href="https://paketsembako.com/">
+    <meta property="og:title" content="GoSembako – Paket Sembako Murah">
+    <meta property="og:description" content="Paket sembako murah dan lengkap dengan harga terbaik. Belanja mudah untuk kebutuhan harian keluarga.">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:site_name" content="GoSembako">
+    <meta property="og:url" content="https://paketsembako.com/">
+    <meta property="og:image" content="assets/img/logo.webp">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="GoSembako – Paket Sembako Murah">
+    <meta name="twitter:description" content="Paket sembako murah dan lengkap dengan harga terbaik.">
+    <meta name="twitter:image" content="assets/img/logo.webp">
     <link rel="icon" href="assets/img/logo.webp" type="image/webp">
     <title>GoSembako – Paket Sembako Murah</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/tailwind-fallback.css">
+    <link rel="preload" href="assets/css/tailwind.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="assets/css/tailwind.min.css"></noscript>
     <link rel="stylesheet" href="assets/css/style.min.css">
     <link rel="stylesheet" href="assets/css/banner-carousel.min.css">
     <link rel="stylesheet" href="assets/css/promo-banner-carousel.min.css">
@@ -77,14 +94,14 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
                     </svg>
-                    <span id="wishlist-count" class="absolute -top-1 -right-1 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+                    <span id="wishlist-count" class="absolute -top-1 -right-1 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden" role="status" aria-live="polite" aria-atomic="true" aria-label="Jumlah item di wishlist">0</span>
                 </button>
                 <!-- Cart Button -->
                 <button data-action="open-cart" class="relative p-2 bg-green-600 hover:bg-green-500 rounded-full transition" aria-label="Buka keranjang">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
                     </svg>
-                    <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+                    <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden" role="status" aria-live="polite" aria-atomic="true" aria-label="Jumlah item di keranjang">0</span>
                 </button>
                 <!-- Account Button -->
                 <a href="akun.html" class="p-2 bg-blue-500 hover:bg-blue-600 rounded-full transition" title="Akun Saya" aria-label="Akun saya">
@@ -440,7 +457,7 @@
                         </div>
                         <div class="space-y-1.5">
                             <label for="customer-phone" class="block text-xs font-bold text-gray-500 uppercase">No. WhatsApp <span class="text-red-500">*</span></label>
-                            <input type="tel" id="customer-phone" placeholder="Contoh: 08123456789" onblur="this.value = normalizePhone(this.value)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:bg-white outline-none transition text-sm" required aria-describedby="customer-phone-help">
+                            <input type="tel" id="customer-phone" placeholder="Contoh: 08123456789" onblur="this.value = normalizePhone(this.value)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:bg-white outline-none transition text-sm" required aria-describedby="customer-phone-help" inputmode="numeric" autocomplete="tel">
                             <p id="customer-phone-help" class="text-[10px] text-gray-400">Wajib diisi.</p>
                         </div>
                     </div>
@@ -655,7 +672,7 @@
                         Cek Poin Saya
                     </label>
                     <div class="flex gap-2">
-                        <input type="tel" id="reward-phone" placeholder="Masukkan No. WhatsApp" onblur="this.value = normalizePhone(this.value)" class="flex-1 p-3 bg-white border-2 border-amber-200 rounded-xl focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition text-sm font-medium">
+                        <input type="tel" id="reward-phone" placeholder="Masukkan No. WhatsApp" onblur="this.value = normalizePhone(this.value)" class="flex-1 p-3 bg-white border-2 border-amber-200 rounded-xl focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition text-sm font-medium" inputmode="numeric" autocomplete="tel">
                         <button data-action="check-points" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-4 py-3 rounded-xl font-bold text-sm transition shadow-lg active:scale-95">Cek</button>
                     </div>
                     <div id="points-display" class="mt-4 hidden">
@@ -852,7 +869,7 @@
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
                 </svg>
-                <span id="mobile-cart-count" class="absolute top-0 right-3 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+                <span id="mobile-cart-count" class="absolute top-0 right-3 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden" role="status" aria-live="polite" aria-atomic="true" aria-label="Jumlah item di keranjang">0</span>
                 <span class="text-xs mt-1 font-medium">Keranjang</span>
             </button>
             

@@ -3,12 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Masuk ke akun GoSembako untuk melihat pesanan, poin, dan informasi profil Anda.">
+    <meta name="keywords" content="akun GoSembako, login sembako, profil pelanggan, riwayat pesanan">
+    <meta name="author" content="GoSembako">
+    <link rel="canonical" href="https://paketsembako.com/akun.html">
+    <meta property="og:title" content="Akun Saya – GoSembako">
+    <meta property="og:description" content="Masuk ke akun GoSembako untuk mengelola pesanan dan poin Anda.">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:site_name" content="GoSembako">
+    <meta property="og:url" content="https://paketsembako.com/akun.html">
+    <meta property="og:image" content="assets/img/logo.webp">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Akun Saya – GoSembako">
+    <meta name="twitter:description" content="Masuk ke akun GoSembako untuk mengelola pesanan dan poin.">
+    <meta name="twitter:image" content="assets/img/logo.webp">
     <link rel="icon" href="assets/img/logo.webp" type="image/webp">
     <title>Akun Saya – GoSembako</title>
-    <!-- Fallback CSS (loads first, works even if CDN is blocked) -->
+    <!-- Fallback CSS (loads first, works even if Tailwind is blocked) -->
     <link rel="stylesheet" href="assets/css/akun-fallback.css">
-    <!-- Tailwind CSS CDN (optional enhancement if available) -->
-    <script src="https://cdn.tailwindcss.com" async></script>
+    <link rel="stylesheet" href="assets/css/tailwind-fallback.css">
+    <link rel="preload" href="assets/css/tailwind.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="assets/css/tailwind.min.css"></noscript>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -76,6 +92,8 @@
                             class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-green-500 transition"
                             required
                             maxlength="13"
+                            inputmode="numeric"
+                            autocomplete="tel"
                         >
                         <p class="text-xs text-gray-500 mt-1">Gunakan format 08xxxxxxxxxx</p>
                     </div>
@@ -91,6 +109,8 @@
                             required
                             maxlength="6"
                             pattern="[0-9]{6}"
+                            inputmode="numeric"
+                            autocomplete="current-password"
                         >
                         <p class="text-xs text-gray-500 mt-1">Masukkan PIN 6 digit Anda</p>
                     </div>
@@ -157,6 +177,7 @@
                             class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-blue-500 transition"
                             required
                             minlength="4"
+                            autocomplete="name"
                         >
                     </div>
 
@@ -170,6 +191,8 @@
                             class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-blue-500 transition"
                             required
                             maxlength="13"
+                            inputmode="numeric"
+                            autocomplete="tel"
                         >
                         <p class="text-xs text-gray-500 mt-1">Gunakan format 08xxxxxxxxxx</p>
                     </div>
@@ -185,6 +208,8 @@
                             required
                             maxlength="6"
                             pattern="[0-9]{6}"
+                            inputmode="numeric"
+                            autocomplete="new-password"
                         >
                         <p class="text-xs text-gray-500 mt-1">PIN akan digunakan untuk login</p>
                     </div>
@@ -200,6 +225,8 @@
                             required
                             maxlength="6"
                             pattern="[0-9]{6}"
+                            inputmode="numeric"
+                            autocomplete="new-password"
                         >
                     </div>
 
@@ -272,6 +299,8 @@
                             class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-orange-500 transition"
                             required
                             maxlength="13"
+                            inputmode="numeric"
+                            autocomplete="tel"
                         >
                     </div>
 

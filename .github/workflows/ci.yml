@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules/.cache
+            assets/css/tailwind.min.css
+            assets/js/*.min.js
+          key: ${{ runner.os }}-build-cache-${{ hashFiles('package-lock.json', 'tailwind.config.js', 'assets/css/tailwind-input.css', 'assets/js/**/*.js') }}
+          restore-keys: |
+            ${{ runner.os }}-build-cache-${{ hashFiles('package-lock.json', 'tailwind.config.js', 'assets/css/tailwind-input.css') }}
+            ${{ runner.os }}-build-cache-
+
+      - name: Test
+        run: npm test
+
+      - name: Build Bundle
+        run: npm run build:bundle
+
+      - name: Update Sitemap (main)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        run: npm run build:sitemap
+
+      - name: Check CSS Size Badges (PRs)
+        if: github.event_name == 'pull_request'
+        run: node scripts/check-css-badges.js
+
+      - name: Comment Badge Status (PRs)
+        if: github.event_name == 'pull_request' && failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              "CSS size badges are out of date.",
+              "Run `WRITE_CSS_BADGES=1 node scripts/report-css-size.js` and commit the README update."
+            ].join("\n");
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+
+      - name: Update CSS Size Badges (main)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        run: WRITE_CSS_BADGES=1 node scripts/report-css-size.js
+
+      - name: Commit Badge Update (main)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        run: |
+          if git diff --quiet README.md; then
+            echo "No badge changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "chore: update css size badges"
+          git push
+
+      - name: Commit Sitemap Update (main)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        run: |
+          if git diff --quiet sitemap.xml sitemap-pages.xml sitemap-products.xml; then
+            echo "No sitemap changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sitemap.xml sitemap-pages.xml sitemap-products.xml
+          git commit -m "chore: update sitemap"
+          git push
