@@ -502,7 +502,10 @@ function matchesQuery(product, query) {
     const name = normalizeSearch(product.nama);
     const desc = normalizeSearch(product.deskripsi || '');
     const haystack = `${name} ${desc}`.trim();
+    const compactQuery = query.replace(/\s+/g, '');
+    const compactHaystack = haystack.replace(/\s+/g, '');
     if (haystack.includes(query)) return true;
+    if (compactQuery && compactHaystack.includes(compactQuery)) return true;
     const tokens = tokenize(query);
     return tokens.every((token) => haystack.includes(token));
 }
