@@ -474,15 +474,42 @@ function renderProducts(products) {
 function filterProducts() {
     const searchInput = document.getElementById('search-input');
     const query = searchInput ? normalizeSearch(searchInput.value) : '';
+    const sortSelect = document.getElementById('sort-select');
+    const sortValue = sortSelect ? sortSelect.value : 'default';
     filteredProducts = allProducts.filter(p => {
         const matchesSearch = matchesQuery(p, query);
         const matchesCategory = currentCategory === 'Semua' || p.category === currentCategory;
         return matchesSearch && matchesCategory;
     });
+    filteredProducts = sortProducts(filteredProducts, sortValue);
     currentPage = 1; // Reset to first page on filter
     renderProducts(filteredProducts);
     renderPagination(filteredProducts.length);
     renderSearchSuggestions(query);
+}
+
+function sortProducts(products, sortValue) {
+    const list = [...products];
+    if (sortValue === 'price-asc') {
+        list.sort((a, b) => (a.harga || 0) - (b.harga || 0));
+        return list;
+    }
+    if (sortValue === 'price-desc') {
+        list.sort((a, b) => (b.harga || 0) - (a.harga || 0));
+        return list;
+    }
+    if (sortValue === 'promo') {
+        list.sort((a, b) => promoScore(b) - promoScore(a));
+        return list;
+    }
+    return list;
+}
+
+function promoScore(product) {
+    const harga = product.harga || 0;
+    const hargaCoret = product.hargaCoret || product.harga_coret || 0;
+    if (!harga || !hargaCoret || hargaCoret <= harga) return 0;
+    return Math.round(((hargaCoret - harga) / hargaCoret) * 100);
 }
 
 function normalizeSearch(value) {
