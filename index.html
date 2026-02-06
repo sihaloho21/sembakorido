@@ -452,14 +452,23 @@
                     <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                         Ringkasan Pesanan
-                        <span class="ml-auto text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Langkah 1/4</span>
                     </h4>
                     <div id="order-summary" class="text-sm text-gray-600 space-y-2">
                         <!-- Summary items injected here -->
                     </div>
-                    <div class="mt-3 flex items-center justify-between bg-white/80 border border-green-100 rounded-lg px-3 py-2">
-                        <span class="text-[11px] font-bold text-gray-600 uppercase">Total Bayar</span>
-                        <span id="order-summary-total" class="text-lg font-black text-green-700">Rp 0</span>
+                    <div class="mt-3 space-y-2 bg-white/80 border border-green-100 rounded-lg px-3 py-2 text-xs text-gray-700">
+                        <div class="flex items-center justify-between">
+                            <span class="font-semibold">Subtotal</span>
+                            <span id="order-subtotal">Rp 0</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="font-semibold">Ongkir</span>
+                            <span id="order-shipping">Rp 0</span>
+                        </div>
+                        <div class="flex items-center justify-between border-t border-green-100 pt-2">
+                            <span class="font-bold uppercase text-[11px]">Total Bayar</span>
+                            <span id="order-summary-total" class="text-lg font-black text-green-700">Rp 0</span>
+                        </div>
                     </div>
                 </div>
 
@@ -468,7 +477,6 @@
                     <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                         Informasi Pelanggan
-                        <span class="ml-auto text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Langkah 2/4</span>
                     </h4>
                     <div class="grid grid-cols-1 gap-4">
                         <div class="space-y-1.5">
@@ -489,7 +497,6 @@
                     <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Metode Pengiriman
-                        <span class="ml-auto text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Langkah 3/4</span>
                     </h4>
                     <fieldset class="grid grid-cols-1 gap-3">
                         <legend class="sr-only">Metode Pengiriman</legend>
@@ -557,7 +564,6 @@
                     <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                         Metode Pembayaran
-                        <span class="ml-auto text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Langkah 4/4</span>
                     </h4>
                     <fieldset class="grid grid-cols-3 gap-2">
                         <legend class="sr-only">Metode Pembayaran</legend>

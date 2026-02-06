@@ -1674,8 +1674,12 @@ function updateOrderTotal() {
     
     // Update the display elements
     const totalEl = document.getElementById('sticky-order-total');
+    const summaryTotalEl = document.getElementById('order-summary-total');
     if (totalEl) {
         totalEl.innerText = `Rp ${total.toLocaleString('id-ID')}`;
+    }
+    if (summaryTotalEl) {
+        summaryTotalEl.innerText = `Rp ${total.toLocaleString('id-ID')}`;
     }
     
     // Also update subtotal and shipping if they exist in the UI
