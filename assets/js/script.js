@@ -473,16 +473,104 @@ function renderProducts(products) {
 
 function filterProducts() {
     const searchInput = document.getElementById('search-input');
-    const query = searchInput ? searchInput.value.toLowerCase() : '';
+    const query = searchInput ? normalizeSearch(searchInput.value) : '';
     filteredProducts = allProducts.filter(p => {
-        const matchesSearch = p.nama.toLowerCase().includes(query) || 
-                            (p.deskripsi && p.deskripsi.toLowerCase().includes(query));
+        const matchesSearch = matchesQuery(p, query);
         const matchesCategory = currentCategory === 'Semua' || p.category === currentCategory;
         return matchesSearch && matchesCategory;
     });
     currentPage = 1; // Reset to first page on filter
     renderProducts(filteredProducts);
     renderPagination(filteredProducts.length);
+    renderSearchSuggestions(query);
+}
+
+function normalizeSearch(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\\s]/g, ' ')
+        .replace(/\\s+/g, ' ')
+        .trim();
+}
+
+function tokenize(value) {
+    return normalizeSearch(value).split(' ').filter(Boolean);
+}
+
+function matchesQuery(product, query) {
+    if (!query) return true;
+    const name = normalizeSearch(product.nama);
+    const desc = normalizeSearch(product.deskripsi || '');
+    const haystack = `${name} ${desc}`.trim();
+    if (haystack.includes(query)) return true;
+    const tokens = tokenize(query);
+    return tokens.every((token) => haystack.includes(token));
+}
+
+function renderSearchSuggestions(query) {
+    const container = document.getElementById('search-suggestions');
+    if (!container) return;
+    if (!query) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+    }
+    const suggestions = getSearchSuggestions(query, 6);
+    if (suggestions.length === 0) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+    }
+    container.innerHTML = suggestions.map((item) => `
+        <button type=\"button\" class=\"w-full text-left px-4 py-3 text-sm hover:bg-green-50 transition\" data-action=\"search-suggestion\" data-value=\"${escapeHtml(item)}\">${escapeHtml(item)}</button>
+    `).join('');
+    container.classList.remove('hidden');
+}
+
+function getSearchSuggestions(query, limit = 6) {
+    const tokens = tokenize(query);
+    if (tokens.length === 0) return [];
+    const scored = allProducts.map((product) => {
+        const nameTokens = tokenize(product.nama);
+        const descTokens = tokenize(product.deskripsi || '');
+        const pool = [...nameTokens, ...descTokens];
+        let score = 0;
+        tokens.forEach((token) => {
+            pool.forEach((term) => {
+                if (term === token) score = Math.max(score, 3);
+                else if (term.includes(token)) score = Math.max(score, 2);
+                else if (token.length > 2 && term.length > 2 && levenshtein(term, token) <= 1) score = Math.max(score, 1);
+            });
+        });
+        return { name: product.nama, score };
+    }).filter(item => item.score > 0);
+
+    const unique = new Map();
+    scored.sort((a, b) => b.score - a.score).forEach((item) => {
+        if (!unique.has(item.name)) unique.set(item.name, item);
+    });
+    return Array.from(unique.values()).slice(0, limit).map(item => item.name);
+}
+
+function levenshtein(a, b) {
+    const aLen = a.length;
+    const bLen = b.length;
+    if (aLen === 0) return bLen;
+    if (bLen === 0) return aLen;
+    const matrix = Array.from({ length: aLen + 1 }, () => new Array(bLen + 1).fill(0));
+    for (let i = 0; i <= aLen; i += 1) matrix[i][0] = i;
+    for (let j = 0; j <= bLen; j += 1) matrix[0][j] = j;
+    for (let i = 1; i <= aLen; i += 1) {
+        for (let j = 1; j <= bLen; j += 1) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            matrix[i][j] = Math.min(
+                matrix[i - 1][j] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j - 1] + cost
+            );
+        }
+    }
+    return matrix[aLen][bLen];
 }
 
 function renderPagination(totalItems) {
@@ -1444,6 +1532,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (action === 'remove-cart-item' && !Number.isNaN(index)) {
                 removeItem(index);
+            }
+        });
+    }
+
+    const searchSuggestions = document.getElementById('search-suggestions');
+    if (searchSuggestions) {
+        searchSuggestions.addEventListener('click', (event) => {
+            const btn = event.target.closest('[data-action="search-suggestion"]');
+            if (!btn) return;
+            const value = btn.getAttribute('data-value') || '';
+            const input = document.getElementById('search-input');
+            if (input) {
+                input.value = value;
+                filterProducts();
+            }
+        });
+    }
+
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                const container = document.getElementById('search-suggestions');
+                if (container) {
+                    container.classList.add('hidden');
+                    container.innerHTML = '';
+                }
             }
         });
     }
