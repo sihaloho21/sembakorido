@@ -1592,57 +1592,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    initSortDropdown();
 });
-
-function initSortDropdown() {
-    const trigger = document.getElementById('sort-trigger');
-    const menu = document.getElementById('sort-menu');
-    const label = document.getElementById('sort-label');
-    const input = document.getElementById('sort-select');
-    if (!trigger || !menu || !label || !input) return;
-
-    const closeMenu = () => {
-        menu.classList.remove('open');
-        trigger.setAttribute('aria-expanded', 'false');
-    };
-
-    const openMenu = () => {
-        menu.classList.add('open');
-        trigger.setAttribute('aria-expanded', 'true');
-    };
-
-    trigger.addEventListener('click', (event) => {
-        event.preventDefault();
-        if (menu.classList.contains('open')) {
-            closeMenu();
-        } else {
-            openMenu();
-        }
-    });
-
-    menu.addEventListener('click', (event) => {
-        const option = event.target.closest('[data-sort-value]');
-        if (!option) return;
-        const value = option.getAttribute('data-sort-value');
-        const text = option.textContent || '';
-        input.value = value;
-        label.textContent = text.trim();
-        closeMenu();
-        filterProducts();
-    });
-
-    document.addEventListener('click', (event) => {
-        if (!menu.classList.contains('open')) return;
-        if (event.target.closest('#sort-dropdown')) return;
-        closeMenu();
-    });
-
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') closeMenu();
-    });
-}
 
 function toggleLocationField() {
     const shipEl = document.querySelector('input[name="ship-method"]:checked');
