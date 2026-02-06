@@ -340,10 +340,12 @@ function renderProducts(products) {
     grid.innerHTML = '';
     paginatedProducts.forEach(p => {
         let stokLabel = '';
-        if (p.stok > 5) {
+        if (p.stok > 10) {
             stokLabel = `<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Stok Tersedia</span>`;
+        } else if (p.stok > 5) {
+            stokLabel = `<span class="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Stok Menipis (${p.stok})</span>`;
         } else if (p.stok > 0) {
-            stokLabel = `<span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Stok Terbatas (${p.stok})</span>`;
+            stokLabel = `<span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Hanya sisa ${p.stok}</span>`;
         } else {
             stokLabel = `<span class="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Stok Habis</span>`;
         }
