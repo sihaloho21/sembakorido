@@ -1322,6 +1322,8 @@ function openOrderModal() {
     if (cart.length === 0) return;
     
     closeCartModal();
+
+    prefillCustomerInfo();
     
     // Update Order Summary
     const summaryEl = document.getElementById('order-summary');
@@ -1378,6 +1380,32 @@ function openOrderModal() {
     if (modal) {
         modal.classList.remove('hidden');
         document.body.classList.add('modal-active');
+    }
+}
+
+function prefillCustomerInfo() {
+    const nameEl = document.getElementById('customer-name');
+    const phoneEl = document.getElementById('customer-phone');
+    if (!nameEl || !phoneEl) return;
+
+    const saved = localStorage.getItem('gosembako_user');
+    if (!saved) return;
+
+    let user;
+    try {
+        user = JSON.parse(saved);
+    } catch (e) {
+        return;
+    }
+
+    const savedName = (user.nama || '').trim();
+    const savedPhone = normalizePhoneNumber(user.whatsapp || user.phone || '');
+
+    if (!nameEl.value.trim() && savedName) {
+        nameEl.value = savedName;
+    }
+    if (!phoneEl.value.trim() && savedPhone) {
+        phoneEl.value = savedPhone;
     }
 }
 
