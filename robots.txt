@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /admin_katalog.html
+Disallow: /category-manager.html
+
+Sitemap: https://paketsembako.com/sitemap.xml
