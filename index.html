@@ -77,28 +77,6 @@
                 display: inline-flex;
             }
         }
-        .sort-animate {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .sort-animate:focus-within {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 20px -12px rgba(16, 185, 129, 0.5);
-        }
-        .sort-dropdown {
-            position: relative;
-        }
-        .sort-menu {
-            opacity: 0;
-            transform: scale(0.98);
-            transform-origin: top right;
-            pointer-events: none;
-            transition: opacity 0.18s ease, transform 0.18s ease;
-        }
-        .sort-menu.open {
-            opacity: 1;
-            transform: scale(1);
-            pointer-events: auto;
-        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -164,7 +142,7 @@
             <div id="bundle-carousel-container" class="mb-8"></div>
             
             <!-- Search & Filter UI -->
-            <div class="max-w-4xl mx-auto mb-6 space-y-4">
+            <div class="max-w-4xl mx-auto mb-12 space-y-6">
                 <!-- Search Bar -->
                 <div class="relative">
                     <label for="search-input" class="sr-only">Cari paket sembako</label>
@@ -175,6 +153,17 @@
                     <div id="search-suggestions" class="hidden absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-40 overflow-hidden">
                         <!-- Suggestions injected here -->
                     </div>
+                </div>
+
+                <!-- Sort Dropdown -->
+                <div class="flex items-center gap-3">
+                    <label for="sort-select" class="text-sm font-semibold text-gray-700">Urutkan</label>
+                    <select id="sort-select" onchange="filterProducts()" class="w-full md:w-64 p-3 bg-white border-2 border-gray-100 rounded-xl shadow-sm focus:border-green-500 focus:ring-0 outline-none transition text-sm">
+                        <option value="default">Rekomendasi</option>
+                        <option value="price-asc">Harga Termurah</option>
+                        <option value="price-desc">Harga Termahal</option>
+                        <option value="promo">Promo Terbesar</option>
+                    </select>
                 </div>
 
                 <!-- Category Filters Carousel -->
@@ -203,26 +192,6 @@
                     <div class="flex justify-center gap-1 mt-2">
                         <div class="h-1 w-8 bg-green-500 rounded-full"></div>
                         <div class="h-1 w-8 bg-gray-300 rounded-full"></div>
-                    </div>
-                </div>
-
-                <!-- Sort Dropdown (Custom, Animated) -->
-                <div class="flex justify-start md:justify-end">
-                    <div class="flex items-center gap-2 sort-animate sort-dropdown" id="sort-dropdown">
-                        <label for="sort-select" class="text-xs font-semibold text-gray-600">Urutkan</label>
-                        <input type="hidden" id="sort-select" value="default">
-                        <button type="button" id="sort-trigger" class="w-40 md:w-56 p-2 bg-white border-2 border-gray-100 rounded-lg shadow-sm focus:border-green-500 focus:ring-0 outline-none transition text-xs flex items-center justify-between" aria-haspopup="listbox" aria-expanded="false">
-                            <span id="sort-label">Rekomendasi</span>
-                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
-                        <div id="sort-menu" class="sort-menu absolute right-0 top-full mt-2 w-40 md:w-56 bg-white/90 border border-gray-200 rounded-lg shadow-lg z-40 overflow-hidden" role="listbox">
-                            <button type="button" class="w-full text-left px-3 py-2 text-xs hover:bg-green-50 transition" data-sort-value="default">Rekomendasi</button>
-                            <button type="button" class="w-full text-left px-3 py-2 text-xs hover:bg-green-50 transition" data-sort-value="price-asc">Harga Termurah</button>
-                            <button type="button" class="w-full text-left px-3 py-2 text-xs hover:bg-green-50 transition" data-sort-value="price-desc">Harga Termahal</button>
-                            <button type="button" class="w-full text-left px-3 py-2 text-xs hover:bg-green-50 transition" data-sort-value="promo">Promo Terbesar</button>
-                        </div>
                     </div>
                 </div>
             </div>
