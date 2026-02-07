@@ -561,6 +561,18 @@ function renderSearchSuggestions(query) {
     container.classList.remove('hidden');
 }
 
+function closeSearchSuggestions() {
+    const containers = [
+        document.getElementById('search-suggestions'),
+        document.getElementById('search-suggestions-header')
+    ];
+    containers.forEach((container) => {
+        if (!container) return;
+        container.classList.add('hidden');
+        container.innerHTML = '';
+    });
+}
+
 function getSearchSuggestions(query, limit = 6) {
     const tokens = tokenize(query);
     if (tokens.length === 0) return [];
@@ -1609,6 +1621,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 input.value = value;
                 filterProducts();
             }
+            closeSearchSuggestions();
         });
     }
     const searchSuggestionsHeader = document.getElementById('search-suggestions-header');
@@ -1626,6 +1639,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 mainInput.value = value;
             }
             filterProducts();
+            closeSearchSuggestions();
         });
     }
 
@@ -1633,11 +1647,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (searchInput) {
         searchInput.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
-                const container = document.getElementById('search-suggestions');
-                if (container) {
-                    container.classList.add('hidden');
-                    container.innerHTML = '';
-                }
+                closeSearchSuggestions();
             }
         });
     }
@@ -1645,14 +1655,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (headerInput) {
         headerInput.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
-                const container = document.getElementById('search-suggestions-header');
-                if (container) {
-                    container.classList.add('hidden');
-                    container.innerHTML = '';
-                }
+                closeSearchSuggestions();
             }
         });
     }
+
+    document.addEventListener('click', (event) => {
+        const isInsideSearch = event.target.closest('#search-input') ||
+            event.target.closest('#search-suggestions') ||
+            event.target.closest('#search-input-header') ||
+            event.target.closest('#search-suggestions-header');
+        if (!isInsideSearch) {
+            closeSearchSuggestions();
+        }
+    });
+
 
     const headerSearch = document.getElementById('search-input-header');
     if (headerSearch) {
