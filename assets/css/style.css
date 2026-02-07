@@ -118,6 +118,16 @@ body.modal-active { overflow-x: hidden; overflow-y: visible !important; }
     animation: pulse-border 2.5s infinite ease-in-out;
 }
 
+.desktop-search-bar {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .desktop-search-bar {
+        display: block;
+    }
+}
+
 /* QRIS Modal Styles */
 #qris-modal img {
     max-width: 100%;
