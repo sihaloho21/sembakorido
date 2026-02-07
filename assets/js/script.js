@@ -540,7 +540,9 @@ function matchesQuery(product, query) {
 }
 
 function renderSearchSuggestions(query) {
-    const container = document.getElementById('search-suggestions');
+    const mainContainer = document.getElementById('search-suggestions');
+    const headerContainer = document.getElementById('search-suggestions-header');
+    const container = headerContainer && window.innerWidth < 768 ? headerContainer : mainContainer;
     if (!container) return;
     if (!query) {
         container.classList.add('hidden');
@@ -1609,12 +1611,41 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    const searchSuggestionsHeader = document.getElementById('search-suggestions-header');
+    if (searchSuggestionsHeader) {
+        searchSuggestionsHeader.addEventListener('click', (event) => {
+            const btn = event.target.closest('[data-action="search-suggestion"]');
+            if (!btn) return;
+            const value = btn.getAttribute('data-value') || '';
+            const input = document.getElementById('search-input-header');
+            const mainInput = document.getElementById('search-input');
+            if (input) {
+                input.value = value;
+            }
+            if (mainInput) {
+                mainInput.value = value;
+            }
+            filterProducts();
+        });
+    }
 
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 const container = document.getElementById('search-suggestions');
+                if (container) {
+                    container.classList.add('hidden');
+                    container.innerHTML = '';
+                }
+            }
+        });
+    }
+    const headerInput = document.getElementById('search-input-header');
+    if (headerInput) {
+        headerInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                const container = document.getElementById('search-suggestions-header');
                 if (container) {
                     container.classList.add('hidden');
                     container.innerHTML = '';
