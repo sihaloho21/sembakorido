@@ -1622,6 +1622,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    const headerSearch = document.getElementById('search-input-header');
+    if (headerSearch) {
+        headerSearch.addEventListener('input', (event) => {
+            const value = event.target.value || '';
+            const mainSearch = document.getElementById('search-input');
+            if (mainSearch) {
+                mainSearch.value = value;
+                filterProducts();
+            }
+        });
+    }
 });
 
 function toggleLocationField() {
