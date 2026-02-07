@@ -81,6 +81,9 @@
             .header-search-active .header-actions {
                 display: none;
             }
+            .header-search-active .header-logo {
+                display: none;
+            }
             .header-search-active .header-search {
                 flex: 1;
             }
@@ -99,7 +102,7 @@
     <!-- Header -->
     <header class="bg-green-700 text-white py-0 shadow-md fixed z-50 w-full left-0 right-0" id="main-header" style="top: 0;">
         <div class="container mx-auto px-4 flex justify-between items-center header-search-wrap">
-            <button type="button" class="flex items-center gap-3 cursor-pointer" data-action="logo-click" aria-label="Logo GoSembako">
+            <button type="button" class="flex items-center gap-3 cursor-pointer header-logo" data-action="logo-click" aria-label="Logo GoSembako">
                 <img src="assets/img/logo.webp" alt="GoSembako Logo" class="h-16 w-auto" data-fallback-src="assets/img/logo.webp">
                 <h1 class="text-2xl font-bold hidden md:block">GoSembako</h1>
             </button>
