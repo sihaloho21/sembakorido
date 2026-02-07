@@ -556,7 +556,7 @@ function renderSearchSuggestions(query) {
         return;
     }
     container.innerHTML = suggestions.map((item) => `
-        <button type=\"button\" class=\"w-full text-left px-4 py-3 text-sm hover:bg-green-50 transition\" data-action=\"search-suggestion\" data-value=\"${escapeHtml(item)}\">${escapeHtml(item)}</button>
+        <button type=\"button\" class=\"w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-green-50 transition\" data-action=\"search-suggestion\" data-value=\"${escapeHtml(item)}\">${escapeHtml(item)}</button>
     `).join('');
     container.classList.remove('hidden');
 }
@@ -1661,8 +1661,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const mainSearch = document.getElementById('search-input');
             if (mainSearch) {
                 mainSearch.value = value;
-                filterProducts();
             }
+            filterProducts();
+        });
+        headerSearch.addEventListener('focus', () => {
+            const header = document.getElementById('main-header');
+            if (header) header.classList.add('header-search-active');
+        });
+        headerSearch.addEventListener('blur', () => {
+            const header = document.getElementById('main-header');
+            if (!header) return;
+            setTimeout(() => header.classList.remove('header-search-active'), 120);
         });
     }
 });
