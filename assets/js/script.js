@@ -1646,7 +1646,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
+            if (event.key === 'Escape' || event.key === 'Enter') {
                 closeSearchSuggestions();
             }
         });
@@ -1654,7 +1654,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const headerInput = document.getElementById('search-input-header');
     if (headerInput) {
         headerInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
+            if (event.key === 'Escape' || event.key === 'Enter') {
                 closeSearchSuggestions();
             }
         });
