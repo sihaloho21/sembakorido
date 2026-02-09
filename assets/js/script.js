@@ -1646,16 +1646,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' || event.key === 'Enter') {
+            if (event.key === 'Escape') {
                 closeSearchSuggestions();
+            }
+            if (event.key === 'Enter') {
+                closeSearchSuggestions();
+                event.preventDefault();
+                searchInput.blur();
             }
         });
     }
     const headerInput = document.getElementById('search-input-header');
     if (headerInput) {
         headerInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' || event.key === 'Enter') {
+            if (event.key === 'Escape') {
                 closeSearchSuggestions();
+            }
+            if (event.key === 'Enter') {
+                closeSearchSuggestions();
+                event.preventDefault();
+                headerInput.blur();
             }
         });
     }
