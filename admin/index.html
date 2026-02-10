@@ -40,6 +40,10 @@
                 <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m-7 4h8a2 2 0 002-2V6a2 2 0 00-2-2H8l-4 4v10a2 2 0 002 2z"></path></svg>
                 Supplier
             </button>
+            <button data-action="show-section" data-section="biaya" id="nav-biaya" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c1.657 0 3 .895 3 2s-1.343 2-3 2-3 .895-3 2 1.343 2 3 2m0-8c-1.11 0-2.08.407-2.67 1M12 8V7m0 11v1m0-1c1.11 0 2.08-.407 2.67-1M12 13v-1"></path></svg>
+                Biaya
+            </button>
             <button data-action="show-section" data-section="kategori" id="nav-kategori" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
                 <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z"></path></svg>
                 Kategori
@@ -116,10 +120,6 @@
                         <h3 id="stat-omzet-harian" class="text-2xl font-bold text-green-700 mt-1">Rp 0</h3>
                     </div>
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <p class="text-sm text-gray-500 font-medium">Omzet 7 Hari</p>
-                        <h3 id="stat-omzet-mingguan" class="text-2xl font-bold text-green-700 mt-1">Rp 0</h3>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <p class="text-sm text-gray-500 font-medium">HPP Hari Ini</p>
                         <h3 id="stat-hpp-harian" class="text-2xl font-bold text-gray-800 mt-1">Rp 0</h3>
                     </div>
@@ -128,12 +128,24 @@
                         <h3 id="stat-profit-harian" class="text-2xl font-bold text-green-700 mt-1">Rp 0</h3>
                     </div>
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <p class="text-sm text-gray-500 font-medium">HPP 7 Hari</p>
-                        <h3 id="stat-hpp-mingguan" class="text-2xl font-bold text-gray-800 mt-1">Rp 0</h3>
+                        <p class="text-sm text-gray-500 font-medium">Omzet 30 Hari</p>
+                        <h3 id="stat-omzet-30d" class="text-2xl font-bold text-green-700 mt-1">Rp 0</h3>
                     </div>
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <p class="text-sm text-gray-500 font-medium">Laba Kotor 7 Hari</p>
-                        <h3 id="stat-profit-mingguan" class="text-2xl font-bold text-green-700 mt-1">Rp 0</h3>
+                        <p class="text-sm text-gray-500 font-medium">HPP 30 Hari</p>
+                        <h3 id="stat-hpp-30d" class="text-2xl font-bold text-gray-800 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <p class="text-sm text-gray-500 font-medium">Laba Kotor 30 Hari</p>
+                        <h3 id="stat-profit-30d" class="text-2xl font-bold text-green-700 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <p class="text-sm text-gray-500 font-medium">Biaya Operasional 30 Hari</p>
+                        <h3 id="stat-cost-30d" class="text-2xl font-bold text-gray-800 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <p class="text-sm text-gray-500 font-medium">Laba Bersih 30 Hari</p>
+                        <h3 id="stat-net-30d" class="text-2xl font-bold text-green-700 mt-1">Rp 0</h3>
                     </div>
                                 <!-- Store Status Toggle -->
                     <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
@@ -336,6 +348,73 @@
                             </thead>
                             <tbody id="supplier-list-body" class="divide-y divide-gray-100">
                                 <!-- Suppliers will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Biaya -->
+            <section id="section-biaya" class="hidden space-y-6">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-start mobile-stack mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Biaya Operasional Bulanan</h3>
+                            <p class="text-sm text-gray-500">Catat biaya rutin bulanan untuk menghitung laba bersih 30 hari.</p>
+                        </div>
+                    </div>
+                    <form id="monthly-cost-form" class="space-y-4">
+                        <input type="hidden" id="form-cost-id">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Nama Biaya</label>
+                                <input type="text" id="form-cost-name" required class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Nominal / Bulan</label>
+                                <input type="number" id="form-cost-amount" min="0" step="1" required class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Status</label>
+                                <select id="form-cost-active" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                                    <option value="Ya">Aktif</option>
+                                    <option value="Tidak">Nonaktif</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Catatan</label>
+                                <input type="text" id="form-cost-notes" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                            </div>
+                        </div>
+                        <div class="flex justify-end mobile-actions gap-2">
+                            <button type="button" data-action="reset-cost-form" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-xl font-bold transition">
+                                Reset
+                            </button>
+                            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-green-100">
+                                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                Simpan Biaya
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-8 py-6 border-b border-gray-100">
+                        <h4 class="font-bold text-gray-800">Daftar Biaya Bulanan</h4>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Nama</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Nominal</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Catatan</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthly-cost-list-body" class="divide-y divide-gray-100">
+                                <!-- Costs will be loaded here -->
                             </tbody>
                         </table>
                     </div>
