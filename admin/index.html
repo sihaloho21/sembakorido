@@ -154,29 +154,29 @@
                         <p class="text-sm text-gray-500 font-medium">Laba Bersih 30 Hari</p>
                         <h3 id="stat-net-30d" class="text-2xl font-bold text-green-700 mt-1">Rp 0</h3>
                     </div>
-                    
-                <!-- Recent Orders -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
-                        <h4 class="font-bold text-gray-800">Pesanan Terbaru</h4>
-                        <button data-action="show-section" data-section="pesanan" class="text-sm font-bold text-green-700 hover:text-green-800">Lihat Semua</button>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-bold text-gray-800">Laporan Ringkas (30 Hari Terakhir)</h4>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-gray-50 border-b">
-                                <tr>
-                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ID</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Pelanggan</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recent-orders-list" class="divide-y divide-gray-100">
-                                <tr>
-                                    <td colspan="4" class="px-6 py-6 text-center text-gray-500">Memuat pesanan...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Omzet</p>
+                            <h4 id="summary-omzet-30d" class="text-lg font-bold text-gray-800 mt-1">Rp 0</h4>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">HPP</p>
+                            <h4 id="summary-hpp-30d" class="text-lg font-bold text-gray-800 mt-1">Rp 0</h4>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Laba Kotor</p>
+                            <h4 id="summary-profit-30d" class="text-lg font-bold text-green-700 mt-1">Rp 0</h4>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Margin</p>
+                            <h4 id="summary-margin-30d" class="text-lg font-bold text-green-700 mt-1">0%</h4>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -731,6 +731,20 @@
                                         Tambah Override Manual
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t">
+                        <h4 class="font-bold text-gray-800 mb-4">Konfigurasi Margin</h4>
+                        <div class="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 space-y-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Ambang Margin Rendah (%)</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="margin-alert-threshold" min="0" max="100" step="0.1" class="w-full p-3 border border-emerald-200 rounded-xl outline-none focus:border-emerald-500 bg-white">
+                                    <span class="text-gray-600 font-bold">%</span>
+                                </div>
+                                <p class="text-xs text-emerald-600 mt-1">Produk dengan margin di bawah angka ini akan diberi peringatan.</p>
                             </div>
                         </div>
                     </div>

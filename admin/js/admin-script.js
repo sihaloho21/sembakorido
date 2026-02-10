@@ -190,6 +190,10 @@ function updateRevenueStats(orders) {
     const profit30El = document.getElementById('stat-profit-30d');
     const cost30El = document.getElementById('stat-cost-30d');
     const net30El = document.getElementById('stat-net-30d');
+    const summaryOmzetEl = document.getElementById('summary-omzet-30d');
+    const summaryHppEl = document.getElementById('summary-hpp-30d');
+    const summaryProfitEl = document.getElementById('summary-profit-30d');
+    const summaryMarginEl = document.getElementById('summary-margin-30d');
     if (!dailyEl && !dailyHppEl && !omzet30El && !hpp30El) return;
 
     const now = new Date();
@@ -228,6 +232,14 @@ function updateRevenueStats(orders) {
     const monthlyCost = calculateMonthlyCostTotal();
     if (cost30El) cost30El.innerText = `Rp ${Math.round(monthlyCost).toLocaleString('id-ID')}`;
     if (net30El) net30El.innerText = `Rp ${Math.round((total30 - hpp30) - monthlyCost).toLocaleString('id-ID')}`;
+
+    if (summaryOmzetEl) summaryOmzetEl.innerText = `Rp ${total30.toLocaleString('id-ID')}`;
+    if (summaryHppEl) summaryHppEl.innerText = `Rp ${Math.round(hpp30).toLocaleString('id-ID')}`;
+    if (summaryProfitEl) summaryProfitEl.innerText = `Rp ${Math.round(total30 - hpp30).toLocaleString('id-ID')}`;
+    if (summaryMarginEl) {
+        const margin = total30 > 0 ? ((total30 - hpp30) / total30) * 100 : 0;
+        summaryMarginEl.innerText = `${margin.toFixed(1)}%`;
+    }
 }
 
 function parseOrderDate(value) {
@@ -948,6 +960,8 @@ function renderAdminTable() {
         const lastCost = costStats.lastCost;
         const marginValue = avgCost > 0 ? priceValue - avgCost : 0;
         const marginPercent = avgCost > 0 ? (marginValue / avgCost) * 100 : 0;
+        const marginThreshold = CONFIG.getMarginAlertThreshold ? CONFIG.getMarginAlertThreshold() : 10;
+        const isLowMargin = avgCost > 0 && marginPercent < marginThreshold;
         return `
         <tr class="hover:bg-gray-50 transition">
             <td class="px-6 py-4" data-label="Produk">
@@ -965,7 +979,8 @@ function renderAdminTable() {
                     <span class="font-bold text-green-700 text-sm">Rp ${parseInt(p.harga).toLocaleString('id-ID')}</span>
                     ${avgCost > 0 ? `<span class="text-[10px] text-gray-500">Modal avg: Rp ${Math.round(avgCost).toLocaleString('id-ID')}</span>` : '<span class="text-[10px] text-gray-400">Modal avg: -</span>'}
                     ${lastCost > 0 ? `<span class="text-[10px] text-gray-500">Modal last: Rp ${Math.round(lastCost).toLocaleString('id-ID')}</span>` : '<span class="text-[10px] text-gray-400">Modal last: -</span>'}
-                    ${avgCost > 0 ? `<span class="text-[10px] ${marginValue >= 0 ? 'text-green-600' : 'text-red-600'}">Margin: Rp ${Math.round(marginValue).toLocaleString('id-ID')} (${marginPercent.toFixed(1)}%)</span>` : ''}
+                    ${avgCost > 0 ? `<span class="text-[10px] ${isLowMargin ? 'text-red-600 font-bold' : 'text-green-600'}">Margin: Rp ${Math.round(marginValue).toLocaleString('id-ID')} (${marginPercent.toFixed(1)}%)</span>` : ''}
+                    ${isLowMargin ? `<span class="text-[10px] text-red-500 font-bold">Margin Rendah</span>` : ''}
                 </div>
             </td>
             <td class="px-6 py-4" data-label="Stok">
@@ -1458,6 +1473,9 @@ function loadSettings() {
     
     // Manual Overrides
     renderRewardOverrides(config.reward.manualOverrides);
+
+    const marginEl = document.getElementById('margin-alert-threshold');
+    if (marginEl) marginEl.value = config.marginAlert || CONFIG.getMarginAlertThreshold();
 }
 
 function renderGajianMarkups(markups) {
@@ -1533,6 +1551,11 @@ async function saveSettings() {
         pointValue,
         minPoint
     });
+
+    const marginEl = document.getElementById('margin-alert-threshold');
+    if (marginEl) {
+        CONFIG.setMarginAlertThreshold(parseFloat(marginEl.value));
+    }
     
     // Trigger API config change event for all open tabs/windows
     window.dispatchEvent(new Event('api-config-changed'));
