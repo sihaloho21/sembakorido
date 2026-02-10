@@ -18,7 +18,8 @@ const CONFIG = {
         ADMIN_API: 'sembako_admin_api_url',
         GAJIAN_CONFIG: 'sembako_gajian_config',
         REWARD_CONFIG: 'sembako_reward_config',
-        STORE_CLOSED: 'sembako_store_closed'
+        STORE_CLOSED: 'sembako_store_closed',
+        MARGIN_ALERT: 'sembako_margin_alert'
     },
     
 
@@ -169,6 +170,27 @@ const CONFIG = {
     },
 
     /**
+     * Mendapatkan ambang batas margin rendah (persentase)
+     * @returns {number} Persentase margin rendah
+     */
+    getMarginAlertThreshold() {
+        const saved = localStorage.getItem(this.STORAGE_KEYS.MARGIN_ALERT);
+        const parsed = parseFloat(saved);
+        return Number.isFinite(parsed) ? parsed : 10;
+    },
+
+    /**
+     * Menyimpan ambang batas margin rendah (persentase)
+     * @param {number} value - Persentase margin rendah
+     */
+    setMarginAlertThreshold(value) {
+        const parsed = parseFloat(value);
+        if (Number.isFinite(parsed)) {
+            localStorage.setItem(this.STORAGE_KEYS.MARGIN_ALERT, String(parsed));
+        }
+    },
+
+    /**
      * Mendapatkan status toko (tutup/buka)
      * @returns {boolean} true jika toko tutup
      */
@@ -196,7 +218,8 @@ const CONFIG = {
             adminApi: this.getAdminApiUrl(),
             gajian: this.getGajianConfig(),
             reward: this.getRewardConfig(),
-            storeClosed: this.isStoreClosed()
+            storeClosed: this.isStoreClosed(),
+            marginAlert: this.getMarginAlertThreshold()
         };
     }
 };
