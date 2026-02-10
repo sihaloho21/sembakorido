@@ -185,16 +185,13 @@ function updateRevenueStats(orders) {
     const dailyEl = document.getElementById('stat-omzet-harian');
     const dailyHppEl = document.getElementById('stat-hpp-harian');
     const dailyProfitEl = document.getElementById('stat-profit-harian');
-    const omzet30El = document.getElementById('stat-omzet-30d');
-    const hpp30El = document.getElementById('stat-hpp-30d');
-    const profit30El = document.getElementById('stat-profit-30d');
-    const cost30El = document.getElementById('stat-cost-30d');
-    const net30El = document.getElementById('stat-net-30d');
     const summaryOmzetEl = document.getElementById('summary-omzet-30d');
     const summaryHppEl = document.getElementById('summary-hpp-30d');
     const summaryProfitEl = document.getElementById('summary-profit-30d');
     const summaryMarginEl = document.getElementById('summary-margin-30d');
-    if (!dailyEl && !dailyHppEl && !omzet30El && !hpp30El) return;
+    const summaryCostEl = document.getElementById('summary-cost-30d');
+    const summaryNetEl = document.getElementById('summary-net-30d');
+    if (!dailyEl && !dailyHppEl && !summaryOmzetEl && !summaryHppEl) return;
 
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -225,17 +222,13 @@ function updateRevenueStats(orders) {
     if (dailyEl) dailyEl.innerText = `Rp ${dailyTotal.toLocaleString('id-ID')}`;
     if (dailyHppEl) dailyHppEl.innerText = `Rp ${Math.round(dailyHpp).toLocaleString('id-ID')}`;
     if (dailyProfitEl) dailyProfitEl.innerText = `Rp ${Math.round(dailyTotal - dailyHpp).toLocaleString('id-ID')}`;
-    if (omzet30El) omzet30El.innerText = `Rp ${total30.toLocaleString('id-ID')}`;
-    if (hpp30El) hpp30El.innerText = `Rp ${Math.round(hpp30).toLocaleString('id-ID')}`;
-    if (profit30El) profit30El.innerText = `Rp ${Math.round(total30 - hpp30).toLocaleString('id-ID')}`;
-
     const monthlyCost = calculateMonthlyCostTotal();
-    if (cost30El) cost30El.innerText = `Rp ${Math.round(monthlyCost).toLocaleString('id-ID')}`;
-    if (net30El) net30El.innerText = `Rp ${Math.round((total30 - hpp30) - monthlyCost).toLocaleString('id-ID')}`;
 
     if (summaryOmzetEl) summaryOmzetEl.innerText = `Rp ${total30.toLocaleString('id-ID')}`;
     if (summaryHppEl) summaryHppEl.innerText = `Rp ${Math.round(hpp30).toLocaleString('id-ID')}`;
     if (summaryProfitEl) summaryProfitEl.innerText = `Rp ${Math.round(total30 - hpp30).toLocaleString('id-ID')}`;
+    if (summaryCostEl) summaryCostEl.innerText = `Rp ${Math.round(monthlyCost).toLocaleString('id-ID')}`;
+    if (summaryNetEl) summaryNetEl.innerText = `Rp ${Math.round((total30 - hpp30) - monthlyCost).toLocaleString('id-ID')}`;
     if (summaryMarginEl) {
         const margin = total30 > 0 ? ((total30 - hpp30) / total30) * 100 : 0;
         summaryMarginEl.innerText = `${margin.toFixed(1)}%`;
