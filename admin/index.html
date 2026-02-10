@@ -32,6 +32,10 @@
                 <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                 Produk
             </button>
+            <button data-action="show-section" data-section="bundle" id="nav-bundle" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4m16 0l-6 6m6-6l-6-6M4 12l6 6m-6-6l6-6"></path></svg>
+                Bundle Builder
+            </button>
             <button data-action="show-section" data-section="pembelian" id="nav-pembelian" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
                 <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0zM7 13h10"></path></svg>
                 Pembelian
@@ -196,6 +200,81 @@
                             <!-- Products will be loaded here -->
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <!-- Section: Bundle Builder -->
+            <section id="section-bundle" class="hidden space-y-6">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-start mobile-stack mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Bundle Builder</h3>
+                            <p class="text-sm text-gray-500">Buat paket sembako otomatis dari daftar produk.</p>
+                        </div>
+                    </div>
+                    <form id="bundle-form" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Nama Paket</label>
+                                <input type="text" id="bundle-name" required class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Kategori</label>
+                                <select id="bundle-category" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                                    <option value="">-- Pilih Kategori --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Gambar Paket (URL)</label>
+                                <input type="text" id="bundle-image" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100" placeholder="https://...">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Stok Paket</label>
+                                <input type="number" id="bundle-stock" min="0" step="1" required class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="font-bold text-gray-800 mb-3">Item Paket</h4>
+                            <div id="bundle-items" class="space-y-3"></div>
+                            <button type="button" data-action="add-bundle-item" class="mt-3 bg-blue-50 text-blue-700 hover:bg-blue-100 px-4 py-2 rounded-xl text-sm font-bold transition">
+                                Tambah Item
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Total Harga Item</label>
+                                <input type="text" id="bundle-total" readonly class="w-full p-3 border border-gray-200 rounded-xl bg-gray-50">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Diskon (%)</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="bundle-discount" min="0" max="100" step="0.1" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                                    <button type="button" data-action="apply-bundle-recommendation" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-xs font-bold">
+                                        Rekomendasi
+                                    </button>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Rekomendasi otomatis berdasarkan jumlah item.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Harga Paket (Final)</label>
+                                <input type="text" id="bundle-final" readonly class="w-full p-3 border border-gray-200 rounded-xl bg-gray-50">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Deskripsi Paket</label>
+                            <textarea id="bundle-description" rows="3" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100" placeholder="Deskripsi paket otomatis akan dibuat, bisa kamu edit."></textarea>
+                        </div>
+
+                        <div class="flex justify-end mobile-actions">
+                            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-green-100">
+                                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                Simpan Paket
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </section>
 
@@ -736,6 +815,27 @@
                                 </div>
                                 <p class="text-xs text-emerald-600 mt-1">Produk dengan margin di bawah angka ini akan diberi peringatan.</p>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t">
+                        <h4 class="font-bold text-gray-800 mb-4">Konfigurasi Diskon Bundle</h4>
+                        <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">3–4 Item (%)</label>
+                                    <input type="number" id="bundle-rule-34" min="0" max="100" step="0.1" class="w-full p-3 border border-blue-200 rounded-xl outline-none focus:border-blue-500 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">5–6 Item (%)</label>
+                                    <input type="number" id="bundle-rule-56" min="0" max="100" step="0.1" class="w-full p-3 border border-blue-200 rounded-xl outline-none focus:border-blue-500 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">7+ Item (%)</label>
+                                    <input type="number" id="bundle-rule-7" min="0" max="100" step="0.1" class="w-full p-3 border border-blue-200 rounded-xl outline-none focus:border-blue-500 bg-white">
+                                </div>
+                            </div>
+                            <p class="text-xs text-blue-600">Aturan ini dipakai untuk rekomendasi diskon otomatis di Bundle Builder.</p>
                         </div>
                     </div>
 

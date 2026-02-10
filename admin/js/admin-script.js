@@ -43,6 +43,7 @@ function showSection(sectionId) {
     const titles = {
         dashboard: 'Dashboard',
         produk: 'Produk',
+        bundle: 'Bundle Builder',
         pembelian: 'Pembelian',
         suppliers: 'Supplier',
         biaya: 'Biaya Operasional',
@@ -58,6 +59,13 @@ function showSection(sectionId) {
 
     if (sectionId === 'kategori') fetchCategories();
     if (sectionId === 'produk') fetchAdminProducts();
+    if (sectionId === 'bundle') {
+        if (allProducts.length === 0 || allCategories.length === 0) {
+            fetchAdminProducts();
+            fetchCategories();
+        }
+        ensureBundleBuilderReady();
+    }
     if (sectionId === 'pembelian') {
         if (allProducts.length === 0) fetchAdminProducts();
         fetchPurchases();
@@ -281,6 +289,134 @@ function calculateMonthlyCostTotal() {
         const amount = parseCurrencyValue(cost.nominal || cost.amount || 0);
         return sum + amount;
     }, 0);
+}
+
+// ============ BUNDLE BUILDER FUNCTIONS ============
+function getBundleRules() {
+    if (CONFIG.getBundleDiscountConfig) {
+        return CONFIG.getBundleDiscountConfig();
+    }
+    return { rule34: 5, rule56: 8, rule7plus: 10 };
+}
+
+function recommendBundleDiscount(itemCount) {
+    const rules = getBundleRules();
+    if (itemCount >= 7) return rules.rule7plus;
+    if (itemCount >= 5) return rules.rule56;
+    if (itemCount >= 3) return rules.rule34;
+    return 0;
+}
+
+function ensureBundleBuilderReady() {
+    const itemsContainer = document.getElementById('bundle-items');
+    if (!itemsContainer) return;
+    if (itemsContainer.children.length === 0) {
+        addBundleItemRow();
+        addBundleItemRow();
+    }
+    updateBundleCategoryDropdown();
+    updateBundleTotals();
+}
+
+function addBundleItemRow() {
+    const container = document.getElementById('bundle-items');
+    if (!container) return;
+    const row = document.createElement('div');
+    row.className = 'grid grid-cols-1 md:grid-cols-3 gap-3 items-center bundle-item-row';
+    row.innerHTML = `
+        <div>
+            <select class="bundle-item-product w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                <option value="">-- Pilih Produk --</option>
+                ${allProducts.map(p => `<option value="${escapeAttr(p.id)}">${escapeHtml(p.nama)}</option>`).join('')}
+            </select>
+        </div>
+        <div>
+            <input type="number" min="1" step="1" value="1" class="bundle-item-qty w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="bundle-item-subtotal text-sm text-gray-600 flex-1">Rp 0</span>
+            <button type="button" data-action="remove-bundle-item" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-lg text-sm font-bold transition">
+                Hapus
+            </button>
+        </div>
+    `;
+    container.appendChild(row);
+}
+
+function refreshBundleItemOptions() {
+    const selects = document.querySelectorAll('.bundle-item-product');
+    if (!selects.length) return;
+    const optionsHtml = '<option value="">-- Pilih Produk --</option>' +
+        allProducts.map(p => `<option value="${escapeAttr(p.id)}">${escapeHtml(p.nama)}</option>`).join('');
+    selects.forEach(select => {
+        const currentVal = select.value;
+        select.innerHTML = optionsHtml;
+        select.value = currentVal;
+    });
+}
+
+function removeBundleItemRow(button) {
+    const row = button.closest('.bundle-item-row');
+    if (row) row.remove();
+    updateBundleTotals();
+}
+
+function updateBundleTotals() {
+    const rows = Array.from(document.querySelectorAll('.bundle-item-row'));
+    let total = 0;
+    let itemCount = 0;
+    const itemsDesc = [];
+
+    rows.forEach(row => {
+        const productId = row.querySelector('.bundle-item-product')?.value;
+        const qty = parseInt(row.querySelector('.bundle-item-qty')?.value || '0', 10);
+        const product = allProducts.find(p => String(p.id) === String(productId));
+        const price = product ? parseCurrencyValue(product.harga) : 0;
+        const itemTotal = price * (Number.isFinite(qty) ? qty : 0);
+        total += itemTotal;
+        if (product && qty > 0) {
+            itemCount += 1;
+            itemsDesc.push(`- ${product.nama} x${qty}`);
+        }
+        const subtotalEl = row.querySelector('.bundle-item-subtotal');
+        if (subtotalEl) subtotalEl.textContent = `Rp ${Math.round(itemTotal).toLocaleString('id-ID')}`;
+    });
+
+    const totalEl = document.getElementById('bundle-total');
+    if (totalEl) totalEl.value = `Rp ${Math.round(total).toLocaleString('id-ID')}`;
+
+    const discountEl = document.getElementById('bundle-discount');
+    if (discountEl && (discountEl.value === '' || discountEl.dataset.auto === 'true')) {
+        const rec = recommendBundleDiscount(itemCount);
+        discountEl.value = rec;
+        discountEl.dataset.auto = 'true';
+    }
+
+    const discount = parseFloat(discountEl?.value || '0') || 0;
+    const finalPrice = Math.max(0, total - (total * discount / 100));
+    const finalEl = document.getElementById('bundle-final');
+    if (finalEl) finalEl.value = `Rp ${Math.round(finalPrice).toLocaleString('id-ID')}`;
+
+    const descEl = document.getElementById('bundle-description');
+    if (descEl && !descEl.dataset.touched) {
+        descEl.value = `Isi paket:\\n${itemsDesc.join('\\n')}`;
+    }
+}
+
+function applyBundleRecommendation() {
+    const rows = Array.from(document.querySelectorAll('.bundle-item-row'));
+    const itemCount = rows.reduce((count, row) => {
+        const productId = row.querySelector('.bundle-item-product')?.value;
+        const qty = parseInt(row.querySelector('.bundle-item-qty')?.value || '0', 10);
+        if (productId && qty > 0) return count + 1;
+        return count;
+    }, 0);
+    const discountEl = document.getElementById('bundle-discount');
+    if (discountEl) {
+        discountEl.value = recommendBundleDiscount(itemCount);
+        discountEl.dataset.auto = 'true';
+    }
+    updateBundleTotals();
 }
 
 function parseOrderItems(itemsText) {
@@ -553,6 +689,73 @@ if (monthlyCostForm) {
     });
 }
 
+// ============ BUNDLE FORM ============
+const bundleForm = document.getElementById('bundle-form');
+if (bundleForm) {
+    bundleForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = bundleForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerText;
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Menyimpan...';
+
+        const rows = Array.from(document.querySelectorAll('.bundle-item-row'));
+        const items = rows.map(row => {
+            const productId = row.querySelector('.bundle-item-product')?.value;
+            const qty = parseInt(row.querySelector('.bundle-item-qty')?.value || '0', 10);
+            const product = allProducts.find(p => String(p.id) === String(productId));
+            if (!product || !qty) return null;
+            return { id: product.id, nama: product.nama, qty };
+        }).filter(Boolean);
+
+        if (items.length === 0) {
+            showAdminToast('Tambahkan minimal 1 item paket.', 'warning');
+            submitBtn.disabled = false;
+            submitBtn.innerText = originalText;
+            return;
+        }
+
+        const totalText = document.getElementById('bundle-total')?.value || '0';
+        const finalText = document.getElementById('bundle-final')?.value || '0';
+        const totalValue = parseCurrencyValue(totalText);
+        const finalValue = parseCurrencyValue(finalText);
+
+        const descriptionEl = document.getElementById('bundle-description');
+        const description = descriptionEl?.value || `Isi paket:\\n${items.map(i => `- ${i.nama} x${i.qty}`).join('\\n')}`;
+
+        const data = {
+            id: Date.now().toString(),
+            nama: document.getElementById('bundle-name').value,
+            harga: Math.round(finalValue),
+            harga_coret: Math.round(totalValue),
+            gambar: document.getElementById('bundle-image').value,
+            stok: document.getElementById('bundle-stock').value,
+            kategori: document.getElementById('bundle-category').value,
+            deskripsi: description,
+            variasi: '',
+            grosir: ''
+        };
+
+        try {
+            const result = await GASActions.create(PRODUCTS_SHEET, data);
+            if (result.created > 0) {
+                showAdminToast('Paket berhasil dibuat!', 'success');
+                bundleForm.reset();
+                document.getElementById('bundle-description').dataset.touched = '';
+                document.getElementById('bundle-items').innerHTML = '';
+                ensureBundleBuilderReady();
+                fetchAdminProducts();
+            }
+        } catch (error) {
+            console.error(error);
+            showAdminToast('Gagal membuat paket.', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = originalText;
+        }
+    });
+}
+
 // ============ ORDER FUNCTIONS ============
 async function fetchOrders() {
     const tbody = document.getElementById('order-list-body');
@@ -780,6 +983,10 @@ async function fetchCategories() {
         allCategories = await response.json();
         renderCategoryTable();
         updateCategoryDropdown();
+        const bundleSection = document.getElementById('section-bundle');
+        if (bundleSection && !bundleSection.classList.contains('hidden')) {
+            ensureBundleBuilderReady();
+        }
     } catch (error) { console.error(error); }
 }
 
@@ -850,6 +1057,19 @@ function updateCategoryDropdown() {
     if (!select) return;
     const currentVal = select.value;
     select.innerHTML = '<option value="">-- Pilih Kategori --</option>' + 
+        allCategories.map(c => {
+            const safeName = escapeHtml(c.nama);
+            return `<option value="${safeName}">${safeName}</option>`;
+        }).join('');
+    select.value = currentVal;
+    updateBundleCategoryDropdown();
+}
+
+function updateBundleCategoryDropdown() {
+    const select = document.getElementById('bundle-category');
+    if (!select) return;
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">-- Pilih Kategori --</option>' +
         allCategories.map(c => {
             const safeName = escapeHtml(c.nama);
             return `<option value="${safeName}">${safeName}</option>`;
@@ -928,8 +1148,13 @@ async function fetchAdminProducts() {
         renderAdminTable();
         updatePurchaseProductDropdown();
         updateSupplierDatalist();
+        refreshBundleItemOptions();
         if (document.getElementById('section-pembelian') && !document.getElementById('section-pembelian').classList.contains('hidden')) {
             renderPurchaseTable();
+        }
+        const bundleSection = document.getElementById('section-bundle');
+        if (bundleSection && !bundleSection.classList.contains('hidden')) {
+            ensureBundleBuilderReady();
         }
         updateDashboardStats();
     } catch (error) { console.error(error); }
@@ -1469,6 +1694,15 @@ function loadSettings() {
 
     const marginEl = document.getElementById('margin-alert-threshold');
     if (marginEl) marginEl.value = config.marginAlert || CONFIG.getMarginAlertThreshold();
+
+    if (config.bundleDiscount) {
+        const r34 = document.getElementById('bundle-rule-34');
+        const r56 = document.getElementById('bundle-rule-56');
+        const r7 = document.getElementById('bundle-rule-7');
+        if (r34) r34.value = config.bundleDiscount.rule34 ?? 5;
+        if (r56) r56.value = config.bundleDiscount.rule56 ?? 8;
+        if (r7) r7.value = config.bundleDiscount.rule7plus ?? 10;
+    }
 }
 
 function renderGajianMarkups(markups) {
@@ -1548,6 +1782,17 @@ async function saveSettings() {
     const marginEl = document.getElementById('margin-alert-threshold');
     if (marginEl) {
         CONFIG.setMarginAlertThreshold(parseFloat(marginEl.value));
+    }
+
+    const rule34 = document.getElementById('bundle-rule-34');
+    const rule56 = document.getElementById('bundle-rule-56');
+    const rule7 = document.getElementById('bundle-rule-7');
+    if (rule34 && rule56 && rule7 && CONFIG.setBundleDiscountConfig) {
+        CONFIG.setBundleDiscountConfig({
+            rule34: parseFloat(rule34.value) || 0,
+            rule56: parseFloat(rule56.value) || 0,
+            rule7plus: parseFloat(rule7.value) || 0
+        });
     }
     
     // Trigger API config change event for all open tabs/windows
@@ -1863,6 +2108,22 @@ function bindAdminActions() {
             return;
         }
 
+        if (action === 'add-bundle-item') {
+            addBundleItemRow();
+            updateBundleTotals();
+            return;
+        }
+
+        if (action === 'remove-bundle-item') {
+            removeBundleItemRow(trigger);
+            return;
+        }
+
+        if (action === 'apply-bundle-recommendation') {
+            applyBundleRecommendation();
+            return;
+        }
+
         if (action === 'edit-user-points') {
             editUserPoints(trigger.dataset.phone, trigger.dataset.points);
             return;
@@ -1911,8 +2172,22 @@ function bindAdminActions() {
 
     document.addEventListener('input', (e) => {
         const trigger = e.target.closest('[data-action="preview-variant-image"]');
-        if (!trigger) return;
-        previewVariantImage(trigger);
+        if (trigger) {
+            previewVariantImage(trigger);
+            return;
+        }
+
+        if (e.target.classList.contains('bundle-item-product') || e.target.classList.contains('bundle-item-qty') || e.target.id === 'bundle-discount') {
+            const discountEl = document.getElementById('bundle-discount');
+            if (discountEl && e.target.id === 'bundle-discount') {
+                discountEl.dataset.auto = 'false';
+            }
+            updateBundleTotals();
+        }
+
+        if (e.target.id === 'bundle-description') {
+            e.target.dataset.touched = 'true';
+        }
     });
 }
 

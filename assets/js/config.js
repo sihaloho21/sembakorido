@@ -19,7 +19,8 @@ const CONFIG = {
         GAJIAN_CONFIG: 'sembako_gajian_config',
         REWARD_CONFIG: 'sembako_reward_config',
         STORE_CLOSED: 'sembako_store_closed',
-        MARGIN_ALERT: 'sembako_margin_alert'
+        MARGIN_ALERT: 'sembako_margin_alert',
+        BUNDLE_DISCOUNT: 'sembako_bundle_discount'
     },
     
 
@@ -170,6 +171,29 @@ const CONFIG = {
     },
 
     /**
+     * Konfigurasi diskon bundle berdasarkan jumlah item
+     */
+    getBundleDiscountConfig() {
+        const saved = localStorage.getItem(this.STORAGE_KEYS.BUNDLE_DISCOUNT);
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error('Error parsing bundle discount config', e);
+            }
+        }
+        return {
+            rule34: 5,
+            rule56: 8,
+            rule7plus: 10
+        };
+    },
+
+    setBundleDiscountConfig(config) {
+        localStorage.setItem(this.STORAGE_KEYS.BUNDLE_DISCOUNT, JSON.stringify(config));
+    },
+
+    /**
      * Mendapatkan ambang batas margin rendah (persentase)
      * @returns {number} Persentase margin rendah
      */
@@ -219,7 +243,8 @@ const CONFIG = {
             gajian: this.getGajianConfig(),
             reward: this.getRewardConfig(),
             storeClosed: this.isStoreClosed(),
-            marginAlert: this.getMarginAlertThreshold()
+            marginAlert: this.getMarginAlertThreshold(),
+            bundleDiscount: this.getBundleDiscountConfig()
         };
     }
 };
