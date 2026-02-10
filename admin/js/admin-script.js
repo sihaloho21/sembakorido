@@ -19,6 +19,7 @@ const ORDERS_SHEET = 'orders';
 const TUKAR_POIN_SHEET = 'tukar_poin';
 const PURCHASES_SHEET = 'pembelian';
 const SUPPLIERS_SHEET = 'suppliers';
+const MONTHLY_COST_SHEET = 'biaya_bulanan';
 
 let allProducts = [];
 let allCategories = [];
@@ -26,6 +27,7 @@ let allOrders = [];
 let allTukarPoin = [];
 let allPurchases = [];
 let allSuppliers = [];
+let allMonthlyCosts = [];
 let currentOrderFilter = 'semua';
 let currentOrderPage = 1;
 const ordersPerPage = 10;
@@ -43,6 +45,7 @@ function showSection(sectionId) {
         produk: 'Produk',
         pembelian: 'Pembelian',
         suppliers: 'Supplier',
+        biaya: 'Biaya Operasional',
         kategori: 'Kategori',
         pesanan: 'Pesanan',
         'tukar-poin': 'Tukar Poin',
@@ -60,6 +63,7 @@ function showSection(sectionId) {
         fetchPurchases();
     }
     if (sectionId === 'suppliers') fetchSuppliers();
+    if (sectionId === 'biaya') fetchMonthlyCosts();
     if (sectionId === 'pesanan') fetchOrders();
     if (sectionId === 'tukar-poin') fetchTukarPoin();
     if (sectionId === 'banners') fetchBanners();
@@ -117,16 +121,19 @@ function toggleStoreStatus() {
 
 async function updateDashboardStats() {
     try {
-        const [prodRes, orderRes, purchaseRes] = await Promise.all([
+        const [prodRes, orderRes, purchaseRes, costRes] = await Promise.all([
             fetch(`${API_URL}?sheet=${PRODUCTS_SHEET}`),
             fetch(`${API_URL}?sheet=${ORDERS_SHEET}`),
-            fetch(`${API_URL}?sheet=${PURCHASES_SHEET}`)
+            fetch(`${API_URL}?sheet=${PURCHASES_SHEET}`),
+            fetch(`${API_URL}?sheet=${MONTHLY_COST_SHEET}`)
         ]);
         const prods = await prodRes.json();
         const orders = await orderRes.json();
         const purchases = purchaseRes.ok ? await purchaseRes.json() : [];
+        const costs = costRes.ok ? await costRes.json() : [];
         allProducts = Array.isArray(prods) ? prods : [];
         allPurchases = Array.isArray(purchases) ? purchases : [];
+        allMonthlyCosts = Array.isArray(costs) ? costs : [];
         
         document.getElementById('stat-total-produk').innerText = prods.length || 0;
         document.getElementById('stat-total-pesanan').innerText = orders.length || 0;
@@ -134,6 +141,7 @@ async function updateDashboardStats() {
         document.getElementById('stat-stok-menipis').innerText = lowStock;
 
         const normalizedOrders = Array.isArray(orders) ? orders : [];
+        allOrders = normalizedOrders;
         updateRevenueStats(normalizedOrders);
         renderRecentOrders(normalizedOrders);
     } catch (e) { console.error(e); }
@@ -175,22 +183,24 @@ function renderRecentOrders(orders) {
 
 function updateRevenueStats(orders) {
     const dailyEl = document.getElementById('stat-omzet-harian');
-    const weeklyEl = document.getElementById('stat-omzet-mingguan');
     const dailyHppEl = document.getElementById('stat-hpp-harian');
-    const weeklyHppEl = document.getElementById('stat-hpp-mingguan');
     const dailyProfitEl = document.getElementById('stat-profit-harian');
-    const weeklyProfitEl = document.getElementById('stat-profit-mingguan');
-    if (!dailyEl && !weeklyEl && !dailyHppEl && !weeklyHppEl) return;
+    const omzet30El = document.getElementById('stat-omzet-30d');
+    const hpp30El = document.getElementById('stat-hpp-30d');
+    const profit30El = document.getElementById('stat-profit-30d');
+    const cost30El = document.getElementById('stat-cost-30d');
+    const net30El = document.getElementById('stat-net-30d');
+    if (!dailyEl && !dailyHppEl && !omzet30El && !hpp30El) return;
 
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfWeek = new Date(startOfToday);
-    startOfWeek.setDate(startOfWeek.getDate() - 6);
+    const startOf30Days = new Date(startOfToday);
+    startOf30Days.setDate(startOf30Days.getDate() - 29);
 
     let dailyTotal = 0;
-    let weeklyTotal = 0;
     let dailyHpp = 0;
-    let weeklyHpp = 0;
+    let total30 = 0;
+    let hpp30 = 0;
 
     orders.forEach((order) => {
         const orderDate = parseOrderDate(order.tanggal_pesanan || order.timestamp || order.tanggal || order.date);
@@ -202,19 +212,22 @@ function updateRevenueStats(orders) {
             dailyTotal += amount;
             dailyHpp += orderHpp;
         }
-        if (orderDate >= startOfWeek) {
-            weeklyTotal += amount;
-            weeklyHpp += orderHpp;
+        if (orderDate >= startOf30Days) {
+            total30 += amount;
+            hpp30 += orderHpp;
         }
     });
 
     if (dailyEl) dailyEl.innerText = `Rp ${dailyTotal.toLocaleString('id-ID')}`;
-    if (weeklyEl) weeklyEl.innerText = `Rp ${weeklyTotal.toLocaleString('id-ID')}`;
     if (dailyHppEl) dailyHppEl.innerText = `Rp ${Math.round(dailyHpp).toLocaleString('id-ID')}`;
-    if (weeklyHppEl) weeklyHppEl.innerText = `Rp ${Math.round(weeklyHpp).toLocaleString('id-ID')}`;
     if (dailyProfitEl) dailyProfitEl.innerText = `Rp ${Math.round(dailyTotal - dailyHpp).toLocaleString('id-ID')}`;
-    if (weeklyProfitEl) weeklyProfitEl.innerText = `Rp ${Math.round(weeklyTotal - weeklyHpp).toLocaleString('id-ID')}`;
+    if (omzet30El) omzet30El.innerText = `Rp ${total30.toLocaleString('id-ID')}`;
+    if (hpp30El) hpp30El.innerText = `Rp ${Math.round(hpp30).toLocaleString('id-ID')}`;
+    if (profit30El) profit30El.innerText = `Rp ${Math.round(total30 - hpp30).toLocaleString('id-ID')}`;
 
+    const monthlyCost = calculateMonthlyCostTotal();
+    if (cost30El) cost30El.innerText = `Rp ${Math.round(monthlyCost).toLocaleString('id-ID')}`;
+    if (net30El) net30El.innerText = `Rp ${Math.round((total30 - hpp30) - monthlyCost).toLocaleString('id-ID')}`;
 }
 
 function parseOrderDate(value) {
@@ -253,6 +266,16 @@ function parseCurrencyValue(value) {
     const cleaned = String(value).replace(/[^0-9.-]/g, '');
     const parsed = parseFloat(cleaned);
     return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function calculateMonthlyCostTotal() {
+    if (!Array.isArray(allMonthlyCosts)) return 0;
+    return allMonthlyCosts.reduce((sum, cost) => {
+        const active = String(cost.aktif || cost.status || 'Ya').toLowerCase();
+        if (active !== 'ya' && active !== 'aktif') return sum;
+        const amount = parseCurrencyValue(cost.nominal || cost.amount || 0);
+        return sum + amount;
+    }, 0);
 }
 
 function parseOrderItems(itemsText) {
@@ -398,6 +421,126 @@ if (supplierForm) {
         } catch (error) {
             console.error(error);
             showAdminToast('Gagal menyimpan supplier.', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = originalText;
+        }
+    });
+}
+
+// ============ MONTHLY COST FUNCTIONS ============
+async function fetchMonthlyCosts() {
+    const tbody = document.getElementById('monthly-cost-list-body');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Memuat data biaya...</td></tr>';
+    }
+    try {
+        const response = await fetch(`${API_URL}?sheet=${MONTHLY_COST_SHEET}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        allMonthlyCosts = Array.isArray(data) ? data : [];
+        renderMonthlyCostsTable();
+        updateRevenueStats(allOrders || []);
+    } catch (error) {
+        console.error(error);
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-red-500">Gagal memuat biaya. Pastikan sheet "biaya_bulanan" sudah ada.</td></tr>';
+        }
+    }
+}
+
+function renderMonthlyCostsTable() {
+    const tbody = document.getElementById('monthly-cost-list-body');
+    if (!tbody) return;
+    if (!Array.isArray(allMonthlyCosts) || allMonthlyCosts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Belum ada biaya.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = allMonthlyCosts.map(c => {
+        const safeName = escapeHtml(c.nama || c.name || '');
+        const amount = parseCurrencyValue(c.nominal || c.amount || 0);
+        const status = escapeHtml(c.aktif || c.status || 'Ya');
+        const notes = escapeHtml(c.catatan || c.notes || '');
+        return `
+        <tr class="hover:bg-gray-50 transition">
+            <td class="px-6 py-4 text-sm font-bold text-gray-800">${safeName}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">Rp ${Math.round(amount).toLocaleString('id-ID')}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">${status}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">${notes}</td>
+            <td class="px-6 py-4 text-right flex justify-end gap-2">
+                <button data-action="edit-cost" data-id="${escapeAttr(c.id)}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                </button>
+                <button data-action="delete-cost" data-id="${escapeAttr(c.id)}" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+function resetMonthlyCostForm() {
+    const form = document.getElementById('monthly-cost-form');
+    if (form) form.reset();
+    const idField = document.getElementById('form-cost-id');
+    if (idField) idField.value = '';
+}
+
+function openEditMonthlyCost(id) {
+    const cost = allMonthlyCosts.find(c => String(c.id) === String(id));
+    if (!cost) return;
+    document.getElementById('form-cost-id').value = cost.id;
+    document.getElementById('form-cost-name').value = cost.nama || cost.name || '';
+    document.getElementById('form-cost-amount').value = parseCurrencyValue(cost.nominal || cost.amount || 0);
+    document.getElementById('form-cost-active').value = cost.aktif || cost.status || 'Ya';
+    document.getElementById('form-cost-notes').value = cost.catatan || cost.notes || '';
+}
+
+async function handleDeleteMonthlyCost(id) {
+    if (!confirm('Hapus biaya ini?')) return;
+    try {
+        const result = await GASActions.delete(MONTHLY_COST_SHEET, id);
+        if (result.deleted > 0) {
+            showAdminToast('Biaya berhasil dihapus!', 'success');
+            fetchMonthlyCosts();
+        }
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal menghapus biaya.', 'error');
+    }
+}
+
+const monthlyCostForm = document.getElementById('monthly-cost-form');
+if (monthlyCostForm) {
+    monthlyCostForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = monthlyCostForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerText;
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Menyimpan...';
+
+        const id = document.getElementById('form-cost-id').value || Date.now().toString();
+        const data = {
+            id,
+            nama: document.getElementById('form-cost-name').value,
+            nominal: document.getElementById('form-cost-amount').value,
+            aktif: document.getElementById('form-cost-active').value,
+            catatan: document.getElementById('form-cost-notes').value
+        };
+
+        try {
+            const result = document.getElementById('form-cost-id').value
+                ? await GASActions.update(MONTHLY_COST_SHEET, id, data)
+                : await GASActions.create(MONTHLY_COST_SHEET, data);
+            if (result.affected > 0 || result.created > 0) {
+                showAdminToast('Biaya berhasil disimpan!', 'success');
+                resetMonthlyCostForm();
+                fetchMonthlyCosts();
+            }
+        } catch (error) {
+            console.error(error);
+            showAdminToast('Gagal menyimpan biaya.', 'error');
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerText = originalText;
@@ -1686,6 +1829,21 @@ function bindAdminActions() {
 
         if (action === 'reset-supplier-form') {
             resetSupplierForm();
+            return;
+        }
+
+        if (action === 'edit-cost') {
+            openEditMonthlyCost(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'delete-cost') {
+            handleDeleteMonthlyCost(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'reset-cost-form') {
+            resetMonthlyCostForm();
             return;
         }
 
