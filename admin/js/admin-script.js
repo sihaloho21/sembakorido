@@ -715,10 +715,13 @@ if (bundleForm) {
             return;
         }
 
-        const totalText = document.getElementById('bundle-total')?.value || '0';
-        const finalText = document.getElementById('bundle-final')?.value || '0';
-        const totalValue = parseCurrencyValue(totalText);
-        const finalValue = parseCurrencyValue(finalText);
+        const discountPercent = parseFloat(document.getElementById('bundle-discount')?.value || '0') || 0;
+        const totalValue = items.reduce((sum, item) => {
+            const product = allProducts.find(p => String(p.id) === String(item.id));
+            const price = product ? parseCurrencyValue(product.harga) : 0;
+            return sum + price * item.qty;
+        }, 0);
+        const finalValue = Math.max(0, totalValue - (totalValue * discountPercent / 100));
 
         const descriptionEl = document.getElementById('bundle-description');
         const description = descriptionEl?.value || `Isi paket:\\n${items.map(i => `- ${i.nama} x${i.qty}`).join('\\n')}`;
