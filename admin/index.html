@@ -36,6 +36,10 @@
                 <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0zM7 13h10"></path></svg>
                 Pembelian
             </button>
+            <button data-action="show-section" data-section="suppliers" id="nav-suppliers" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m-7 4h8a2 2 0 002-2V6a2 2 0 00-2-2H8l-4 4v10a2 2 0 002 2z"></path></svg>
+                Supplier
+            </button>
             <button data-action="show-section" data-section="kategori" id="nav-kategori" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
                 <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z"></path></svg>
                 Kategori
@@ -114,6 +118,22 @@
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <p class="text-sm text-gray-500 font-medium">Omzet 7 Hari</p>
                         <h3 id="stat-omzet-mingguan" class="text-2xl font-bold text-green-700 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <p class="text-sm text-gray-500 font-medium">HPP Hari Ini</p>
+                        <h3 id="stat-hpp-harian" class="text-2xl font-bold text-gray-800 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <p class="text-sm text-gray-500 font-medium">Laba Kotor Hari Ini</p>
+                        <h3 id="stat-profit-harian" class="text-2xl font-bold text-green-700 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <p class="text-sm text-gray-500 font-medium">HPP 7 Hari</p>
+                        <h3 id="stat-hpp-mingguan" class="text-2xl font-bold text-gray-800 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <p class="text-sm text-gray-500 font-medium">Laba Kotor 7 Hari</p>
+                        <h3 id="stat-profit-mingguan" class="text-2xl font-bold text-green-700 mt-1">Rp 0</h3>
                     </div>
                                 <!-- Store Status Toggle -->
                     <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
@@ -208,7 +228,8 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2">Supplier</label>
-                                <input type="text" id="form-purchase-supplier" placeholder="Contoh: Supplier A" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                                <input type="text" id="form-purchase-supplier" list="supplier-list" placeholder="Contoh: Supplier A" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                                <datalist id="supplier-list"></datalist>
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2">Jumlah (Qty)</label>
@@ -251,6 +272,70 @@
                             </thead>
                             <tbody id="purchase-list-body" class="divide-y divide-gray-100">
                                 <!-- Purchases will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Supplier -->
+            <section id="section-suppliers" class="hidden space-y-6">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-start mobile-stack mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Manajemen Supplier</h3>
+                            <p class="text-sm text-gray-500">Simpan data supplier untuk memudahkan pencatatan pembelian.</p>
+                        </div>
+                    </div>
+                    <form id="supplier-form" class="space-y-4">
+                        <input type="hidden" id="form-supplier-id">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Nama Supplier</label>
+                                <input type="text" id="form-supplier-name" required class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Kontak</label>
+                                <input type="text" id="form-supplier-phone" placeholder="08xxxxxxxxxx" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Alamat</label>
+                                <input type="text" id="form-supplier-address" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Catatan</label>
+                                <input type="text" id="form-supplier-notes" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                            </div>
+                        </div>
+                        <div class="flex justify-end mobile-actions gap-2">
+                            <button type="button" data-action="reset-supplier-form" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-xl font-bold transition">
+                                Reset
+                            </button>
+                            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-green-100">
+                                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                Simpan Supplier
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-8 py-6 border-b border-gray-100">
+                        <h4 class="font-bold text-gray-800">Daftar Supplier</h4>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Nama</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Kontak</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Alamat</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Catatan</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="supplier-list-body" class="divide-y divide-gray-100">
+                                <!-- Suppliers will be loaded here -->
                             </tbody>
                         </table>
                     </div>
@@ -582,6 +667,7 @@
                             </div>
                         </div>
                     </div>
+
 
                     <div class="pt-6 border-t">
                         <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 space-y-4">

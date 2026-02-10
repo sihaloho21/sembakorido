@@ -18,12 +18,14 @@ const PRODUCTS_SHEET = 'products';
 const ORDERS_SHEET = 'orders';
 const TUKAR_POIN_SHEET = 'tukar_poin';
 const PURCHASES_SHEET = 'pembelian';
+const SUPPLIERS_SHEET = 'suppliers';
 
 let allProducts = [];
 let allCategories = [];
 let allOrders = [];
 let allTukarPoin = [];
 let allPurchases = [];
+let allSuppliers = [];
 let currentOrderFilter = 'semua';
 let currentOrderPage = 1;
 const ordersPerPage = 10;
@@ -40,6 +42,7 @@ function showSection(sectionId) {
         dashboard: 'Dashboard',
         produk: 'Produk',
         pembelian: 'Pembelian',
+        suppliers: 'Supplier',
         kategori: 'Kategori',
         pesanan: 'Pesanan',
         'tukar-poin': 'Tukar Poin',
@@ -56,6 +59,7 @@ function showSection(sectionId) {
         if (allProducts.length === 0) fetchAdminProducts();
         fetchPurchases();
     }
+    if (sectionId === 'suppliers') fetchSuppliers();
     if (sectionId === 'pesanan') fetchOrders();
     if (sectionId === 'tukar-poin') fetchTukarPoin();
     if (sectionId === 'banners') fetchBanners();
@@ -113,12 +117,16 @@ function toggleStoreStatus() {
 
 async function updateDashboardStats() {
     try {
-        const [prodRes, orderRes] = await Promise.all([
+        const [prodRes, orderRes, purchaseRes] = await Promise.all([
             fetch(`${API_URL}?sheet=${PRODUCTS_SHEET}`),
-            fetch(`${API_URL}?sheet=${ORDERS_SHEET}`)
+            fetch(`${API_URL}?sheet=${ORDERS_SHEET}`),
+            fetch(`${API_URL}?sheet=${PURCHASES_SHEET}`)
         ]);
         const prods = await prodRes.json();
         const orders = await orderRes.json();
+        const purchases = purchaseRes.ok ? await purchaseRes.json() : [];
+        allProducts = Array.isArray(prods) ? prods : [];
+        allPurchases = Array.isArray(purchases) ? purchases : [];
         
         document.getElementById('stat-total-produk').innerText = prods.length || 0;
         document.getElementById('stat-total-pesanan').innerText = orders.length || 0;
@@ -168,7 +176,11 @@ function renderRecentOrders(orders) {
 function updateRevenueStats(orders) {
     const dailyEl = document.getElementById('stat-omzet-harian');
     const weeklyEl = document.getElementById('stat-omzet-mingguan');
-    if (!dailyEl && !weeklyEl) return;
+    const dailyHppEl = document.getElementById('stat-hpp-harian');
+    const weeklyHppEl = document.getElementById('stat-hpp-mingguan');
+    const dailyProfitEl = document.getElementById('stat-profit-harian');
+    const weeklyProfitEl = document.getElementById('stat-profit-mingguan');
+    if (!dailyEl && !weeklyEl && !dailyHppEl && !weeklyHppEl) return;
 
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -177,22 +189,32 @@ function updateRevenueStats(orders) {
 
     let dailyTotal = 0;
     let weeklyTotal = 0;
+    let dailyHpp = 0;
+    let weeklyHpp = 0;
 
     orders.forEach((order) => {
         const orderDate = parseOrderDate(order.tanggal_pesanan || order.timestamp || order.tanggal || order.date);
         if (!orderDate) return;
         const amount = parseCurrencyValue(order.total || order.total_bayar || order.totalBayar || 0);
+        const orderHpp = calculateOrderHpp(order);
 
         if (orderDate >= startOfToday) {
             dailyTotal += amount;
+            dailyHpp += orderHpp;
         }
         if (orderDate >= startOfWeek) {
             weeklyTotal += amount;
+            weeklyHpp += orderHpp;
         }
     });
 
     if (dailyEl) dailyEl.innerText = `Rp ${dailyTotal.toLocaleString('id-ID')}`;
     if (weeklyEl) weeklyEl.innerText = `Rp ${weeklyTotal.toLocaleString('id-ID')}`;
+    if (dailyHppEl) dailyHppEl.innerText = `Rp ${Math.round(dailyHpp).toLocaleString('id-ID')}`;
+    if (weeklyHppEl) weeklyHppEl.innerText = `Rp ${Math.round(weeklyHpp).toLocaleString('id-ID')}`;
+    if (dailyProfitEl) dailyProfitEl.innerText = `Rp ${Math.round(dailyTotal - dailyHpp).toLocaleString('id-ID')}`;
+    if (weeklyProfitEl) weeklyProfitEl.innerText = `Rp ${Math.round(weeklyTotal - weeklyHpp).toLocaleString('id-ID')}`;
+
 }
 
 function parseOrderDate(value) {
@@ -231,6 +253,156 @@ function parseCurrencyValue(value) {
     const cleaned = String(value).replace(/[^0-9.-]/g, '');
     const parsed = parseFloat(cleaned);
     return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function parseOrderItems(itemsText) {
+    if (!itemsText) return [];
+    return String(itemsText)
+        .split('|')
+        .map(part => part.trim())
+        .filter(Boolean)
+        .map(part => {
+            const match = part.match(/(.+)\(x\s*([0-9]+)\)/i);
+            let name = match ? match[1].trim() : part;
+            const qty = match ? parseInt(match[2], 10) : 1;
+            name = name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+            return { name, qty: Number.isFinite(qty) ? qty : 1 };
+        });
+}
+
+function calculateOrderHpp(order) {
+    const items = parseOrderItems(order.produk || '');
+    if (items.length === 0) return 0;
+    let totalHpp = 0;
+    items.forEach(item => {
+        const product = allProducts.find(p => String(p.nama).trim().toLowerCase() === String(item.name).trim().toLowerCase());
+        if (!product) return;
+        const stats = getPurchaseStats(product.id);
+        if (stats.avgCost > 0) {
+            totalHpp += stats.avgCost * item.qty;
+        }
+    });
+    return totalHpp;
+}
+
+// ============ SUPPLIER FUNCTIONS ============
+async function fetchSuppliers() {
+    const tbody = document.getElementById('supplier-list-body');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Memuat data supplier...</td></tr>';
+    }
+    try {
+        const response = await fetch(`${API_URL}?sheet=${SUPPLIERS_SHEET}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        allSuppliers = Array.isArray(data) ? data : [];
+        renderSuppliersTable();
+        updateSupplierDatalist();
+    } catch (error) {
+        console.error(error);
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-red-500">Gagal memuat data supplier. Pastikan sheet "suppliers" sudah ada.</td></tr>';
+        }
+    }
+}
+
+function renderSuppliersTable() {
+    const tbody = document.getElementById('supplier-list-body');
+    if (!tbody) return;
+    if (!Array.isArray(allSuppliers) || allSuppliers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Belum ada supplier.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = allSuppliers.map(s => {
+        const safeName = escapeHtml(s.nama || s.name || '');
+        const safePhone = escapeHtml(s.phone || s.kontak || '');
+        const safeAddress = escapeHtml(s.alamat || s.address || '');
+        const safeNotes = escapeHtml(s.catatan || s.notes || '');
+        return `
+        <tr class="hover:bg-gray-50 transition">
+            <td class="px-6 py-4 text-sm font-bold text-gray-800">${safeName}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">${safePhone}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">${safeAddress}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">${safeNotes}</td>
+            <td class="px-6 py-4 text-right flex justify-end gap-2">
+                <button data-action="edit-supplier" data-id="${escapeAttr(s.id)}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                </button>
+                <button data-action="delete-supplier" data-id="${escapeAttr(s.id)}" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+function resetSupplierForm() {
+    const form = document.getElementById('supplier-form');
+    if (form) form.reset();
+    const idField = document.getElementById('form-supplier-id');
+    if (idField) idField.value = '';
+}
+
+function openEditSupplier(id) {
+    const supplier = allSuppliers.find(s => String(s.id) === String(id));
+    if (!supplier) return;
+    document.getElementById('form-supplier-id').value = supplier.id;
+    document.getElementById('form-supplier-name').value = supplier.nama || supplier.name || '';
+    document.getElementById('form-supplier-phone').value = supplier.phone || supplier.kontak || '';
+    document.getElementById('form-supplier-address').value = supplier.alamat || supplier.address || '';
+    document.getElementById('form-supplier-notes').value = supplier.catatan || supplier.notes || '';
+}
+
+async function handleDeleteSupplier(id) {
+    if (!confirm('Hapus supplier ini?')) return;
+    try {
+        const result = await GASActions.delete(SUPPLIERS_SHEET, id);
+        if (result.deleted > 0) {
+            showAdminToast('Supplier berhasil dihapus!', 'success');
+            fetchSuppliers();
+        }
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal menghapus supplier.', 'error');
+    }
+}
+
+const supplierForm = document.getElementById('supplier-form');
+if (supplierForm) {
+    supplierForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = supplierForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerText;
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Menyimpan...';
+
+        const id = document.getElementById('form-supplier-id').value || Date.now().toString();
+        const data = {
+            id,
+            nama: document.getElementById('form-supplier-name').value,
+            phone: document.getElementById('form-supplier-phone').value,
+            alamat: document.getElementById('form-supplier-address').value,
+            catatan: document.getElementById('form-supplier-notes').value
+        };
+
+        try {
+            const result = document.getElementById('form-supplier-id').value
+                ? await GASActions.update(SUPPLIERS_SHEET, id, data)
+                : await GASActions.create(SUPPLIERS_SHEET, data);
+            if (result.affected > 0 || result.created > 0) {
+                showAdminToast('Supplier berhasil disimpan!', 'success');
+                resetSupplierForm();
+                fetchSuppliers();
+            }
+        } catch (error) {
+            console.error(error);
+            showAdminToast('Gagal menyimpan supplier.', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = originalText;
+        }
+    });
 }
 
 // ============ ORDER FUNCTIONS ============
@@ -549,6 +721,15 @@ function updatePurchaseProductDropdown() {
     select.value = currentVal;
 }
 
+function updateSupplierDatalist() {
+    const list = document.getElementById('supplier-list');
+    if (!list) return;
+    list.innerHTML = allSuppliers.map(s => {
+        const safeName = escapeHtml(s.nama || s.name || '');
+        return `<option value="${safeName}"></option>`;
+    }).join('');
+}
+
 function getPurchaseStats(productId) {
     if (!productId) return { avgCost: 0, lastCost: 0, totalQty: 0 };
     const idStr = String(productId);
@@ -578,9 +759,10 @@ async function fetchAdminProducts() {
     const tbody = document.getElementById('admin-product-list');
     tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Memuat data...</td></tr>';
     try {
-        const [productsRes, purchasesRes] = await Promise.all([
+        const [productsRes, purchasesRes, suppliersRes] = await Promise.all([
             fetch(`${API_URL}?sheet=${PRODUCTS_SHEET}`),
-            fetch(`${API_URL}?sheet=${PURCHASES_SHEET}`)
+            fetch(`${API_URL}?sheet=${PURCHASES_SHEET}`),
+            fetch(`${API_URL}?sheet=${SUPPLIERS_SHEET}`)
         ]);
         allProducts = await productsRes.json();
         if (purchasesRes.ok) {
@@ -589,8 +771,15 @@ async function fetchAdminProducts() {
         } else {
             allPurchases = [];
         }
+        if (suppliersRes.ok) {
+            const suppliersData = await suppliersRes.json();
+            allSuppliers = Array.isArray(suppliersData) ? suppliersData : [];
+        } else {
+            allSuppliers = [];
+        }
         renderAdminTable();
         updatePurchaseProductDropdown();
+        updateSupplierDatalist();
         if (document.getElementById('section-pembelian') && !document.getElementById('section-pembelian').classList.contains('hidden')) {
             renderPurchaseTable();
         }
@@ -1482,6 +1671,21 @@ function bindAdminActions() {
 
         if (action === 'delete-purchase') {
             handleDeletePurchase(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'edit-supplier') {
+            openEditSupplier(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'delete-supplier') {
+            handleDeleteSupplier(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'reset-supplier-form') {
+            resetSupplierForm();
             return;
         }
 
