@@ -769,7 +769,7 @@ async function fetchPurchases() {
     } catch (error) {
         console.error(error);
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-10 text-center text-red-500">Gagal memuat data pembelian. Pastikan sheet "pembelian" sudah ada.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-10 text-center text-red-500">Gagal memuat data pembelian. Pastikan sheet "pembelian" sudah ada dan GAS mengizinkan sheet tersebut.</td></tr>';
         }
     }
 }
@@ -858,7 +858,12 @@ if (purchaseForm) {
             }
         } catch (error) {
             console.error(error);
-            showAdminToast('Gagal menyimpan pembelian.', 'error');
+            const msg = String(error && error.message ? error.message : error);
+            if (msg.includes('Invalid sheet')) {
+                showAdminToast('Sheet "pembelian" belum diizinkan di GAS. Tambahkan "pembelian" ke daftar sheet yang diizinkan.', 'warning');
+            } else {
+                showAdminToast('Gagal menyimpan pembelian.', 'error');
+            }
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerText = originalText;
