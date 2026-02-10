@@ -17,11 +17,13 @@ const CATEGORIES_SHEET = 'categories';
 const PRODUCTS_SHEET = 'products';
 const ORDERS_SHEET = 'orders';
 const TUKAR_POIN_SHEET = 'tukar_poin';
+const PURCHASES_SHEET = 'pembelian';
 
 let allProducts = [];
 let allCategories = [];
 let allOrders = [];
 let allTukarPoin = [];
+let allPurchases = [];
 let currentOrderFilter = 'semua';
 let currentOrderPage = 1;
 const ordersPerPage = 10;
@@ -37,6 +39,7 @@ function showSection(sectionId) {
     const titles = {
         dashboard: 'Dashboard',
         produk: 'Produk',
+        pembelian: 'Pembelian',
         kategori: 'Kategori',
         pesanan: 'Pesanan',
         'tukar-poin': 'Tukar Poin',
@@ -49,6 +52,10 @@ function showSection(sectionId) {
 
     if (sectionId === 'kategori') fetchCategories();
     if (sectionId === 'produk') fetchAdminProducts();
+    if (sectionId === 'pembelian') {
+        if (allProducts.length === 0) fetchAdminProducts();
+        fetchPurchases();
+    }
     if (sectionId === 'pesanan') fetchOrders();
     if (sectionId === 'tukar-poin') fetchTukarPoin();
     if (sectionId === 'banners') fetchBanners();
@@ -530,14 +537,63 @@ function updateCategoryDropdown() {
     select.value = currentVal;
 }
 
+function updatePurchaseProductDropdown() {
+    const select = document.getElementById('form-purchase-product');
+    if (!select) return;
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">-- Pilih Produk --</option>' +
+        allProducts.map(p => {
+            const safeName = escapeHtml(p.nama);
+            return `<option value="${escapeAttr(p.id)}">${safeName}</option>`;
+        }).join('');
+    select.value = currentVal;
+}
+
+function getPurchaseStats(productId) {
+    if (!productId) return { avgCost: 0, lastCost: 0, totalQty: 0 };
+    const idStr = String(productId);
+    const purchases = allPurchases.filter(p => String(p.product_id || p.productId || p.id_produk || '') === idStr);
+    let totalQty = 0;
+    let totalCost = 0;
+    let lastCost = 0;
+    let lastDate = new Date(0);
+    purchases.forEach(p => {
+        const qty = parseFloat(p.qty || p.jumlah || p.quantity || 0);
+        const cost = parseCurrencyValue(p.harga_modal || p.modal || p.cost || p.harga || 0);
+        if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(cost) || cost <= 0) return;
+        totalQty += qty;
+        totalCost += qty * cost;
+        const dt = parseOrderDate(p.tanggal || p.date || p.created_at || p.timestamp) || new Date(0);
+        if (dt > lastDate) {
+            lastDate = dt;
+            lastCost = cost;
+        }
+    });
+    const avgCost = totalQty > 0 ? totalCost / totalQty : 0;
+    return { avgCost, lastCost, totalQty };
+}
+
 // ============ PRODUCT FUNCTIONS ============
 async function fetchAdminProducts() {
     const tbody = document.getElementById('admin-product-list');
     tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Memuat data...</td></tr>';
     try {
-        const response = await fetch(`${API_URL}?sheet=${PRODUCTS_SHEET}`);
-        allProducts = await response.json();
+        const [productsRes, purchasesRes] = await Promise.all([
+            fetch(`${API_URL}?sheet=${PRODUCTS_SHEET}`),
+            fetch(`${API_URL}?sheet=${PURCHASES_SHEET}`)
+        ]);
+        allProducts = await productsRes.json();
+        if (purchasesRes.ok) {
+            const purchasesData = await purchasesRes.json();
+            allPurchases = Array.isArray(purchasesData) ? purchasesData : [];
+        } else {
+            allPurchases = [];
+        }
         renderAdminTable();
+        updatePurchaseProductDropdown();
+        if (document.getElementById('section-pembelian') && !document.getElementById('section-pembelian').classList.contains('hidden')) {
+            renderPurchaseTable();
+        }
         updateDashboardStats();
     } catch (error) { console.error(error); }
 }
@@ -554,6 +610,12 @@ function renderAdminTable() {
         const safeStock = escapeHtml(p.stok);
         const imageUrl = p.gambar ? p.gambar.split(',')[0] : 'https://via.placeholder.com/50';
         const safeImage = sanitizeUrl(imageUrl, 'https://via.placeholder.com/50');
+        const priceValue = parseCurrencyValue(p.harga);
+        const costStats = getPurchaseStats(p.id);
+        const avgCost = costStats.avgCost;
+        const lastCost = costStats.lastCost;
+        const marginValue = avgCost > 0 ? priceValue - avgCost : 0;
+        const marginPercent = avgCost > 0 ? (marginValue / avgCost) * 100 : 0;
         return `
         <tr class="hover:bg-gray-50 transition">
             <td class="px-6 py-4" data-label="Produk">
@@ -569,6 +631,9 @@ function renderAdminTable() {
                 <div class="flex flex-col">
                     ${p.harga_coret ? `<span class="text-[10px] text-gray-400 line-through">Rp ${parseInt(p.harga_coret).toLocaleString('id-ID')}</span>` : ''}
                     <span class="font-bold text-green-700 text-sm">Rp ${parseInt(p.harga).toLocaleString('id-ID')}</span>
+                    ${avgCost > 0 ? `<span class="text-[10px] text-gray-500">Modal avg: Rp ${Math.round(avgCost).toLocaleString('id-ID')}</span>` : '<span class="text-[10px] text-gray-400">Modal avg: -</span>'}
+                    ${lastCost > 0 ? `<span class="text-[10px] text-gray-500">Modal last: Rp ${Math.round(lastCost).toLocaleString('id-ID')}</span>` : '<span class="text-[10px] text-gray-400">Modal last: -</span>'}
+                    ${avgCost > 0 ? `<span class="text-[10px] ${marginValue >= 0 ? 'text-green-600' : 'text-red-600'}">Margin: Rp ${Math.round(marginValue).toLocaleString('id-ID')} (${marginPercent.toFixed(1)}%)</span>` : ''}
                 </div>
             </td>
             <td class="px-6 py-4" data-label="Stok">
@@ -686,6 +751,119 @@ async function handleDelete(id) {
         console.error(error);
         showAdminToast('Gagal menghapus produk.', 'error');
     }
+}
+
+// ============ PURCHASE FUNCTIONS ============
+async function fetchPurchases() {
+    const tbody = document.getElementById('purchase-list-body');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-10 text-center text-gray-500">Memuat data pembelian...</td></tr>';
+    }
+    try {
+        const response = await fetch(`${API_URL}?sheet=${PURCHASES_SHEET}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        allPurchases = Array.isArray(data) ? data : [];
+        renderPurchaseTable();
+        renderAdminTable();
+    } catch (error) {
+        console.error(error);
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-10 text-center text-red-500">Gagal memuat data pembelian. Pastikan sheet "pembelian" sudah ada.</td></tr>';
+        }
+    }
+}
+
+function renderPurchaseTable() {
+    const tbody = document.getElementById('purchase-list-body');
+    if (!tbody) return;
+    if (!Array.isArray(allPurchases) || allPurchases.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-10 text-center text-gray-500">Belum ada data pembelian.</td></tr>';
+        return;
+    }
+    const sorted = [...allPurchases].sort((a, b) => {
+        const dateA = parseOrderDate(a.tanggal || a.date || a.created_at || a.timestamp) || new Date(0);
+        const dateB = parseOrderDate(b.tanggal || b.date || b.created_at || b.timestamp) || new Date(0);
+        return dateB - dateA;
+    });
+    tbody.innerHTML = sorted.map(p => {
+        const productId = p.product_id || p.productId || p.id_produk || '';
+        const product = allProducts.find(prod => String(prod.id) === String(productId));
+        const productName = escapeHtml(p.product_nama || (product && product.nama) || '-');
+        const supplier = escapeHtml(p.supplier || '-');
+        const qty = parseFloat(p.qty || p.jumlah || p.quantity || 0);
+        const cost = parseCurrencyValue(p.harga_modal || p.modal || p.cost || 0);
+        const total = qty * cost;
+        const date = parseOrderDate(p.tanggal || p.date || p.created_at || p.timestamp);
+        const dateLabel = date ? date.toLocaleDateString('id-ID') : '-';
+        return `
+        <tr class="hover:bg-gray-50 transition">
+            <td class="px-6 py-4 text-sm text-gray-600">${escapeHtml(dateLabel)}</td>
+            <td class="px-6 py-4 text-sm font-bold text-gray-800">${productName}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">${supplier}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">${Number.isFinite(qty) ? qty : '-'}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">Rp ${Math.round(cost || 0).toLocaleString('id-ID')}</td>
+            <td class="px-6 py-4 text-sm text-gray-700 font-bold">Rp ${Math.round(total || 0).toLocaleString('id-ID')}</td>
+            <td class="px-6 py-4 text-right">
+                <button data-action="delete-purchase" data-id="${escapeAttr(p.id)}" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+async function handleDeletePurchase(id) {
+    if (!confirm('Hapus data pembelian ini?')) return;
+    try {
+        const result = await GASActions.delete(PURCHASES_SHEET, id);
+        if (result.deleted > 0) {
+            showAdminToast('Pembelian berhasil dihapus!', 'success');
+            fetchPurchases();
+        }
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal menghapus pembelian.', 'error');
+    }
+}
+
+const purchaseForm = document.getElementById('purchase-form');
+if (purchaseForm) {
+    purchaseForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = purchaseForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerText;
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Menyimpan...';
+
+        const productId = document.getElementById('form-purchase-product').value;
+        const product = allProducts.find(p => String(p.id) === String(productId));
+        const data = {
+            id: Date.now().toString(),
+            product_id: productId,
+            product_nama: product ? product.nama : '',
+            supplier: document.getElementById('form-purchase-supplier').value,
+            qty: document.getElementById('form-purchase-qty').value,
+            harga_modal: document.getElementById('form-purchase-cost').value,
+            tanggal: document.getElementById('form-purchase-date').value || new Date().toISOString().slice(0, 10)
+        };
+
+        try {
+            const result = await GASActions.create(PURCHASES_SHEET, data);
+            if (result.created > 0) {
+                showAdminToast('Pembelian berhasil disimpan!', 'success');
+                purchaseForm.reset();
+                fetchPurchases();
+            }
+        } catch (error) {
+            console.error(error);
+            showAdminToast('Gagal menyimpan pembelian.', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = originalText;
+        }
+    });
 }
 
 document.getElementById('category-form').addEventListener('submit', async (e) => {
@@ -1294,6 +1472,11 @@ function bindAdminActions() {
 
         if (action === 'delete-tukar-poin') {
             handleDeleteTukarPoin(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'delete-purchase') {
+            handleDeletePurchase(trigger.dataset.id);
             return;
         }
 
