@@ -21,6 +21,7 @@ const PURCHASES_SHEET = 'pembelian';
 const SUPPLIERS_SHEET = 'suppliers';
 const MONTHLY_COST_SHEET = 'biaya_bulanan';
 const REFERRALS_SHEET = 'referrals';
+const REFERRAL_ALERT_STATE_KEY = 'gos_referral_alert_state_v1';
 
 let allProducts = [];
 let allCategories = [];
@@ -135,18 +136,24 @@ function toggleStoreStatus() {
 
 async function updateDashboardStats() {
     try {
-        const [prodRes, orderRes, purchaseRes, costRes, referralRes] = await Promise.all([
+        const [prodRes, orderRes, purchaseRes, costRes, referralRes, userPointsRes, ledgerRes, settingsRes] = await Promise.all([
             fetch(`${API_URL}?sheet=${PRODUCTS_SHEET}`),
             fetch(`${API_URL}?sheet=${ORDERS_SHEET}`),
             fetch(`${API_URL}?sheet=${PURCHASES_SHEET}`),
             fetch(`${API_URL}?sheet=${MONTHLY_COST_SHEET}`),
-            fetch(`${API_URL}?sheet=referrals`)
+            fetch(`${API_URL}?sheet=referrals`),
+            fetch(`${API_URL}?sheet=user_points`),
+            fetch(`${API_URL}?sheet=point_transactions`),
+            fetch(`${API_URL}?sheet=settings`)
         ]);
         const prods = await prodRes.json();
         const orders = await orderRes.json();
         const purchases = purchaseRes.ok ? await purchaseRes.json() : [];
         const costs = costRes.ok ? await costRes.json() : [];
         const referrals = referralRes.ok ? await referralRes.json() : [];
+        const userPoints = userPointsRes.ok ? await userPointsRes.json() : [];
+        const ledgerRows = ledgerRes.ok ? await ledgerRes.json() : [];
+        const settingsRows = settingsRes.ok ? await settingsRes.json() : [];
         allProducts = Array.isArray(prods) ? prods : [];
         allPurchases = Array.isArray(purchases) ? purchases : [];
         allMonthlyCosts = Array.isArray(costs) ? costs : [];
@@ -162,7 +169,188 @@ async function updateDashboardStats() {
         renderRecentOrders(normalizedOrders);
         updateReferralStats(Array.isArray(referrals) ? referrals : []);
         renderRecentReferrals(Array.isArray(referrals) ? referrals : []);
+
+        const monitoringConfig = buildReferralMonitoringConfig(Array.isArray(settingsRows) ? settingsRows : []);
+        const anomaly = computeReferralAnomalies(
+            Array.isArray(referrals) ? referrals : [],
+            Array.isArray(userPoints) ? userPoints : [],
+            Array.isArray(ledgerRows) ? ledgerRows : [],
+            monitoringConfig
+        );
+        renderReferralAnomalyWidgets(anomaly, monitoringConfig);
+        maybeSendReferralAlertIfNeeded(anomaly, monitoringConfig, 'dashboard');
     } catch (e) { console.error(e); }
+}
+
+function buildReferralMonitoringConfig(settingsRows) {
+    const rows = Array.isArray(settingsRows) ? settingsRows : [];
+    const getVal = (key, fallback) => getLatestSettingValue(rows, key, fallback);
+    return {
+        enabled: String(getVal('referral_alert_enabled', 'false')).toLowerCase() === 'true',
+        pendingDaysThreshold: parseInt(getVal('referral_pending_days_threshold', '3'), 10) || 3,
+        mismatchThreshold: parseInt(getVal('referral_mismatch_threshold', '1'), 10) || 1,
+        spikeMultiplier: parseFloat(getVal('referral_spike_multiplier', '2')) || 2,
+        email: String(getVal('referral_alert_email', '') || '').trim(),
+        webhook: String(getVal('referral_alert_webhook', '') || '').trim(),
+        cooldownMinutes: parseInt(getVal('referral_alert_cooldown_minutes', '60'), 10) || 60
+    };
+}
+
+function computeReferralAnomalies(referrals, userRows, ledgerRows, config) {
+    const safeReferrals = Array.isArray(referrals) ? referrals : [];
+    const now = new Date();
+    const msPerDay = 24 * 60 * 60 * 1000;
+
+    const stalePendingCount = safeReferrals.filter((row) => {
+        const status = String(row.status || '').toLowerCase();
+        if (status !== 'pending') return false;
+        const created = new Date(row.created_at || row.approved_at || 0);
+        if (Number.isNaN(created.getTime())) return false;
+        const ageDays = (now.getTime() - created.getTime()) / msPerDay;
+        return ageDays > config.pendingDaysThreshold;
+    }).length;
+
+    const pointsMap = new Map();
+    (Array.isArray(userRows) ? userRows : []).forEach((row) => {
+        const phone = normalizePhone(row.phone || row.whatsapp || '');
+        if (!phone) return;
+        pointsMap.set(phone, parseCurrencyValue(row.points || row.poin || 0));
+    });
+    const ledgerMap = new Map();
+    (Array.isArray(ledgerRows) ? ledgerRows : []).forEach((row) => {
+        const phone = normalizePhone(row.phone || '');
+        if (!phone) return;
+        const current = ledgerMap.get(phone) || 0;
+        ledgerMap.set(phone, current + parseCurrencyValue(row.points_delta || 0));
+    });
+    const allPhones = new Set([...pointsMap.keys(), ...ledgerMap.keys()]);
+    const mismatchCount = Array.from(allPhones).filter((phone) => {
+        const diff = (pointsMap.get(phone) || 0) - (ledgerMap.get(phone) || 0);
+        return Math.abs(diff) > 0.0001;
+    }).length;
+
+    const dayCountMap = new Map();
+    safeReferrals.forEach((row) => {
+        const created = new Date(row.created_at || row.approved_at || 0);
+        if (Number.isNaN(created.getTime())) return;
+        const key = created.toISOString().slice(0, 10);
+        dayCountMap.set(key, (dayCountMap.get(key) || 0) + 1);
+    });
+    const todayKey = now.toISOString().slice(0, 10);
+    const todayCount = dayCountMap.get(todayKey) || 0;
+    let baselineSum = 0;
+    let baselineDays = 0;
+    for (let i = 1; i <= 7; i += 1) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        const key = d.toISOString().slice(0, 10);
+        baselineSum += dayCountMap.get(key) || 0;
+        baselineDays += 1;
+    }
+    const baselineAvg = baselineDays > 0 ? baselineSum / baselineDays : 0;
+    const spikeThreshold = baselineAvg * config.spikeMultiplier;
+    const isSpike = baselineAvg > 0 ? todayCount > spikeThreshold : todayCount >= 3;
+
+    return {
+        stalePendingCount,
+        mismatchCount,
+        todayCount,
+        baselineAvg,
+        spikeThreshold,
+        isSpike,
+        generatedAt: new Date().toISOString()
+    };
+}
+
+function renderReferralAnomalyWidgets(anomaly, config) {
+    const staleEl = document.getElementById('stat-referral-pending-stale');
+    const mismatchEl = document.getElementById('stat-referral-ledger-mismatch');
+    const spikeEl = document.getElementById('stat-referral-spike');
+    const spikeDetailEl = document.getElementById('stat-referral-spike-detail');
+    const noteEl = document.getElementById('referral-anomaly-note');
+    const updatedEl = document.getElementById('referral-anomaly-updated');
+
+    if (staleEl) staleEl.innerText = String(anomaly.stalePendingCount);
+    if (mismatchEl) mismatchEl.innerText = String(anomaly.mismatchCount);
+    if (spikeEl) spikeEl.innerText = anomaly.isSpike ? 'Anomali' : 'Normal';
+    if (spikeDetailEl) {
+        spikeDetailEl.innerText = `Hari ini ${anomaly.todayCount}, rata-rata 7 hari ${anomaly.baselineAvg.toFixed(1)} (x${config.spikeMultiplier})`;
+    }
+    if (updatedEl) {
+        updatedEl.innerText = `Diperbarui ${new Date(anomaly.generatedAt).toLocaleString('id-ID')}`;
+    }
+    if (noteEl) {
+        const messages = [];
+        if (anomaly.stalePendingCount > 0) messages.push(`${anomaly.stalePendingCount} pending melewati ${config.pendingDaysThreshold} hari`);
+        if (anomaly.mismatchCount >= config.mismatchThreshold) messages.push(`${anomaly.mismatchCount} mismatch ledger (ambang ${config.mismatchThreshold})`);
+        if (anomaly.isSpike) messages.push(`lonjakan referral harian terdeteksi`);
+        noteEl.textContent = messages.length > 0 ? `Peringatan: ${messages.join(' | ')}` : 'Belum ada peringatan anomali.';
+        noteEl.className = messages.length > 0
+            ? 'text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3'
+            : 'text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3';
+    }
+}
+
+function shouldSendReferralAlert(anomaly, config) {
+    if (!config.enabled) return false;
+    const hasChannel = Boolean(config.email || config.webhook);
+    if (!hasChannel) return false;
+    return (
+        anomaly.mismatchCount >= config.mismatchThreshold ||
+        anomaly.stalePendingCount > 0 ||
+        anomaly.isSpike
+    );
+}
+
+function getReferralAlertState() {
+    try {
+        const raw = localStorage.getItem(REFERRAL_ALERT_STATE_KEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch (error) {
+        return {};
+    }
+}
+
+function setReferralAlertState(state) {
+    localStorage.setItem(REFERRAL_ALERT_STATE_KEY, JSON.stringify(state || {}));
+}
+
+async function maybeSendReferralAlertIfNeeded(anomaly, config, source) {
+    if (!shouldSendReferralAlert(anomaly, config)) return;
+    const state = getReferralAlertState();
+    const now = Date.now();
+    const cooldownMs = Math.max(1, config.cooldownMinutes) * 60 * 1000;
+    if (state.lastSentAt && now - state.lastSentAt < cooldownMs) {
+        return;
+    }
+
+    const payload = {
+        source: source || 'dashboard',
+        stale_pending_count: anomaly.stalePendingCount,
+        mismatch_count: anomaly.mismatchCount,
+        spike_detected: anomaly.isSpike,
+        today_referrals: anomaly.todayCount,
+        baseline_avg: Number(anomaly.baselineAvg.toFixed(2)),
+        spike_multiplier: config.spikeMultiplier,
+        mismatch_threshold: config.mismatchThreshold,
+        pending_days_threshold: config.pendingDaysThreshold,
+        email: config.email,
+        webhook: config.webhook
+    };
+
+    try {
+        const res = await GASActions.post({
+            action: 'notify_referral_alert',
+            sheet: 'settings',
+            data: payload
+        });
+        if (res && res.success) {
+            setReferralAlertState({ lastSentAt: now });
+            showAdminToast('Alert anomali referral terkirim.', 'warning');
+        }
+    } catch (error) {
+        console.warn('notify_referral_alert failed:', error);
+    }
 }
 
 function updateReferralStats(referrals) {
@@ -378,6 +566,19 @@ async function runReferralLedgerReconciliation() {
         }).join('');
 
         showAdminToast(`Rekonsiliasi selesai: ${mismatch} mismatch`, mismatch > 0 ? 'warning' : 'success');
+
+        const settingsRows = await fetchSettingsRowsFromSheet();
+        const monitoringConfig = buildReferralMonitoringConfig(settingsRows);
+        const anomaly = {
+            stalePendingCount: 0,
+            mismatchCount: mismatch,
+            todayCount: 0,
+            baselineAvg: 0,
+            spikeThreshold: 0,
+            isSpike: false,
+            generatedAt: new Date().toISOString()
+        };
+        await maybeSendReferralAlertIfNeeded(anomaly, monitoringConfig, 'manual_reconcile');
     } catch (error) {
         console.error(error);
         if (body) {
@@ -2070,6 +2271,22 @@ async function loadSettings() {
     if (referralRewardReferrerEl) referralRewardReferrerEl.value = parseInt(referralRewardReferrer, 10) || 20;
     if (referralRewardRefereeEl) referralRewardRefereeEl.value = parseInt(referralRewardReferee, 10) || 10;
     if (referralMinFirstOrderEl) referralMinFirstOrderEl.value = parseInt(referralMinFirstOrder, 10) || 50000;
+
+    const alertEnabledEl = document.getElementById('referral-alert-enabled');
+    const pendingThresholdEl = document.getElementById('referral-pending-days-threshold');
+    const mismatchThresholdEl = document.getElementById('referral-mismatch-threshold');
+    const spikeMultiplierEl = document.getElementById('referral-spike-multiplier');
+    const alertEmailEl = document.getElementById('referral-alert-email');
+    const alertWebhookEl = document.getElementById('referral-alert-webhook');
+    const cooldownEl = document.getElementById('referral-alert-cooldown-minutes');
+
+    if (alertEnabledEl) alertEnabledEl.value = String(getLatestSettingValue(rows, 'referral_alert_enabled', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
+    if (pendingThresholdEl) pendingThresholdEl.value = parseInt(getLatestSettingValue(rows, 'referral_pending_days_threshold', '3'), 10) || 3;
+    if (mismatchThresholdEl) mismatchThresholdEl.value = parseInt(getLatestSettingValue(rows, 'referral_mismatch_threshold', '1'), 10) || 1;
+    if (spikeMultiplierEl) spikeMultiplierEl.value = parseFloat(getLatestSettingValue(rows, 'referral_spike_multiplier', '2')) || 2;
+    if (alertEmailEl) alertEmailEl.value = String(getLatestSettingValue(rows, 'referral_alert_email', '') || '');
+    if (alertWebhookEl) alertWebhookEl.value = String(getLatestSettingValue(rows, 'referral_alert_webhook', '') || '');
+    if (cooldownEl) cooldownEl.value = parseInt(getLatestSettingValue(rows, 'referral_alert_cooldown_minutes', '60'), 10) || 60;
 }
 
 function renderGajianMarkups(markups) {
@@ -2170,13 +2387,35 @@ async function saveSettings() {
     const referralRewardReferrer = referralRewardReferrerEl ? parseInt(referralRewardReferrerEl.value || '20', 10) : 20;
     const referralRewardReferee = referralRewardRefereeEl ? parseInt(referralRewardRefereeEl.value || '10', 10) : 10;
     const referralMinFirstOrder = referralMinFirstOrderEl ? parseInt(referralMinFirstOrderEl.value || '50000', 10) : 50000;
+    const referralAlertEnabledEl = document.getElementById('referral-alert-enabled');
+    const referralPendingDaysThresholdEl = document.getElementById('referral-pending-days-threshold');
+    const referralMismatchThresholdEl = document.getElementById('referral-mismatch-threshold');
+    const referralSpikeMultiplierEl = document.getElementById('referral-spike-multiplier');
+    const referralAlertEmailEl = document.getElementById('referral-alert-email');
+    const referralAlertWebhookEl = document.getElementById('referral-alert-webhook');
+    const referralAlertCooldownEl = document.getElementById('referral-alert-cooldown-minutes');
+
+    const referralAlertEnabled = referralAlertEnabledEl ? referralAlertEnabledEl.value : 'false';
+    const referralPendingDaysThreshold = referralPendingDaysThresholdEl ? parseInt(referralPendingDaysThresholdEl.value || '3', 10) : 3;
+    const referralMismatchThreshold = referralMismatchThresholdEl ? parseInt(referralMismatchThresholdEl.value || '1', 10) : 1;
+    const referralSpikeMultiplier = referralSpikeMultiplierEl ? parseFloat(referralSpikeMultiplierEl.value || '2') : 2;
+    const referralAlertEmail = referralAlertEmailEl ? String(referralAlertEmailEl.value || '').trim() : '';
+    const referralAlertWebhook = referralAlertWebhookEl ? String(referralAlertWebhookEl.value || '').trim() : '';
+    const referralAlertCooldownMinutes = referralAlertCooldownEl ? parseInt(referralAlertCooldownEl.value || '60', 10) : 60;
 
     try {
         await Promise.all([
             GASActions.upsertSetting('referral_enabled', String(referralEnabled)),
             GASActions.upsertSetting('referral_reward_referrer', String(referralRewardReferrer)),
             GASActions.upsertSetting('referral_reward_referee', String(referralRewardReferee)),
-            GASActions.upsertSetting('referral_min_first_order', String(referralMinFirstOrder))
+            GASActions.upsertSetting('referral_min_first_order', String(referralMinFirstOrder)),
+            GASActions.upsertSetting('referral_alert_enabled', String(referralAlertEnabled)),
+            GASActions.upsertSetting('referral_pending_days_threshold', String(referralPendingDaysThreshold)),
+            GASActions.upsertSetting('referral_mismatch_threshold', String(referralMismatchThreshold)),
+            GASActions.upsertSetting('referral_spike_multiplier', String(referralSpikeMultiplier)),
+            GASActions.upsertSetting('referral_alert_email', String(referralAlertEmail)),
+            GASActions.upsertSetting('referral_alert_webhook', String(referralAlertWebhook)),
+            GASActions.upsertSetting('referral_alert_cooldown_minutes', String(referralAlertCooldownMinutes))
         ]);
     } catch (settingError) {
         console.warn('upsert_setting not available, fallback to append create:', settingError);
@@ -2185,7 +2424,14 @@ async function saveSettings() {
                 GASActions.create('settings', { key: 'referral_enabled', value: String(referralEnabled) }),
                 GASActions.create('settings', { key: 'referral_reward_referrer', value: String(referralRewardReferrer) }),
                 GASActions.create('settings', { key: 'referral_reward_referee', value: String(referralRewardReferee) }),
-                GASActions.create('settings', { key: 'referral_min_first_order', value: String(referralMinFirstOrder) })
+                GASActions.create('settings', { key: 'referral_min_first_order', value: String(referralMinFirstOrder) }),
+                GASActions.create('settings', { key: 'referral_alert_enabled', value: String(referralAlertEnabled) }),
+                GASActions.create('settings', { key: 'referral_pending_days_threshold', value: String(referralPendingDaysThreshold) }),
+                GASActions.create('settings', { key: 'referral_mismatch_threshold', value: String(referralMismatchThreshold) }),
+                GASActions.create('settings', { key: 'referral_spike_multiplier', value: String(referralSpikeMultiplier) }),
+                GASActions.create('settings', { key: 'referral_alert_email', value: String(referralAlertEmail) }),
+                GASActions.create('settings', { key: 'referral_alert_webhook', value: String(referralAlertWebhook) }),
+                GASActions.create('settings', { key: 'referral_alert_cooldown_minutes', value: String(referralAlertCooldownMinutes) })
             ]);
             showAdminToast('Fallback aktif: settings masih disimpan dengan metode append.', 'warning');
         } catch (fallbackErr) {
