@@ -1242,13 +1242,14 @@ async function updateOrderStatus(id, newStatus, selectElement) {
         const result = await GASActions.update(ORDERS_SHEET, id, { status: newStatus });
         
         if (result.affected > 0) {
-            const shouldEvaluateReferral = ['terima', 'diterima', 'selesai', 'paid']
-                .includes(String(newStatus || '').toLowerCase());
+            const normalizedStatus = String(newStatus || '').toLowerCase();
+            const referralLifecycleStatuses = ['paid', 'selesai', 'batal', 'dibatalkan', 'cancel', 'canceled', 'cancelled', 'void'];
+            const shouldSyncReferral = referralLifecycleStatuses.includes(normalizedStatus);
 
-            if (shouldEvaluateReferral && order.phone) {
+            if (shouldSyncReferral && order.phone) {
                 try {
-                    const evalResult = await GASActions.post({
-                        action: 'evaluate_referral',
+                    const syncResult = await GASActions.post({
+                        action: 'sync_referral_order_status',
                         sheet: 'referrals',
                         data: {
                             order_id: order.id,
@@ -1258,11 +1259,13 @@ async function updateOrderStatus(id, newStatus, selectElement) {
                         }
                     });
 
-                    if (evalResult && evalResult.success && evalResult.referral_id) {
-                        showAdminToast(`Referral diproses: ${evalResult.referral_id}`, 'success');
+                    if (syncResult && syncResult.success && syncResult.action === 'reversed') {
+                        showAdminToast(`Referral direversal: ${syncResult.referral_id || order.id}`, 'warning');
+                    } else if (syncResult && syncResult.success && (syncResult.referral_id || syncResult.action === 'approved')) {
+                        showAdminToast(`Referral diproses: ${syncResult.referral_id || order.id}`, 'success');
                     }
                 } catch (referralError) {
-                    console.warn('Referral evaluation failed:', referralError);
+                    console.warn('Referral lifecycle sync failed:', referralError);
                 }
             }
 

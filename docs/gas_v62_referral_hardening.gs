@@ -1,14 +1,18 @@
 /**
  * ========================================
  * GOSEMBAKO - Google Apps Script API
- * Version: 6.2 (Referral Hardening)
+ * Version: 6.3 (Referral Lifecycle + Reversal)
  * ========================================
  *
- * PENAMBAHAN v6.2:
+ * PENAMBAHAN v6.3:
  * - LockService pada flow referral (attach/evaluate) untuk mencegah race condition.
  * - Idempotency evaluate referral berbasis trigger_order_id global.
  * - Dedup ledger point_transactions berbasis (source + source_id + phone).
  * - upsert_setting untuk update-in-place settings (tanpa menumpuk baris).
+ * - Integrasi lifecycle order referral:
+ *   - Grant reward hanya untuk status final: paid/selesai.
+ *   - Reversal otomatis saat order dibatalkan setelah reward.
+ *   - Reversal idempotent (tidak rollback ganda).
  */
 
 // ========================================
@@ -129,6 +133,12 @@ function doPost(e) {
     if (action === 'evaluate_referral') {
       return jsonOutput(withScriptLock(function() {
         return handleEvaluateReferral(data);
+      }));
+    }
+
+    if (action === 'sync_referral_order_status') {
+      return jsonOutput(withScriptLock(function() {
+        return handleSyncReferralOrderStatus(data);
       }));
     }
 
@@ -426,6 +436,128 @@ function handleEvaluateReferral(data) {
   };
 }
 
+function handleSyncReferralOrderStatus(data) {
+  if (!data) return { success: false, error_code: 'INVALID_PAYLOAD', message: 'data required' };
+
+  const orderStatus = String(data.order_status || '').toLowerCase().trim();
+  const orderId = normalizeOrderId(data.order_id || '');
+  if (!orderId) {
+    return { success: false, error_code: 'INVALID_PAYLOAD', message: 'order_id required' };
+  }
+
+  if (isFinalReferralOrderStatus(orderStatus)) {
+    return handleEvaluateReferral(data);
+  }
+
+  if (isCancelledReferralOrderStatus(orderStatus)) {
+    return handleReverseReferralByOrder(data);
+  }
+
+  return {
+    success: true,
+    action: 'noop',
+    message: 'Order status tidak memicu referral lifecycle',
+    order_id: orderId
+  };
+}
+
+function handleReverseReferralByOrder(data) {
+  const orderId = normalizeOrderId(data.order_id || '');
+  if (!orderId) {
+    return { success: false, error_code: 'INVALID_PAYLOAD', message: 'order_id required' };
+  }
+
+  const refs = getRowsAsObjects('referrals');
+  const headers = refs.headers;
+  const rows = refs.rows;
+  const sheet = refs.sheet;
+  if (headers.length === 0) {
+    return { success: false, error_code: 'REFERRALS_HEADERS_INVALID', message: 'Sheet referrals belum ada header' };
+  }
+
+  let rowNumber = -1;
+  let referral = null;
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    if (normalizeOrderId(r.trigger_order_id || '') === orderId) {
+      rowNumber = i + 2;
+      referral = r;
+      break;
+    }
+  }
+
+  if (!referral) {
+    return {
+      success: true,
+      action: 'noop',
+      message: 'Tidak ada referral terkait order ini',
+      order_id: orderId
+    };
+  }
+
+  const referralStatus = String(referral.status || '').toLowerCase().trim();
+  if (referralStatus === 'reversed') {
+    return {
+      success: true,
+      action: 'already_reversed',
+      message: 'Referral sudah pernah di-reversal',
+      referral_id: referral.id,
+      order_id: orderId
+    };
+  }
+
+  if (referralStatus !== 'approved') {
+    return {
+      success: true,
+      action: 'noop',
+      message: 'Referral belum approved, tidak perlu reversal',
+      referral_id: referral.id,
+      order_id: orderId
+    };
+  }
+
+  const rewardReferrer = parseInt(referral.reward_referrer_points || 0, 10) || 0;
+  const rewardReferee = parseInt(referral.reward_referee_points || 0, 10) || 0;
+
+  const r1 = upsertUserPoints(
+    referral.referrer_phone,
+    -Math.abs(rewardReferrer),
+    'referrals_reversal',
+    orderId,
+    'Referral reversal: order canceled',
+    'system'
+  );
+  const r2 = upsertUserPoints(
+    referral.referee_phone,
+    -Math.abs(rewardReferee),
+    'referrals_reversal',
+    orderId,
+    'Referral reversal: order canceled',
+    'system'
+  );
+
+  if (!r1.success || !r2.success) {
+    return { success: false, error_code: 'POINT_REVERSAL_FAILED', message: 'Gagal reversal points' };
+  }
+
+  setCellIfColumnExists(sheet, headers, rowNumber, 'status', 'reversed');
+  setCellIfColumnExists(sheet, headers, rowNumber, 'notes', 'Auto reversal karena order dibatalkan');
+  setCellIfColumnExists(sheet, headers, rowNumber, 'reversed_at', nowIso());
+  setCellIfColumnExists(sheet, headers, rowNumber, 'updated_at', nowIso());
+
+  rollbackReferrerSummary(referral.referrer_phone, rewardReferrer);
+
+  return {
+    success: true,
+    action: 'reversed',
+    message: 'Referral rewards berhasil direversal',
+    referral_id: referral.id,
+    order_id: orderId,
+    referrer_reversed: Math.abs(rewardReferrer),
+    referee_reversed: Math.abs(rewardReferee)
+  };
+}
+
 // ========================================
 // SETTINGS UPSERT
 // ========================================
@@ -532,6 +664,24 @@ function genId(prefix) {
 function parseNumber(v) {
   const n = parseFloat(v);
   return isNaN(n) ? 0 : n;
+}
+
+function isFinalReferralOrderStatus(status) {
+  const normalized = String(status || '').toLowerCase().trim();
+  return normalized === 'paid' || normalized === 'selesai';
+}
+
+function isCancelledReferralOrderStatus(status) {
+  const normalized = String(status || '').toLowerCase().trim();
+  const cancelled = [
+    'batal',
+    'dibatalkan',
+    'cancel',
+    'canceled',
+    'cancelled',
+    'void'
+  ];
+  return cancelled.indexOf(normalized) !== -1;
 }
 
 function normalizeOrderId(orderId) {
@@ -690,6 +840,33 @@ function updateReferrerSummary(referrerPhone, rewardPoints) {
       const oldTotal = parseInt(rows[i].referral_points_total || 0, 10) || 0;
       sheet.getRange(rowNo, countCol + 1).setValue(oldCount + 1);
       sheet.getRange(rowNo, totalCol + 1).setValue(oldTotal + rewardPoints);
+      break;
+    }
+  }
+}
+
+function rollbackReferrerSummary(referrerPhone, reversedPoints) {
+  const usersData = getRowsAsObjects('users');
+  const headers = usersData.headers;
+  const rows = usersData.rows;
+  const sheet = usersData.sheet;
+
+  const waCol = headers.indexOf('whatsapp');
+  const countCol = headers.indexOf('referral_count');
+  const totalCol = headers.indexOf('referral_points_total');
+  if (waCol === -1 || countCol === -1 || totalCol === -1) return;
+
+  const target = normalizePhone(referrerPhone);
+  for (var i = 0; i < rows.length; i++) {
+    const rowPhone = normalizePhone(rows[i].whatsapp || '');
+    if (rowPhone === target) {
+      const rowNo = i + 2;
+      const oldCount = parseInt(rows[i].referral_count || 0, 10) || 0;
+      const oldTotal = parseInt(rows[i].referral_points_total || 0, 10) || 0;
+      const nextCount = Math.max(0, oldCount - 1);
+      const nextTotal = Math.max(0, oldTotal - Math.abs(parseInt(reversedPoints || 0, 10) || 0));
+      sheet.getRange(rowNo, countCol + 1).setValue(nextCount);
+      sheet.getRange(rowNo, totalCol + 1).setValue(nextTotal);
       break;
     }
   }
