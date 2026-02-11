@@ -82,5 +82,23 @@ const GASActions = {
             sheet: sheet,
             id: id
         });
+    },
+
+    /**
+     * Upsert one setting key/value in sheet `settings`
+     * Requires GAS support: action=upsert_setting
+     * @param {string} key - Setting key
+     * @param {string|number|boolean} value - Setting value
+     * @returns {Promise<object>} Response JSON
+     */
+    async upsertSetting(key, value) {
+        return this.post({
+            action: 'upsert_setting',
+            sheet: 'settings',
+            data: {
+                key: String(key),
+                value: String(value)
+            }
+        });
     }
 };

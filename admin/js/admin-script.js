@@ -2170,14 +2170,25 @@ async function saveSettings() {
 
     try {
         await Promise.all([
-            GASActions.create('settings', { key: 'referral_enabled', value: String(referralEnabled) }),
-            GASActions.create('settings', { key: 'referral_reward_referrer', value: String(referralRewardReferrer) }),
-            GASActions.create('settings', { key: 'referral_reward_referee', value: String(referralRewardReferee) }),
-            GASActions.create('settings', { key: 'referral_min_first_order', value: String(referralMinFirstOrder) })
+            GASActions.upsertSetting('referral_enabled', String(referralEnabled)),
+            GASActions.upsertSetting('referral_reward_referrer', String(referralRewardReferrer)),
+            GASActions.upsertSetting('referral_reward_referee', String(referralRewardReferee)),
+            GASActions.upsertSetting('referral_min_first_order', String(referralMinFirstOrder))
         ]);
     } catch (settingError) {
-        console.warn('Failed to persist referral settings to sheet settings:', settingError);
-        showAdminToast('Pengaturan lokal tersimpan, tapi gagal simpan setting referral ke sheet.', 'warning');
+        console.warn('upsert_setting not available, fallback to append create:', settingError);
+        try {
+            await Promise.all([
+                GASActions.create('settings', { key: 'referral_enabled', value: String(referralEnabled) }),
+                GASActions.create('settings', { key: 'referral_reward_referrer', value: String(referralRewardReferrer) }),
+                GASActions.create('settings', { key: 'referral_reward_referee', value: String(referralRewardReferee) }),
+                GASActions.create('settings', { key: 'referral_min_first_order', value: String(referralMinFirstOrder) })
+            ]);
+            showAdminToast('Fallback aktif: settings masih disimpan dengan metode append.', 'warning');
+        } catch (fallbackErr) {
+            console.warn('Fallback create settings failed:', fallbackErr);
+            showAdminToast('Pengaturan lokal tersimpan, tapi gagal simpan setting referral ke sheet.', 'warning');
+        }
     }
     
     // Trigger API config change event for all open tabs/windows
