@@ -173,6 +173,41 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-bold text-gray-800">Ringkasan Referral</h4>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Pending</p>
+                            <h4 id="stat-referral-pending" class="text-lg font-bold text-amber-700 mt-1">0</h4>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Approved</p>
+                            <h4 id="stat-referral-approved" class="text-lg font-bold text-green-700 mt-1">0</h4>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Poin Dibagikan</p>
+                            <h4 id="stat-referral-points" class="text-lg font-bold text-blue-700 mt-1">0</h4>
+                        </div>
+                    </div>
+                    <div class="mt-4 overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Referrer</th>
+                                    <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Referee</th>
+                                    <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Reward</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-referrals-list" class="divide-y divide-gray-100">
+                                <tr><td colspan="4" class="px-4 py-4 text-center text-gray-500">Belum ada data referral.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <!-- Section: Produk -->

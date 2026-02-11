@@ -129,16 +129,18 @@ function toggleStoreStatus() {
 
 async function updateDashboardStats() {
     try {
-        const [prodRes, orderRes, purchaseRes, costRes] = await Promise.all([
+        const [prodRes, orderRes, purchaseRes, costRes, referralRes] = await Promise.all([
             fetch(`${API_URL}?sheet=${PRODUCTS_SHEET}`),
             fetch(`${API_URL}?sheet=${ORDERS_SHEET}`),
             fetch(`${API_URL}?sheet=${PURCHASES_SHEET}`),
-            fetch(`${API_URL}?sheet=${MONTHLY_COST_SHEET}`)
+            fetch(`${API_URL}?sheet=${MONTHLY_COST_SHEET}`),
+            fetch(`${API_URL}?sheet=referrals`)
         ]);
         const prods = await prodRes.json();
         const orders = await orderRes.json();
         const purchases = purchaseRes.ok ? await purchaseRes.json() : [];
         const costs = costRes.ok ? await costRes.json() : [];
+        const referrals = referralRes.ok ? await referralRes.json() : [];
         allProducts = Array.isArray(prods) ? prods : [];
         allPurchases = Array.isArray(purchases) ? purchases : [];
         allMonthlyCosts = Array.isArray(costs) ? costs : [];
@@ -152,7 +154,63 @@ async function updateDashboardStats() {
         allOrders = normalizedOrders;
         updateRevenueStats(normalizedOrders);
         renderRecentOrders(normalizedOrders);
+        updateReferralStats(Array.isArray(referrals) ? referrals : []);
+        renderRecentReferrals(Array.isArray(referrals) ? referrals : []);
     } catch (e) { console.error(e); }
+}
+
+function updateReferralStats(referrals) {
+    const pendingEl = document.getElementById('stat-referral-pending');
+    const approvedEl = document.getElementById('stat-referral-approved');
+    const pointsEl = document.getElementById('stat-referral-points');
+    if (!pendingEl || !approvedEl || !pointsEl) return;
+
+    const safeReferrals = Array.isArray(referrals) ? referrals : [];
+    const pending = safeReferrals.filter((r) => String(r.status || '').toLowerCase() === 'pending').length;
+    const approvedRows = safeReferrals.filter((r) => String(r.status || '').toLowerCase() === 'approved');
+    const approved = approvedRows.length;
+    const totalPoints = approvedRows.reduce((sum, row) => {
+        const referrer = parseCurrencyValue(row.reward_referrer_points || 0);
+        const referee = parseCurrencyValue(row.reward_referee_points || 0);
+        return sum + referrer + referee;
+    }, 0);
+
+    pendingEl.innerText = pending;
+    approvedEl.innerText = approved;
+    pointsEl.innerText = totalPoints.toLocaleString('id-ID');
+}
+
+function renderRecentReferrals(referrals) {
+    const body = document.getElementById('recent-referrals-list');
+    if (!body) return;
+    if (!Array.isArray(referrals) || referrals.length === 0) {
+        body.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-gray-500">Belum ada data referral.</td></tr>';
+        return;
+    }
+
+    const sorted = [...referrals].sort((a, b) => {
+        const dateA = new Date(a.created_at || 0).getTime();
+        const dateB = new Date(b.created_at || 0).getTime();
+        return dateB - dateA;
+    }).slice(0, 6);
+
+    body.innerHTML = sorted.map((row) => {
+        const status = String(row.status || 'pending').toLowerCase();
+        const statusClass = status === 'approved'
+            ? 'bg-green-100 text-green-700'
+            : status === 'pending'
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-red-100 text-red-700';
+        const reward = parseCurrencyValue(row.reward_referrer_points || 0) + parseCurrencyValue(row.reward_referee_points || 0);
+        return `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-4 py-3 text-xs font-semibold text-gray-700">${escapeHtml(normalizePhone(row.referrer_phone || '-'))}</td>
+                <td class="px-4 py-3 text-xs text-gray-700">${escapeHtml(normalizePhone(row.referee_phone || '-'))}</td>
+                <td class="px-4 py-3"><span class="text-xs px-2 py-1 rounded-full font-bold ${statusClass}">${escapeHtml(status)}</span></td>
+                <td class="px-4 py-3 text-xs font-bold text-blue-700">${reward.toLocaleString('id-ID')}</td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function renderRecentOrders(orders) {
