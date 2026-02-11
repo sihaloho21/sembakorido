@@ -127,12 +127,74 @@ function applyReferralDataToUI(profile) {
     }
 }
 
+function getReferralStatusBadge(status) {
+    const s = String(status || '').toLowerCase();
+    if (s === 'approved') return '<span class="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">Approved</span>';
+    if (s === 'rejected' || s === 'void') return '<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">Rejected</span>';
+    return '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold">Pending</span>';
+}
+
+async function loadReferralHistory(user) {
+    const listEl = document.getElementById('referral-history-list');
+    const badgeEl = document.getElementById('referral-history-badge');
+    if (!listEl || !badgeEl) return;
+
+    try {
+        const apiUrl = CONFIG.getMainApiUrl();
+        const phone = normalizePhoneTo08(user.whatsapp);
+        const response = await fetch(`${apiUrl}?sheet=referrals&phone=${encodeURIComponent(phone)}&_t=${Date.now()}`);
+        if (!response.ok) throw new Error('Gagal memuat riwayat referral');
+
+        const rows = parseSheetResponse(await response.json());
+        const mine = rows
+            .filter((r) => {
+                const referrer = normalizePhoneTo08(r.referrer_phone || '');
+                const referee = normalizePhoneTo08(r.referee_phone || '');
+                return referrer === phone || referee === phone;
+            })
+            .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+            .slice(0, 5);
+
+        badgeEl.textContent = `${mine.length} data`;
+        if (mine.length === 0) {
+            listEl.innerHTML = '<p class="text-gray-400">Belum ada riwayat referral.</p>';
+            return;
+        }
+
+        listEl.innerHTML = mine.map((r) => {
+            const role = normalizePhoneTo08(r.referrer_phone || '') === phone ? 'Anda mengajak' : 'Anda diajak';
+            const otherPhone = role === 'Anda mengajak'
+                ? normalizePhoneTo08(r.referee_phone || '')
+                : normalizePhoneTo08(r.referrer_phone || '');
+            const reward = role === 'Anda mengajak'
+                ? parseInt(r.reward_referrer_points || 0, 10) || 0
+                : parseInt(r.reward_referee_points || 0, 10) || 0;
+
+            return `
+                <div class="border border-gray-200 rounded-lg p-2 bg-gray-50">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-bold text-gray-700">${escapeHtml(role)}</span>
+                        ${getReferralStatusBadge(r.status)}
+                    </div>
+                    <p class="text-gray-600">No: ${escapeHtml(otherPhone || '-')}</p>
+                    <p class="text-green-700 font-semibold">Reward: ${escapeHtml(String(reward))} poin</p>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading referral history:', error);
+        badgeEl.textContent = 'error';
+        listEl.innerHTML = '<p class="text-red-500">Gagal memuat riwayat referral.</p>';
+    }
+}
+
 async function loadReferralData(user) {
     try {
         const users = await fetchUsersList();
         const ensured = await ensureUserReferralCode(user, users);
         referralProfileCache = ensured.user;
         applyReferralDataToUI(ensured.user);
+        await loadReferralHistory(user);
     } catch (error) {
         console.error('Error loading referral data:', error);
         setReferralStatus('Gagal memuat data referral. Coba refresh halaman.', 'error');
