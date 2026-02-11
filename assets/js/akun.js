@@ -329,44 +329,79 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     try {
         const apiUrl = CONFIG.getMainApiUrl();
         const cacheBuster = '&_t=' + Date.now();
-        const variants = phoneLookupVariants(normalizedPhone);
         let foundUser = null;
-        
-        // Fetch all users and filter locally
-        const resp = await fetch(`${apiUrl}?sheet=users${cacheBuster}`);
-        if (!resp.ok) {
-            showError('Gagal menghubungi server. Silakan coba lagi.');
-            resetLoginButton();
-            return;
-        }
-        const data = await resp.json();
-        if (isUnauthorizedApiResponse(data)) {
-            showError('Layanan login membutuhkan otorisasi API. Hubungi admin.');
-            resetLoginButton();
-            return;
-        }
-        const users = parseSheetResponse(data);
-        
-        // Filter by normalized phone variants
-        for (const variant of variants) {
-            const candidate = users.find(u => normalizePhoneTo08(u.whatsapp || u.phone || '') === normalizePhoneTo08(variant));
-            if (candidate) {
-                foundUser = candidate;
-                break;
+
+        // Preferred secure path: ask backend to validate phone+pin via public_login.
+        const loginUrl = `${apiUrl}?action=public_login&phone=${encodeURIComponent(normalizedPhone)}&pin=${encodeURIComponent(pin)}${cacheBuster}`;
+        const loginResp = await fetch(loginUrl);
+        if (loginResp.ok) {
+            const loginData = await loginResp.json();
+            if (loginData && loginData.success && loginData.user) {
+                foundUser = loginData.user;
+            } else {
+                const loginError = String(loginData && loginData.error ? loginData.error : '').toLowerCase();
+                if (loginError === 'login_failed') {
+                    showError('Nomor WhatsApp atau PIN salah');
+                    resetLoginButton();
+                    return;
+                }
+                if (loginError === 'account_inactive') {
+                    showError('Akun Anda tidak aktif. Hubungi admin.');
+                    resetLoginButton();
+                    return;
+                }
+                if (loginError === 'rate_limited') {
+                    showError((loginData && loginData.message) || 'Terlalu banyak percobaan login, coba lagi.');
+                    resetLoginButton();
+                    return;
+                }
+
+                // Backward compatibility for old backend without public_login endpoint.
+                const isLegacyBackend = loginError === 'invalid sheet' || loginError === 'invalid action';
+                if (!isLegacyBackend) {
+                    showError((loginData && loginData.message) || 'Login gagal. Silakan coba lagi.');
+                    resetLoginButton();
+                    return;
+                }
             }
         }
-        
+
+        // Legacy fallback path (older backend): fetch users and validate in frontend.
         if (!foundUser) {
-            showError('Nomor WhatsApp tidak terdaftar');
-            resetLoginButton();
-            return;
-        }
-        
-        // Validate PIN
-        if ((foundUser.pin || '').toString() !== pin) {
-            showError('PIN salah. Silakan coba lagi.');
-            resetLoginButton();
-            return;
+            const variants = phoneLookupVariants(normalizedPhone);
+            const resp = await fetch(`${apiUrl}?sheet=users${cacheBuster}`);
+            if (!resp.ok) {
+                showError('Gagal menghubungi server. Silakan coba lagi.');
+                resetLoginButton();
+                return;
+            }
+            const data = await resp.json();
+            if (isUnauthorizedApiResponse(data)) {
+                showError('Layanan login membutuhkan endpoint public_login. Hubungi admin.');
+                resetLoginButton();
+                return;
+            }
+            const users = parseSheetResponse(data);
+
+            for (const variant of variants) {
+                const candidate = users.find(u => normalizePhoneTo08(u.whatsapp || u.phone || '') === normalizePhoneTo08(variant));
+                if (candidate) {
+                    foundUser = candidate;
+                    break;
+                }
+            }
+
+            if (!foundUser) {
+                showError('Nomor WhatsApp tidak terdaftar');
+                resetLoginButton();
+                return;
+            }
+
+            if ((foundUser.pin || '').toString() !== pin) {
+                showError('PIN salah. Silakan coba lagi.');
+                resetLoginButton();
+                return;
+            }
         }
         
         // Check if account is active

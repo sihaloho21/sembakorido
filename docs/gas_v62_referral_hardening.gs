@@ -72,6 +72,8 @@ const PUBLIC_CREATE_HMAC_MAX_AGE_SECONDS = 300;
 const FRAUD_PHONE_DISTANCE_THRESHOLD = 2;
 const CLAIM_REWARD_WINDOW_SECONDS = 60;
 const CLAIM_REWARD_MAX_REQUESTS = 8;
+const PUBLIC_LOGIN_WINDOW_SECONDS = 60;
+const PUBLIC_LOGIN_MAX_REQUESTS = 12;
 
 const SENSITIVE_GET_SHEETS = {
   orders: true,
@@ -140,6 +142,10 @@ function doGet(e) {
   const whatsapp = params.whatsapp;
   const token = params.token || '';
 
+  if (action === 'public_login') {
+    return jsonOutput(handlePublicLogin(params));
+  }
+
   if (!sheetName || SHEET_WHITELIST.indexOf(sheetName) === -1) {
     return jsonOutput({ error: 'Invalid sheet' });
   }
@@ -196,9 +202,78 @@ function doGet(e) {
   }
 }
 
-function doPost(e) {
-  const token = (e && e.parameter && e.parameter.token) ? e.parameter.token : '';
+function handlePublicLogin(params) {
+  const phone = normalizePhone(params.phone || params.whatsapp || '');
+  const pin = String(params.pin || '').trim();
 
+  if (!phone || !pin) {
+    return {
+      success: false,
+      error: 'INVALID_PAYLOAD',
+      message: 'phone dan pin wajib diisi'
+    };
+  }
+  if (!/^\d{6}$/.test(pin)) {
+    return {
+      success: false,
+      error: 'INVALID_PAYLOAD',
+      message: 'PIN harus 6 digit angka'
+    };
+  }
+
+  const rateLimitError = enforcePublicLoginRateLimit(phone);
+  if (rateLimitError) return rateLimitError;
+
+  const usersData = getRowsAsObjects('users');
+  if (!usersData.headers.length) {
+    return {
+      success: false,
+      error: 'USERS_HEADERS_INVALID',
+      message: 'Sheet users belum ada header'
+    };
+  }
+
+  var foundUser = null;
+  for (var i = 0; i < usersData.rows.length; i++) {
+    var row = usersData.rows[i];
+    const rowPhone = normalizePhone(row.whatsapp || row.phone || '');
+    if (rowPhone === phone) {
+      foundUser = row;
+      break;
+    }
+  }
+
+  if (!foundUser || String(foundUser.pin || '').trim() !== pin) {
+    return {
+      success: false,
+      error: 'LOGIN_FAILED',
+      message: 'Nomor WhatsApp atau PIN salah'
+    };
+  }
+
+  if (foundUser.status && String(foundUser.status).toLowerCase() !== 'aktif') {
+    return {
+      success: false,
+      error: 'ACCOUNT_INACTIVE',
+      message: 'Akun tidak aktif'
+    };
+  }
+
+  return {
+    success: true,
+    user: {
+      id: foundUser.id || '',
+      nama: foundUser.nama || '',
+      whatsapp: phone,
+      phone: phone,
+      status: foundUser.status || '',
+      tanggal_daftar: foundUser.tanggal_daftar || '',
+      total_points: parseNumber(foundUser.total_points || foundUser.points || foundUser.poin || 0)
+    }
+  };
+}
+
+function doPost(e) {
   try {
     let body;
     if (e.parameter && e.parameter.json) {
@@ -214,6 +289,7 @@ function doPost(e) {
     const id = body.id;
     const data = body.data;
     const actionKey = resolveActionKey(action, data);
+    const token = resolveRequestToken(e, body);
 
     const authError = guardActionAuthorization(actionKey, token, sheetName);
     if (authError) return jsonOutput(authError);
@@ -241,7 +317,7 @@ function doPost(e) {
       if (limitError) return jsonOutput(limitError);
     }
 
-    if (!sheetName || SHEET_WHITELIST.indexOf(sheetName) === -1) {
+    if (isSheetValidationRequired(actionKey) && (!sheetName || SHEET_WHITELIST.indexOf(sheetName) === -1)) {
       return jsonOutput({ error: 'Invalid sheet: ' + sheetName });
     }
 
@@ -1135,6 +1211,25 @@ function resolveActionKey(action, data) {
   return String(action).trim();
 }
 
+function resolveRequestToken(e, body) {
+  const params = (e && e.parameter) ? e.parameter : {};
+  const payload = body || {};
+  const data = payload.data || {};
+  return String(
+    params.token ||
+    payload.token ||
+    payload.admin_token ||
+    payload.auth_token ||
+    data.token ||
+    data.admin_token ||
+    ''
+  ).trim();
+}
+
+function isSheetValidationRequired(actionKey) {
+  return !(actionKey === 'attach_referral' || actionKey === 'claim_reward');
+}
+
 function isPublicCreateAction(actionKey, sheetName) {
   return actionKey === 'create' && isPublicPostAllowed(actionKey, sheetName);
 }
@@ -1577,6 +1672,26 @@ function enforcePublicCreateRateLimit(sheetName, payload) {
     cache.put(key, String(current + 1), PUBLIC_CREATE_WINDOW_SECONDS);
   } catch (error) {
     Logger.log('Rate limit cache error: ' + error.toString());
+  }
+  return null;
+}
+
+function enforcePublicLoginRateLimit(phone) {
+  const normalizedPhone = normalizePhone(phone || '');
+  const key = 'pub_login:' + (normalizedPhone || 'anon');
+  try {
+    const cache = CacheService.getScriptCache();
+    const current = parseInt(cache.get(key) || '0', 10) || 0;
+    if (current >= PUBLIC_LOGIN_MAX_REQUESTS) {
+      return {
+        success: false,
+        error: 'RATE_LIMITED',
+        message: 'Terlalu banyak percobaan login, coba lagi sebentar.'
+      };
+    }
+    cache.put(key, String(current + 1), PUBLIC_LOGIN_WINDOW_SECONDS);
+  } catch (error) {
+    Logger.log('Public login rate limit cache error: ' + error.toString());
   }
   return null;
 }
