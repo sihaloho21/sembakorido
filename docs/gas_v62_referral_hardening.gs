@@ -1,10 +1,10 @@
 /**
  * ========================================
  * GOSEMBAKO - Google Apps Script API
- * Version: 6.4 (Referral Lifecycle + Monitoring Alert)
+ * Version: 6.5 (Security Guard + Schema + Scheduled Audit)
  * ========================================
  *
- * PENAMBAHAN v6.4:
+ * PENAMBAHAN v6.5:
  * - LockService pada flow referral (attach/evaluate) untuk mencegah race condition.
  * - Idempotency evaluate referral berbasis trigger_order_id global.
  * - Dedup ledger point_transactions berbasis (source + source_id + phone).
@@ -16,6 +16,13 @@
  * - Monitoring alert:
  *   - Endpoint notify_referral_alert (email + webhook opsional).
  *   - Throttle alert via CacheService berdasarkan cooldown menit.
+ * - Hardening security:
+ *   - Guard action: aksi sensitif wajib ADMIN_TOKEN.
+ * - Schema validator:
+ *   - ensureSchema() untuk create/melengkapi kolom sheet penting.
+ * - Rekonsiliasi terjadwal:
+ *   - runReferralReconciliationAudit() + log ke referral_audit_logs.
+ *   - helper install/remove trigger audit.
  */
 
 // ========================================
@@ -28,10 +35,39 @@ const ADMIN_TOKEN = ''; // contoh: 'SECRET123'
 const SHEET_WHITELIST = [
   'products', 'categories', 'orders', 'users', 'user_points', 'tukar_poin',
   'banners', 'claims', 'settings', 'pembelian', 'suppliers', 'biaya_bulanan',
-  'referrals', 'point_transactions'
+  'referrals', 'point_transactions', 'referral_audit_logs'
 ];
 
 const LOCK_TIMEOUT_MS = 30000;
+const AUDIT_TRIGGER_HANDLER = 'runReferralReconciliationAudit';
+
+const PUBLIC_ACTIONS = {
+  attach_referral: true
+};
+
+const SCHEMA_REQUIREMENTS = {
+  users: [
+    'id', 'nama', 'whatsapp', 'pin', 'total_points', 'status', 'created_at',
+    'tanggal_daftar', 'kode_referral', 'referred_by', 'referred_by_phone',
+    'referral_count', 'referral_points_total'
+  ],
+  user_points: ['phone', 'points', 'last_updated'],
+  referrals: [
+    'id', 'referrer_phone', 'referrer_code', 'referee_phone', 'referee_user_id',
+    'status', 'trigger_order_id', 'trigger_order_total', 'reward_referrer_points',
+    'reward_referee_points', 'created_at', 'approved_at', 'reversed_at',
+    'updated_at', 'notes'
+  ],
+  point_transactions: [
+    'id', 'phone', 'type', 'points_delta', 'balance_after', 'source',
+    'source_id', 'notes', 'created_at', 'actor'
+  ],
+  settings: ['key', 'value'],
+  referral_audit_logs: [
+    'id', 'run_at', 'status', 'mismatch_count', 'stale_pending_count',
+    'pending_threshold_days', 'summary_json'
+  ]
+};
 
 // ========================================
 // MAIN HANDLERS
@@ -104,9 +140,6 @@ function doGet(e) {
 
 function doPost(e) {
   const token = (e && e.parameter && e.parameter.token) ? e.parameter.token : '';
-  if (ADMIN_TOKEN && token !== ADMIN_TOKEN) {
-    return jsonOutput({ error: 'Unauthorized' });
-  }
 
   try {
     let body;
@@ -122,6 +155,10 @@ function doPost(e) {
     const sheetName = (e.parameter.sheet || body.sheet || '').trim();
     const id = body.id;
     const data = body.data;
+    const actionKey = resolveActionKey(action, data);
+
+    const authError = guardActionAuthorization(actionKey, token);
+    if (authError) return jsonOutput(authError);
 
     if (!sheetName || SHEET_WHITELIST.indexOf(sheetName) === -1) {
       return jsonOutput({ error: 'Invalid sheet: ' + sheetName });
@@ -151,6 +188,16 @@ function doPost(e) {
 
     if (action === 'upsert_setting') {
       return jsonOutput(handleUpsertSetting(data));
+    }
+
+    if (action === 'ensure_schema') {
+      return jsonOutput(handleEnsureSchema(data));
+    }
+
+    if (action === 'run_referral_reconciliation_audit') {
+      return jsonOutput(withScriptLock(function() {
+        return runReferralReconciliationAudit();
+      }));
     }
 
     const sheet = getSheet(sheetName);
@@ -708,6 +755,11 @@ function handleNotifyReferralAlert(data) {
   };
 }
 
+function handleEnsureSchema(data) {
+  const repairMode = !data || data.repair !== false;
+  return ensureSchema(repairMode);
+}
+
 // ========================================
 // UTILS
 // ========================================
@@ -727,6 +779,29 @@ function withScriptLock(callback) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function resolveActionKey(action, data) {
+  if (!action && data && Array.isArray(data)) return 'bulk_insert';
+  if (!action) return 'unknown';
+  return String(action).trim();
+}
+
+function guardActionAuthorization(actionKey, token) {
+  if (PUBLIC_ACTIONS[actionKey]) return null;
+  if (!ADMIN_TOKEN) {
+    return {
+      error: 'ADMIN_TOKEN_NOT_CONFIGURED',
+      message: 'Set ADMIN_TOKEN untuk menjalankan aksi ini'
+    };
+  }
+  if (token !== ADMIN_TOKEN) {
+    return {
+      error: 'Unauthorized',
+      message: 'Token tidak valid'
+    };
+  }
+  return null;
 }
 
 function isAlertCooldownActive(key) {
@@ -755,6 +830,15 @@ function getSheet(sheetName) {
   return sheet;
 }
 
+function getOrCreateSheet(sheetName) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+  }
+  return sheet;
+}
+
 function getRowsAsObjects(sheetName) {
   const sheet = getSheet(sheetName);
   const values = sheet.getDataRange().getValues();
@@ -775,6 +859,49 @@ function appendByHeaders(sheet, headers, obj) {
     return obj[h] !== undefined ? obj[h] : '';
   });
   sheet.appendRow(row);
+}
+
+function ensureSchema(repairMode) {
+  const repaired = [];
+  const missing = [];
+  const checked = [];
+
+  Object.keys(SCHEMA_REQUIREMENTS).forEach(function(sheetName) {
+    const requiredHeaders = SCHEMA_REQUIREMENTS[sheetName];
+    checked.push(sheetName);
+    const sheet = getOrCreateSheet(sheetName);
+    const values = sheet.getDataRange().getValues();
+    let headers = values.length > 0 ? values[0].map(function(h) { return String(h).trim(); }) : [];
+
+    if (!headers.length) {
+      if (repairMode) {
+        sheet.getRange(1, 1, 1, requiredHeaders.length).setValues([requiredHeaders]);
+        repaired.push(sheetName + ':headers_created');
+      } else {
+        missing.push(sheetName + ':headers_missing');
+      }
+      return;
+    }
+
+    const toAdd = requiredHeaders.filter(function(h) { return headers.indexOf(h) === -1; });
+    if (!toAdd.length) return;
+
+    if (!repairMode) {
+      missing.push(sheetName + ':missing=' + toAdd.join(','));
+      return;
+    }
+
+    const startCol = headers.length + 1;
+    sheet.getRange(1, startCol, 1, toAdd.length).setValues([toAdd]);
+    repaired.push(sheetName + ':added=' + toAdd.join(','));
+  });
+
+  return {
+    success: true,
+    checked: checked.length,
+    repaired: repaired,
+    missing: missing
+  };
 }
 
 function setCellIfColumnExists(sheet, headers, rowNumber, colName, value) {
@@ -858,6 +985,18 @@ function getReferralConfig() {
   };
 }
 
+function getMonitoringAlertConfig() {
+  const set = getSettingsMap();
+  return {
+    enabled: String(set.referral_alert_enabled || 'false').toLowerCase() === 'true',
+    pendingDaysThreshold: parseInt(set.referral_pending_days_threshold || '3', 10) || 3,
+    mismatchThreshold: parseInt(set.referral_mismatch_threshold || '1', 10) || 1,
+    cooldownMinutes: parseInt(set.referral_alert_cooldown_minutes || '60', 10) || 60,
+    email: String(set.referral_alert_email || '').trim(),
+    webhook: String(set.referral_alert_webhook || '').trim()
+  };
+}
+
 function findReferralByTriggerOrderId(orderId) {
   const normalizedOrderId = normalizeOrderId(orderId);
   if (!normalizedOrderId) return null;
@@ -890,6 +1029,122 @@ function pointTransactionExists(phone, source, sourceId) {
     }
   }
   return false;
+}
+
+function runReferralReconciliationAudit() {
+  const schemaResult = ensureSchema(true);
+  const monitorCfg = getMonitoringAlertConfig();
+
+  const userRows = getRowsAsObjects('user_points').rows;
+  const trxRows = getRowsAsObjects('point_transactions').rows;
+  const referralRows = getRowsAsObjects('referrals').rows;
+
+  const userMap = {};
+  userRows.forEach(function(row) {
+    const phone = normalizePhone(row.phone || '');
+    if (!phone) return;
+    userMap[phone] = parseNumber(row.points || 0);
+  });
+
+  const trxMap = {};
+  trxRows.forEach(function(row) {
+    const phone = normalizePhone(row.phone || '');
+    if (!phone) return;
+    trxMap[phone] = (trxMap[phone] || 0) + parseNumber(row.points_delta || 0);
+  });
+
+  const mismatchDetails = [];
+  const phones = {};
+  Object.keys(userMap).forEach(function(p) { phones[p] = true; });
+  Object.keys(trxMap).forEach(function(p) { phones[p] = true; });
+
+  Object.keys(phones).forEach(function(phone) {
+    const sheetBalance = parseNumber(userMap[phone] || 0);
+    const ledgerBalance = parseNumber(trxMap[phone] || 0);
+    const diff = sheetBalance - ledgerBalance;
+    if (Math.abs(diff) > 0.0001) {
+      mismatchDetails.push({
+        phone: phone,
+        user_points: sheetBalance,
+        ledger_sum: ledgerBalance,
+        diff: diff
+      });
+    }
+  });
+
+  const now = new Date();
+  const threshold = monitorCfg.pendingDaysThreshold;
+  const stalePendingCount = referralRows.filter(function(row) {
+    const status = String(row.status || '').toLowerCase().trim();
+    if (status !== 'pending') return false;
+    const createdAt = new Date(row.created_at || 0);
+    if (Number.isNaN(createdAt.getTime())) return false;
+    const ageDays = (now.getTime() - createdAt.getTime()) / (24 * 60 * 60 * 1000);
+    return ageDays > threshold;
+  }).length;
+
+  const mismatchCount = mismatchDetails.length;
+  const status = (mismatchCount > 0 || stalePendingCount > 0) ? 'warning' : 'ok';
+  const summary = {
+    mismatch_count: mismatchCount,
+    stale_pending_count: stalePendingCount,
+    pending_threshold_days: threshold,
+    schema_repaired: schemaResult.repaired,
+    mismatch_sample: mismatchDetails.slice(0, 25)
+  };
+
+  const auditSheetObj = getRowsAsObjects('referral_audit_logs');
+  appendByHeaders(auditSheetObj.sheet, auditSheetObj.headers, {
+    id: genId('AUD'),
+    run_at: nowIso(),
+    status: status,
+    mismatch_count: mismatchCount,
+    stale_pending_count: stalePendingCount,
+    pending_threshold_days: threshold,
+    summary_json: JSON.stringify(summary)
+  });
+
+  if (monitorCfg.enabled && (mismatchCount >= monitorCfg.mismatchThreshold || stalePendingCount > 0)) {
+    handleNotifyReferralAlert({
+      source: 'scheduled_reconciliation',
+      stale_pending_count: stalePendingCount,
+      mismatch_count: mismatchCount,
+      spike_detected: false,
+      today_referrals: 0,
+      baseline_avg: 0,
+      mismatch_threshold: monitorCfg.mismatchThreshold,
+      pending_days_threshold: threshold,
+      cooldown_minutes: monitorCfg.cooldownMinutes,
+      email: monitorCfg.email,
+      webhook: monitorCfg.webhook
+    });
+  }
+
+  return {
+    success: true,
+    status: status,
+    mismatch_count: mismatchCount,
+    stale_pending_count: stalePendingCount
+  };
+}
+
+function installReferralAuditTrigger() {
+  removeReferralAuditTrigger();
+  ScriptApp.newTrigger(AUDIT_TRIGGER_HANDLER)
+    .timeBased()
+    .everyHours(1)
+    .create();
+  return { success: true, message: 'Trigger audit per jam berhasil dibuat' };
+}
+
+function removeReferralAuditTrigger() {
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(function(trigger) {
+    if (trigger.getHandlerFunction() === AUDIT_TRIGGER_HANDLER) {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+  return { success: true, message: 'Trigger audit dihapus' };
 }
 
 function upsertUserPoints(phone, delta, source, sourceId, notes, actor) {
