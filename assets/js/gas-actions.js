@@ -8,16 +8,54 @@
 
 const GASActions = {
     /**
+     * Resolve admin token from API URL query or localStorage.
+     * Priority:
+     * 1) token in admin API URL (?token=...)
+     * 2) localStorage sembako_admin_api_token
+     * 3) localStorage sembako_admin_token
+     * 4) localStorage admin_token
+     * @returns {string}
+     */
+    getAdminToken() {
+        try {
+            const apiUrl = CONFIG.getAdminApiUrl();
+            const url = new URL(apiUrl, window.location.origin);
+            const tokenFromUrl = (url.searchParams.get('token') || '').trim();
+            if (tokenFromUrl) return tokenFromUrl;
+        } catch (error) {
+            // Ignore URL parse issues and fallback to localStorage
+        }
+
+        const storageKeys = [
+            'sembako_admin_api_token',
+            'sembako_admin_token',
+            'admin_token'
+        ];
+
+        for (let i = 0; i < storageKeys.length; i++) {
+            const key = storageKeys[i];
+            const value = String(localStorage.getItem(key) || '').trim();
+            if (value) return value;
+        }
+
+        return '';
+    },
+
+    /**
      * Generic POST request using FormData
      * @param {object} payload - Data to send (will be stringified and put in 'json' field)
      * @returns {Promise<object>} Response JSON
      */
     async post(payload) {
         const apiUrl = CONFIG.getAdminApiUrl();
+        const token = this.getAdminToken();
         
         // Create FormData and append JSON payload
         const formData = new FormData();
         formData.append('json', JSON.stringify(payload));
+        if (token) {
+            formData.append('token', token);
+        }
         
         // POST with FormData - no Content-Type header (browser sets multipart/form-data)
         const response = await fetch(apiUrl, {
