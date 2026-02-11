@@ -539,10 +539,12 @@ async function loadLoyaltyPoints(user) {
     try {
         const apiUrl = CONFIG.getMainApiUrl();
         const normalizedPhone = normalizePhoneTo08(user.whatsapp);
+        const fallbackPoints = parseInt(user.total_points || user.points || user.poin || 0, 10) || 0;
         
         if (!normalizedPhone) {
             console.warn('⚠️ Invalid phone number for loyalty points lookup');
-            document.getElementById('loyalty-points').textContent = '0';
+            document.getElementById('loyalty-points').textContent = String(fallbackPoints);
+            setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
             return;
         }
         
@@ -559,6 +561,13 @@ async function loadLoyaltyPoints(user) {
         
         const pointsData = await response.json();
         console.log('📥 Points data received:', pointsData);
+
+        if (pointsData && typeof pointsData === 'object' && String(pointsData.error || '').toLowerCase() === 'unauthorized') {
+            console.warn('⚠️ Unauthorized access to user_points. Falling back to user profile points.');
+            document.getElementById('loyalty-points').textContent = String(fallbackPoints);
+            setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
+            return;
+        }
         
         // Parse response (handle both array and object with result property)
         let allPoints = Array.isArray(pointsData) ? pointsData : (pointsData.result || []);
@@ -594,15 +603,17 @@ async function loadLoyaltyPoints(user) {
             setRewardContextFromAkun(user.whatsapp, points, user.nama);
         } else {
             console.log('⚠️ No points record found for user');
-            document.getElementById('loyalty-points').textContent = '0';
+            document.getElementById('loyalty-points').textContent = String(fallbackPoints);
             
-            // Set context with 0 points
-            setRewardContextFromAkun(user.whatsapp, 0, user.nama);
+            // Set context with fallback points from profile
+            setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
         }
         
     } catch (error) {
         console.error('❌ Error loading loyalty points:', error);
-        document.getElementById('loyalty-points').textContent = '0';
+        const fallbackPoints = parseInt(user.total_points || user.points || user.poin || 0, 10) || 0;
+        document.getElementById('loyalty-points').textContent = String(fallbackPoints);
+        setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
     }
 }
 
@@ -1729,17 +1740,23 @@ async function openRewardModal() {
 async function loadModalPoints() {
     const user = getLoggedInUser();
     if (!user) return;
+    const fallbackPoints = parseInt(user.total_points || user.points || user.poin || 0, 10) || 0;
     
     try {
         const apiUrl = CONFIG.getMainApiUrl();
         const response = await fetch(`${apiUrl}?sheet=user_points`);
         
         if (!response.ok) {
-            document.getElementById('loyalty-modal-points').textContent = '0';
+            document.getElementById('loyalty-modal-points').textContent = String(fallbackPoints);
             return;
         }
         
         const allPoints = await response.json();
+        if (allPoints && typeof allPoints === 'object' && String(allPoints.error || '').toLowerCase() === 'unauthorized') {
+            console.warn('⚠️ Unauthorized access to user_points (modal). Falling back to user profile points.');
+            document.getElementById('loyalty-modal-points').textContent = String(fallbackPoints);
+            return;
+        }
         const pointsData = Array.isArray(allPoints) ? allPoints.filter(p => normalizePhoneTo08(p.phone) === normalizePhoneTo08(user.whatsapp)) : [];
         
         if (pointsData && pointsData.length > 0) {
@@ -1747,11 +1764,11 @@ async function loadModalPoints() {
             const points = parseInt(userPoints.points || userPoints.poin || 0);
             document.getElementById('loyalty-modal-points').textContent = points;
         } else {
-            document.getElementById('loyalty-modal-points').textContent = '0';
+            document.getElementById('loyalty-modal-points').textContent = String(fallbackPoints);
         }
     } catch (error) {
         console.error('Error loading modal points:', error);
-        document.getElementById('loyalty-modal-points').textContent = '0';
+        document.getElementById('loyalty-modal-points').textContent = String(fallbackPoints);
     }
 }
 
