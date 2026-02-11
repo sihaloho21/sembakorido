@@ -1,10 +1,10 @@
 /**
  * ========================================
  * GOSEMBAKO - Google Apps Script API
- * Version: 6.6 (Scoped Public Access Rules)
+ * Version: 6.7 (Header Normalization + Public Create Guard)
  * ========================================
  *
- * PENAMBAHAN v6.6:
+ * PENAMBAHAN v6.7:
  * - LockService pada flow referral (attach/evaluate) untuk mencegah race condition.
  * - Idempotency evaluate referral berbasis trigger_order_id global.
  * - Dedup ledger point_transactions berbasis (source + source_id + phone).
@@ -26,6 +26,11 @@
  * - Akses publik terkontrol:
  *   - doGet: token hanya wajib untuk sheet sensitif.
  *   - doPost: whitelist action+sheet publik yang aman.
+ * - Perbaikan header:
+ *   - Normalisasi header kosong (anggap kosong jika semua sel header blank).
+ * - Hardening public create:
+ *   - Validasi payload minimal.
+ *   - Rate-limit berbasis CacheService.
  */
 
 // ========================================
@@ -43,6 +48,8 @@ const SHEET_WHITELIST = [
 
 const LOCK_TIMEOUT_MS = 30000;
 const AUDIT_TRIGGER_HANDLER = 'runReferralReconciliationAudit';
+const PUBLIC_CREATE_WINDOW_SECONDS = 60;
+const PUBLIC_CREATE_MAX_REQUESTS = 6;
 
 const SENSITIVE_GET_SHEETS = {
   orders: true,
@@ -177,6 +184,13 @@ function doPost(e) {
 
     const authError = guardActionAuthorization(actionKey, token, sheetName);
     if (authError) return jsonOutput(authError);
+
+    if (isPublicCreateAction(actionKey, sheetName)) {
+      const payloadError = validatePublicCreatePayload(sheetName, data);
+      if (payloadError) return jsonOutput(payloadError);
+      const limitError = enforcePublicCreateRateLimit(sheetName, data);
+      if (limitError) return jsonOutput(limitError);
+    }
 
     if (!sheetName || SHEET_WHITELIST.indexOf(sheetName) === -1) {
       return jsonOutput({ error: 'Invalid sheet: ' + sheetName });
@@ -805,6 +819,10 @@ function resolveActionKey(action, data) {
   return String(action).trim();
 }
 
+function isPublicCreateAction(actionKey, sheetName) {
+  return actionKey === 'create' && isPublicPostAllowed(actionKey, sheetName);
+}
+
 function guardActionAuthorization(actionKey, token, sheetName) {
   if (isPublicPostAllowed(actionKey, sheetName)) return null;
   if (!ADMIN_TOKEN) {
@@ -872,8 +890,8 @@ function getOrCreateSheet(sheetName) {
 function getRowsAsObjects(sheetName) {
   const sheet = getSheet(sheetName);
   const values = sheet.getDataRange().getValues();
-  if (values.length === 0) return { sheet: sheet, headers: [], rows: [] };
-  const headers = values[0];
+  const headers = getNormalizedHeadersFromValues(values);
+  if (!headers.length) return { sheet: sheet, headers: [], rows: [] };
   const rows = values.slice(1).map(function(r) { return toObject(headers, r); });
   return { sheet: sheet, headers: headers, rows: rows };
 }
@@ -901,7 +919,7 @@ function ensureSchema(repairMode) {
     checked.push(sheetName);
     const sheet = getOrCreateSheet(sheetName);
     const values = sheet.getDataRange().getValues();
-    let headers = values.length > 0 ? values[0].map(function(h) { return String(h).trim(); }) : [];
+    let headers = getNormalizedHeadersFromValues(values);
 
     if (!headers.length) {
       if (repairMode) {
@@ -955,6 +973,96 @@ function genId(prefix) {
 function parseNumber(v) {
   const n = parseFloat(v);
   return isNaN(n) ? 0 : n;
+}
+
+function getNormalizedHeadersFromValues(values) {
+  if (!values || !values.length) return [];
+  const raw = values[0] || [];
+  const headers = raw.map(function(h) { return String(h || '').trim(); });
+  const hasAnyHeader = headers.some(function(h) { return h !== ''; });
+  return hasAnyHeader ? headers : [];
+}
+
+function getPublicCreateIdentity(sheetName, payload) {
+  const data = payload || {};
+  if (sheetName === 'users') {
+    return normalizePhone(data.whatsapp || data.phone || '');
+  }
+  if (sheetName === 'orders' || sheetName === 'claims') {
+    return normalizePhone(data.phone || data.whatsapp || '');
+  }
+  return '';
+}
+
+function validatePublicCreatePayload(sheetName, payload) {
+  const data = payload || {};
+
+  if (sheetName === 'users') {
+    const name = String(data.nama || '').trim();
+    const phone = normalizePhone(data.whatsapp || data.phone || '');
+    if (!name || name.length < 2) {
+      return { success: false, error: 'INVALID_PAYLOAD', message: 'nama minimal 2 karakter' };
+    }
+    if (!phone || phone.length < 10) {
+      return { success: false, error: 'INVALID_PAYLOAD', message: 'nomor whatsapp tidak valid' };
+    }
+    return null;
+  }
+
+  if (sheetName === 'orders') {
+    const customer = String(data.pelanggan || '').trim();
+    const phone = normalizePhone(data.phone || '');
+    const total = parseNumber(data.total);
+    const qty = parseNumber(data.qty);
+    if (!customer || customer.length < 2) {
+      return { success: false, error: 'INVALID_PAYLOAD', message: 'pelanggan minimal 2 karakter' };
+    }
+    if (!phone || phone.length < 10) {
+      return { success: false, error: 'INVALID_PAYLOAD', message: 'phone tidak valid' };
+    }
+    if (qty <= 0 || total <= 0) {
+      return { success: false, error: 'INVALID_PAYLOAD', message: 'qty/total harus lebih besar dari 0' };
+    }
+    return null;
+  }
+
+  if (sheetName === 'claims') {
+    const phone = normalizePhone(data.phone || data.whatsapp || '');
+    const hadiah = String(data.hadiah || '').trim();
+    const poin = parseNumber(data.poin);
+    if (!phone || phone.length < 10) {
+      return { success: false, error: 'INVALID_PAYLOAD', message: 'phone tidak valid' };
+    }
+    if (!hadiah) {
+      return { success: false, error: 'INVALID_PAYLOAD', message: 'hadiah wajib diisi' };
+    }
+    if (poin <= 0) {
+      return { success: false, error: 'INVALID_PAYLOAD', message: 'poin harus lebih besar dari 0' };
+    }
+    return null;
+  }
+
+  return null;
+}
+
+function enforcePublicCreateRateLimit(sheetName, payload) {
+  const identity = getPublicCreateIdentity(sheetName, payload);
+  const key = 'pub_create:' + sheetName + ':' + (identity || 'anon');
+  try {
+    const cache = CacheService.getScriptCache();
+    const current = parseInt(cache.get(key) || '0', 10) || 0;
+    if (current >= PUBLIC_CREATE_MAX_REQUESTS) {
+      return {
+        success: false,
+        error: 'RATE_LIMITED',
+        message: 'Terlalu banyak request, coba lagi sebentar.'
+      };
+    }
+    cache.put(key, String(current + 1), PUBLIC_CREATE_WINDOW_SECONDS);
+  } catch (error) {
+    Logger.log('Rate limit cache error: ' + error.toString());
+  }
+  return null;
 }
 
 function isFinalReferralOrderStatus(status) {
