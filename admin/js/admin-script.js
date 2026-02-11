@@ -399,7 +399,7 @@ function updateBundleTotals() {
 
     const descEl = document.getElementById('bundle-description');
     if (descEl && !descEl.dataset.touched) {
-        descEl.value = `Isi paket:\\n${itemsDesc.join('\\n')}`;
+        descEl.value = `Isi paket:\n${itemsDesc.join('\n')}`;
     }
 }
 
@@ -724,7 +724,7 @@ if (bundleForm) {
         const finalValue = Math.max(0, totalValue - (totalValue * discountPercent / 100));
 
         const descriptionEl = document.getElementById('bundle-description');
-        const description = descriptionEl?.value || `Isi paket:\\n${items.map(i => `- ${i.nama} x${i.qty}`).join('\\n')}`;
+        const description = descriptionEl?.value || `Isi paket:\n${items.map(i => `- ${i.nama} x${i.qty}`).join('\n')}`;
 
         const data = {
             id: Date.now().toString(),

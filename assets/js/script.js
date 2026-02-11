@@ -1161,12 +1161,21 @@ function showDetail(p) {
     }
 
     if (itemsListEl) {
-        const items = p.deskripsi.split('\n').filter(i => i.trim() !== "");
+        const normalizedDescription = String(p.deskripsi || '')
+            .replace(/\r\n?/g, '\n')
+            .replace(/\\r\\n/g, '\n')
+            .replace(/\\n/g, '\n');
+        const items = normalizedDescription
+            .split('\n')
+            .map(i => i.trim())
+            .filter(i => i !== '' && !/^isi paket\s*:\s*$/i.test(i))
+            .map(i => i.replace(/^[\-•]\s*/, '').trim())
+            .filter(i => i !== '');
         const icons = ['🍜', '🍲', '📦', '☕', '🍚', '🍳', '🧂'];
         itemsListEl.innerHTML = items.map((item, idx) => `
             <div class="flex items-center gap-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100/50">
                 <span class="text-xl">${icons[idx % icons.length]}</span>
-                <span class="text-sm font-medium text-gray-700">${escapeHtml(item.trim())}</span>
+                <span class="text-sm font-medium text-gray-700">•${escapeHtml(item)}</span>
             </div>
         `).join('');
     }
