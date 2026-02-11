@@ -2052,10 +2052,14 @@ function resolveTukarPoinTitle(row) {
     if (!row) return '';
     const directTitle = String(row.judul || row.nama || '').trim();
     if (directTitle) return directTitle;
+    const fallbackName = String(row.product_name || row.nama_produk || '').trim();
+    if (fallbackName) return fallbackName;
     const linkedProductId = String(row.product_id || row.productId || '').trim();
     if (!linkedProductId) return '';
     const linkedProduct = findProductByRecordId(linkedProductId);
-    return linkedProduct ? String(linkedProduct.nama || linkedProduct.name || '').trim() : '';
+    if (linkedProduct) return String(linkedProduct.nama || linkedProduct.name || '').trim();
+    // Legacy fallback: some old rows stored product name in description.
+    return String(row.deskripsi || '').trim();
 }
 
 function guessExistingProductIdFromReward(rewardRow) {
@@ -2260,6 +2264,7 @@ document.getElementById('tukar-poin-form').addEventListener('submit', async (e) 
     try {
         const data = {
             judul,
+            nama: judul,
             poin: poinValue,
             reward_stock: rewardStock,
             daily_quota: dailyQuota,
