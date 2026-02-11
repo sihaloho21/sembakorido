@@ -920,6 +920,30 @@ async function updateOrderStatus(id, newStatus, selectElement) {
         const result = await GASActions.update(ORDERS_SHEET, id, { status: newStatus });
         
         if (result.affected > 0) {
+            const shouldEvaluateReferral = ['terima', 'diterima', 'selesai', 'paid']
+                .includes(String(newStatus || '').toLowerCase());
+
+            if (shouldEvaluateReferral && order.phone) {
+                try {
+                    const evalResult = await GASActions.post({
+                        action: 'evaluate_referral',
+                        sheet: 'referrals',
+                        data: {
+                            order_id: order.id,
+                            order_status: newStatus,
+                            order_total: parseCurrencyValue(order.total || order.total_bayar || 0),
+                            buyer_phone: normalizePhone(order.phone || '')
+                        }
+                    });
+
+                    if (evalResult && evalResult.success && evalResult.referral_id) {
+                        showAdminToast(`Referral diproses: ${evalResult.referral_id}`, 'success');
+                    }
+                } catch (referralError) {
+                    console.warn('Referral evaluation failed:', referralError);
+                }
+            }
+
             if (newStatus === 'Terima' && order.point_processed !== 'Yes') {
                 if (order.phone && order.poin) {
                     const pointsToAdd = parseFloat(order.poin) || 0;
