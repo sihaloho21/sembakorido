@@ -1,10 +1,10 @@
 /**
  * ========================================
  * GOSEMBAKO - Google Apps Script API
- * Version: 6.5 (Security Guard + Schema + Scheduled Audit)
+ * Version: 6.6 (Scoped Public Access Rules)
  * ========================================
  *
- * PENAMBAHAN v6.5:
+ * PENAMBAHAN v6.6:
  * - LockService pada flow referral (attach/evaluate) untuk mencegah race condition.
  * - Idempotency evaluate referral berbasis trigger_order_id global.
  * - Dedup ledger point_transactions berbasis (source + source_id + phone).
@@ -23,6 +23,9 @@
  * - Rekonsiliasi terjadwal:
  *   - runReferralReconciliationAudit() + log ke referral_audit_logs.
  *   - helper install/remove trigger audit.
+ * - Akses publik terkontrol:
+ *   - doGet: token hanya wajib untuk sheet sensitif.
+ *   - doPost: whitelist action+sheet publik yang aman.
  */
 
 // ========================================
@@ -41,8 +44,23 @@ const SHEET_WHITELIST = [
 const LOCK_TIMEOUT_MS = 30000;
 const AUDIT_TRIGGER_HANDLER = 'runReferralReconciliationAudit';
 
-const PUBLIC_ACTIONS = {
-  attach_referral: true
+const SENSITIVE_GET_SHEETS = {
+  orders: true,
+  users: true,
+  user_points: true,
+  claims: true,
+  settings: true,
+  pembelian: true,
+  suppliers: true,
+  biaya_bulanan: true,
+  referrals: true,
+  point_transactions: true,
+  referral_audit_logs: true
+};
+
+const PUBLIC_POST_RULES = {
+  attach_referral: { anySheet: true },
+  create: { sheets: { orders: true, users: true, claims: true } }
 };
 
 const SCHEMA_REQUIREMENTS = {
@@ -86,7 +104,7 @@ function doGet(e) {
     return jsonOutput({ error: 'Invalid sheet' });
   }
 
-  if (ADMIN_TOKEN && token !== ADMIN_TOKEN) {
+  if (isGetSheetSensitive(sheetName) && ADMIN_TOKEN && token !== ADMIN_TOKEN) {
     return jsonOutput({ error: 'Unauthorized' });
   }
 
@@ -157,7 +175,7 @@ function doPost(e) {
     const data = body.data;
     const actionKey = resolveActionKey(action, data);
 
-    const authError = guardActionAuthorization(actionKey, token);
+    const authError = guardActionAuthorization(actionKey, token, sheetName);
     if (authError) return jsonOutput(authError);
 
     if (!sheetName || SHEET_WHITELIST.indexOf(sheetName) === -1) {
@@ -787,8 +805,8 @@ function resolveActionKey(action, data) {
   return String(action).trim();
 }
 
-function guardActionAuthorization(actionKey, token) {
-  if (PUBLIC_ACTIONS[actionKey]) return null;
+function guardActionAuthorization(actionKey, token, sheetName) {
+  if (isPublicPostAllowed(actionKey, sheetName)) return null;
   if (!ADMIN_TOKEN) {
     return {
       error: 'ADMIN_TOKEN_NOT_CONFIGURED',
@@ -802,6 +820,18 @@ function guardActionAuthorization(actionKey, token) {
     };
   }
   return null;
+}
+
+function isPublicPostAllowed(actionKey, sheetName) {
+  const rule = PUBLIC_POST_RULES[actionKey];
+  if (!rule) return false;
+  if (rule.anySheet) return true;
+  if (rule.sheets && rule.sheets[sheetName]) return true;
+  return false;
+}
+
+function isGetSheetSensitive(sheetName) {
+  return Boolean(SENSITIVE_GET_SHEETS[sheetName]);
 }
 
 function isAlertCooldownActive(key) {
