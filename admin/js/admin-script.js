@@ -20,6 +20,7 @@ const TUKAR_POIN_SHEET = 'tukar_poin';
 const PURCHASES_SHEET = 'pembelian';
 const SUPPLIERS_SHEET = 'suppliers';
 const MONTHLY_COST_SHEET = 'biaya_bulanan';
+const REFERRALS_SHEET = 'referrals';
 
 let allProducts = [];
 let allCategories = [];
@@ -28,9 +29,12 @@ let allTukarPoin = [];
 let allPurchases = [];
 let allSuppliers = [];
 let allMonthlyCosts = [];
+let allReferrals = [];
 let currentOrderFilter = 'semua';
 let currentOrderPage = 1;
 const ordersPerPage = 10;
+let referralFilterStatus = 'all';
+let referralSearch = '';
 
 function showSection(sectionId) {
     document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
@@ -49,6 +53,7 @@ function showSection(sectionId) {
         biaya: 'Biaya Operasional',
         kategori: 'Kategori',
         pesanan: 'Pesanan',
+        referrals: 'Referral',
         'tukar-poin': 'Tukar Poin',
         banners: 'Banner Promosi',
         'user-points': 'Poin Pengguna',
@@ -73,6 +78,7 @@ function showSection(sectionId) {
     if (sectionId === 'suppliers') fetchSuppliers();
     if (sectionId === 'biaya') fetchMonthlyCosts();
     if (sectionId === 'pesanan') fetchOrders();
+    if (sectionId === 'referrals') fetchReferrals();
     if (sectionId === 'tukar-poin') fetchTukarPoin();
     if (sectionId === 'banners') fetchBanners();
     if (sectionId === 'user-points') fetchUserPoints();
@@ -211,6 +217,155 @@ function renderRecentReferrals(referrals) {
             </tr>
         `;
     }).join('');
+}
+
+async function fetchReferrals() {
+    const tbody = document.getElementById('referral-list-body');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">Memuat data referral...</td></tr>';
+    }
+    try {
+        const response = await fetch(`${API_URL}?sheet=${REFERRALS_SHEET}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        allReferrals = Array.isArray(data) ? data : [];
+        renderReferralTable();
+    } catch (error) {
+        console.error(error);
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-red-500">Gagal memuat referral.</td></tr>';
+        }
+    }
+}
+
+function getFilteredReferrals() {
+    const normalizedSearch = normalizePhone(referralSearch || '');
+    return allReferrals.filter((row) => {
+        const status = String(row.status || '').toLowerCase();
+        const referrer = normalizePhone(row.referrer_phone || '');
+        const referee = normalizePhone(row.referee_phone || '');
+        const statusMatch = referralFilterStatus === 'all' || status === referralFilterStatus;
+        const phoneMatch = !normalizedSearch || referrer.includes(normalizedSearch) || referee.includes(normalizedSearch);
+        return statusMatch && phoneMatch;
+    });
+}
+
+function renderReferralTable() {
+    const tbody = document.getElementById('referral-list-body');
+    const summary = document.getElementById('referral-filter-summary');
+    if (!tbody) return;
+
+    const filtered = getFilteredReferrals();
+    if (summary) summary.textContent = `${filtered.length} data`;
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">Tidak ada data referral sesuai filter.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = filtered.map((row) => {
+        const status = String(row.status || 'pending').toLowerCase();
+        const badgeClass = status === 'approved'
+            ? 'bg-green-100 text-green-700'
+            : status === 'pending'
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-red-100 text-red-700';
+        const rewardReferrer = parseCurrencyValue(row.reward_referrer_points || 0);
+        const rewardReferee = parseCurrencyValue(row.reward_referee_points || 0);
+        const rewardText = `${rewardReferrer.toLocaleString('id-ID')} / ${rewardReferee.toLocaleString('id-ID')}`;
+        const safeId = escapeHtml(row.id || '-');
+        const safeOrder = escapeHtml(row.trigger_order_id || '-');
+        const canApprove = status !== 'approved';
+        const canReject = status !== 'rejected' && status !== 'void';
+
+        return `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-6 py-4 text-xs font-bold text-blue-600">${safeId}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">${escapeHtml(normalizePhone(row.referrer_phone || '-'))}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">${escapeHtml(normalizePhone(row.referee_phone || '-'))}</td>
+                <td class="px-6 py-4"><span class="text-xs px-2 py-1 rounded-full font-bold ${badgeClass}">${escapeHtml(status)}</span></td>
+                <td class="px-6 py-4 text-sm font-semibold text-gray-700">${rewardText}</td>
+                <td class="px-6 py-4 text-sm text-gray-600">${safeOrder}</td>
+                <td class="px-6 py-4 text-right">
+                    <div class="inline-flex gap-2">
+                        <button data-action="approve-referral" data-id="${escapeAttr(row.id)}" class="px-3 py-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold transition" ${canApprove ? '' : 'disabled'}>
+                            Approve
+                        </button>
+                        <button data-action="reject-referral" data-id="${escapeAttr(row.id)}" class="px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold transition" ${canReject ? '' : 'disabled'}>
+                            Reject
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function handleApproveReferral(referralId) {
+    const row = allReferrals.find((r) => String(r.id) === String(referralId));
+    if (!row) {
+        showAdminToast('Referral tidak ditemukan.', 'error');
+        return;
+    }
+
+    try {
+        const evalResult = await GASActions.post({
+            action: 'evaluate_referral',
+            sheet: REFERRALS_SHEET,
+            data: {
+                order_id: row.trigger_order_id || `MANUAL-${Date.now()}`,
+                order_status: 'Selesai',
+                order_total: parseCurrencyValue(row.trigger_order_total || 999999),
+                buyer_phone: normalizePhone(row.referee_phone || '')
+            }
+        });
+
+        if (evalResult && evalResult.success) {
+            showAdminToast('Referral approved & reward diproses.', 'success');
+            fetchReferrals();
+            updateDashboardStats();
+            return;
+        }
+    } catch (error) {
+        console.warn('evaluate_referral failed, fallback to manual status update:', error);
+    }
+
+    try {
+        const result = await GASActions.update(REFERRALS_SHEET, referralId, {
+            status: 'approved',
+            approved_at: new Date().toISOString(),
+            notes: 'Manual approved from admin panel'
+        });
+        if (result.affected > 0) {
+            showAdminToast('Referral di-approve manual (tanpa auto reward).', 'warning');
+            fetchReferrals();
+            updateDashboardStats();
+        } else {
+            showAdminToast('Gagal approve referral.', 'error');
+        }
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Terjadi kesalahan saat approve referral.', 'error');
+    }
+}
+
+async function handleRejectReferral(referralId) {
+    try {
+        const result = await GASActions.update(REFERRALS_SHEET, referralId, {
+            status: 'rejected',
+            notes: 'Manual rejected from admin panel'
+        });
+        if (result.affected > 0) {
+            showAdminToast('Referral di-reject.', 'success');
+            fetchReferrals();
+            updateDashboardStats();
+        } else {
+            showAdminToast('Gagal reject referral.', 'error');
+        }
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Terjadi kesalahan saat reject referral.', 'error');
+    }
 }
 
 function renderRecentOrders(orders) {
@@ -2188,6 +2343,21 @@ function bindAdminActions() {
             return;
         }
 
+        if (action === 'refresh-referrals') {
+            fetchReferrals();
+            return;
+        }
+
+        if (action === 'approve-referral') {
+            handleApproveReferral(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'reject-referral') {
+            handleRejectReferral(trigger.dataset.id);
+            return;
+        }
+
         if (action === 'reset-cost-form') {
             resetMonthlyCostForm();
             return;
@@ -2299,6 +2469,22 @@ document.addEventListener('DOMContentLoaded', () => {
     showSection('dashboard');
     bindAdminActions();
     bindAdminImageFallbackHandler();
+
+    const referralSearchEl = document.getElementById('referral-search');
+    if (referralSearchEl) {
+        referralSearchEl.addEventListener('input', (event) => {
+            referralSearch = event.target.value || '';
+            renderReferralTable();
+        });
+    }
+
+    const referralStatusEl = document.getElementById('referral-filter-status');
+    if (referralStatusEl) {
+        referralStatusEl.addEventListener('change', (event) => {
+            referralFilterStatus = event.target.value || 'all';
+            renderReferralTable();
+        });
+    }
 });
 
 // ============ VARIANT MANAGEMENT FUNCTIONS ============
