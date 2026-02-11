@@ -32,6 +32,15 @@ const parseSheetResponse = (data) => {
     return [];
 };
 
+const isUnauthorizedApiResponse = (data) => {
+    return Boolean(
+        data &&
+        typeof data === 'object' &&
+        !Array.isArray(data) &&
+        String(data.error || '').toLowerCase() === 'unauthorized'
+    );
+};
+
 let referralProfileCache = null;
 
 function toReferralCodeValue(value) {
@@ -331,6 +340,11 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             return;
         }
         const data = await resp.json();
+        if (isUnauthorizedApiResponse(data)) {
+            showError('Layanan login membutuhkan otorisasi API. Hubungi admin.');
+            resetLoginButton();
+            return;
+        }
         const users = parseSheetResponse(data);
         
         // Filter by normalized phone variants
