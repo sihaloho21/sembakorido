@@ -1,10 +1,10 @@
 /**
  * ========================================
  * GOSEMBAKO - Google Apps Script API
- * Version: 6.3 (Referral Lifecycle + Reversal)
+ * Version: 6.4 (Referral Lifecycle + Monitoring Alert)
  * ========================================
  *
- * PENAMBAHAN v6.3:
+ * PENAMBAHAN v6.4:
  * - LockService pada flow referral (attach/evaluate) untuk mencegah race condition.
  * - Idempotency evaluate referral berbasis trigger_order_id global.
  * - Dedup ledger point_transactions berbasis (source + source_id + phone).
@@ -13,6 +13,9 @@
  *   - Grant reward hanya untuk status final: paid/selesai.
  *   - Reversal otomatis saat order dibatalkan setelah reward.
  *   - Reversal idempotent (tidak rollback ganda).
+ * - Monitoring alert:
+ *   - Endpoint notify_referral_alert (email + webhook opsional).
+ *   - Throttle alert via CacheService berdasarkan cooldown menit.
  */
 
 // ========================================
@@ -140,6 +143,10 @@ function doPost(e) {
       return jsonOutput(withScriptLock(function() {
         return handleSyncReferralOrderStatus(data);
       }));
+    }
+
+    if (action === 'notify_referral_alert') {
+      return jsonOutput(handleNotifyReferralAlert(data));
     }
 
     if (action === 'upsert_setting') {
@@ -593,6 +600,114 @@ function handleUpsertSetting(data) {
   return { success: true, affected: 1, key: key, value: value };
 }
 
+function handleNotifyReferralAlert(data) {
+  const payload = data || {};
+  const email = String(payload.email || '').trim();
+  const webhook = String(payload.webhook || '').trim();
+
+  if (!email && !webhook) {
+    return {
+      success: false,
+      error_code: 'NO_CHANNEL',
+      message: 'email atau webhook wajib diisi'
+    };
+  }
+
+  const cooldownMinutes = Math.max(1, parseInt(payload.cooldown_minutes || payload.cooldownMinutes || 60, 10) || 60);
+  const cooldownSeconds = cooldownMinutes * 60;
+  const source = String(payload.source || 'dashboard').trim();
+
+  const stalePendingCount = parseInt(payload.stale_pending_count || 0, 10) || 0;
+  const mismatchCount = parseInt(payload.mismatch_count || 0, 10) || 0;
+  const spikeDetected = Boolean(payload.spike_detected);
+  const todayReferrals = parseNumber(payload.today_referrals || 0);
+  const baselineAvg = parseNumber(payload.baseline_avg || 0);
+  const mismatchThreshold = parseInt(payload.mismatch_threshold || 0, 10) || 0;
+  const pendingDaysThreshold = parseInt(payload.pending_days_threshold || 0, 10) || 0;
+
+  const alertKey = [
+    'ref_alert',
+    source,
+    stalePendingCount,
+    mismatchCount,
+    spikeDetected ? '1' : '0',
+    mismatchThreshold,
+    pendingDaysThreshold
+  ].join('|');
+
+  if (isAlertCooldownActive(alertKey)) {
+    return {
+      success: true,
+      throttled: true,
+      message: 'Alert cooldown active'
+    };
+  }
+
+  const subject = '[GoSembako] Alert Anomali Referral';
+  const lines = [
+    'Anomali referral terdeteksi:',
+    '- Source: ' + source,
+    '- Pending terlalu lama: ' + stalePendingCount,
+    '- Mismatch ledger: ' + mismatchCount + ' (threshold ' + mismatchThreshold + ')',
+    '- Lonjakan harian: ' + (spikeDetected ? 'YA' : 'TIDAK'),
+    '- Referral hari ini: ' + todayReferrals,
+    '- Baseline rata-rata: ' + baselineAvg,
+    '- Pending threshold (hari): ' + pendingDaysThreshold,
+    '- Waktu: ' + nowIso()
+  ];
+  const body = lines.join('\n');
+
+  const sent = [];
+  const errors = [];
+
+  if (email) {
+    try {
+      MailApp.sendEmail(email, subject, body);
+      sent.push('email');
+    } catch (error) {
+      errors.push('email: ' + error.toString());
+    }
+  }
+
+  if (webhook) {
+    try {
+      UrlFetchApp.fetch(webhook, {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify({
+          subject: subject,
+          message: body,
+          data: {
+            source: source,
+            stale_pending_count: stalePendingCount,
+            mismatch_count: mismatchCount,
+            spike_detected: spikeDetected,
+            today_referrals: todayReferrals,
+            baseline_avg: baselineAvg,
+            mismatch_threshold: mismatchThreshold,
+            pending_days_threshold: pendingDaysThreshold,
+            timestamp: nowIso()
+          }
+        }),
+        muteHttpExceptions: true
+      });
+      sent.push('webhook');
+    } catch (error) {
+      errors.push('webhook: ' + error.toString());
+    }
+  }
+
+  if (sent.length > 0) {
+    setAlertCooldown(alertKey, cooldownSeconds);
+  }
+
+  return {
+    success: sent.length > 0,
+    channels: sent,
+    errors: errors
+  };
+}
+
 // ========================================
 // UTILS
 // ========================================
@@ -611,6 +726,25 @@ function withScriptLock(callback) {
     return callback();
   } finally {
     lock.releaseLock();
+  }
+}
+
+function isAlertCooldownActive(key) {
+  try {
+    const cache = CacheService.getScriptCache();
+    return cache.get(key) === '1';
+  } catch (error) {
+    Logger.log('Cache read failed: ' + error.toString());
+    return false;
+  }
+}
+
+function setAlertCooldown(key, ttlSeconds) {
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.put(key, '1', Math.max(1, ttlSeconds));
+  } catch (error) {
+    Logger.log('Cache write failed: ' + error.toString());
   }
 }
 

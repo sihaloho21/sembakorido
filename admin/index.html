@@ -212,6 +212,33 @@
                         </table>
                     </div>
                 </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-bold text-gray-800">Anomali Referral</h4>
+                        <p id="referral-anomaly-updated" class="text-xs text-gray-500">Belum dihitung</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="bg-amber-50 border border-amber-100 rounded-xl p-4">
+                            <p class="text-xs text-amber-700 font-bold uppercase tracking-wider">Pending Terlalu Lama</p>
+                            <h4 id="stat-referral-pending-stale" class="text-2xl font-bold text-amber-700 mt-1">0</h4>
+                            <p class="text-xs text-amber-600 mt-1">Melebihi ambang hari pending</p>
+                        </div>
+                        <div class="bg-red-50 border border-red-100 rounded-xl p-4">
+                            <p class="text-xs text-red-700 font-bold uppercase tracking-wider">Mismatch Ledger</p>
+                            <h4 id="stat-referral-ledger-mismatch" class="text-2xl font-bold text-red-700 mt-1">0</h4>
+                            <p class="text-xs text-red-600 mt-1">Nomor tidak sinkron</p>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                            <p class="text-xs text-blue-700 font-bold uppercase tracking-wider">Lonjakan Harian</p>
+                            <h4 id="stat-referral-spike" class="text-2xl font-bold text-blue-700 mt-1">Normal</h4>
+                            <p id="stat-referral-spike-detail" class="text-xs text-blue-600 mt-1">Belum ada data</p>
+                        </div>
+                    </div>
+                    <div id="referral-anomaly-note" class="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+                        Belum ada peringatan anomali.
+                    </div>
+                </div>
             </section>
 
             <!-- Section: Produk -->
@@ -918,6 +945,46 @@
                                 </div>
                             </div>
                             <p class="text-xs text-cyan-700">Nilai ini disimpan ke sheet `settings` dengan key: `referral_enabled`, `referral_reward_referrer`, `referral_reward_referee`, `referral_min_first_order`.</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t">
+                        <h4 class="font-bold text-gray-800 mb-4">Monitoring & Alert Referral</h4>
+                        <div class="bg-rose-50 p-6 rounded-2xl border border-rose-100 space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Aktifkan Alert</label>
+                                    <select id="referral-alert-enabled" class="w-full p-3 border border-rose-200 rounded-xl outline-none focus:border-rose-500 bg-white">
+                                        <option value="true">Aktif</option>
+                                        <option value="false">Nonaktif</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Pending Maksimal (hari)</label>
+                                    <input type="number" id="referral-pending-days-threshold" min="1" step="1" class="w-full p-3 border border-rose-200 rounded-xl outline-none focus:border-rose-500 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Ambang Mismatch Ledger</label>
+                                    <input type="number" id="referral-mismatch-threshold" min="1" step="1" class="w-full p-3 border border-rose-200 rounded-xl outline-none focus:border-rose-500 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Multiplier Lonjakan Harian</label>
+                                    <input type="number" id="referral-spike-multiplier" min="1" step="0.1" class="w-full p-3 border border-rose-200 rounded-xl outline-none focus:border-rose-500 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Cooldown Alert (menit)</label>
+                                    <input type="number" id="referral-alert-cooldown-minutes" min="1" step="1" class="w-full p-3 border border-rose-200 rounded-xl outline-none focus:border-rose-500 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Email Admin (opsional)</label>
+                                    <input type="email" id="referral-alert-email" class="w-full p-3 border border-rose-200 rounded-xl outline-none focus:border-rose-500 bg-white" placeholder="admin@paketsembako.com">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Webhook WA/HTTP (opsional)</label>
+                                    <input type="url" id="referral-alert-webhook" class="w-full p-3 border border-rose-200 rounded-xl outline-none focus:border-rose-500 bg-white" placeholder="https://...">
+                                </div>
+                            </div>
+                            <p class="text-xs text-rose-700">Settings key: `referral_alert_enabled`, `referral_pending_days_threshold`, `referral_mismatch_threshold`, `referral_spike_multiplier`, `referral_alert_email`, `referral_alert_webhook`, `referral_alert_cooldown_minutes`.</p>
                         </div>
                     </div>
 
