@@ -83,7 +83,19 @@ async function ensureUserReferralCode(user, users) {
     const currentUser = users.find((u) => String(u.id) === String(user.id)) ||
         users.find((u) => normalizePhoneTo08(u.whatsapp || u.phone || '') === normalizePhoneTo08(user.whatsapp));
     if (!currentUser) {
-        throw new Error('User profil tidak ditemukan');
+        return {
+            user: {
+                id: user.id || '',
+                nama: user.nama || 'User',
+                whatsapp: normalizePhoneTo08(user.whatsapp || user.phone || ''),
+                kode_referral: '',
+                referred_by: '',
+                referral_count: 0,
+                referral_points_total: 0
+            },
+            code: '',
+            missingProfile: true
+        };
     }
 
     const currentCode = toReferralCodeValue(currentUser.kode_referral);
@@ -194,6 +206,10 @@ async function loadReferralData(user) {
         const ensured = await ensureUserReferralCode(user, users);
         referralProfileCache = ensured.user;
         applyReferralDataToUI(ensured.user);
+        if (ensured.missingProfile) {
+            setReferralStatus('Profil referral belum sinkron. Silakan hubungi admin.', 'warning');
+            return;
+        }
         await loadReferralHistory(user);
     } catch (error) {
         console.error('Error loading referral data:', error);
@@ -1949,11 +1965,11 @@ showDashboard = function(user) {
     setTimeout(hideMobileBottomNavOnDashboard, 100);
 };
 
-// Hook into showLoginSection to show bottom nav
-const originalShowLoginSection = showLoginSection;
-showLoginSection = function() {
-    if (typeof originalShowLoginSection === 'function') {
-        originalShowLoginSection();
+// Hook into showLogin to show bottom nav
+const originalShowLogin = showLogin;
+showLogin = function() {
+    if (typeof originalShowLogin === 'function') {
+        originalShowLogin();
     }
     // Show bottom nav when back to login
     const bottomNav = document.getElementById('mobile-bottom-nav');
