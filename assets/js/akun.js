@@ -148,6 +148,18 @@ function applyReferralDataToUI(profile) {
     }
 }
 
+function buildReferralProfileFallback(user) {
+    return {
+        id: user && user.id ? user.id : '',
+        nama: user && user.nama ? user.nama : 'User',
+        whatsapp: normalizePhoneTo08((user && (user.whatsapp || user.phone)) || ''),
+        kode_referral: toReferralCodeValue(user && user.kode_referral ? user.kode_referral : ''),
+        referred_by: toReferralCodeValue(user && user.referred_by ? user.referred_by : ''),
+        referral_count: parseInt((user && user.referral_count) || 0, 10) || 0,
+        referral_points_total: parseInt((user && user.referral_points_total) || 0, 10) || 0
+    };
+}
+
 function getReferralStatusBadge(status) {
     const s = String(status || '').toLowerCase();
     if (s === 'approved') return '<span class="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">Approved</span>';
@@ -216,13 +228,15 @@ async function loadReferralData(user) {
         referralProfileCache = ensured.user;
         applyReferralDataToUI(ensured.user);
         if (ensured.missingProfile) {
-            setReferralStatus('Profil referral belum sinkron. Silakan hubungi admin.', 'warning');
+            applyReferralDataToUI(buildReferralProfileFallback(user));
+            setReferralStatus('Kode referral hanya bisa dipakai satu kali.', 'info');
             return;
         }
         await loadReferralHistory(user);
     } catch (error) {
         console.error('Error loading referral data:', error);
-        setReferralStatus('Gagal memuat data referral. Coba refresh halaman.', 'error');
+        applyReferralDataToUI(buildReferralProfileFallback(user));
+        setReferralStatus('Kode referral hanya bisa dipakai satu kali.', 'info');
     }
 }
 
@@ -458,7 +472,13 @@ function saveLoggedInUser(user) {
         id: user.id,
         nama: user.nama,
         whatsapp: normalizedPhone || user.whatsapp,
-        tanggal_daftar: user.tanggal_daftar
+        tanggal_daftar: user.tanggal_daftar,
+        status: user.status || '',
+        total_points: parseInt(user.total_points || user.points || user.poin || 0, 10) || 0,
+        kode_referral: toReferralCodeValue(user.kode_referral || ''),
+        referred_by: toReferralCodeValue(user.referred_by || ''),
+        referral_count: parseInt(user.referral_count || 0, 10) || 0,
+        referral_points_total: parseInt(user.referral_points_total || 0, 10) || 0
     }));
 }
 

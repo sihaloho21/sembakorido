@@ -234,11 +234,13 @@ function handlePublicLogin(params) {
   }
 
   var foundUser = null;
+  var foundUserRowNumber = -1;
   for (var i = 0; i < usersData.rows.length; i++) {
     var row = usersData.rows[i];
     const rowPhone = normalizePhone(row.whatsapp || row.phone || '');
     if (rowPhone === phone) {
       foundUser = row;
+      foundUserRowNumber = i + 2;
       break;
     }
   }
@@ -259,6 +261,25 @@ function handlePublicLogin(params) {
     };
   }
 
+  const headers = usersData.headers;
+  const kodeReferralCol = headers.indexOf('kode_referral');
+  const referredByCol = headers.indexOf('referred_by');
+  const referralCountCol = headers.indexOf('referral_count');
+  const referralPointsTotalCol = headers.indexOf('referral_points_total');
+
+  // Ensure user has referral code for seamless akun referral UI.
+  var kodeReferral = String(foundUser.kode_referral || '').trim().toUpperCase();
+  if (!kodeReferral && kodeReferralCol !== -1 && foundUserRowNumber !== -1) {
+    const existingCodes = {};
+    for (var j = 0; j < usersData.rows.length; j++) {
+      const code = String(usersData.rows[j].kode_referral || '').trim().toUpperCase();
+      if (code) existingCodes[code] = true;
+    }
+    kodeReferral = generateReferralCodeForUser(foundUser.nama || 'USER', phone, existingCodes);
+    usersData.sheet.getRange(foundUserRowNumber, kodeReferralCol + 1).setValue(kodeReferral);
+    foundUser.kode_referral = kodeReferral;
+  }
+
   return {
     success: true,
     user: {
@@ -268,9 +289,29 @@ function handlePublicLogin(params) {
       phone: phone,
       status: foundUser.status || '',
       tanggal_daftar: foundUser.tanggal_daftar || '',
-      total_points: parseNumber(foundUser.total_points || foundUser.points || foundUser.poin || 0)
+      total_points: parseNumber(foundUser.total_points || foundUser.points || foundUser.poin || 0),
+      kode_referral: kodeReferral || '',
+      referred_by: referredByCol !== -1 ? String(foundUser.referred_by || '').trim().toUpperCase() : '',
+      referral_count: referralCountCol !== -1 ? parseInt(foundUser.referral_count || 0, 10) || 0 : 0,
+      referral_points_total: referralPointsTotalCol !== -1 ? parseInt(foundUser.referral_points_total || 0, 10) || 0 : 0
     }
   };
+}
+
+function generateReferralCodeForUser(name, phone, existingCodesMap) {
+  const baseName = String(name || 'USER').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'USER';
+  const phoneDigits = normalizePhone(phone || '').replace(/[^0-9]/g, '');
+  const suffix = phoneDigits.slice(-4) || String(Math.floor(1000 + Math.random() * 9000));
+  var candidate = (baseName + suffix).slice(0, 24);
+
+  if (!existingCodesMap[candidate]) return candidate;
+
+  for (var i = 1; i <= 2000; i++) {
+    const alt = (baseName + suffix + String(i)).slice(0, 24);
+    if (!existingCodesMap[alt]) return alt;
+  }
+
+  return (baseName + String(Date.now()).slice(-6)).slice(0, 24);
 }
 
 function doPost(e) {
