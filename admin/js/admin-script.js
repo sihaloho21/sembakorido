@@ -301,6 +301,115 @@ function renderReferralTable() {
     }).join('');
 }
 
+async function runReferralLedgerReconciliation() {
+    const body = document.getElementById('referral-reconcile-body');
+    const totalEl = document.getElementById('reconcile-total-count');
+    const matchEl = document.getElementById('reconcile-match-count');
+    const mismatchEl = document.getElementById('reconcile-mismatch-count');
+    if (body) {
+        body.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">Memproses rekonsiliasi...</td></tr>';
+    }
+    try {
+        const [userPointsRes, ledgerRes] = await Promise.all([
+            fetch(`${API_URL}?sheet=user_points`),
+            fetch(`${API_URL}?sheet=point_transactions`)
+        ]);
+        const userPointsData = userPointsRes.ok ? await userPointsRes.json() : [];
+        const ledgerData = ledgerRes.ok ? await ledgerRes.json() : [];
+
+        const userRows = Array.isArray(userPointsData) ? userPointsData : [];
+        const ledgerRows = Array.isArray(ledgerData) ? ledgerData : [];
+
+        const pointsMap = new Map();
+        userRows.forEach((row) => {
+            const phone = normalizePhone(row.phone || row.whatsapp || '');
+            if (!phone) return;
+            pointsMap.set(phone, parseCurrencyValue(row.points || row.poin || 0));
+        });
+
+        const ledgerMap = new Map();
+        ledgerRows.forEach((row) => {
+            const phone = normalizePhone(row.phone || '');
+            if (!phone) return;
+            const current = ledgerMap.get(phone) || 0;
+            const delta = parseCurrencyValue(row.points_delta || 0);
+            ledgerMap.set(phone, current + delta);
+        });
+
+        const allPhones = new Set([...pointsMap.keys(), ...ledgerMap.keys()]);
+        const rows = Array.from(allPhones).map((phone) => {
+            const pointValue = pointsMap.get(phone) || 0;
+            const ledgerValue = ledgerMap.get(phone) || 0;
+            const diff = pointValue - ledgerValue;
+            return {
+                phone,
+                userPoints: pointValue,
+                ledgerSum: ledgerValue,
+                diff,
+                match: Math.abs(diff) < 0.0001
+            };
+        }).sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+
+        const total = rows.length;
+        const mismatch = rows.filter((r) => !r.match).length;
+        const match = total - mismatch;
+        if (totalEl) totalEl.innerText = String(total);
+        if (matchEl) matchEl.innerText = String(match);
+        if (mismatchEl) mismatchEl.innerText = String(mismatch);
+
+        if (!body) return;
+        if (rows.length === 0) {
+            body.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">Tidak ada data untuk direkonsiliasi.</td></tr>';
+            return;
+        }
+
+        body.innerHTML = rows.map((row) => {
+            const statusClass = row.match ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+            const statusText = row.match ? 'match' : 'mismatch';
+            return `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-4 py-3 text-xs font-semibold text-gray-700">${escapeHtml(row.phone)}</td>
+                    <td class="px-4 py-3 text-xs text-gray-700">${row.userPoints.toLocaleString('id-ID')}</td>
+                    <td class="px-4 py-3 text-xs text-gray-700">${row.ledgerSum.toLocaleString('id-ID')}</td>
+                    <td class="px-4 py-3 text-xs font-bold ${row.match ? 'text-green-700' : 'text-red-700'}">${row.diff.toLocaleString('id-ID')}</td>
+                    <td class="px-4 py-3"><span class="text-xs px-2 py-1 rounded-full font-bold ${statusClass}">${statusText}</span></td>
+                </tr>
+            `;
+        }).join('');
+
+        showAdminToast(`Rekonsiliasi selesai: ${mismatch} mismatch`, mismatch > 0 ? 'warning' : 'success');
+    } catch (error) {
+        console.error(error);
+        if (body) {
+            body.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-red-500">Gagal menjalankan rekonsiliasi.</td></tr>';
+        }
+        showAdminToast('Gagal menjalankan rekonsiliasi ledger.', 'error');
+    }
+}
+
+async function fetchSettingsRowsFromSheet() {
+    try {
+        const response = await fetch(`${API_URL}?sheet=settings&_t=${Date.now()}`);
+        if (!response.ok) return [];
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.warn('Failed to fetch settings from sheet:', error);
+        return [];
+    }
+}
+
+function getLatestSettingValue(rows, key, fallbackValue) {
+    if (!Array.isArray(rows)) return fallbackValue;
+    for (let i = rows.length - 1; i >= 0; i -= 1) {
+        if (String(rows[i].key || '').trim() === key) {
+            const val = rows[i].value;
+            return val !== undefined && val !== null && String(val) !== '' ? val : fallbackValue;
+        }
+    }
+    return fallbackValue;
+}
+
 async function handleApproveReferral(referralId) {
     const row = allReferrals.find((r) => String(r.id) === String(referralId));
     if (!row) {
@@ -1911,7 +2020,7 @@ async function editUserPoints(phone, currentPoints) {
 }
 
 // ============ SETTINGS FUNCTIONS ============
-function loadSettings() {
+async function loadSettings() {
     const config = CONFIG.getAllConfig();
     
     // API Settings
@@ -1943,6 +2052,21 @@ function loadSettings() {
         if (r56) r56.value = config.bundleDiscount.rule56 ?? 8;
         if (r7) r7.value = config.bundleDiscount.rule7plus ?? 10;
     }
+
+    const rows = await fetchSettingsRowsFromSheet();
+    const referralEnabled = getLatestSettingValue(rows, 'referral_enabled', 'true');
+    const referralRewardReferrer = getLatestSettingValue(rows, 'referral_reward_referrer', '20');
+    const referralRewardReferee = getLatestSettingValue(rows, 'referral_reward_referee', '10');
+    const referralMinFirstOrder = getLatestSettingValue(rows, 'referral_min_first_order', '50000');
+
+    const referralEnabledEl = document.getElementById('referral-enabled');
+    const referralRewardReferrerEl = document.getElementById('referral-reward-referrer');
+    const referralRewardRefereeEl = document.getElementById('referral-reward-referee');
+    const referralMinFirstOrderEl = document.getElementById('referral-min-first-order');
+    if (referralEnabledEl) referralEnabledEl.value = String(referralEnabled).toLowerCase() === 'false' ? 'false' : 'true';
+    if (referralRewardReferrerEl) referralRewardReferrerEl.value = parseInt(referralRewardReferrer, 10) || 20;
+    if (referralRewardRefereeEl) referralRewardRefereeEl.value = parseInt(referralRewardReferee, 10) || 10;
+    if (referralMinFirstOrderEl) referralMinFirstOrderEl.value = parseInt(referralMinFirstOrder, 10) || 50000;
 }
 
 function renderGajianMarkups(markups) {
@@ -2033,6 +2157,27 @@ async function saveSettings() {
             rule56: parseFloat(rule56.value) || 0,
             rule7plus: parseFloat(rule7.value) || 0
         });
+    }
+
+    const referralEnabledEl = document.getElementById('referral-enabled');
+    const referralRewardReferrerEl = document.getElementById('referral-reward-referrer');
+    const referralRewardRefereeEl = document.getElementById('referral-reward-referee');
+    const referralMinFirstOrderEl = document.getElementById('referral-min-first-order');
+    const referralEnabled = referralEnabledEl ? referralEnabledEl.value : 'true';
+    const referralRewardReferrer = referralRewardReferrerEl ? parseInt(referralRewardReferrerEl.value || '20', 10) : 20;
+    const referralRewardReferee = referralRewardRefereeEl ? parseInt(referralRewardRefereeEl.value || '10', 10) : 10;
+    const referralMinFirstOrder = referralMinFirstOrderEl ? parseInt(referralMinFirstOrderEl.value || '50000', 10) : 50000;
+
+    try {
+        await Promise.all([
+            GASActions.create('settings', { key: 'referral_enabled', value: String(referralEnabled) }),
+            GASActions.create('settings', { key: 'referral_reward_referrer', value: String(referralRewardReferrer) }),
+            GASActions.create('settings', { key: 'referral_reward_referee', value: String(referralRewardReferee) }),
+            GASActions.create('settings', { key: 'referral_min_first_order', value: String(referralMinFirstOrder) })
+        ]);
+    } catch (settingError) {
+        console.warn('Failed to persist referral settings to sheet settings:', settingError);
+        showAdminToast('Pengaturan lokal tersimpan, tapi gagal simpan setting referral ke sheet.', 'warning');
     }
     
     // Trigger API config change event for all open tabs/windows
@@ -2345,6 +2490,11 @@ function bindAdminActions() {
 
         if (action === 'refresh-referrals') {
             fetchReferrals();
+            return;
+        }
+
+        if (action === 'reconcile-referral-ledger') {
+            runReferralLedgerReconciliation();
             return;
         }
 
