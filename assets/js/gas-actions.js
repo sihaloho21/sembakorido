@@ -46,6 +46,7 @@ const GASActions = {
 
         const storageKeys = [
             'sembako_admin_api_token',
+            'sembako_admin_write_token',
             'sembako_admin_token',
             'admin_token',
             'api_token',
@@ -58,6 +59,18 @@ const GASActions = {
             const key = storageKeys[i];
             const value = String(localStorage.getItem(key) || '').trim();
             if (value) return value;
+        }
+
+        // Fallback: read from token input in admin settings page if available.
+        const tokenInputIds = ['settings-admin-token', 'admin-token-input', 'admin-token'];
+        for (let i = 0; i < tokenInputIds.length; i++) {
+            const el = document.getElementById(tokenInputIds[i]);
+            if (!el) continue;
+            const value = String(el.value || '').trim();
+            if (value) {
+                localStorage.setItem('sembako_admin_write_token', value);
+                return value;
+            }
         }
 
         return '';
