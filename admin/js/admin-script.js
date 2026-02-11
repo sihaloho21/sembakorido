@@ -2016,9 +2016,63 @@ document.getElementById('category-form').addEventListener('submit', async (e) =>
 });
 
 // ============ TUKAR POIN FUNCTIONS ============
+async function ensureProductsLoadedForTukarPoinSelector() {
+    if (Array.isArray(allProducts) && allProducts.length > 0) {
+        return allProducts;
+    }
+    try {
+        const response = await fetch(`${API_URL}?sheet=${PRODUCTS_SHEET}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        allProducts = Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error('Gagal memuat products untuk dropdown reward:', error);
+        allProducts = [];
+    }
+    return allProducts;
+}
+
+function guessExistingProductIdFromReward(rewardRow) {
+    if (!rewardRow) return '';
+    const productId = String(rewardRow.product_id || '').trim();
+    if (productId) return productId;
+    const rewardTitle = String(rewardRow.judul || rewardRow.nama || '').trim().toLowerCase();
+    if (!rewardTitle) return '';
+    const matched = allProducts.find((p) => String(p.nama || '').trim().toLowerCase() === rewardTitle);
+    return matched ? String(matched.id || '') : '';
+}
+
+async function populateTukarPoinExistingProductOptions(selectedId) {
+    const selectEl = document.getElementById('form-tukar-existing-product');
+    if (!selectEl) return;
+    await ensureProductsLoadedForTukarPoinSelector();
+    const options = [
+        '<option value="">-- Pilih Produk --</option>',
+        ...allProducts.map((p) => `<option value="${escapeAttr(p.id)}">${escapeHtml(p.nama || 'Tanpa Nama')}</option>`)
+    ];
+    selectEl.innerHTML = options.join('');
+    if (selectedId) {
+        selectEl.value = String(selectedId);
+    }
+}
+
+function applyExistingProductToTukarPoinForm(productId) {
+    if (!productId) return;
+    const product = allProducts.find((p) => String(p.id) === String(productId));
+    if (!product) return;
+
+    const titleEl = document.getElementById('form-tukar-judul');
+    const imageEl = document.getElementById('form-tukar-gambar');
+    const descEl = document.getElementById('form-tukar-deskripsi');
+
+    if (titleEl) titleEl.value = String(product.nama || '').trim();
+    if (imageEl) imageEl.value = String(product.gambar || '').split(',')[0].trim();
+    if (descEl) descEl.value = String(product.deskripsi || '').trim();
+}
+
 async function fetchTukarPoin() {
     const tbody = document.getElementById('tukar-poin-list');
-    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Memuat data tukar poin...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Memuat data tukar poin...</td></tr>';
     try {
         const response = await fetch(`${API_URL}?sheet=${TUKAR_POIN_SHEET}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -2027,14 +2081,14 @@ async function fetchTukarPoin() {
         renderTukarPoinTable();
     } catch (error) {
         console.error('Error:', error);
-        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-red-500">Gagal memuat data tukar poin. Pastikan sheet "tukar_poin" sudah ada.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-red-500">Gagal memuat data tukar poin. Pastikan sheet "tukar_poin" sudah ada.</td></tr>';
     }
 }
 
 function renderTukarPoinTable() {
     const tbody = document.getElementById('tukar-poin-list');
     if (allTukarPoin.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Belum ada produk tukar poin.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Belum ada produk tukar poin.</td></tr>';
         return;
     }
     tbody.innerHTML = allTukarPoin.map(p => {
@@ -2042,6 +2096,10 @@ function renderTukarPoinTable() {
         const safeDesc = escapeHtml(p.deskripsi || '-');
         const safePoints = escapeHtml(p.poin);
         const safeImage = sanitizeUrl(p.gambar, 'https://via.placeholder.com/50');
+        const rewardStock = Math.max(0, parseInt(p.reward_stock, 10) || 0);
+        const dailyQuota = Math.max(0, parseInt(p.daily_quota, 10) || 0);
+        const quotaText = dailyQuota > 0 ? `${dailyQuota}/hari` : 'Tanpa batas';
+        const stockTone = rewardStock > 0 ? 'text-emerald-700' : 'text-red-600';
         return `
         <tr class="hover:bg-gray-50 transition">
             <td class="px-6 py-4" data-label="Produk">
@@ -2051,6 +2109,8 @@ function renderTukarPoinTable() {
                 </div>
             </td>
             <td class="px-6 py-4 font-bold text-amber-600 text-sm" data-label="Poin">${safePoints} Poin</td>
+            <td class="px-6 py-4 text-sm font-bold ${stockTone}" data-label="Stok Reward">${rewardStock}</td>
+            <td class="px-6 py-4 text-sm text-gray-700" data-label="Quota Harian">${quotaText}</td>
             <td class="px-6 py-4 text-sm text-gray-600" data-label="Deskripsi">${safeDesc}</td>
             <td class="px-6 py-4 text-right flex justify-end gap-2" data-label="Aksi">
                 <button data-action="edit-tukar-poin" data-id="${escapeAttr(p.id)}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit">
@@ -2065,15 +2125,18 @@ function renderTukarPoinTable() {
     }).join('');
 }
 
-function openAddTukarPoinModal() {
+async function openAddTukarPoinModal() {
     document.getElementById('tukar-poin-id').value = '';
     document.getElementById('tukar-poin-form').reset();
+    await populateTukarPoinExistingProductOptions('');
+    document.getElementById('form-tukar-reward-stock').value = '0';
+    document.getElementById('form-tukar-daily-quota').value = '0';
     document.getElementById('tukar-poin-modal-title').innerText = 'Tambah Produk Tukar Poin';
     document.getElementById('tukar-poin-submit-btn').innerText = 'Simpan';
     document.getElementById('tukar-poin-modal').classList.remove('hidden');
 }
 
-function openEditTukarPoinModal(id) {
+async function openEditTukarPoinModal(id) {
     const product = allTukarPoin.find(p => p.id === id);
     if (!product) {
         showAdminToast('Produk tidak ditemukan!', 'error');
@@ -2083,8 +2146,11 @@ function openEditTukarPoinModal(id) {
     document.getElementById('tukar-poin-id').value = product.id;
     document.getElementById('form-tukar-judul').value = product.judul || '';
     document.getElementById('form-tukar-poin').value = product.poin || '';
+    document.getElementById('form-tukar-reward-stock').value = Math.max(0, parseInt(product.reward_stock, 10) || 0);
+    document.getElementById('form-tukar-daily-quota').value = Math.max(0, parseInt(product.daily_quota, 10) || 0);
     document.getElementById('form-tukar-gambar').value = product.gambar || '';
     document.getElementById('form-tukar-deskripsi').value = product.deskripsi || '';
+    await populateTukarPoinExistingProductOptions(guessExistingProductIdFromReward(product));
     
     document.getElementById('tukar-poin-modal-title').innerText = 'Edit Produk Tukar Poin';
     document.getElementById('tukar-poin-submit-btn').innerText = 'Perbarui';
@@ -2119,11 +2185,30 @@ document.getElementById('tukar-poin-form').addEventListener('submit', async (e) 
     const id = document.getElementById('tukar-poin-id').value;
     const judul = document.getElementById('form-tukar-judul').value.trim();
     const poin = document.getElementById('form-tukar-poin').value.trim();
+    const rewardStockRaw = document.getElementById('form-tukar-reward-stock').value.trim();
+    const dailyQuotaRaw = document.getElementById('form-tukar-daily-quota').value.trim();
+    const existingProductId = document.getElementById('form-tukar-existing-product').value.trim();
     const gambar = document.getElementById('form-tukar-gambar').value.trim();
     const deskripsi = document.getElementById('form-tukar-deskripsi').value.trim();
     
-    if (!judul || !poin || !gambar) {
+    if (!judul || !poin || !gambar || rewardStockRaw === '' || dailyQuotaRaw === '') {
         showAdminToast('Semua field yang ditandai wajib diisi!', 'error');
+        return;
+    }
+
+    const rewardStock = parseInt(rewardStockRaw, 10);
+    const dailyQuota = parseInt(dailyQuotaRaw, 10);
+    if (Number.isNaN(rewardStock) || rewardStock < 0) {
+        showAdminToast('Stok reward harus angka 0 atau lebih.', 'error');
+        return;
+    }
+    if (Number.isNaN(dailyQuota) || dailyQuota < 0) {
+        showAdminToast('Quota harian harus angka 0 atau lebih.', 'error');
+        return;
+    }
+    const poinValue = parseFloat(poin);
+    if (!Number.isFinite(poinValue) || poinValue <= 0) {
+        showAdminToast('Poin wajib berupa angka dan harus lebih dari 0.', 'error');
         return;
     }
     
@@ -2135,9 +2220,12 @@ document.getElementById('tukar-poin-form').addEventListener('submit', async (e) 
     try {
         const data = {
             judul,
-            poin: parseInt(poin),
+            poin: poinValue,
+            reward_stock: rewardStock,
+            daily_quota: dailyQuota,
             gambar,
-            deskripsi
+            deskripsi,
+            product_id: existingProductId
         };
         
         const action = id ? 'update' : 'create';
@@ -2879,6 +2967,12 @@ document.addEventListener('DOMContentLoaded', () => {
     showSection('dashboard');
     bindAdminActions();
     bindAdminImageFallbackHandler();
+    const tukarExistingProductEl = document.getElementById('form-tukar-existing-product');
+    if (tukarExistingProductEl) {
+        tukarExistingProductEl.addEventListener('change', (event) => {
+            applyExistingProductToTukarPoinForm(event.target.value);
+        });
+    }
 
     const referralSearchEl = document.getElementById('referral-search');
     if (referralSearchEl) {

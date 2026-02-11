@@ -70,6 +70,8 @@ const ATTACH_REFERRAL_WINDOW_SECONDS = 60;
 const ATTACH_REFERRAL_MAX_REQUESTS = 8;
 const PUBLIC_CREATE_HMAC_MAX_AGE_SECONDS = 300;
 const FRAUD_PHONE_DISTANCE_THRESHOLD = 2;
+const CLAIM_REWARD_WINDOW_SECONDS = 60;
+const CLAIM_REWARD_MAX_REQUESTS = 8;
 
 const SENSITIVE_GET_SHEETS = {
   orders: true,
@@ -88,6 +90,7 @@ const SENSITIVE_GET_SHEETS = {
 
 const PUBLIC_POST_RULES = {
   attach_referral: { anySheet: true },
+  claim_reward: { anySheet: true },
   create: { sheets: { orders: true, users: true, claims: true } }
 };
 
@@ -112,6 +115,10 @@ const SCHEMA_REQUIREMENTS = {
   referral_audit_logs: [
     'id', 'run_at', 'status', 'mismatch_count', 'stale_pending_count',
     'pending_threshold_days', 'summary_json'
+  ],
+  tukar_poin: [
+    'id', 'nama', 'judul', 'poin', 'gambar', 'deskripsi',
+    'reward_stock', 'daily_quota', 'daily_claim_count', 'daily_claim_date'
   ],
   fraud_risk_logs: [
     'id', 'created_at', 'event', 'referral_id', 'referrer_phone', 'referee_phone',
@@ -218,6 +225,13 @@ function doPost(e) {
       if (attachRateLimitError) return jsonOutput(attachRateLimitError);
     }
 
+    if (actionKey === 'claim_reward') {
+      const claimPayloadError = validateClaimRewardPayload(data);
+      if (claimPayloadError) return jsonOutput(claimPayloadError);
+      const claimRateLimitError = enforceClaimRewardRateLimit(data);
+      if (claimRateLimitError) return jsonOutput(claimRateLimitError);
+    }
+
     if (isPublicCreateAction(actionKey, sheetName)) {
       const signatureError = validatePublicCreateSignature(e, body, actionKey, sheetName, data);
       if (signatureError) return jsonOutput(signatureError);
@@ -246,6 +260,12 @@ function doPost(e) {
     if (action === 'sync_referral_order_status') {
       return jsonOutput(withScriptLock(function() {
         return handleSyncReferralOrderStatus(data);
+      }));
+    }
+
+    if (action === 'claim_reward') {
+      return jsonOutput(withScriptLock(function() {
+        return handleClaimReward(data);
       }));
     }
 
@@ -746,6 +766,192 @@ function handleReverseReferralByOrder(data) {
     order_id: orderId,
     referrer_reversed: Math.abs(rewardReferrer),
     referee_reversed: Math.abs(rewardReferee)
+  };
+}
+
+function handleClaimReward(data) {
+  if (!data) return { success: false, error_code: 'INVALID_PAYLOAD', message: 'data required' };
+
+  const rewardId = String(data.reward_id || data.id || '').trim();
+  const phone = normalizePhone(data.phone || data.whatsapp || '');
+  const customerName = String(data.customer_name || data.nama || '').trim();
+  const requestId = String(data.request_id || data.claim_request_id || '').trim() || genId('RREQ');
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+
+  if (!rewardId || !phone) {
+    return {
+      success: false,
+      error_code: 'INVALID_PAYLOAD',
+      message: 'reward_id dan phone wajib diisi'
+    };
+  }
+
+  // Idempotent guard for same public request_id.
+  if (pointTransactionExists(phone, 'reward_claim', requestId)) {
+    const userSnapshot = getRowsAsObjects('user_points').rows;
+    var currentBalance = 0;
+    for (var i = 0; i < userSnapshot.length; i++) {
+      if (normalizePhone(userSnapshot[i].phone || '') === phone) {
+        currentBalance = parseNumber(userSnapshot[i].points);
+        break;
+      }
+    }
+    return {
+      success: true,
+      dedup: true,
+      message: 'Request already processed',
+      balance_after: currentBalance,
+      request_id: requestId
+    };
+  }
+
+  const rewardsObj = getRowsAsObjects('tukar_poin');
+  if (!rewardsObj.headers.length) {
+    return { success: false, error_code: 'TUKAR_POIN_HEADERS_INVALID', message: 'Header tukar_poin belum valid' };
+  }
+  const rewardRows = rewardsObj.rows;
+  const rewardHeaders = rewardsObj.headers;
+  const rewardSheet = rewardsObj.sheet;
+
+  var rewardRowNumber = -1;
+  var reward = null;
+  for (var j = 0; j < rewardRows.length; j++) {
+    if (String(rewardRows[j].id || '').trim() === rewardId) {
+      rewardRowNumber = j + 2;
+      reward = rewardRows[j];
+      break;
+    }
+  }
+  if (!reward) {
+    return { success: false, error_code: 'REWARD_NOT_FOUND', message: 'Reward tidak ditemukan' };
+  }
+
+  const requiredPoints = parseNumber(reward.poin || 0);
+  if (requiredPoints <= 0) {
+    return { success: false, error_code: 'INVALID_REWARD_POINTS', message: 'Nilai poin reward tidak valid' };
+  }
+
+  const stockCol = rewardHeaders.indexOf('reward_stock');
+  const quotaCol = rewardHeaders.indexOf('daily_quota');
+  const countCol = rewardHeaders.indexOf('daily_claim_count');
+  const dateCol = rewardHeaders.indexOf('daily_claim_date');
+
+  var rewardStock = Math.max(0, parseInt(reward.reward_stock || 0, 10) || 0);
+  var dailyQuota = Math.max(0, parseInt(reward.daily_quota || 0, 10) || 0);
+  var dailyCount = Math.max(0, parseInt(reward.daily_claim_count || 0, 10) || 0);
+  var dailyDate = String(reward.daily_claim_date || '').slice(0, 10);
+  if (dailyDate !== today) {
+    dailyCount = 0;
+    dailyDate = today;
+  }
+
+  if (rewardStock <= 0) {
+    return { success: false, error_code: 'REWARD_STOCK_EMPTY', message: 'Stok reward habis' };
+  }
+  if (dailyQuota > 0 && dailyCount >= dailyQuota) {
+    return {
+      success: false,
+      error_code: 'REWARD_DAILY_QUOTA_REACHED',
+      message: 'Quota harian reward sudah habis'
+    };
+  }
+
+  const pointsObj = getRowsAsObjects('user_points');
+  if (!pointsObj.headers.length) {
+    return { success: false, error_code: 'USER_POINTS_HEADERS_INVALID', message: 'Header user_points belum valid' };
+  }
+  const pHeaders = pointsObj.headers;
+  const pSheet = pointsObj.sheet;
+  const pRows = pointsObj.rows;
+  const pPhoneCol = pHeaders.indexOf('phone');
+  const pPointsCol = pHeaders.indexOf('points');
+  const pLastCol = pHeaders.indexOf('last_updated');
+  if (pPhoneCol === -1 || pPointsCol === -1 || pLastCol === -1) {
+    return { success: false, error_code: 'USER_POINTS_HEADERS_INVALID', message: 'Kolom user_points belum lengkap' };
+  }
+
+  var userRowNumber = -1;
+  var userPoints = 0;
+  for (var k = 0; k < pRows.length; k++) {
+    if (normalizePhone(pRows[k].phone || '') === phone) {
+      userRowNumber = k + 2;
+      userPoints = parseNumber(pRows[k].points || 0);
+      break;
+    }
+  }
+  if (userRowNumber === -1) {
+    return { success: false, error_code: 'USER_NOT_FOUND', message: 'User poin tidak ditemukan' };
+  }
+  if (userPoints < requiredPoints) {
+    return {
+      success: false,
+      error_code: 'POINTS_INSUFFICIENT',
+      message: 'Poin tidak cukup',
+      balance: userPoints,
+      required: requiredPoints
+    };
+  }
+
+  const claimId = genId('CLM');
+  const rewardName = String(reward.nama || reward.judul || 'Reward');
+
+  const deduction = upsertUserPoints(
+    phone,
+    -Math.abs(requiredPoints),
+    'reward_claim',
+    requestId,
+    'Claim reward: ' + rewardName,
+    'public_claim'
+  );
+  if (!deduction.success) {
+    return { success: false, error_code: 'POINT_DEDUCTION_FAILED', message: 'Gagal memotong poin user' };
+  }
+
+  // Update reward counters after deduction. If this fails, compensate point deduction.
+  try {
+    if (stockCol !== -1) rewardSheet.getRange(rewardRowNumber, stockCol + 1).setValue(Math.max(0, rewardStock - 1));
+    if (quotaCol !== -1) rewardSheet.getRange(rewardRowNumber, quotaCol + 1).setValue(dailyQuota);
+    if (countCol !== -1) rewardSheet.getRange(rewardRowNumber, countCol + 1).setValue(dailyCount + 1);
+    if (dateCol !== -1) rewardSheet.getRange(rewardRowNumber, dateCol + 1).setValue(today);
+  } catch (error) {
+    upsertUserPoints(
+      phone,
+      Math.abs(requiredPoints),
+      'reward_claim_compensation',
+      requestId,
+      'Rollback reward claim karena update stok gagal',
+      'system'
+    );
+    return { success: false, error_code: 'REWARD_STOCK_UPDATE_FAILED', message: 'Gagal update stok/quota reward' };
+  }
+
+  const claimsObj = getRowsAsObjects('claims');
+  if (claimsObj.headers.length > 0) {
+    appendByHeaders(claimsObj.sheet, claimsObj.headers, {
+      id: claimId,
+      phone: phone,
+      nama: customerName || phone,
+      hadiah: rewardName,
+      poin: requiredPoints,
+      status: 'Pending',
+      tanggal: nowIso(),
+      reward_id: rewardId,
+      request_id: requestId
+    });
+  }
+
+  return {
+    success: true,
+    claim_id: claimId,
+    reward_id: rewardId,
+    reward_name: rewardName,
+    points_used: requiredPoints,
+    balance_after: deduction.balance,
+    reward_stock_after: Math.max(0, rewardStock - 1),
+    daily_quota: dailyQuota,
+    daily_claim_count: dailyCount + 1,
+    request_id: requestId
   };
 }
 
@@ -1283,6 +1489,49 @@ function enforceAttachReferralRateLimit(payload) {
     cache.put(key, String(current + 1), ATTACH_REFERRAL_WINDOW_SECONDS);
   } catch (error) {
     Logger.log('Attach referral rate limit cache error: ' + error.toString());
+  }
+  return null;
+}
+
+function validateClaimRewardPayload(payload) {
+  const data = payload || {};
+  const rewardId = String(data.reward_id || data.id || '').trim();
+  const phone = normalizePhone(data.phone || data.whatsapp || '');
+  if (!rewardId) {
+    return {
+      success: false,
+      error: 'INVALID_PAYLOAD',
+      message: 'reward_id wajib diisi'
+    };
+  }
+  if (!phone || phone.length < 10) {
+    return {
+      success: false,
+      error: 'INVALID_PAYLOAD',
+      message: 'phone tidak valid'
+    };
+  }
+  return null;
+}
+
+function enforceClaimRewardRateLimit(payload) {
+  const data = payload || {};
+  const phone = normalizePhone(data.phone || data.whatsapp || '');
+  const rewardId = String(data.reward_id || data.id || '').trim();
+  const key = 'claim_reward:' + (phone || 'anon') + ':' + (rewardId || 'unknown');
+  try {
+    const cache = CacheService.getScriptCache();
+    const current = parseInt(cache.get(key) || '0', 10) || 0;
+    if (current >= CLAIM_REWARD_MAX_REQUESTS) {
+      return {
+        success: false,
+        error: 'RATE_LIMITED',
+        message: 'Terlalu banyak percobaan klaim, coba lagi sebentar.'
+      };
+    }
+    cache.put(key, String(current + 1), CLAIM_REWARD_WINDOW_SECONDS);
+  } catch (error) {
+    Logger.log('Claim reward rate limit cache error: ' + error.toString());
   }
   return null;
 }
