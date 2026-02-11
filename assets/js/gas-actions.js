@@ -17,11 +17,29 @@ const GASActions = {
      * @returns {string}
      */
     getAdminToken() {
+        const queryKeys = ['token', 'admin_token', 'auth_token'];
+
+        // Priority 0: token from current page URL (useful when admin opens /admin/?token=...)
+        try {
+            const currentUrl = new URL(window.location.href);
+            for (let i = 0; i < queryKeys.length; i++) {
+                const value = String(currentUrl.searchParams.get(queryKeys[i]) || '').trim();
+                if (value) {
+                    localStorage.setItem('sembako_admin_api_token', value);
+                    return value;
+                }
+            }
+        } catch (error) {
+            // Ignore parse issues and continue fallback chain
+        }
+
         try {
             const apiUrl = CONFIG.getAdminApiUrl();
             const url = new URL(apiUrl, window.location.origin);
-            const tokenFromUrl = (url.searchParams.get('token') || '').trim();
-            if (tokenFromUrl) return tokenFromUrl;
+            for (let i = 0; i < queryKeys.length; i++) {
+                const tokenFromUrl = String(url.searchParams.get(queryKeys[i]) || '').trim();
+                if (tokenFromUrl) return tokenFromUrl;
+            }
         } catch (error) {
             // Ignore URL parse issues and fallback to localStorage
         }
@@ -29,7 +47,11 @@ const GASActions = {
         const storageKeys = [
             'sembako_admin_api_token',
             'sembako_admin_token',
-            'admin_token'
+            'admin_token',
+            'api_token',
+            'sembako_api_token',
+            'gos_admin_token',
+            'gos_api_token'
         ];
 
         for (let i = 0; i < storageKeys.length; i++) {
@@ -47,14 +69,42 @@ const GASActions = {
      * @returns {Promise<object>} Response JSON
      */
     async post(payload) {
-        const apiUrl = CONFIG.getAdminApiUrl();
+        let apiUrl = CONFIG.getAdminApiUrl();
         const token = this.getAdminToken();
+
+        // Mirror token into query param to guarantee Apps Script sees it in e.parameter.
+        if (token) {
+            try {
+                const urlObj = new URL(apiUrl, window.location.origin);
+                if (!urlObj.searchParams.get('token')) {
+                    urlObj.searchParams.set('token', token);
+                }
+                apiUrl = urlObj.toString();
+            } catch (error) {
+                // Keep original URL if parsing fails.
+            }
+        }
+
+        // Duplicate token in payload for backend compatibility.
+        const payloadWithToken = {
+            ...payload,
+            token: token || (payload && payload.token) || '',
+            admin_token: token || (payload && payload.admin_token) || ''
+        };
+        if (payloadWithToken.data && typeof payloadWithToken.data === 'object') {
+            payloadWithToken.data = {
+                ...payloadWithToken.data,
+                token: payloadWithToken.data.token || token || '',
+                admin_token: payloadWithToken.data.admin_token || token || ''
+            };
+        }
         
         // Create FormData and append JSON payload
         const formData = new FormData();
-        formData.append('json', JSON.stringify(payload));
+        formData.append('json', JSON.stringify(payloadWithToken));
         if (token) {
             formData.append('token', token);
+            formData.append('admin_token', token);
         }
         
         // POST with FormData - no Content-Type header (browser sets multipart/form-data)
