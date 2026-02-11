@@ -1,7 +1,7 @@
 /**
  * ========================================
  * GOSEMBAKO - Google Apps Script API
- * Version: 7.0 (Consistent Referral Finalization + Loyalty Ledger)
+ * Version: 7.1 (Fraud Risk Engine Rule-Based)
  * ========================================
  *
  * PENAMBAHAN v6.8:
@@ -43,6 +43,10 @@
  *   - Verifikasi status code HTTP (hanya 2xx dianggap sukses).
  * - Public create security:
  *   - Optional signature HMAC (settings-driven).
+ * - Fraud Risk Engine:
+ *   - Rule-based screening pada evaluasi referral.
+ *   - Flag otomatis untuk pola berisiko (IP/device/kecepatan/cancel/nomor mirip).
+ *   - Logging keputusan ke fraud_risk_logs.
  */
 
 // ========================================
@@ -55,7 +59,7 @@ const ADMIN_TOKEN = ''; // contoh: 'SECRET123'
 const SHEET_WHITELIST = [
   'products', 'categories', 'orders', 'users', 'user_points', 'tukar_poin',
   'banners', 'claims', 'settings', 'pembelian', 'suppliers', 'biaya_bulanan',
-  'referrals', 'point_transactions', 'referral_audit_logs'
+  'referrals', 'point_transactions', 'referral_audit_logs', 'fraud_risk_logs'
 ];
 
 const LOCK_TIMEOUT_MS = 30000;
@@ -65,6 +69,7 @@ const PUBLIC_CREATE_MAX_REQUESTS = 6;
 const ATTACH_REFERRAL_WINDOW_SECONDS = 60;
 const ATTACH_REFERRAL_MAX_REQUESTS = 8;
 const PUBLIC_CREATE_HMAC_MAX_AGE_SECONDS = 300;
+const FRAUD_PHONE_DISTANCE_THRESHOLD = 2;
 
 const SENSITIVE_GET_SHEETS = {
   orders: true,
@@ -77,7 +82,8 @@ const SENSITIVE_GET_SHEETS = {
   biaya_bulanan: true,
   referrals: true,
   point_transactions: true,
-  referral_audit_logs: true
+  referral_audit_logs: true,
+  fraud_risk_logs: true
 };
 
 const PUBLIC_POST_RULES = {
@@ -106,6 +112,11 @@ const SCHEMA_REQUIREMENTS = {
   referral_audit_logs: [
     'id', 'run_at', 'status', 'mismatch_count', 'stale_pending_count',
     'pending_threshold_days', 'summary_json'
+  ],
+  fraud_risk_logs: [
+    'id', 'created_at', 'event', 'referral_id', 'referrer_phone', 'referee_phone',
+    'order_id', 'order_total', 'ip_address', 'device_id', 'user_agent',
+    'risk_score', 'risk_level', 'decision', 'triggered_rules_json', 'notes'
   ]
 };
 
@@ -506,6 +517,43 @@ function handleEvaluateReferral(data) {
 
   if (!ref) {
     return { success: false, error_code: 'REFERRAL_NOT_FOUND', message: 'Referral pending tidak ditemukan' };
+  }
+
+  const fraudCheck = evaluateReferralFraudRisk(ref, data, orderId, orderTotal);
+  logFraudRiskEvent({
+    event: 'evaluate_referral',
+    referral_id: ref.id || '',
+    referrer_phone: ref.referrer_phone || '',
+    referee_phone: ref.referee_phone || buyerPhone,
+    order_id: orderId,
+    order_total: orderTotal,
+    ip_address: data.ip_address || data.ip || '',
+    device_id: data.device_id || '',
+    user_agent: data.user_agent || '',
+    risk_score: fraudCheck.score,
+    risk_level: fraudCheck.level,
+    decision: fraudCheck.decision,
+    triggered_rules_json: JSON.stringify(fraudCheck.triggeredRules),
+    notes: fraudCheck.notes || ''
+  });
+  if (fraudCheck.decision !== 'allow') {
+    setCellIfColumnExists(sheet, headers, rowNumber, 'status', 'fraud_review');
+    setCellIfColumnExists(
+      sheet,
+      headers,
+      rowNumber,
+      'notes',
+      'Referral ditahan oleh fraud engine: ' + fraudCheck.level
+    );
+    setCellIfColumnExists(sheet, headers, rowNumber, 'updated_at', nowIso());
+    return {
+      success: false,
+      error_code: fraudCheck.decision === 'block' ? 'FRAUD_RISK_BLOCKED' : 'FRAUD_REVIEW_REQUIRED',
+      message: 'Referral ditahan oleh fraud engine',
+      risk_level: fraudCheck.level,
+      risk_score: fraudCheck.score,
+      triggered_rules: fraudCheck.triggeredRules
+    };
   }
 
   const rewardReferrer = parseInt(ref.reward_referrer_points || cfg.rewardReferrer, 10) || cfg.rewardReferrer;
@@ -1399,6 +1447,21 @@ function getMonitoringAlertConfig() {
   };
 }
 
+function getFraudConfig() {
+  const set = getSettingsMap();
+  return {
+    enabled: String(set.referral_fraud_enabled || 'true').toLowerCase() === 'true',
+    ipDistinctRefereeThreshold: parseInt(set.referral_fraud_ip_distinct_referee_threshold || '3', 10) || 3,
+    deviceDistinctRefereeThreshold: parseInt(set.referral_fraud_device_distinct_referee_threshold || '3', 10) || 3,
+    lookbackDays: parseInt(set.referral_fraud_lookback_days || '14', 10) || 14,
+    minMinutesAfterAttach: parseInt(set.referral_fraud_min_minutes_after_attach || '3', 10) || 3,
+    cancelRateThreshold: parseFloat(set.referral_fraud_cancel_rate_threshold || '0.5') || 0.5,
+    cancelRateMinSamples: parseInt(set.referral_fraud_cancel_rate_min_samples || '4', 10) || 4,
+    reviewScore: parseInt(set.referral_fraud_review_score || '40', 10) || 40,
+    blockScore: parseInt(set.referral_fraud_block_score || '70', 10) || 70
+  };
+}
+
 function getSecurityConfig() {
   const set = getSettingsMap();
   return {
@@ -1409,6 +1472,192 @@ function getSecurityConfig() {
       10
     ) || PUBLIC_CREATE_HMAC_MAX_AGE_SECONDS
   };
+}
+
+function evaluateReferralFraudRisk(referral, data, orderId, orderTotal) {
+  const cfg = getFraudConfig();
+  if (!cfg.enabled) {
+    return { score: 0, level: 'low', decision: 'allow', triggeredRules: [], notes: 'fraud engine disabled' };
+  }
+
+  const triggeredRules = [];
+  let score = 0;
+
+  const refereePhone = normalizePhone(referral.referee_phone || data.buyer_phone || '');
+  const referrerPhone = normalizePhone(referral.referrer_phone || '');
+  const ipAddress = String(data.ip_address || data.ip || '').trim();
+  const deviceId = String(data.device_id || '').trim();
+  const createdAt = new Date(referral.created_at || 0);
+
+  const addRule = function(code, weight, meta) {
+    triggeredRules.push({ code: code, weight: weight, meta: meta || {} });
+    score += weight;
+  };
+
+  if (!Number.isNaN(createdAt.getTime())) {
+    const minutesFromAttach = (Date.now() - createdAt.getTime()) / (60 * 1000);
+    if (minutesFromAttach < cfg.minMinutesAfterAttach) {
+      addRule('rapid_order_after_attach', 30, {
+        minutes_from_attach: minutesFromAttach,
+        threshold: cfg.minMinutesAfterAttach
+      });
+    }
+  }
+
+  if (ipAddress) {
+    const ipDistinct = getDistinctRecentCountByField('ip_address', ipAddress, cfg.lookbackDays);
+    if (ipDistinct >= cfg.ipDistinctRefereeThreshold) {
+      addRule('shared_ip_many_referees', 30, {
+        distinct_referees: ipDistinct,
+        threshold: cfg.ipDistinctRefereeThreshold
+      });
+    }
+  }
+
+  if (deviceId) {
+    const deviceDistinct = getDistinctRecentCountByField('device_id', deviceId, cfg.lookbackDays);
+    if (deviceDistinct >= cfg.deviceDistinctRefereeThreshold) {
+      addRule('shared_device_many_referees', 35, {
+        distinct_referees: deviceDistinct,
+        threshold: cfg.deviceDistinctRefereeThreshold
+      });
+    }
+  }
+
+  if (referrerPhone) {
+    const cancelStats = getReferrerCancelStats(referrerPhone);
+    if (cancelStats.total >= cfg.cancelRateMinSamples && cancelStats.rate >= cfg.cancelRateThreshold) {
+      addRule('high_referrer_cancel_rate', 35, {
+        rate: cancelStats.rate,
+        threshold: cfg.cancelRateThreshold,
+        total: cancelStats.total
+      });
+    }
+  }
+
+  if (referrerPhone && refereePhone) {
+    const dist = computePhoneDistance(referrerPhone, refereePhone);
+    if (dist <= FRAUD_PHONE_DISTANCE_THRESHOLD) {
+      addRule('similar_referrer_referee_phone', 20, {
+        distance: dist,
+        threshold: FRAUD_PHONE_DISTANCE_THRESHOLD
+      });
+    }
+  }
+
+  let level = 'low';
+  let decision = 'allow';
+  if (score >= cfg.blockScore) {
+    level = 'high';
+    decision = 'block';
+  } else if (score >= cfg.reviewScore) {
+    level = 'medium';
+    decision = 'review';
+  }
+
+  return {
+    score: score,
+    level: level,
+    decision: decision,
+    triggeredRules: triggeredRules,
+    notes: 'rules=' + triggeredRules.length + ',order_id=' + orderId + ',order_total=' + orderTotal
+  };
+}
+
+function getDistinctRecentCountByField(fieldName, fieldValue, lookbackDays) {
+  const logs = getRowsAsObjects('fraud_risk_logs').rows;
+  const cutoffMs = Date.now() - Math.max(1, lookbackDays) * 24 * 60 * 60 * 1000;
+  const uniqueReferees = {};
+  for (var i = 0; i < logs.length; i++) {
+    var row = logs[i];
+    if (String(row[fieldName] || '').trim() !== String(fieldValue || '').trim()) continue;
+    var createdAt = new Date(row.created_at || 0);
+    if (Number.isNaN(createdAt.getTime()) || createdAt.getTime() < cutoffMs) continue;
+    var referee = normalizePhone(row.referee_phone || '');
+    if (!referee) continue;
+    uniqueReferees[referee] = true;
+  }
+  return Object.keys(uniqueReferees).length;
+}
+
+function getReferrerCancelStats(referrerPhone) {
+  const refs = getRowsAsObjects('referrals').rows;
+  let approved = 0;
+  let reversed = 0;
+  const target = normalizePhone(referrerPhone || '');
+  for (var i = 0; i < refs.length; i++) {
+    var row = refs[i];
+    if (normalizePhone(row.referrer_phone || '') !== target) continue;
+    var st = String(row.status || '').toLowerCase().trim();
+    if (st === 'approved') approved++;
+    if (st === 'reversed') reversed++;
+  }
+  const total = approved + reversed;
+  return {
+    total: total,
+    reversed: reversed,
+    rate: total > 0 ? reversed / total : 0
+  };
+}
+
+function computePhoneDistance(a, b) {
+  const x = String(a || '');
+  const y = String(b || '');
+  if (!x || !y) return 99;
+  if (x.length === y.length) {
+    var diff = 0;
+    for (var i = 0; i < x.length; i++) {
+      if (x.charAt(i) !== y.charAt(i)) diff++;
+    }
+    return diff;
+  }
+
+  // Fallback levenshtein for different-length values.
+  const m = x.length;
+  const n = y.length;
+  const dp = [];
+  for (var r = 0; r <= m; r++) {
+    dp[r] = [];
+    dp[r][0] = r;
+  }
+  for (var c = 0; c <= n; c++) {
+    dp[0][c] = c;
+  }
+  for (var i1 = 1; i1 <= m; i1++) {
+    for (var j1 = 1; j1 <= n; j1++) {
+      var cost = x.charAt(i1 - 1) === y.charAt(j1 - 1) ? 0 : 1;
+      dp[i1][j1] = Math.min(
+        dp[i1 - 1][j1] + 1,
+        dp[i1][j1 - 1] + 1,
+        dp[i1 - 1][j1 - 1] + cost
+      );
+    }
+  }
+  return dp[m][n];
+}
+
+function logFraudRiskEvent(eventObj) {
+  const row = eventObj || {};
+  const sheetObj = getRowsAsObjects('fraud_risk_logs');
+  if (!sheetObj.headers.length) return;
+  appendByHeaders(sheetObj.sheet, sheetObj.headers, {
+    id: row.id || genId('FRD'),
+    created_at: row.created_at || nowIso(),
+    event: row.event || 'evaluate_referral',
+    referral_id: row.referral_id || '',
+    referrer_phone: normalizePhone(row.referrer_phone || ''),
+    referee_phone: normalizePhone(row.referee_phone || ''),
+    order_id: normalizeOrderId(row.order_id || ''),
+    order_total: parseNumber(row.order_total || 0),
+    ip_address: String(row.ip_address || '').trim(),
+    device_id: String(row.device_id || '').trim(),
+    user_agent: String(row.user_agent || '').trim(),
+    risk_score: parseInt(row.risk_score || 0, 10) || 0,
+    risk_level: String(row.risk_level || 'low'),
+    decision: String(row.decision || 'allow'),
+    triggered_rules_json: String(row.triggered_rules_json || '[]'),
+    notes: String(row.notes || '')
+  });
 }
 
 function findReferralByTriggerOrderId(orderId) {
