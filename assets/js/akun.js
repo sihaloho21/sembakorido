@@ -32,9 +32,126 @@ const parseSheetResponse = (data) => {
     return [];
 };
 
+let referralProfileCache = null;
+
+function toReferralCodeValue(value) {
+    return String(value || '').trim().toUpperCase();
+}
+
+function setReferralStatus(message, type) {
+    const statusEl = document.getElementById('referral-status');
+    if (!statusEl) return;
+    statusEl.textContent = message || '';
+    statusEl.className = 'text-xs';
+    if (type === 'success') {
+        statusEl.classList.add('text-green-600');
+    } else if (type === 'error') {
+        statusEl.classList.add('text-red-600');
+    } else if (type === 'warning') {
+        statusEl.classList.add('text-amber-600');
+    } else {
+        statusEl.classList.add('text-gray-500');
+    }
+}
+
+function generateReferralCode(name, phone, existingCodes) {
+    const baseName = String(name || 'USER').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'USER';
+    const digits = normalizePhoneTo08(phone).replace(/\D/g, '');
+    const suffix = digits.slice(-4) || Math.floor(1000 + Math.random() * 9000).toString();
+    let candidate = `${baseName}${suffix}`.slice(0, 24);
+
+    if (!existingCodes.has(candidate)) {
+        return candidate;
+    }
+
+    for (let i = 1; i <= 2000; i += 1) {
+        const alt = `${baseName}${suffix}${i}`.slice(0, 24);
+        if (!existingCodes.has(alt)) return alt;
+    }
+
+    return `${baseName}${Date.now().toString().slice(-6)}`.slice(0, 24);
+}
+
+async function fetchUsersList() {
+    const apiUrl = CONFIG.getMainApiUrl();
+    const response = await fetch(`${apiUrl}?sheet=users&_t=${Date.now()}`);
+    if (!response.ok) throw new Error('Gagal memuat data users');
+    return parseSheetResponse(await response.json());
+}
+
+async function ensureUserReferralCode(user, users) {
+    const currentUser = users.find((u) => String(u.id) === String(user.id)) ||
+        users.find((u) => normalizePhoneTo08(u.whatsapp || u.phone || '') === normalizePhoneTo08(user.whatsapp));
+    if (!currentUser) {
+        throw new Error('User profil tidak ditemukan');
+    }
+
+    const currentCode = toReferralCodeValue(currentUser.kode_referral);
+    if (currentCode) return { user: currentUser, code: currentCode };
+
+    const existingCodes = new Set(
+        users
+            .map((u) => toReferralCodeValue(u.kode_referral))
+            .filter(Boolean)
+    );
+    const nextCode = generateReferralCode(currentUser.nama, currentUser.whatsapp || currentUser.phone, existingCodes);
+
+    await GASActions.update('users', currentUser.id, { kode_referral: nextCode });
+
+    currentUser.kode_referral = nextCode;
+    return { user: currentUser, code: nextCode };
+}
+
+function applyReferralDataToUI(profile) {
+    const codeEl = document.getElementById('referral-code-display');
+    const inputEl = document.getElementById('referral-input');
+    const applyBtn = document.getElementById('apply-referral-btn');
+    const countEl = document.getElementById('referral-count');
+    const pointsEl = document.getElementById('referral-points-total');
+
+    if (codeEl) codeEl.value = toReferralCodeValue(profile.kode_referral) || '-';
+    if (countEl) countEl.textContent = String(parseInt(profile.referral_count || 0, 10) || 0);
+    if (pointsEl) pointsEl.textContent = String(parseInt(profile.referral_points_total || 0, 10) || 0);
+
+    const alreadyUsed = toReferralCodeValue(profile.referred_by) !== '';
+    if (inputEl) {
+        inputEl.value = alreadyUsed ? toReferralCodeValue(profile.referred_by) : '';
+        inputEl.disabled = alreadyUsed;
+    }
+    if (applyBtn) applyBtn.disabled = alreadyUsed;
+
+    if (alreadyUsed) {
+        setReferralStatus(`Referral aktif dengan kode: ${toReferralCodeValue(profile.referred_by)}`, 'success');
+    } else {
+        setReferralStatus('Kode referral hanya bisa dipakai satu kali.', 'info');
+    }
+}
+
+async function loadReferralData(user) {
+    try {
+        const users = await fetchUsersList();
+        const ensured = await ensureUserReferralCode(user, users);
+        referralProfileCache = ensured.user;
+        applyReferralDataToUI(ensured.user);
+    } catch (error) {
+        console.error('Error loading referral data:', error);
+        setReferralStatus('Gagal memuat data referral. Coba refresh halaman.', 'error');
+    }
+}
+
 // Check if user is already logged in
 document.addEventListener('DOMContentLoaded', () => {
     const loggedInUser = getLoggedInUser();
+
+    const referralInput = document.getElementById('referral-input');
+    if (referralInput) {
+        referralInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                applyReferralCode();
+            }
+        });
+    }
     
     if (loggedInUser) {
         // User already logged in, show dashboard
@@ -70,6 +187,9 @@ function showDashboard(user) {
     
     // Load loyalty points from user_points sheet
     loadLoyaltyPoints(user);
+
+    // Load referral section
+    loadReferralData(user);
     
     // Load order history
     loadOrderHistory(user);
@@ -233,6 +353,104 @@ function logout() {
     if (confirm('Apakah Anda yakin ingin keluar?')) {
         localStorage.removeItem('gosembako_user');
         window.location.reload();
+    }
+}
+
+async function copyReferralCode() {
+    const codeEl = document.getElementById('referral-code-display');
+    const code = toReferralCodeValue(codeEl ? codeEl.value : '');
+    if (!code || code === '-') {
+        setReferralStatus('Kode referral belum tersedia.', 'warning');
+        return;
+    }
+
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(code);
+        } else {
+            const temp = document.createElement('textarea');
+            temp.value = code;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+        }
+        setReferralStatus('Kode referral berhasil disalin.', 'success');
+    } catch (error) {
+        console.error('Copy referral failed:', error);
+        setReferralStatus('Gagal menyalin kode referral.', 'error');
+    }
+}
+
+async function applyReferralCode() {
+    const user = getLoggedInUser();
+    if (!user) {
+        setReferralStatus('Silakan login ulang.', 'error');
+        return;
+    }
+
+    const inputEl = document.getElementById('referral-input');
+    const applyBtn = document.getElementById('apply-referral-btn');
+    const code = toReferralCodeValue(inputEl ? inputEl.value : '');
+    if (!code) {
+        setReferralStatus('Masukkan kode referral terlebih dahulu.', 'warning');
+        return;
+    }
+
+    const ownCode = toReferralCodeValue(document.getElementById('referral-code-display')?.value);
+    if (ownCode && code === ownCode) {
+        setReferralStatus('Kode referral sendiri tidak bisa dipakai.', 'error');
+        return;
+    }
+
+    if (inputEl && inputEl.disabled) {
+        setReferralStatus('Kode referral sudah pernah diterapkan.', 'warning');
+        return;
+    }
+
+    const originalText = applyBtn ? applyBtn.textContent : '';
+    try {
+        if (applyBtn) {
+            applyBtn.disabled = true;
+            applyBtn.textContent = 'Memproses...';
+        }
+
+        const result = await GASActions.post({
+            action: 'attach_referral',
+            sheet: 'users',
+            data: {
+                referee_phone: normalizePhoneTo08(user.whatsapp),
+                ref_code: code
+            }
+        });
+
+        if (!result || result.success === false) {
+            const message = (result && (result.message || result.error || result.error_code)) || 'Gagal menerapkan referral';
+            setReferralStatus(message, 'error');
+            if (applyBtn) {
+                applyBtn.disabled = false;
+                applyBtn.textContent = originalText || 'Terapkan';
+            }
+            return;
+        }
+
+        if (inputEl) {
+            inputEl.value = code;
+            inputEl.disabled = true;
+        }
+        if (applyBtn) {
+            applyBtn.disabled = true;
+            applyBtn.textContent = 'Terapkan';
+        }
+        setReferralStatus('Kode referral berhasil diterapkan.', 'success');
+        await loadReferralData(user);
+    } catch (error) {
+        console.error('applyReferralCode error:', error);
+        setReferralStatus(error.message || 'Gagal menerapkan kode referral.', 'error');
+        if (applyBtn) {
+            applyBtn.disabled = false;
+            applyBtn.textContent = originalText || 'Terapkan';
+        }
     }
 }
 
@@ -717,6 +935,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     const whatsapp = document.getElementById('register-whatsapp').value.trim();
     const pin = document.getElementById('register-pin').value.trim();
     const pinConfirm = document.getElementById('register-pin-confirm').value.trim();
+    const referralCode = toReferralCodeValue(document.getElementById('register-referral-code')?.value || '');
     
     const errorDiv = document.getElementById('register-error');
     const errorText = document.getElementById('register-error-text');
@@ -861,15 +1080,46 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
             tanggal_daftar: today,
             status: 'aktif',
             total_points: 0,
-            created_at: now
+            created_at: now,
+            referred_by: '',
+            referred_by_phone: '',
+            referral_count: 0,
+            referral_points_total: 0,
+            kode_referral: ''
         });
         
         if (!createResult.created || createResult.created < 1) {
             throw new Error('Gagal mendaftar');
         }
         
+        let referralNotice = '';
+        if (referralCode) {
+            try {
+                const referralResult = await GASActions.post({
+                    action: 'attach_referral',
+                    sheet: 'users',
+                    data: {
+                        referee_phone: normalizedPhone,
+                        ref_code: referralCode
+                    }
+                });
+                if (referralResult && referralResult.success) {
+                    referralNotice = ' Kode referral berhasil diterapkan.';
+                } else {
+                    referralNotice = ' Akun dibuat, namun kode referral tidak valid.';
+                }
+            } catch (refErr) {
+                console.warn('Referral attach failed after registration:', refErr);
+                referralNotice = ' Akun dibuat, namun kode referral gagal diproses.';
+            }
+        }
+
         // Show success
         successDiv.classList.remove('hidden');
+        const successText = successDiv.querySelector('span');
+        if (successText) {
+            successText.textContent = 'Pendaftaran berhasil! Silakan login.' + referralNotice;
+        }
         
         // Reset form
         document.getElementById('register-form').reset();
