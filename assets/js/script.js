@@ -2276,7 +2276,6 @@ function checkUserPoints() {
  */
 async function claimReward(rewardId) {
     const phone = sessionStorage.getItem('reward_phone');
-    const userPoints = parseFloat(sessionStorage.getItem('user_points')) || 0;
     
     if (!phone) {
         alert('Mohon cek poin Anda terlebih dahulu.');
@@ -2284,7 +2283,7 @@ async function claimReward(rewardId) {
     }
 
     try {
-        // 1. Get reward details to know the required points
+        // 1. Get reward details for confirmation UI
         const rewardData = await ApiService.get(`?sheet=tukar_poin&action=search&id=${rewardId}`, {
             cache: false // Don't cache search results
         });
@@ -2297,11 +2296,7 @@ async function claimReward(rewardId) {
         const reward = rewardData[0];
         const requiredPoints = parseFloat(reward.poin) || 0;
         const rewardName = reward.nama || reward.judul || 'Hadiah';
-
-        if (userPoints < requiredPoints) {
-            alert(`Poin Anda tidak cukup. Dibutuhkan ${requiredPoints} poin, saldo Anda ${userPoints.toFixed(1)} poin.`);
-            return;
-        }
+        const userPoints = parseFloat(sessionStorage.getItem('user_points')) || 0;
 
         // 2. Confirm redemption and ask for name
         const message = `Tukar ${requiredPoints} poin Anda dengan "${rewardName}"?\nSaldo poin saat ini: ${userPoints.toFixed(1)}`;
@@ -2315,45 +2310,33 @@ async function claimReward(rewardId) {
         // Show loading state
         showToast('Sedang memproses penukaran...');
         
-        // 3. Get user data to find ID, then deduct points
-        const userRes = await fetch(`${API_URL}?sheet=user_points`);
-        const allUsers = await userRes.json();
-        const userData = allUsers.find(u => u.phone === phone);
-        
-        if (!userData || !userData.id) {
-            alert('Data pengguna tidak ditemukan.');
-            return;
-        }
-        
-        const newPoints = userPoints - requiredPoints;
-        await GASActions.update('user_points', userData.id, { 
-            points: newPoints,
-            last_updated: new Date().toLocaleString('id-ID')
-        });
-
-        // 4. Record claim in claims sheet
-        const claimId = 'CLM-' + Date.now().toString().slice(-6);
-        await ApiService.post('?sheet=claims', {
-            data: [{
-                id: claimId,
+        // 3. Atomic claim on server side
+        const requestId = `RW-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+        const claimResult = await GASActions.post({
+            action: 'claim_reward',
+            sheet: 'tukar_poin',
+            data: {
+                reward_id: rewardId,
                 phone: phone,
-                nama: customerName,
-                hadiah: rewardName,
-                poin: requiredPoints,
-                status: 'Menunggu',
-                tanggal: new Date().toLocaleString('id-ID')
-            }]
+                customer_name: customerName,
+                request_id: requestId
+            }
         });
 
-        // 5. Update local state and UI
-        sessionStorage.setItem('user_points', newPoints);
+        const claimId = claimResult.claim_id || ('CLM-' + Date.now().toString().slice(-6));
+        const pointsUsed = parseFloat(claimResult.points_used || requiredPoints) || 0;
+        const newPoints = parseFloat(claimResult.balance_after);
+        const finalPoints = Number.isNaN(newPoints) ? Math.max(0, userPoints - pointsUsed) : newPoints;
+
+        // 4. Update local state and UI
+        sessionStorage.setItem('user_points', finalPoints);
         const pointsDisplay = document.querySelector('#points-display h4');
         if (pointsDisplay) {
-            pointsDisplay.innerHTML = `${escapeHtml(newPoints.toFixed(1))} <span class="text-sm font-bold">Poin</span>`;
+            pointsDisplay.innerHTML = `${escapeHtml(finalPoints.toFixed(1))} <span class="text-sm font-bold">Poin</span>`;
         }
 
-        // 6. Send to WhatsApp for notification
-        const waMessage = `*KLAIM REWARD POIN BERHASIL*\n\nID Klaim: ${claimId}\nPelanggan: ${customerName}\nNomor WhatsApp: ${phone}\nReward: ${rewardName}\nPoin Ditukar: ${requiredPoints}\nSisa Poin: ${newPoints.toFixed(1)}\n\nMohon segera diproses. Terima kasih!`;
+        // 5. Send to WhatsApp for notification
+        const waMessage = `*KLAIM REWARD POIN BERHASIL*\n\nID Klaim: ${claimId}\nPelanggan: ${customerName}\nNomor WhatsApp: ${phone}\nReward: ${rewardName}\nPoin Ditukar: ${pointsUsed}\nSisa Poin: ${finalPoints.toFixed(1)}\n\nMohon segera diproses. Terima kasih!`;
         const waUrl = `https://wa.me/628993370200?text=${encodeURIComponent(waMessage)}`;
         
         showToast('Penukaran poin berhasil!');
@@ -2365,7 +2348,8 @@ async function claimReward(rewardId) {
 
     } catch (error) {
         console.error('Error in claimReward:', error);
-        alert('Terjadi kesalahan saat memproses penukaran: ' + error.message);
+        const msg = buildClaimRewardErrorMessage(error);
+        alert(msg);
     }
 }
 
@@ -2511,7 +2495,6 @@ async function submitNameAndClaim() {
  */
 async function processClaimReward(rewardId, customerName) {
     const phone = sessionStorage.getItem('reward_phone');
-    const userPoints = parseFloat(sessionStorage.getItem('user_points')) || 0;
     
     try {
         // 1. Get reward details
@@ -2527,102 +2510,38 @@ async function processClaimReward(rewardId, customerName) {
         const reward = rewardData[0];
         const requiredPoints = parseFloat(reward.poin) || 0;
         const rewardName = reward.nama || reward.judul || 'Hadiah';
-
-        // Validasi final
-        if (userPoints < requiredPoints) {
-            showToast(`Poin Anda tidak cukup.`);
-            return;
-        }
+        const userPoints = parseFloat(sessionStorage.getItem('user_points')) || 0;
 
         // Show loading state
         showToast('Sedang memproses penukaran...');
 
-        // 2. Get user data to find ID, then deduct points
-        const userRes = await fetch(`${API_URL}?sheet=user_points`);
-        const allUsers = await userRes.json();
-        
-        // Normalize phone and try multiple variants
-        const normalizedPhone = normalizePhone(phone);
-        const phoneVariants = [
-            normalizedPhone,
-            normalizedPhone.replace(/^0/, '62'),
-            normalizedPhone.replace(/^0/, '+62'),
-            normalizedPhone.replace(/^0/, '')
-        ];
-        
-        // Try to find user with any phone variant
-        let userData = null;
-        for (const variant of phoneVariants) {
-            userData = allUsers.find(u => {
-                const userPhone = normalizePhone(u.phone || u.whatsapp || '');
-                return userPhone === normalizedPhone;
-            });
-            if (userData) {
-                console.log(`✅ Found user data with phone variant: ${variant}`);
-                break;
+        // 2. Atomic claim on server side
+        const requestId = `RW-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+        const claimResult = await GASActions.post({
+            action: 'claim_reward',
+            sheet: 'tukar_poin',
+            data: {
+                reward_id: rewardId,
+                phone: phone,
+                customer_name: customerName,
+                request_id: requestId
             }
-        }
-        
-        if (!userData) {
-            console.error('❌ User not found. Phone:', phone, 'Normalized:', normalizedPhone);
-            console.error('Available users:', allUsers.map(u => ({
-                phone: u.phone,
-                normalized: normalizePhone(u.phone || u.whatsapp || '')
-            })));
-            alert('Data pengguna tidak ditemukan. Pastikan nomor WhatsApp Anda sudah terdaftar di sistem poin.');
-            return;
-        }
-        
-        console.log('✅ User found:', userData);
-        
-        const newPoints = userPoints - requiredPoints;
-        
-        // Use phone as identifier since user_points sheet doesn't have id column
-        const userPhoneForUpdate = userData.phone || userData.whatsapp;
-        
-        await GASActions.update('user_points', userPhoneForUpdate, {
-            points: newPoints,
-            last_updated: new Date().toLocaleString('id-ID')
         });
 
-        // 3. Record claim in claims sheet
-        const claimId = 'CLM-' + Date.now().toString().slice(-6);
-        console.log('📝 Recording claim to sheet:', {
-            claimId,
-            phone,
-            customerName,
-            rewardName,
-            requiredPoints
-        });
-        
-        try {
-            const claimResponse = await ApiService.post('?sheet=claims', {
-                data: [{
-                    id: claimId,
-                    phone: phone,
-                    nama: customerName,
-                    hadiah: rewardName,
-                    poin: requiredPoints,
-                    status: 'Pending',
-                    tanggal: new Date().toLocaleString('id-ID')
-                }]
-            });
-            console.log('✅ Claim recorded successfully:', claimResponse);
-        } catch (claimError) {
-            console.error('❌ Error recording claim:', claimError);
-            // Continue anyway to show success modal, but log the error
-            // Admin can manually add the claim based on WhatsApp message
-        }
+        const claimId = claimResult.claim_id || ('CLM-' + Date.now().toString().slice(-6));
+        const pointsUsed = parseFloat(claimResult.points_used || requiredPoints) || 0;
+        const newPoints = parseFloat(claimResult.balance_after);
+        const finalPoints = Number.isNaN(newPoints) ? Math.max(0, userPoints - pointsUsed) : newPoints;
 
-        // 4. Update local state and UI
-        sessionStorage.setItem('user_points', newPoints);
+        // 3. Update local state and UI
+        sessionStorage.setItem('user_points', finalPoints);
         const pointsDisplay = document.querySelector('#points-display h4');
         if (pointsDisplay) {
-            pointsDisplay.innerHTML = `${escapeHtml(newPoints.toFixed(1))} <span class="text-sm font-bold">Poin</span>`;
+            pointsDisplay.innerHTML = `${escapeHtml(finalPoints.toFixed(1))} <span class="text-sm font-bold">Poin</span>`;
         }
 
-        // 5. Prepare WhatsApp message
-        const waMessage = `*KLAIM REWARD POIN BERHASIL*\n\nID Klaim: ${claimId}\nPelanggan: ${customerName}\nNomor WhatsApp: ${phone}\nReward: ${rewardName}\nPoin Ditukar: ${requiredPoints}\nSisa Poin: ${newPoints.toFixed(1)}\n\nMohon segera diproses. Terima kasih!`;
+        // 4. Prepare WhatsApp message
+        const waMessage = `*KLAIM REWARD POIN BERHASIL*\n\nID Klaim: ${claimId}\nPelanggan: ${customerName}\nNomor WhatsApp: ${phone}\nReward: ${rewardName}\nPoin Ditukar: ${pointsUsed}\nSisa Poin: ${finalPoints.toFixed(1)}\n\nMohon segera diproses. Terima kasih!`;
         const waUrl = `https://wa.me/628993370200?text=${encodeURIComponent(waMessage)}`;
         
         // Store WhatsApp URL for later use
@@ -2642,8 +2561,19 @@ async function processClaimReward(rewardId, customerName) {
 
     } catch (error) {
         console.error('Error processing claim:', error);
-        showToast('Gagal memproses penukaran. Silakan coba lagi.');
+        showToast(buildClaimRewardErrorMessage(error));
     }
+}
+
+function buildClaimRewardErrorMessage(error) {
+    const raw = String((error && error.message) || error || '');
+    const normalized = raw.toLowerCase();
+    if (normalized.includes('reward_stock_empty')) return 'Stok reward sedang habis.';
+    if (normalized.includes('reward_daily_quota_reached')) return 'Quota harian reward sudah habis.';
+    if (normalized.includes('points_insufficient')) return 'Poin Anda tidak cukup untuk reward ini.';
+    if (normalized.includes('user_not_found')) return 'Data poin pengguna tidak ditemukan.';
+    if (normalized.includes('rate_limited')) return 'Terlalu banyak percobaan klaim, coba lagi sebentar.';
+    return 'Gagal memproses penukaran. Silakan coba lagi.';
 }
 
 
