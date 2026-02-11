@@ -1,10 +1,10 @@
 /**
  * ========================================
  * GOSEMBAKO - Google Apps Script API
- * Version: 6.7 (Header Normalization + Public Create Guard)
+ * Version: 7.0 (Consistent Referral Finalization + Loyalty Ledger)
  * ========================================
  *
- * PENAMBAHAN v6.7:
+ * PENAMBAHAN v6.8:
  * - LockService pada flow referral (attach/evaluate) untuk mencegah race condition.
  * - Idempotency evaluate referral berbasis trigger_order_id global.
  * - Dedup ledger point_transactions berbasis (source + source_id + phone).
@@ -31,6 +31,18 @@
  * - Hardening public create:
  *   - Validasi payload minimal.
  *   - Rate-limit berbasis CacheService.
+ * - Hardening attach_referral:
+ *   - Validasi payload minimal.
+ *   - Rate-limit berbasis CacheService.
+ * - Mapping object:
+ *   - Skip header kosong ('') saat mapping row ke object.
+ * - Create users:
+ *   - Duplicate-check nomor whatsapp/phone.
+ *   - Atomic lock saat create untuk cegah race condition.
+ * - Monitoring webhook:
+ *   - Verifikasi status code HTTP (hanya 2xx dianggap sukses).
+ * - Public create security:
+ *   - Optional signature HMAC (settings-driven).
  */
 
 // ========================================
@@ -50,6 +62,9 @@ const LOCK_TIMEOUT_MS = 30000;
 const AUDIT_TRIGGER_HANDLER = 'runReferralReconciliationAudit';
 const PUBLIC_CREATE_WINDOW_SECONDS = 60;
 const PUBLIC_CREATE_MAX_REQUESTS = 6;
+const ATTACH_REFERRAL_WINDOW_SECONDS = 60;
+const ATTACH_REFERRAL_MAX_REQUESTS = 8;
+const PUBLIC_CREATE_HMAC_MAX_AGE_SECONDS = 300;
 
 const SENSITIVE_GET_SHEETS = {
   orders: true,
@@ -185,7 +200,16 @@ function doPost(e) {
     const authError = guardActionAuthorization(actionKey, token, sheetName);
     if (authError) return jsonOutput(authError);
 
+    if (actionKey === 'attach_referral') {
+      const attachPayloadError = validateAttachReferralPayload(data);
+      if (attachPayloadError) return jsonOutput(attachPayloadError);
+      const attachRateLimitError = enforceAttachReferralRateLimit(data);
+      if (attachRateLimitError) return jsonOutput(attachRateLimitError);
+    }
+
     if (isPublicCreateAction(actionKey, sheetName)) {
+      const signatureError = validatePublicCreateSignature(e, body, actionKey, sheetName, data);
+      if (signatureError) return jsonOutput(signatureError);
       const payloadError = validatePublicCreatePayload(sheetName, data);
       if (payloadError) return jsonOutput(payloadError);
       const limitError = enforcePublicCreateRateLimit(sheetName, data);
@@ -254,6 +278,9 @@ function doPost(e) {
     }
 
     if (action === 'create') {
+      if (sheetName === 'users') {
+        return jsonOutput(createUserWithAtomicLock(data));
+      }
       const row = headers.map(function(h) {
         return (data && data[h] !== undefined ? data[h] : '');
       });
@@ -481,11 +508,6 @@ function handleEvaluateReferral(data) {
     return { success: false, error_code: 'REFERRAL_NOT_FOUND', message: 'Referral pending tidak ditemukan' };
   }
 
-  setCellIfColumnExists(sheet, headers, rowNumber, 'status', 'approved');
-  setCellIfColumnExists(sheet, headers, rowNumber, 'trigger_order_id', orderId);
-  setCellIfColumnExists(sheet, headers, rowNumber, 'trigger_order_total', orderTotal);
-  setCellIfColumnExists(sheet, headers, rowNumber, 'approved_at', nowIso());
-
   const rewardReferrer = parseInt(ref.reward_referrer_points || cfg.rewardReferrer, 10) || cfg.rewardReferrer;
   const rewardReferee = parseInt(ref.reward_referee_points || cfg.rewardReferee, 10) || cfg.rewardReferee;
 
@@ -507,8 +529,43 @@ function handleEvaluateReferral(data) {
   );
 
   if (!u1.success || !u2.success) {
-    return { success: false, error_code: 'POINT_UPDATE_FAILED', message: 'Gagal update points' };
+    // Best-effort compensation if one side already got points but the other failed.
+    const rollback = [];
+    if (u1.success && !u1.dedup) {
+      const rb1 = upsertUserPoints(
+        ref.referrer_phone,
+        -Math.abs(rewardReferrer),
+        'referrals_compensation',
+        orderId,
+        'Rollback referral reward (partial failure)',
+        'system'
+      );
+      rollback.push({ target: 'referrer', success: rb1.success });
+    }
+    if (u2.success && !u2.dedup) {
+      const rb2 = upsertUserPoints(
+        ref.referee_phone,
+        -Math.abs(rewardReferee),
+        'referrals_compensation',
+        orderId,
+        'Rollback referral reward (partial failure)',
+        'system'
+      );
+      rollback.push({ target: 'referee', success: rb2.success });
+    }
+    return {
+      success: false,
+      error_code: 'POINT_UPDATE_FAILED',
+      message: 'Gagal update points',
+      rollback: rollback
+    };
   }
+
+  // Finalize referral only after point mutation succeeds.
+  setCellIfColumnExists(sheet, headers, rowNumber, 'status', 'approved');
+  setCellIfColumnExists(sheet, headers, rowNumber, 'trigger_order_id', orderId);
+  setCellIfColumnExists(sheet, headers, rowNumber, 'trigger_order_total', orderTotal);
+  setCellIfColumnExists(sheet, headers, rowNumber, 'approved_at', nowIso());
 
   updateReferrerSummary(ref.referrer_phone, rewardReferrer);
 
@@ -750,7 +807,7 @@ function handleNotifyReferralAlert(data) {
 
   if (webhook) {
     try {
-      UrlFetchApp.fetch(webhook, {
+      const resp = UrlFetchApp.fetch(webhook, {
         method: 'post',
         contentType: 'application/json',
         payload: JSON.stringify({
@@ -770,7 +827,12 @@ function handleNotifyReferralAlert(data) {
         }),
         muteHttpExceptions: true
       });
-      sent.push('webhook');
+      const code = resp.getResponseCode();
+      if (code >= 200 && code < 300) {
+        sent.push('webhook');
+      } else {
+        errors.push('webhook_http_' + code);
+      }
     } catch (error) {
       errors.push('webhook: ' + error.toString());
     }
@@ -898,7 +960,11 @@ function getRowsAsObjects(sheetName) {
 
 function toObject(headers, row) {
   const obj = {};
-  headers.forEach(function(h, i) { obj[h] = row[i]; });
+  headers.forEach(function(h, i) {
+    const key = String(h || '').trim();
+    if (!key) return;
+    obj[key] = row[i];
+  });
   return obj;
 }
 
@@ -1045,6 +1111,159 @@ function validatePublicCreatePayload(sheetName, payload) {
   return null;
 }
 
+function validatePublicCreateSignature(e, body, actionKey, sheetName, payload) {
+  const cfg = getSecurityConfig();
+  if (!cfg.publicCreateRequireHmac) return null;
+
+  if (!cfg.publicCreateHmacSecret) {
+    return {
+      success: false,
+      error: 'HMAC_NOT_CONFIGURED',
+      message: 'public_create_hmac_secret belum diset'
+    };
+  }
+
+  const params = (e && e.parameter) ? e.parameter : {};
+  const tsRaw = String(
+    (body && (body.ts || body.timestamp)) ||
+    params.ts ||
+    params.timestamp ||
+    ''
+  ).trim();
+  const sigRaw = String(
+    (body && (body.signature || body.sig)) ||
+    params.signature ||
+    params.sig ||
+    ''
+  ).trim();
+
+  if (!tsRaw || !sigRaw) {
+    return {
+      success: false,
+      error: 'INVALID_SIGNATURE',
+      message: 'ts/timestamp dan signature wajib diisi'
+    };
+  }
+
+  const ts = parseInt(tsRaw, 10);
+  if (!ts) {
+    return {
+      success: false,
+      error: 'INVALID_SIGNATURE',
+      message: 'timestamp tidak valid'
+    };
+  }
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const maxAge = Math.max(30, cfg.publicCreateHmacMaxAgeSeconds);
+  if (Math.abs(nowSec - ts) > maxAge) {
+    return {
+      success: false,
+      error: 'SIGNATURE_EXPIRED',
+      message: 'timestamp signature sudah lewat'
+    };
+  }
+
+  const normalizedSig = normalizeProvidedSignature(sigRaw);
+  const canonical = canonicalizeForSignature(payload || {});
+  const message = [actionKey, sheetName, String(ts), canonical].join('|');
+  const expected = hmacSha256Hex(cfg.publicCreateHmacSecret, message);
+  if (!timingSafeEqual(expected, normalizedSig)) {
+    return {
+      success: false,
+      error: 'INVALID_SIGNATURE',
+      message: 'signature tidak valid'
+    };
+  }
+
+  return null;
+}
+
+function createUserWithAtomicLock(payload) {
+  return withScriptLock(function() {
+    const dupError = ensureUserPhoneNotDuplicate(payload);
+    if (dupError) return dupError;
+
+    const users = getRowsAsObjects('users');
+    if (!users.headers.length) {
+      return { success: false, error: 'USERS_HEADERS_INVALID', message: 'Sheet users belum ada header' };
+    }
+
+    const row = users.headers.map(function(h) {
+      return (payload && payload[h] !== undefined ? payload[h] : '');
+    });
+    users.sheet.appendRow(row);
+    return { success: true, created: 1 };
+  });
+}
+
+function validateAttachReferralPayload(payload) {
+  const data = payload || {};
+  const refereePhone = normalizePhone(data.referee_phone || '');
+  const refCode = String(data.ref_code || '').trim();
+  if (!refereePhone || refereePhone.length < 10) {
+    return {
+      success: false,
+      error: 'INVALID_PAYLOAD',
+      message: 'referee_phone tidak valid'
+    };
+  }
+  if (!refCode || refCode.length < 4) {
+    return {
+      success: false,
+      error: 'INVALID_PAYLOAD',
+      message: 'ref_code tidak valid'
+    };
+  }
+  return null;
+}
+
+function enforceAttachReferralRateLimit(payload) {
+  const data = payload || {};
+  const refereePhone = normalizePhone(data.referee_phone || '');
+  const key = 'attach_ref:' + (refereePhone || 'anon');
+  try {
+    const cache = CacheService.getScriptCache();
+    const current = parseInt(cache.get(key) || '0', 10) || 0;
+    if (current >= ATTACH_REFERRAL_MAX_REQUESTS) {
+      return {
+        success: false,
+        error: 'RATE_LIMITED',
+        message: 'Terlalu banyak percobaan referral, coba lagi sebentar.'
+      };
+    }
+    cache.put(key, String(current + 1), ATTACH_REFERRAL_WINDOW_SECONDS);
+  } catch (error) {
+    Logger.log('Attach referral rate limit cache error: ' + error.toString());
+  }
+  return null;
+}
+
+function ensureUserPhoneNotDuplicate(payload) {
+  const data = payload || {};
+  const newPhone = normalizePhone(data.whatsapp || data.phone || '');
+  if (!newPhone) {
+    return {
+      success: false,
+      error: 'INVALID_PAYLOAD',
+      message: 'nomor whatsapp tidak valid'
+    };
+  }
+  const users = getRowsAsObjects('users').rows;
+  const duplicate = users.some(function(row) {
+    const existing = normalizePhone(row.whatsapp || row.phone || '');
+    return existing && existing === newPhone;
+  });
+  if (duplicate) {
+    return {
+      success: false,
+      error: 'DUPLICATE_PHONE',
+      message: 'nomor whatsapp sudah terdaftar'
+    };
+  }
+  return null;
+}
+
 function enforcePublicCreateRateLimit(sheetName, payload) {
   const identity = getPublicCreateIdentity(sheetName, payload);
   const key = 'pub_create:' + sheetName + ':' + (identity || 'anon');
@@ -1063,6 +1282,51 @@ function enforcePublicCreateRateLimit(sheetName, payload) {
     Logger.log('Rate limit cache error: ' + error.toString());
   }
   return null;
+}
+
+function normalizeProvidedSignature(signature) {
+  const raw = String(signature || '').trim().toLowerCase();
+  if (raw.indexOf('sha256=') === 0) return raw.substring(7);
+  return raw;
+}
+
+function hmacSha256Hex(secret, message) {
+  const bytes = Utilities.computeHmacSha256Signature(String(message), String(secret));
+  return bytesToHex(bytes).toLowerCase();
+}
+
+function bytesToHex(bytes) {
+  return bytes.map(function(b) {
+    const v = (b < 0 ? b + 256 : b).toString(16);
+    return v.length === 1 ? '0' + v : v;
+  }).join('');
+}
+
+function canonicalizeForSignature(value) {
+  if (value === null || value === undefined) return 'null';
+  if (Array.isArray(value)) {
+    return '[' + value.map(function(item) {
+      return canonicalizeForSignature(item);
+    }).join(',') + ']';
+  }
+  if (typeof value === 'object') {
+    const keys = Object.keys(value).sort();
+    return '{' + keys.map(function(k) {
+      return JSON.stringify(k) + ':' + canonicalizeForSignature(value[k]);
+    }).join(',') + '}';
+  }
+  return JSON.stringify(value);
+}
+
+function timingSafeEqual(a, b) {
+  const x = String(a || '');
+  const y = String(b || '');
+  if (x.length !== y.length) return false;
+  let diff = 0;
+  for (var i = 0; i < x.length; i++) {
+    diff |= x.charCodeAt(i) ^ y.charCodeAt(i);
+  }
+  return diff === 0;
 }
 
 function isFinalReferralOrderStatus(status) {
@@ -1132,6 +1396,18 @@ function getMonitoringAlertConfig() {
     cooldownMinutes: parseInt(set.referral_alert_cooldown_minutes || '60', 10) || 60,
     email: String(set.referral_alert_email || '').trim(),
     webhook: String(set.referral_alert_webhook || '').trim()
+  };
+}
+
+function getSecurityConfig() {
+  const set = getSettingsMap();
+  return {
+    publicCreateRequireHmac: String(set.public_create_require_hmac || 'false').toLowerCase() === 'true',
+    publicCreateHmacSecret: String(set.public_create_hmac_secret || '').trim(),
+    publicCreateHmacMaxAgeSeconds: parseInt(
+      set.public_create_hmac_max_age_seconds || String(PUBLIC_CREATE_HMAC_MAX_AGE_SECONDS),
+      10
+    ) || PUBLIC_CREATE_HMAC_MAX_AGE_SECONDS
   };
 }
 
@@ -1406,21 +1682,20 @@ function rollbackReferrerSummary(referrerPhone, reversedPoints) {
 function processLoyaltyPoints() {
   try {
     const ordersSheet = getSheet('orders');
-    const pointsSheet = getSheet('user_points');
-
     const ordersData = ordersSheet.getDataRange().getValues();
-    const pointsData = pointsSheet.getDataRange().getValues();
     if (ordersData.length < 2) return;
 
     const ordersHeaders = ordersData[0];
-    const pointsHeaders = pointsData[0];
 
     const phoneColIdx = ordersHeaders.indexOf('phone');
     const poinColIdx = ordersHeaders.indexOf('poin');
     const processedColIdx = ordersHeaders.indexOf('point_processed');
+    const orderIdColIdx = ordersHeaders.indexOf('id');
+    const orderCodeColIdx = ordersHeaders.indexOf('order_id');
     if (phoneColIdx === -1 || poinColIdx === -1 || processedColIdx === -1) return;
 
     let processed = 0;
+    let failed = 0;
     for (var i = 1; i < ordersData.length; i++) {
       const row = ordersData[i];
       const phone = normalizePhone(row[phoneColIdx]);
@@ -1428,32 +1703,27 @@ function processLoyaltyPoints() {
       const isProcessed = row[processedColIdx];
       if (isProcessed === 'Yes' || poin <= 0 || !phone) continue;
 
-      let userPointsRowIdx = -1;
-      let currentPoints = 0;
-      for (var j = 1; j < pointsData.length; j++) {
-        const pointsRow = pointsData[j];
-        const pointsPhone = normalizePhone(pointsRow[pointsHeaders.indexOf('phone')]);
-        if (pointsPhone === phone) {
-          userPointsRowIdx = j + 1;
-          currentPoints = parseFloat(pointsRow[pointsHeaders.indexOf('points')]) || 0;
-          break;
-        }
-      }
-
-      const newPoints = currentPoints + poin;
-      const timestamp = new Date().toLocaleString('id-ID');
-      if (userPointsRowIdx === -1) {
-        pointsSheet.appendRow([phone, newPoints, timestamp]);
-      } else {
-        pointsSheet.getRange(userPointsRowIdx, pointsHeaders.indexOf('points') + 1).setValue(newPoints);
-        pointsSheet.getRange(userPointsRowIdx, pointsHeaders.indexOf('last_updated') + 1).setValue(timestamp);
+      const rawOrderId = (orderIdColIdx !== -1 ? row[orderIdColIdx] : '') ||
+        (orderCodeColIdx !== -1 ? row[orderCodeColIdx] : '');
+      const orderId = normalizeOrderId(rawOrderId || ('orders_row_' + (i + 1)));
+      const u = upsertUserPoints(
+        phone,
+        poin,
+        'loyalty_points',
+        orderId,
+        'Loyalty points from order',
+        'system'
+      );
+      if (!u.success) {
+        failed++;
+        continue;
       }
 
       ordersSheet.getRange(i + 1, processedColIdx + 1).setValue('Yes');
       processed++;
     }
 
-    return { success: true, processed: processed };
+    return { success: true, processed: processed, failed: failed };
   } catch (error) {
     Logger.log('Error in processLoyaltyPoints: ' + error.toString());
     return { error: error.toString() };
