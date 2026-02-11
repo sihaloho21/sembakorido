@@ -1095,6 +1095,12 @@
                                 <p class="text-[10px] text-blue-500 mt-1">Digunakan untuk mengelola produk, kategori, dan pesanan di admin</p>
                                 <div id="admin-api-status" class="hidden mt-2 p-2 rounded-lg text-xs font-bold"></div>
                             </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-blue-600 mb-2 uppercase">Admin Token (Write)</label>
+                                <input type="password" id="settings-admin-token" placeholder="Masukkan ADMIN_TOKEN GAS" class="w-full p-3 border border-blue-200 rounded-xl outline-none focus:border-blue-500 bg-white text-sm font-mono">
+                                <p class="text-[10px] text-blue-500 mt-1">Wajib diisi jika ADMIN_TOKEN di GAS tidak kosong. Token disimpan lokal di browser admin ini.</p>
+                            </div>
                             
                             <div class="bg-blue-100 p-3 rounded-lg mt-4">
                                 <p class="text-[10px] text-blue-700"><strong>💡 Tips:</strong> Ubah URL di atas jika Anda ingin menghubungkan ke spreadsheet atau API yang berbeda. Perubahan akan berlaku otomatis tanpa perlu mengedit kode.</p>
@@ -1371,6 +1377,53 @@
     <script src="js/tiered-pricing.min.js"></script>
     <script src="js/banner-management.min.js"></script>
     
+    <script>
+        (function () {
+            const TOKEN_KEY = 'sembako_admin_write_token';
+            const TOKEN_QUERY_KEYS = ['token', 'admin_token', 'auth_token'];
+
+            function getTokenFromQuery() {
+                try {
+                    const url = new URL(window.location.href);
+                    for (let i = 0; i < TOKEN_QUERY_KEYS.length; i += 1) {
+                        const value = String(url.searchParams.get(TOKEN_QUERY_KEYS[i]) || '').trim();
+                        if (value) return value;
+                    }
+                } catch (error) {
+                    // noop
+                }
+                return '';
+            }
+
+            function saveTokenFromInput() {
+                const input = document.getElementById('settings-admin-token');
+                if (!input) return;
+                const value = String(input.value || '').trim();
+                if (value) {
+                    localStorage.setItem(TOKEN_KEY, value);
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                const input = document.getElementById('settings-admin-token');
+                if (!input) return;
+                const seedToken = getTokenFromQuery() || String(localStorage.getItem(TOKEN_KEY) || '').trim();
+                if (seedToken) {
+                    input.value = seedToken;
+                    localStorage.setItem(TOKEN_KEY, seedToken);
+                }
+                input.addEventListener('change', saveTokenFromInput);
+                input.addEventListener('blur', saveTokenFromInput);
+            });
+
+            document.addEventListener('click', function (event) {
+                const btn = event.target.closest('[data-action="save-settings"]');
+                if (!btn) return;
+                saveTokenFromInput();
+            });
+        })();
+    </script>
+
     <script>
         (function () {
             const focusableSelector = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
