@@ -154,7 +154,17 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
   - total jatuh tempo
 - [x] `P0` Halaman riwayat tagihan user + status
 - [x] `P0` Halaman detail tagihan + tombol bayar/konfirmasi bayar
-- [ ] `P1` Notifikasi WA/push untuk H-1 jatuh tempo dan overdue
+- [x] `P1` Notifikasi WA/push untuk H-1 jatuh tempo dan overdue
+  - Implementasi:
+    - endpoint/job `run_paylater_due_notifications` (H-1 + overdue) dengan channel email/webhook
+    - throttle notifikasi per invoice via cooldown (`paylater_due_notification_cooldown_hours`)
+    - scheduler terpisah:
+      - `install_paylater_due_notification_scheduler`
+      - `remove_paylater_due_notification_scheduler`
+      - `get_paylater_due_notification_scheduler`
+    - panel admin:
+      - tombol run now + install/remove/status scheduler notifikasi
+      - pengaturan key notifikasi due di section Pengaturan -> PayLater
 
 ---
 
