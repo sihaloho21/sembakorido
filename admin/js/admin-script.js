@@ -3162,6 +3162,8 @@ async function loadSettings() {
 
     const rows = await fetchSettingsRowsFromSheet();
     const paylaterEnabledEl = document.getElementById('paylater-enabled');
+    const paylaterPilotEnabledEl = document.getElementById('paylater-pilot-enabled');
+    const paylaterPilotAllowPhonesEl = document.getElementById('paylater-pilot-allow-phones');
     const paylaterProfitToLimitPercentEl = document.getElementById('paylater-profit-to-limit-percent');
     const paylaterFeeWeek1El = document.getElementById('paylater-fee-week-1');
     const paylaterFeeWeek2El = document.getElementById('paylater-fee-week-2');
@@ -3178,6 +3180,8 @@ async function loadSettings() {
     const paylaterOverdueDefaultDaysEl = document.getElementById('paylater-overdue-default-days');
 
     if (paylaterEnabledEl) paylaterEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_enabled', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
+    if (paylaterPilotEnabledEl) paylaterPilotEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_pilot_enabled', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
+    if (paylaterPilotAllowPhonesEl) paylaterPilotAllowPhonesEl.value = String(getLatestSettingValue(rows, 'paylater_pilot_allow_phones', '') || '');
     if (paylaterProfitToLimitPercentEl) paylaterProfitToLimitPercentEl.value = parseFloat(getLatestSettingValue(rows, 'paylater_profit_to_limit_percent', '10')) || 10;
     if (paylaterFeeWeek1El) paylaterFeeWeek1El.value = parseFloat(getLatestSettingValue(rows, 'paylater_fee_week_1', '5')) || 5;
     if (paylaterFeeWeek2El) paylaterFeeWeek2El.value = parseFloat(getLatestSettingValue(rows, 'paylater_fee_week_2', '10')) || 10;
@@ -3338,6 +3342,8 @@ async function saveSettings() {
     const referralAlertWebhook = referralAlertWebhookEl ? String(referralAlertWebhookEl.value || '').trim() : '';
     const referralAlertCooldownMinutes = referralAlertCooldownEl ? parseInt(referralAlertCooldownEl.value || '60', 10) : 60;
     const paylaterEnabledEl = document.getElementById('paylater-enabled');
+    const paylaterPilotEnabledEl = document.getElementById('paylater-pilot-enabled');
+    const paylaterPilotAllowPhonesEl = document.getElementById('paylater-pilot-allow-phones');
     const paylaterProfitToLimitPercentEl = document.getElementById('paylater-profit-to-limit-percent');
     const paylaterFeeWeek1El = document.getElementById('paylater-fee-week-1');
     const paylaterFeeWeek2El = document.getElementById('paylater-fee-week-2');
@@ -3354,6 +3360,8 @@ async function saveSettings() {
     const paylaterOverdueDefaultDaysEl = document.getElementById('paylater-overdue-default-days');
 
     const paylaterEnabled = paylaterEnabledEl ? paylaterEnabledEl.value : 'false';
+    const paylaterPilotEnabled = paylaterPilotEnabledEl ? paylaterPilotEnabledEl.value : 'false';
+    const paylaterPilotAllowPhones = paylaterPilotAllowPhonesEl ? String(paylaterPilotAllowPhonesEl.value || '').trim() : '';
     const paylaterProfitToLimitPercent = paylaterProfitToLimitPercentEl ? parseFloat(paylaterProfitToLimitPercentEl.value || '10') : 10;
     const paylaterFeeWeek1 = paylaterFeeWeek1El ? parseFloat(paylaterFeeWeek1El.value || '5') : 5;
     const paylaterFeeWeek2 = paylaterFeeWeek2El ? parseFloat(paylaterFeeWeek2El.value || '10') : 10;
@@ -3382,6 +3390,8 @@ async function saveSettings() {
         ['referral_alert_webhook', String(referralAlertWebhook)],
         ['referral_alert_cooldown_minutes', String(referralAlertCooldownMinutes)],
         ['paylater_enabled', String(paylaterEnabled)],
+        ['paylater_pilot_enabled', String(paylaterPilotEnabled)],
+        ['paylater_pilot_allow_phones', String(paylaterPilotAllowPhones)],
         ['paylater_profit_to_limit_percent', String(paylaterProfitToLimitPercent)],
         ['paylater_fee_week_1', String(paylaterFeeWeek1)],
         ['paylater_fee_week_2', String(paylaterFeeWeek2)],

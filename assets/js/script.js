@@ -1858,6 +1858,7 @@ function getPaylaterEligibilityMessage(reason) {
         phone_mismatch: 'Nomor checkout harus sama dengan nomor akun yang login.',
         session_invalid: 'Session login tidak valid. Silakan login ulang.',
         paylater_disabled: 'PayLater sedang nonaktif.',
+        pilot_not_included: 'PayLater masih tahap pilot. Akun Anda belum termasuk whitelist.',
         account_not_found: 'Akun kredit belum tersedia untuk nomor ini.',
         account_frozen: 'Akun kredit sedang freeze.',
         account_locked: 'Akun kredit sedang lock.',
@@ -2059,6 +2060,7 @@ async function refreshPaylaterCheckoutState(force) {
         const logic = (typeof PaylaterLogic !== 'undefined') ? PaylaterLogic : null;
         const account = summaryPayload.account || {};
         const summary = summaryPayload.summary || {};
+        const pilot = summaryPayload.pilot || {};
         const activeInvoicesCount = parseInt(summary.invoice_count_active || 0, 10) || 0;
 
         let eligibility = { eligible: false, reason: 'fetch_failed' };
@@ -2068,6 +2070,9 @@ async function refreshPaylaterCheckoutState(force) {
                 activeInvoicesCount: activeInvoicesCount,
                 orderTotal: orderTotal
             }, cfg);
+        }
+        if (pilot && pilot.active === true && pilot.eligible === false) {
+            eligibility = { eligible: false, reason: 'pilot_not_included' };
         }
 
         let simulation = null;
