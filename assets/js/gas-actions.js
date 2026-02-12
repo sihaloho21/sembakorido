@@ -301,5 +301,39 @@ const GASActions = {
             action: 'process_paylater_limit_from_orders',
             data: data || {}
         });
+    },
+
+    /**
+     * Install scheduler for automatic paylater limit processing.
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
+    async installPaylaterLimitScheduler(data) {
+        return this.post({
+            action: 'install_paylater_limit_scheduler',
+            data: data || {}
+        });
+    },
+
+    /**
+     * Remove scheduler for automatic paylater limit processing.
+     * @returns {Promise<object>}
+     */
+    async removePaylaterLimitScheduler() {
+        return this.post({
+            action: 'remove_paylater_limit_scheduler',
+            data: {}
+        });
+    },
+
+    /**
+     * Get scheduler info for paylater limit processing.
+     * @returns {Promise<object>}
+     */
+    async getPaylaterLimitScheduler() {
+        return this.post({
+            action: 'get_paylater_limit_scheduler',
+            data: {}
+        });
     }
 };

@@ -72,6 +72,10 @@
                 <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l2 2 4-4m2 8H7a2 2 0 01-2-2V6a2 2 0 012-2h7l5 5v9a2 2 0 01-2 2z"></path></svg>
                 Credit Invoices
             </button>
+            <button data-action="show-section" data-section="credit-ledger" id="nav-credit-ledger" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4V7m5 10V7a2 2 0 00-2-2h-4l-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2z"></path></svg>
+                Credit Ledger
+            </button>
             <button data-action="show-section" data-section="tukar-poin" id="nav-tukar-poin" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
                 <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.407 2.67 1L12 11m0-3V7m0 11v1m0-1c-1.11 0-2.08-.407-2.67-1L12 13m0 5v1m-4.788-3.99a4.032 4.032 0 01-.788-2.01c0-2.21 1.79-4 4-4s4 1.79 4 4a4.032 4.032 0 01-.788 2.01M12 13v-1"></path></svg>
                 Tukar Poin
@@ -872,6 +876,26 @@
                                 <button data-action="refresh-credit-accounts" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">Refresh</button>
                             </div>
                         </div>
+                        <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex flex-col md:flex-row md:items-center gap-3">
+                            <div class="flex items-center gap-2">
+                                <label for="paylater-scheduler-mode" class="text-xs font-bold text-indigo-700">Scheduler</label>
+                                <select id="paylater-scheduler-mode" class="p-2 border border-indigo-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
+                                    <option value="hourly">Hourly</option>
+                                    <option value="daily">Daily</option>
+                                </select>
+                                <input type="number" id="paylater-scheduler-hour" min="0" max="23" value="1" class="w-24 p-2 border border-indigo-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white" placeholder="Jam">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label for="paylater-scheduler-refresh-seconds" class="text-xs font-bold text-indigo-700">Auto-refresh (detik)</label>
+                                <input type="number" id="paylater-scheduler-refresh-seconds" min="5" step="1" value="30" class="w-24 p-2 border border-indigo-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white" placeholder="30">
+                            </div>
+                            <div class="flex gap-2">
+                                <button data-action="install-paylater-scheduler" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">Install</button>
+                                <button data-action="remove-paylater-scheduler" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">Remove</button>
+                                <button data-action="refresh-paylater-scheduler" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">Status</button>
+                            </div>
+                            <p id="paylater-scheduler-status" class="text-xs text-indigo-700">Scheduler belum dicek.</p>
+                        </div>
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                             <table class="w-full text-left">
                                 <thead class="bg-gray-50 border-b">
@@ -995,6 +1019,51 @@
                             <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">Belum ada data invoice.</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <!-- Section: Credit Ledger -->
+            <section id="section-credit-ledger" class="hidden space-y-6">
+                <div class="flex justify-between items-center mobile-stack">
+                    <h3 class="text-lg font-bold text-gray-800">Audit Trail Credit Ledger</h3>
+                    <div class="flex gap-2 mobile-actions">
+                        <input type="text" id="credit-ledger-search" placeholder="Cari Phone / Invoice / Type..." class="p-2 border rounded-lg text-sm outline-none focus:ring-1 focus:ring-green-500">
+                        <select id="credit-ledger-page-size" class="p-2 border rounded-lg text-sm outline-none focus:ring-1 focus:ring-green-500">
+                            <option value="25">25 / halaman</option>
+                            <option value="50" selected>50 / halaman</option>
+                            <option value="100">100 / halaman</option>
+                            <option value="200">200 / halaman</option>
+                        </select>
+                        <button data-action="refresh-credit-ledger" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">Refresh</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50 border-b">
+                            <tr>
+                                <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Waktu</th>
+                                <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Phone</th>
+                                <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Invoice</th>
+                                <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
+                                <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Before</th>
+                                <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">After</th>
+                                <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Actor</th>
+                                <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Ref</th>
+                                <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Note</th>
+                            </tr>
+                        </thead>
+                        <tbody id="credit-ledger-list" class="divide-y divide-gray-100">
+                            <tr><td colspan="10" class="px-6 py-8 text-center text-gray-500">Belum ada data credit ledger.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-4 py-3">
+                    <p id="credit-ledger-pagination-info" class="text-sm text-gray-600">Page 1 / 1</p>
+                    <div class="flex gap-2">
+                        <button data-action="credit-ledger-prev-page" class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold transition">Prev</button>
+                        <button data-action="credit-ledger-next-page" class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold transition">Next</button>
+                    </div>
                 </div>
             </section>
 

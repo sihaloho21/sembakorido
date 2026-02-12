@@ -65,6 +65,9 @@ const SHEET_WHITELIST = [
 
 const LOCK_TIMEOUT_MS = 30000;
 const AUDIT_TRIGGER_HANDLER = 'runReferralReconciliationAudit';
+const PAYLATER_LIMIT_TRIGGER_HANDLER = 'runProcessPaylaterLimitFromOrdersTrigger';
+const PAYLATER_LIMIT_TRIGGER_MODE_PROP = 'paylater_limit_trigger_mode';
+const PAYLATER_LIMIT_TRIGGER_HOUR_PROP = 'paylater_limit_trigger_hour';
 const PUBLIC_CREATE_WINDOW_SECONDS = 60;
 const PUBLIC_CREATE_MAX_REQUESTS = 6;
 const ATTACH_REFERRAL_WINDOW_SECONDS = 60;
@@ -180,6 +183,15 @@ function doGet(e) {
   }
   if (action === 'public_referral_config') {
     return jsonOutput(handlePublicReferralConfig(params));
+  }
+  if (action === 'public_paylater_summary') {
+    return jsonOutput(handlePublicPaylaterSummary(params));
+  }
+  if (action === 'public_paylater_invoices') {
+    return jsonOutput(handlePublicPaylaterInvoices(params));
+  }
+  if (action === 'public_paylater_invoice_detail') {
+    return jsonOutput(handlePublicPaylaterInvoiceDetail(params));
   }
 
   if (!sheetName || SHEET_WHITELIST.indexOf(sheetName) === -1) {
@@ -490,6 +502,116 @@ function handlePublicReferralConfig(params) {
   };
 }
 
+function handlePublicPaylaterSummary(params) {
+  const phone = resolvePublicSessionPhone(params);
+  if (!phone) {
+    return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
+  }
+
+  const found = findCreditAccountByPhone(phone);
+  const account = (found && found.row) ? found.row : null;
+  const invObj = getRowsAsObjects('credit_invoices');
+  const rows = invObj.rows.filter(function(row) {
+    return normalizePhone(row.phone || '') === phone;
+  });
+
+  var activeCount = 0;
+  var overdueCount = 0;
+  var openDue = 0;
+  var openPaid = 0;
+  for (var i = 0; i < rows.length; i++) {
+    var st = String(rows[i].status || '').toLowerCase().trim();
+    var totalDue = toMoneyInt(rows[i].total_due || 0);
+    var paid = toMoneyInt(rows[i].paid_amount || 0);
+    if (st === 'active' || st === 'overdue') {
+      activeCount++;
+      openDue += totalDue;
+      openPaid += paid;
+    }
+    if (st === 'overdue') overdueCount++;
+  }
+
+  return {
+    success: true,
+    phone: phone,
+    account: account || {
+      phone: phone,
+      credit_limit: 0,
+      available_limit: 0,
+      used_limit: 0,
+      status: 'inactive'
+    },
+    summary: {
+      invoice_count_total: rows.length,
+      invoice_count_active: activeCount,
+      invoice_count_overdue: overdueCount,
+      total_due_open: openDue,
+      paid_amount_open: openPaid,
+      remaining_open: Math.max(0, openDue - openPaid)
+    }
+  };
+}
+
+function handlePublicPaylaterInvoices(params) {
+  const phone = resolvePublicSessionPhone(params);
+  if (!phone) {
+    return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
+  }
+
+  const invObj = getRowsAsObjects('credit_invoices');
+  const rows = invObj.rows
+    .filter(function(row) {
+      return normalizePhone(row.phone || '') === phone;
+    })
+    .sort(function(a, b) {
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
+
+  return {
+    success: true,
+    phone: phone,
+    invoices: rows.slice(0, 50)
+  };
+}
+
+function handlePublicPaylaterInvoiceDetail(params) {
+  const phone = resolvePublicSessionPhone(params);
+  if (!phone) {
+    return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
+  }
+
+  const invoiceId = String(params.invoice_id || params.id || '').trim();
+  if (!invoiceId) {
+    return { success: false, error: 'INVALID_PAYLOAD', message: 'invoice_id wajib diisi' };
+  }
+
+  const found = findCreditInvoiceByInvoiceId(invoiceId);
+  if (!found || !found.row) {
+    return { success: false, error: 'INVOICE_NOT_FOUND', message: 'Invoice tidak ditemukan' };
+  }
+  const invoicePhone = normalizePhone(found.row.phone || '');
+  if (invoicePhone !== phone) {
+    return { success: false, error: 'FORBIDDEN', message: 'Invoice bukan milik user ini' };
+  }
+
+  const ledObj = getRowsAsObjects('credit_ledger');
+  const ledgerRows = ledObj.rows
+    .filter(function(row) {
+      return String(row.invoice_id || '').trim() === invoiceId &&
+        normalizePhone(row.phone || '') === phone;
+    })
+    .sort(function(a, b) {
+      return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+    });
+
+  return {
+    success: true,
+    phone: phone,
+    invoice: found.row,
+    ledger: ledgerRows
+  };
+}
+
 function generateReferralCodeForUser(name, phone, existingCodesMap) {
   const baseName = String(name || 'USER').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'USER';
   const phoneDigits = normalizePhone(phone || '').replace(/[^0-9]/g, '');
@@ -640,6 +762,18 @@ function doPost(e) {
       return jsonOutput(withScriptLock(function() {
         return handleCreditAccountSetStatus(data);
       }));
+    }
+
+    if (action === 'install_paylater_limit_scheduler') {
+      return jsonOutput(installPaylaterLimitScheduler(data));
+    }
+
+    if (action === 'remove_paylater_limit_scheduler') {
+      return jsonOutput(removePaylaterLimitScheduler());
+    }
+
+    if (action === 'get_paylater_limit_scheduler') {
+      return jsonOutput(getPaylaterLimitSchedulerInfo());
     }
 
     const sheet = getSheet(sheetName);
@@ -2258,6 +2392,88 @@ function processPaylaterLimitFromOrders(data) {
   };
 }
 
+function runProcessPaylaterLimitFromOrdersTrigger() {
+  return processPaylaterLimitFromOrders({ actor: 'trigger_scheduler' });
+}
+
+function installPaylaterLimitScheduler(data) {
+  data = data || {};
+  const modeRaw = String(data.mode || data.schedule || 'hourly').toLowerCase().trim();
+  const mode = (modeRaw === 'daily') ? 'daily' : 'hourly';
+  const hour = Math.max(0, Math.min(23, parseInt(data.hour || data.at_hour || 1, 10) || 1));
+
+  removePaylaterLimitScheduler();
+
+  var builder = ScriptApp.newTrigger(PAYLATER_LIMIT_TRIGGER_HANDLER).timeBased();
+  if (mode === 'daily') {
+    builder = builder.everyDays(1).atHour(hour);
+  } else {
+    builder = builder.everyHours(1);
+  }
+  builder.create();
+
+  try {
+    const props = PropertiesService.getScriptProperties();
+    props.setProperty(PAYLATER_LIMIT_TRIGGER_MODE_PROP, mode);
+    props.setProperty(PAYLATER_LIMIT_TRIGGER_HOUR_PROP, String(hour));
+  } catch (error) {
+    Logger.log('Failed save paylater trigger props: ' + error.toString());
+  }
+
+  return {
+    success: true,
+    mode: mode,
+    hour: hour,
+    message: mode === 'daily'
+      ? ('Scheduler paylater aktif daily jam ' + hour + ':00')
+      : 'Scheduler paylater aktif hourly'
+  };
+}
+
+function removePaylaterLimitScheduler() {
+  const triggers = ScriptApp.getProjectTriggers();
+  var removed = 0;
+  triggers.forEach(function(trigger) {
+    if (trigger.getHandlerFunction() === PAYLATER_LIMIT_TRIGGER_HANDLER) {
+      ScriptApp.deleteTrigger(trigger);
+      removed++;
+    }
+  });
+  try {
+    const props = PropertiesService.getScriptProperties();
+    props.deleteProperty(PAYLATER_LIMIT_TRIGGER_MODE_PROP);
+    props.deleteProperty(PAYLATER_LIMIT_TRIGGER_HOUR_PROP);
+  } catch (error) {
+    Logger.log('Failed clear paylater trigger props: ' + error.toString());
+  }
+  return { success: true, removed: removed, message: 'Scheduler paylater dihapus' };
+}
+
+function getPaylaterLimitSchedulerInfo() {
+  const triggers = ScriptApp.getProjectTriggers();
+  const found = triggers.filter(function(trigger) {
+    return trigger.getHandlerFunction() === PAYLATER_LIMIT_TRIGGER_HANDLER;
+  });
+
+  var mode = 'hourly';
+  var hour = 1;
+  try {
+    const props = PropertiesService.getScriptProperties();
+    mode = String(props.getProperty(PAYLATER_LIMIT_TRIGGER_MODE_PROP) || 'hourly');
+    hour = Math.max(0, Math.min(23, parseInt(props.getProperty(PAYLATER_LIMIT_TRIGGER_HOUR_PROP) || '1', 10) || 1));
+  } catch (error) {
+    Logger.log('Failed read paylater trigger props: ' + error.toString());
+  }
+
+  return {
+    success: true,
+    active: found.length > 0,
+    count: found.length,
+    mode: mode === 'daily' ? 'daily' : 'hourly',
+    hour: hour
+  };
+}
+
 function handleCreditAccountSetStatus(data) {
   data = data || {};
   const phone = normalizePhone(data.phone || data.whatsapp || '');
@@ -2443,7 +2659,10 @@ function isSheetValidationRequired(actionKey) {
     credit_limit_from_profit: true,
     credit_invoice_apply_penalty: true,
     credit_account_set_status: true,
-    process_paylater_limit_from_orders: true
+    process_paylater_limit_from_orders: true,
+    install_paylater_limit_scheduler: true,
+    remove_paylater_limit_scheduler: true,
+    get_paylater_limit_scheduler: true
   };
   return !skip[actionKey];
 }

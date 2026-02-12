@@ -465,6 +465,58 @@
 
 
 
+            <!-- PayLater Card -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
+                <div class="flex items-center justify-between gap-3 mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">PayLater</h3>
+                    <span id="paylater-account-status" class="text-xs font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-700">inactive</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                    <div class="rounded-xl border border-gray-200 p-3 bg-gray-50">
+                        <p class="text-xs text-gray-500">Limit Kredit</p>
+                        <p id="paylater-credit-limit" class="text-lg font-bold text-gray-800">Rp 0</p>
+                    </div>
+                    <div class="rounded-xl border border-gray-200 p-3 bg-gray-50">
+                        <p class="text-xs text-gray-500">Limit Tersedia</p>
+                        <p id="paylater-available-limit" class="text-lg font-bold text-green-700">Rp 0</p>
+                    </div>
+                    <div class="rounded-xl border border-gray-200 p-3 bg-gray-50">
+                        <p class="text-xs text-gray-500">Limit Terpakai</p>
+                        <p id="paylater-used-limit" class="text-lg font-bold text-amber-700">Rp 0</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    <div class="rounded-xl border border-gray-200 p-3">
+                        <p class="text-xs text-gray-500">Invoice Total</p>
+                        <p id="paylater-invoice-total" class="text-base font-bold text-gray-800">0</p>
+                    </div>
+                    <div class="rounded-xl border border-gray-200 p-3">
+                        <p class="text-xs text-gray-500">Invoice Aktif</p>
+                        <p id="paylater-invoice-active" class="text-base font-bold text-blue-700">0</p>
+                    </div>
+                    <div class="rounded-xl border border-gray-200 p-3">
+                        <p class="text-xs text-gray-500">Invoice Overdue</p>
+                        <p id="paylater-invoice-overdue" class="text-base font-bold text-red-700">0</p>
+                    </div>
+                    <div class="rounded-xl border border-gray-200 p-3">
+                        <p class="text-xs text-gray-500">Sisa Tagihan Aktif</p>
+                        <p id="paylater-remaining-open" class="text-base font-bold text-gray-800">Rp 0</p>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-xs font-bold text-gray-700">Riwayat Invoice</p>
+                        <span id="paylater-history-badge" class="text-[10px] font-bold text-gray-500">0 data</span>
+                    </div>
+                    <div id="paylater-invoice-list" class="space-y-2 text-xs text-gray-600">
+                        <p class="text-gray-400">Belum ada riwayat invoice.</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Order History -->
             <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
                 <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -504,6 +556,25 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- PayLater Detail Modal -->
+    <div id="paylater-detail-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="paylater-detail-title" tabindex="-1" data-modal>
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="paylater-detail-title" class="text-xl font-bold text-gray-800">Detail Tagihan</h3>
+                    <button type="button" data-action="close-paylater-detail" class="text-gray-400 hover:text-gray-600" aria-label="Tutup">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="paylater-detail-content" class="space-y-3 text-sm text-gray-700">
+                    <p class="text-gray-500">Memuat detail tagihan...</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Edit Profile Modal -->
@@ -1024,6 +1095,7 @@
             bind('[data-action="copy-referral"]', () => copyReferralCode());
             bind('[data-action="share-referral-whatsapp"]', () => shareReferralWhatsApp());
             bind('[data-action="apply-referral"]', () => applyReferralCode());
+            bind('[data-action="close-paylater-detail"]', () => closePaylaterDetailModal());
             bind('[data-action="close-order-tracking"]', () => closeOrderTracking());
             bind('[data-action="close-loyalty"]', () => closeLoyaltyModal());
             bind('[data-action="cancel-tukar"]', () => cancelTukarModal());
@@ -1039,6 +1111,6 @@
         })();
     </script>
     
-    <script src="assets/js/akun.bundle.min.js"></script>
+    <script src="assets/js/akun.js"></script>
 </body>
 </html>
