@@ -1620,8 +1620,11 @@ function getPaylaterConfig() {
     penaltyCapPercent: parseFloat(set.paylater_penalty_cap_percent || '15') || 15,
     maxActiveInvoices: parseInt(set.paylater_max_active_invoices || '1', 10) || 1,
     maxLimit: toMoneyInt(set.paylater_max_limit || '1000000'),
-    overdueFreezeDays: parseInt(set.paylater_overdue_freeze_days || '0', 10) || 0,
-    overdueLockDays: parseInt(set.paylater_overdue_lock_days || '0', 10) || 0
+    overdueFreezeDays: parseInt(set.paylater_overdue_freeze_days || '3', 10) || 3,
+    overdueLockDays: parseInt(set.paylater_overdue_lock_days || '14', 10) || 14,
+    overdueReduceLimitDays: parseInt(set.paylater_overdue_reduce_limit_days || '7', 10) || 7,
+    overdueReduceLimitPercent: parseFloat(set.paylater_overdue_reduce_limit_percent || '10') || 10,
+    overdueDefaultDays: parseInt(set.paylater_overdue_default_days || '30', 10) || 30
   };
 }
 
@@ -1719,6 +1722,79 @@ function findCreditPaymentLedgerByRef(paymentRefId, invoiceId) {
     return row;
   }
   return null;
+}
+
+function creditLedgerEntryExists(type, refId, phone) {
+  const t = String(type || '').trim().toLowerCase();
+  const r = String(refId || '').trim();
+  const p = normalizePhone(phone || '');
+  if (!t || !r || !p) return false;
+  const ledObj = getRowsAsObjects('credit_ledger');
+  for (var i = 0; i < ledObj.rows.length; i++) {
+    const row = ledObj.rows[i];
+    const rowType = String(row.type || '').trim().toLowerCase();
+    const rowRef = String(row.ref_id || '').trim();
+    const rowPhone = normalizePhone(row.phone || '');
+    if (rowType === t && rowRef === r && rowPhone === p) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function applyOverdueLimitReduction(phone, invoiceId, cfg, actor, overdueDays) {
+  const normalizedPhone = normalizePhone(phone || '');
+  const refId = String(invoiceId || '').trim();
+  if (!normalizedPhone || !refId) {
+    return { success: false, skipped: true, reason: 'invalid_input' };
+  }
+  if (creditLedgerEntryExists('limit_reduce_overdue', refId, normalizedPhone)) {
+    return { success: true, skipped: true, dedup: true, reason: 'already_reduced' };
+  }
+
+  const found = findCreditAccountByPhone(normalizedPhone);
+  if (!found || !found.row) {
+    return { success: false, skipped: true, reason: 'account_not_found' };
+  }
+
+  const account = found.row;
+  const oldLimit = toMoneyInt(account.credit_limit || 0);
+  const oldUsed = toMoneyInt(account.used_limit || 0);
+  const oldAvailable = toMoneyInt(account.available_limit || Math.max(0, oldLimit - oldUsed));
+  const reducePercent = Math.max(0, parseFloat(cfg.overdueReduceLimitPercent || 0) || 0);
+  const rawReduction = toMoneyInt((oldLimit * reducePercent) / 100);
+  const plannedReduction = Math.max(0, rawReduction);
+  const nextLimit = Math.max(oldUsed, oldLimit - plannedReduction);
+  const realReduction = Math.max(0, oldLimit - nextLimit);
+  if (realReduction <= 0) {
+    return { success: true, skipped: true, reason: 'no_reduction' };
+  }
+
+  const nextAvailable = Math.max(0, nextLimit - oldUsed);
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'credit_limit', nextLimit);
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'available_limit', nextAvailable);
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'updated_at', nowIso());
+
+  appendCreditLedger({
+    phone: normalizedPhone,
+    user_id: account.user_id || '',
+    type: 'limit_reduce_overdue',
+    amount: realReduction,
+    balance_before: oldLimit,
+    balance_after: nextLimit,
+    ref_id: refId,
+    note: 'Reduce limit overdue ' + overdueDays + ' hari',
+    actor: actor
+  });
+
+  return {
+    success: true,
+    reduced: realReduction,
+    credit_limit_before: oldLimit,
+    credit_limit_after: nextLimit,
+    available_before: oldAvailable,
+    available_after: nextAvailable
+  };
 }
 
 function getUtcDateStart(value) {
@@ -2266,8 +2342,6 @@ function handleCreditLimitFromProfit(data) {
 function isFinalOrderStatusForLimit(status) {
   const normalized = String(status || '').toLowerCase().trim();
   const finals = {
-    paid: true,
-    selesai: true,
     lunas: true,
     diterima: true
   };
@@ -2540,7 +2614,9 @@ function handleCreditInvoiceApplyPenalty(data) {
     }
 
     const isSettled = paidAmount >= nextTotalDue;
-    const nextStatus = isSettled ? 'paid' : 'overdue';
+    const defaultDays = Math.max(0, parseInt(cfg.overdueDefaultDays || 0, 10) || 0);
+    const isDefaulted = !isSettled && defaultDays > 0 && overdueDays >= defaultDays;
+    const nextStatus = isSettled ? 'paid' : (isDefaulted ? 'defaulted' : 'overdue');
 
     setCellIfColumnExists(invObj.sheet, invObj.headers, item.rowNumber, 'penalty_amount', targetPenalty);
     setCellIfColumnExists(invObj.sheet, invObj.headers, item.rowNumber, 'total_due', nextTotalDue);
@@ -2567,19 +2643,43 @@ function handleCreditInvoiceApplyPenalty(data) {
       });
     }
 
+    const actionsTaken = [];
+    const reduceDays = Math.max(0, parseInt(cfg.overdueReduceLimitDays || 0, 10) || 0);
+    if (!isSettled && reduceDays > 0 && overdueDays >= reduceDays) {
+      const reduction = applyOverdueLimitReduction(
+        normalizePhone(row.phone || ''),
+        item.invoiceId,
+        cfg,
+        actor,
+        overdueDays
+      );
+      if (reduction.success && !reduction.skipped) {
+        actionsTaken.push({
+          action: 'reduce_limit',
+          reduced: reduction.reduced || 0,
+          credit_limit_after: reduction.credit_limit_after || 0
+        });
+      }
+    }
+
     const freezeDays = Math.max(0, parseInt(cfg.overdueFreezeDays || 0, 10) || 0);
     const lockDays = Math.max(0, parseInt(cfg.overdueLockDays || 0, 10) || 0);
-    if (!isSettled && lockDays > 0 && overdueDays >= lockDays) {
-      applyCreditAccountStatus(
+    if (!isSettled && (isDefaulted || (lockDays > 0 && overdueDays >= lockDays))) {
+      const lockResult = applyCreditAccountStatus(
         normalizePhone(row.phone || ''),
         'locked',
         actor,
-        'Auto lock karena overdue ' + overdueDays + ' hari',
+        isDefaulted
+          ? ('Auto lock + defaulted karena overdue >= ' + defaultDays + ' hari')
+          : ('Auto lock karena overdue ' + overdueDays + ' hari'),
         item.invoiceId,
         false
       );
+      if (lockResult && lockResult.success && !lockResult.skipped) {
+        actionsTaken.push({ action: 'lock_account' });
+      }
     } else if (!isSettled && freezeDays > 0 && overdueDays >= freezeDays) {
-      applyCreditAccountStatus(
+      const freezeResult = applyCreditAccountStatus(
         normalizePhone(row.phone || ''),
         'frozen',
         actor,
@@ -2587,6 +2687,9 @@ function handleCreditInvoiceApplyPenalty(data) {
         item.invoiceId,
         false
       );
+      if (freezeResult && freezeResult.success && !freezeResult.skipped) {
+        actionsTaken.push({ action: 'freeze_account' });
+      }
     }
 
     results.push({
@@ -2595,7 +2698,8 @@ function handleCreditInvoiceApplyPenalty(data) {
       penalty_added: additionalPenalty,
       penalty_total: targetPenalty,
       total_due: nextTotalDue,
-      status: nextStatus
+      status: nextStatus,
+      actions: actionsTaken
     });
   }
 
