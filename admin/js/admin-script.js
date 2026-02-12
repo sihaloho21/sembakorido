@@ -413,15 +413,12 @@ async function fetchReferrals() {
         tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">Memuat data referral...</td></tr>';
     }
     try {
-        const response = await fetch(`${API_URL}?sheet=${REFERRALS_SHEET}`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        allReferrals = Array.isArray(data) ? data : [];
+        allReferrals = await fetchSheetRows(REFERRALS_SHEET);
         renderReferralTable();
     } catch (error) {
         console.error(error);
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-red-500">Gagal memuat referral.</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-red-500">Gagal memuat referral: ${escapeHtml(error.message || 'Unknown error')}</td></tr>`;
         }
     }
 }
@@ -498,15 +495,10 @@ async function runReferralLedgerReconciliation() {
         body.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">Memproses rekonsiliasi...</td></tr>';
     }
     try {
-        const [userPointsRes, ledgerRes] = await Promise.all([
-            fetch(`${API_URL}?sheet=user_points`),
-            fetch(`${API_URL}?sheet=point_transactions`)
+        const [userRows, ledgerRows] = await Promise.all([
+            fetchSheetRows('user_points'),
+            fetchSheetRows('point_transactions')
         ]);
-        const userPointsData = userPointsRes.ok ? await userPointsRes.json() : [];
-        const ledgerData = ledgerRes.ok ? await ledgerRes.json() : [];
-
-        const userRows = Array.isArray(userPointsData) ? userPointsData : [];
-        const ledgerRows = Array.isArray(ledgerData) ? ledgerData : [];
 
         const pointsMap = new Map();
         userRows.forEach((row) => {
@@ -590,10 +582,7 @@ async function runReferralLedgerReconciliation() {
 
 async function fetchSettingsRowsFromSheet() {
     try {
-        const response = await fetch(`${API_URL}?sheet=settings&_t=${Date.now()}`);
-        if (!response.ok) return [];
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
+        return await fetchSheetRows('settings', { _t: Date.now() });
     } catch (error) {
         console.warn('Failed to fetch settings from sheet:', error);
         return [];
