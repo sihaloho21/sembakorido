@@ -3161,6 +3161,7 @@ async function loadSettings() {
     }
 
     const rows = await fetchSettingsRowsFromSheet();
+    const adminRoleEnforceEl = document.getElementById('admin-role-enforce');
     const paylaterEnabledEl = document.getElementById('paylater-enabled');
     const paylaterPilotEnabledEl = document.getElementById('paylater-pilot-enabled');
     const paylaterPilotAllowPhonesEl = document.getElementById('paylater-pilot-allow-phones');
@@ -3179,6 +3180,7 @@ async function loadSettings() {
     const paylaterOverdueReduceLimitPercentEl = document.getElementById('paylater-overdue-reduce-limit-percent');
     const paylaterOverdueDefaultDaysEl = document.getElementById('paylater-overdue-default-days');
 
+    if (adminRoleEnforceEl) adminRoleEnforceEl.value = String(getLatestSettingValue(rows, 'admin_role_enforce', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
     if (paylaterEnabledEl) paylaterEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_enabled', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
     if (paylaterPilotEnabledEl) paylaterPilotEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_pilot_enabled', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
     if (paylaterPilotAllowPhonesEl) paylaterPilotAllowPhonesEl.value = String(getLatestSettingValue(rows, 'paylater_pilot_allow_phones', '') || '');
@@ -3341,6 +3343,8 @@ async function saveSettings() {
     const referralAlertEmail = referralAlertEmailEl ? String(referralAlertEmailEl.value || '').trim() : '';
     const referralAlertWebhook = referralAlertWebhookEl ? String(referralAlertWebhookEl.value || '').trim() : '';
     const referralAlertCooldownMinutes = referralAlertCooldownEl ? parseInt(referralAlertCooldownEl.value || '60', 10) : 60;
+    const adminRoleEnforceEl = document.getElementById('admin-role-enforce');
+    const adminRoleEnforce = adminRoleEnforceEl ? adminRoleEnforceEl.value : 'false';
     const paylaterEnabledEl = document.getElementById('paylater-enabled');
     const paylaterPilotEnabledEl = document.getElementById('paylater-pilot-enabled');
     const paylaterPilotAllowPhonesEl = document.getElementById('paylater-pilot-allow-phones');
@@ -3389,6 +3393,7 @@ async function saveSettings() {
         ['referral_alert_email', String(referralAlertEmail)],
         ['referral_alert_webhook', String(referralAlertWebhook)],
         ['referral_alert_cooldown_minutes', String(referralAlertCooldownMinutes)],
+        ['admin_role_enforce', String(adminRoleEnforce)],
         ['paylater_enabled', String(paylaterEnabled)],
         ['paylater_pilot_enabled', String(paylaterPilotEnabled)],
         ['paylater_pilot_allow_phones', String(paylaterPilotAllowPhones)],

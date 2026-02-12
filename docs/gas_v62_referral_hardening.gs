@@ -667,8 +667,9 @@ function doPost(e) {
     const data = body.data;
     const actionKey = resolveActionKey(action, data);
     const token = resolveRequestToken(e, body);
+    const adminRole = resolveRequestAdminRole(e, body);
 
-    const authError = guardActionAuthorization(actionKey, token, sheetName);
+    const authError = guardActionAuthorization(actionKey, token, sheetName, adminRole);
     if (authError) return jsonOutput(authError);
 
     if (actionKey === 'attach_referral') {
@@ -3083,6 +3084,23 @@ function resolveRequestToken(e, body) {
   ).trim();
 }
 
+function resolveRequestAdminRole(e, body) {
+  const params = (e && e.parameter) ? e.parameter : {};
+  const payload = body || {};
+  const data = payload.data || {};
+  return String(
+    params.admin_role ||
+    params.role ||
+    params.ar ||
+    payload.admin_role ||
+    payload.role ||
+    payload.ar ||
+    data.admin_role ||
+    data.role ||
+    ''
+  ).trim().toLowerCase();
+}
+
 function isSheetValidationRequired(actionKey) {
   const skip = {
     attach_referral: true,
@@ -3107,7 +3125,7 @@ function isPublicCreateAction(actionKey, sheetName) {
   return actionKey === 'create' && isPublicPostAllowed(actionKey, sheetName);
 }
 
-function guardActionAuthorization(actionKey, token, sheetName) {
+function guardActionAuthorization(actionKey, token, sheetName, adminRole) {
   if (isPublicPostAllowed(actionKey, sheetName)) return null;
   if (!ADMIN_TOKEN) {
     return {
@@ -3119,6 +3137,94 @@ function guardActionAuthorization(actionKey, token, sheetName) {
     return {
       error: 'Unauthorized',
       message: 'Token tidak valid'
+    };
+  }
+  const roleError = guardActionRoleAuthorization(actionKey, sheetName, adminRole);
+  if (roleError) return roleError;
+  return null;
+}
+
+function normalizeAdminRole(role) {
+  const raw = String(role || '').trim().toLowerCase();
+  const aliases = {
+    super_admin: 'superadmin',
+    owner: 'superadmin',
+    root: 'superadmin',
+    admin: 'manager',
+    finance: 'manager',
+    ops: 'operator',
+    operation: 'operator',
+    read_only: 'viewer',
+    readonly: 'viewer'
+  };
+  if (aliases[raw]) return aliases[raw];
+  if (raw === 'superadmin' || raw === 'manager' || raw === 'operator' || raw === 'viewer') return raw;
+  return '';
+}
+
+function getAdminRoleRank(role) {
+  const normalized = normalizeAdminRole(role);
+  if (normalized === 'superadmin') return 4;
+  if (normalized === 'manager') return 3;
+  if (normalized === 'operator') return 2;
+  if (normalized === 'viewer') return 1;
+  return 0;
+}
+
+function getAdminAuthorizationConfig() {
+  const set = getSettingsMap();
+  const defaultRole = normalizeAdminRole(set.admin_default_role || 'operator') || 'operator';
+  return {
+    roleEnforce: String(set.admin_role_enforce || 'false').toLowerCase() === 'true',
+    defaultRole: defaultRole
+  };
+}
+
+function getRequiredRoleForAction(actionKey, sheetName) {
+  const key = String(actionKey || '').trim();
+
+  if (key === 'delete') return 'superadmin';
+  if (key === 'upsert_setting') return 'superadmin';
+  if (key === 'ensure_schema') return 'superadmin';
+  if (key === 'install_paylater_limit_scheduler') return 'superadmin';
+  if (key === 'remove_paylater_limit_scheduler') return 'superadmin';
+
+  if (key === 'create' || key === 'update') return 'manager';
+  if (key === 'bulk_insert') return 'manager';
+  if (key === 'run_referral_reconciliation_audit') return 'manager';
+  if (key === 'notify_referral_alert') return 'manager';
+  if (key === 'credit_account_upsert') return 'manager';
+  if (key === 'credit_invoice_create') return 'manager';
+  if (key === 'credit_invoice_pay') return 'manager';
+  if (key === 'credit_limit_from_profit') return 'manager';
+  if (key === 'credit_limit_refund_reversal') return 'manager';
+  if (key === 'process_paylater_limit_from_orders') return 'manager';
+  if (key === 'credit_invoice_apply_penalty') return 'manager';
+  if (key === 'credit_account_set_status') return 'manager';
+
+  if (key === 'credit_account_get') return 'operator';
+  if (key === 'get_paylater_limit_scheduler') return 'operator';
+
+  if (sheetName && isGetSheetSensitive(sheetName)) return 'manager';
+  return 'manager';
+}
+
+function guardActionRoleAuthorization(actionKey, sheetName, adminRole) {
+  const cfg = getAdminAuthorizationConfig();
+  if (!cfg.roleEnforce) return null;
+
+  const requiredRole = getRequiredRoleForAction(actionKey, sheetName);
+  const requiredRank = getAdminRoleRank(requiredRole);
+  if (requiredRank <= 0) return null;
+
+  const resolvedRole = normalizeAdminRole(adminRole || cfg.defaultRole || '');
+  const resolvedRank = getAdminRoleRank(resolvedRole);
+  if (resolvedRank < requiredRank) {
+    return {
+      error: 'FORBIDDEN_ROLE',
+      message: 'Role tidak cukup untuk aksi ini',
+      required_role: requiredRole,
+      provided_role: resolvedRole || ''
     };
   }
   return null;
