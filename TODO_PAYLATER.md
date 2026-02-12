@@ -20,15 +20,21 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
 - [x] `P0` Finalkan rumus limit:
   - Limit awal manual oleh admin
   - Kenaikan limit = `10% profit bersih` dari transaksi yang valid
-- [ ] `P0` Finalkan definisi transaksi valid untuk tambah limit (disarankan: setelah order `Diterima/Lunas`)
+- [x] `P0` Finalkan definisi transaksi valid untuk tambah limit (disarankan: setelah order `Diterima/Lunas`)
+  - Implementasi: hanya status order `diterima`/`lunas` yang diproses untuk kenaikan limit
 - [x] `P0` Finalkan aturan tenor aktif (1-4 minggu) dan fee per tenor
 - [x] `P0` Finalkan aturan denda:
   - `0.5% per hari`
   - cap total denda `15%`
-- [ ] `P0` Finalkan aksi gagal bayar:
+- [x] `P0` Finalkan aksi gagal bayar:
   - reduce limit
   - freeze kredit
   - lock akun (kriteria jelas)
+  - Implementasi:
+    - reduce limit saat overdue >= `paylater_overdue_reduce_limit_days` (default 7), besar reduce = `paylater_overdue_reduce_limit_percent` (default 10%)
+    - freeze saat overdue >= `paylater_overdue_freeze_days` (default 3)
+    - lock saat overdue >= `paylater_overdue_lock_days` (default 14)
+    - status `defaulted` + auto lock saat overdue >= `paylater_overdue_default_days` (default 30)
 
 ---
 
@@ -121,14 +127,14 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
   - filter status
   - detail tagihan
   - input pembayaran manual
-- [ ] `P1` Halaman `Credit Ledger` untuk audit trail
+- [x] `P1` Halaman `Credit Ledger` untuk audit trail
 - [ ] `P1` Validasi role/akses admin pada aksi sensitif
 
 ---
 
 ## 5. Frontend User
 
-- [ ] `P0` Tampilkan info PayLater di akun user:
+- [x] `P0` Tampilkan info PayLater di akun user:
   - limit total
   - limit tersedia
   - limit terpakai
@@ -140,7 +146,7 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
   - denda harian
   - cap denda
   - total jatuh tempo
-- [ ] `P0` Halaman riwayat tagihan user + status
+- [x] `P0` Halaman riwayat tagihan user + status
 - [ ] `P0` Halaman detail tagihan + tombol bayar/konfirmasi bayar
 - [ ] `P1` Notifikasi WA/push untuk H-1 jatuh tempo dan overdue
 
@@ -157,11 +163,11 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
 
 ## 7. Risk Control
 
-- [ ] `P0` Rule `1 active invoice per user`
-- [ ] `P0` Auto-freeze saat overdue melewati ambang (tentukan hari)
-- [ ] `P0` Auto-lock untuk gagal bayar berat (tentukan kriteria)
+- [x] `P0` Rule `1 active invoice per user`
+- [x] `P0` Auto-freeze saat overdue melewati ambang (tentukan hari)
+- [x] `P0` Auto-lock untuk gagal bayar berat (tentukan kriteria)
 - [ ] `P0` Unfreeze/unlock hanya setelah pelunasan + verifikasi
-- [ ] `P1` Batas maksimum limit global per user (ceiling)
+- [x] `P1` Batas maksimum limit global per user (ceiling)
 
 ---
 
