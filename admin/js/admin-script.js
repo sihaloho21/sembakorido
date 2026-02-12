@@ -809,9 +809,10 @@ async function setCreditAccountStatus(phone, status) {
     const normalizedPhone = normalizePhone(phone || '');
     if (!normalizedPhone || !status) return;
     try {
-        const result = await GASActions.upsertCreditAccount({
+        const result = await GASActions.setCreditAccountStatus({
             phone: normalizedPhone,
             status: String(status).toLowerCase(),
+            note: 'Status diubah dari Admin Panel',
             actor: 'admin'
         });
         if (result && result.success) {
@@ -956,10 +957,12 @@ async function payCreditInvoice(invoiceId, amount) {
         showAdminToast('Nominal pembayaran tidak valid.', 'error');
         return;
     }
+    const paymentRefId = `ADM-PAY-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
     try {
         const result = await GASActions.payCreditInvoice({
             invoice_id: invoiceId,
             payment_amount: paymentAmount,
+            payment_ref_id: paymentRefId,
             actor: 'admin'
         });
         if (result && result.success) {
@@ -972,6 +975,27 @@ async function payCreditInvoice(invoiceId, amount) {
     } catch (error) {
         console.error(error);
         showAdminToast('Gagal memproses pembayaran.', 'error');
+    }
+}
+
+async function applyCreditPenaltyAllOverdue() {
+    if (!window.confirm('Terapkan penalty untuk semua invoice overdue saat ini?')) return;
+    try {
+        const result = await GASActions.applyCreditInvoicePenalty({
+            apply_all_overdue: true,
+            actor: 'admin'
+        });
+        if (result && result.success) {
+            const processed = parseInt(result.processed || 0, 10) || 0;
+            showAdminToast(`Penalty diproses untuk ${processed} invoice.`, 'success');
+            await fetchCreditInvoices();
+            await fetchCreditAccounts();
+            return;
+        }
+        showAdminToast(result && (result.message || result.error) ? String(result.message || result.error) : 'Gagal menerapkan penalty.', 'error');
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal menerapkan penalty.', 'error');
     }
 }
 
@@ -3308,6 +3332,11 @@ function bindAdminActions() {
 
         if (action === 'refresh-credit-invoices') {
             fetchCreditInvoices();
+            return;
+        }
+
+        if (action === 'apply-credit-penalty-all') {
+            applyCreditPenaltyAllOverdue();
             return;
         }
 

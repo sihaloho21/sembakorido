@@ -95,10 +95,10 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
 - [x] `P0` Endpoint: create/update initial limit (admin only)
 - [x] `P0` Endpoint: create credit invoice saat checkout PayLater
 - [x] `P0` Endpoint: post payment ke invoice + update status
-- [ ] `P0` Endpoint: apply penalty job/manual trigger
-- [ ] `P0` Endpoint: freeze/unfreeze/lock/unlock account
+- [x] `P0` Endpoint: apply penalty job/manual trigger
+- [x] `P0` Endpoint: freeze/unfreeze/lock/unlock account
 - [x] `P0` Endpoint: process limit increase from order profit
-- [ ] `P0` Tambahkan proteksi idempotency untuk:
+- [x] `P0` Tambahkan proteksi idempotency untuk:
   - create invoice
   - process limit increase
   - posting payment
