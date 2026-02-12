@@ -161,7 +161,11 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
   - Implementasi: hook di endpoint `update` sheet `orders` untuk auto-run `process_paylater_limit_from_orders` saat status final
 - [x] `P0` Pastikan order batal/retur tidak menambah limit
   - Implementasi: status valid kenaikan limit dibatasi ke `lunas`/`diterima`
-- [ ] `P1` Mekanisme reversal jika ada refund setelah limit terlanjur naik
+- [x] `P1` Mekanisme reversal jika ada refund setelah limit terlanjur naik
+  - Implementasi:
+    - endpoint `credit_limit_refund_reversal` (idempotent, berbasis ledger `limit_increase` vs `limit_reversal`)
+    - auto-trigger saat `orders.status` berubah ke status refund/retur/cancel
+    - test integrasi ditambah pada `scripts/test-paylater-gas-integration.js`
 
 ---
 
