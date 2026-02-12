@@ -8,6 +8,7 @@ const sources = [
   'assets/js/gas-actions.min.js',
   'assets/js/api-helper.min.js',
   'assets/js/payment-logic.min.js',
+  'assets/js/paylater-logic.min.js',
   'assets/js/tiered-pricing-logic.min.js',
   'assets/js/image-slider.min.js',
   'assets/js/promo-banner-carousel.min.js',

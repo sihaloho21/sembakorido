@@ -18,6 +18,7 @@ const CONFIG = {
         ADMIN_API: 'sembako_admin_api_url',
         GAJIAN_CONFIG: 'sembako_gajian_config',
         REWARD_CONFIG: 'sembako_reward_config',
+        PAYLATER_CONFIG: 'sembako_paylater_config',
         STORE_CLOSED: 'sembako_store_closed',
         MARGIN_ALERT: 'sembako_margin_alert',
         BUNDLE_DISCOUNT: 'sembako_bundle_discount'
@@ -171,6 +172,48 @@ const CONFIG = {
     },
 
     /**
+     * Mendapatkan konfigurasi PayLater
+     * @returns {object} Konfigurasi paylater
+     */
+    getPaylaterConfig() {
+        const saved = localStorage.getItem(this.STORAGE_KEYS.PAYLATER_CONFIG);
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error('Error parsing paylater config', e);
+            }
+        }
+        return {
+            enabled: false,
+            // Kenaikan limit berdasarkan profit bersih order valid
+            profitToLimitPercent: 10,
+            // Tenor default dalam minggu dengan fee persen
+            tenorFees: {
+                1: 5,
+                2: 10,
+                3: 15,
+                4: 20
+            },
+            dailyPenaltyPercent: 0.5,
+            penaltyCapPercent: 15,
+            maxActiveInvoices: 1,
+            maxLimit: 1000000,
+            minOrderAmount: 0,
+            freezeOverdueDays: 7,
+            lockOverdueDays: 30
+        };
+    },
+
+    /**
+     * Menyimpan konfigurasi PayLater
+     * @param {object} config - Konfigurasi baru
+     */
+    setPaylaterConfig(config) {
+        localStorage.setItem(this.STORAGE_KEYS.PAYLATER_CONFIG, JSON.stringify(config));
+    },
+
+    /**
      * Konfigurasi diskon bundle berdasarkan jumlah item
      */
     getBundleDiscountConfig() {
@@ -242,6 +285,7 @@ const CONFIG = {
             adminApi: this.getAdminApiUrl(),
             gajian: this.getGajianConfig(),
             reward: this.getRewardConfig(),
+            paylater: this.getPaylaterConfig(),
             storeClosed: this.isStoreClosed(),
             marginAlert: this.getMarginAlertThreshold(),
             bundleDiscount: this.getBundleDiscountConfig()
