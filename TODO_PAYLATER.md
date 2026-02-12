@@ -107,16 +107,16 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
 
 ## 4. Admin Panel
 
-- [ ] `P0` Halaman/section `PayLater Settings`
+- [x] `P0` Halaman/section `PayLater Settings`
   - tenor aktif (1-4 minggu)
   - fee per tenor
   - denda harian
   - cap denda
-- [ ] `P0` Halaman `Credit Accounts`
+- [x] `P0` Halaman `Credit Accounts`
   - set limit awal manual
   - lihat status akun (active/frozen/locked)
   - aksi freeze/unfreeze/lock/unlock
-- [ ] `P0` Halaman `Credit Invoices`
+- [x] `P0` Halaman `Credit Invoices`
   - list tagihan
   - filter status
   - detail tagihan

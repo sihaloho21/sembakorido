@@ -2757,12 +2757,34 @@ async function loadSettings() {
         const r34 = document.getElementById('bundle-rule-34');
         const r56 = document.getElementById('bundle-rule-56');
         const r7 = document.getElementById('bundle-rule-7');
-        if (r34) r34.value = config.bundleDiscount.rule34 ?? 5;
-        if (r56) r56.value = config.bundleDiscount.rule56 ?? 8;
-        if (r7) r7.value = config.bundleDiscount.rule7plus ?? 10;
+    if (r34) r34.value = config.bundleDiscount.rule34 ?? 5;
+    if (r56) r56.value = config.bundleDiscount.rule56 ?? 8;
+    if (r7) r7.value = config.bundleDiscount.rule7plus ?? 10;
     }
 
     const rows = await fetchSettingsRowsFromSheet();
+    const paylaterEnabledEl = document.getElementById('paylater-enabled');
+    const paylaterProfitToLimitPercentEl = document.getElementById('paylater-profit-to-limit-percent');
+    const paylaterFeeWeek1El = document.getElementById('paylater-fee-week-1');
+    const paylaterFeeWeek2El = document.getElementById('paylater-fee-week-2');
+    const paylaterFeeWeek3El = document.getElementById('paylater-fee-week-3');
+    const paylaterFeeWeek4El = document.getElementById('paylater-fee-week-4');
+    const paylaterDailyPenaltyPercentEl = document.getElementById('paylater-daily-penalty-percent');
+    const paylaterPenaltyCapPercentEl = document.getElementById('paylater-penalty-cap-percent');
+    const paylaterMaxActiveInvoicesEl = document.getElementById('paylater-max-active-invoices');
+    const paylaterMaxLimitEl = document.getElementById('paylater-max-limit');
+
+    if (paylaterEnabledEl) paylaterEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_enabled', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
+    if (paylaterProfitToLimitPercentEl) paylaterProfitToLimitPercentEl.value = parseFloat(getLatestSettingValue(rows, 'paylater_profit_to_limit_percent', '10')) || 10;
+    if (paylaterFeeWeek1El) paylaterFeeWeek1El.value = parseFloat(getLatestSettingValue(rows, 'paylater_fee_week_1', '5')) || 5;
+    if (paylaterFeeWeek2El) paylaterFeeWeek2El.value = parseFloat(getLatestSettingValue(rows, 'paylater_fee_week_2', '10')) || 10;
+    if (paylaterFeeWeek3El) paylaterFeeWeek3El.value = parseFloat(getLatestSettingValue(rows, 'paylater_fee_week_3', '15')) || 15;
+    if (paylaterFeeWeek4El) paylaterFeeWeek4El.value = parseFloat(getLatestSettingValue(rows, 'paylater_fee_week_4', '20')) || 20;
+    if (paylaterDailyPenaltyPercentEl) paylaterDailyPenaltyPercentEl.value = parseFloat(getLatestSettingValue(rows, 'paylater_daily_penalty_percent', '0.5')) || 0.5;
+    if (paylaterPenaltyCapPercentEl) paylaterPenaltyCapPercentEl.value = parseFloat(getLatestSettingValue(rows, 'paylater_penalty_cap_percent', '15')) || 15;
+    if (paylaterMaxActiveInvoicesEl) paylaterMaxActiveInvoicesEl.value = parseInt(getLatestSettingValue(rows, 'paylater_max_active_invoices', '1'), 10) || 1;
+    if (paylaterMaxLimitEl) paylaterMaxLimitEl.value = parseInt(getLatestSettingValue(rows, 'paylater_max_limit', '1000000'), 10) || 1000000;
+
     const referralEnabled = getLatestSettingValue(rows, 'referral_enabled', 'true');
     const referralRewardReferrer = getLatestSettingValue(rows, 'referral_reward_referrer', '20');
     const referralRewardReferee = getLatestSettingValue(rows, 'referral_reward_referee', '10');
@@ -2907,37 +2929,58 @@ async function saveSettings() {
     const referralAlertEmail = referralAlertEmailEl ? String(referralAlertEmailEl.value || '').trim() : '';
     const referralAlertWebhook = referralAlertWebhookEl ? String(referralAlertWebhookEl.value || '').trim() : '';
     const referralAlertCooldownMinutes = referralAlertCooldownEl ? parseInt(referralAlertCooldownEl.value || '60', 10) : 60;
+    const paylaterEnabledEl = document.getElementById('paylater-enabled');
+    const paylaterProfitToLimitPercentEl = document.getElementById('paylater-profit-to-limit-percent');
+    const paylaterFeeWeek1El = document.getElementById('paylater-fee-week-1');
+    const paylaterFeeWeek2El = document.getElementById('paylater-fee-week-2');
+    const paylaterFeeWeek3El = document.getElementById('paylater-fee-week-3');
+    const paylaterFeeWeek4El = document.getElementById('paylater-fee-week-4');
+    const paylaterDailyPenaltyPercentEl = document.getElementById('paylater-daily-penalty-percent');
+    const paylaterPenaltyCapPercentEl = document.getElementById('paylater-penalty-cap-percent');
+    const paylaterMaxActiveInvoicesEl = document.getElementById('paylater-max-active-invoices');
+    const paylaterMaxLimitEl = document.getElementById('paylater-max-limit');
+
+    const paylaterEnabled = paylaterEnabledEl ? paylaterEnabledEl.value : 'false';
+    const paylaterProfitToLimitPercent = paylaterProfitToLimitPercentEl ? parseFloat(paylaterProfitToLimitPercentEl.value || '10') : 10;
+    const paylaterFeeWeek1 = paylaterFeeWeek1El ? parseFloat(paylaterFeeWeek1El.value || '5') : 5;
+    const paylaterFeeWeek2 = paylaterFeeWeek2El ? parseFloat(paylaterFeeWeek2El.value || '10') : 10;
+    const paylaterFeeWeek3 = paylaterFeeWeek3El ? parseFloat(paylaterFeeWeek3El.value || '15') : 15;
+    const paylaterFeeWeek4 = paylaterFeeWeek4El ? parseFloat(paylaterFeeWeek4El.value || '20') : 20;
+    const paylaterDailyPenaltyPercent = paylaterDailyPenaltyPercentEl ? parseFloat(paylaterDailyPenaltyPercentEl.value || '0.5') : 0.5;
+    const paylaterPenaltyCapPercent = paylaterPenaltyCapPercentEl ? parseFloat(paylaterPenaltyCapPercentEl.value || '15') : 15;
+    const paylaterMaxActiveInvoices = paylaterMaxActiveInvoicesEl ? parseInt(paylaterMaxActiveInvoicesEl.value || '1', 10) : 1;
+    const paylaterMaxLimit = paylaterMaxLimitEl ? parseInt(paylaterMaxLimitEl.value || '1000000', 10) : 1000000;
+
+    const settingEntries = [
+        ['referral_enabled', String(referralEnabled)],
+        ['referral_reward_referrer', String(referralRewardReferrer)],
+        ['referral_reward_referee', String(referralRewardReferee)],
+        ['referral_min_first_order', String(referralMinFirstOrder)],
+        ['referral_alert_enabled', String(referralAlertEnabled)],
+        ['referral_pending_days_threshold', String(referralPendingDaysThreshold)],
+        ['referral_mismatch_threshold', String(referralMismatchThreshold)],
+        ['referral_spike_multiplier', String(referralSpikeMultiplier)],
+        ['referral_alert_email', String(referralAlertEmail)],
+        ['referral_alert_webhook', String(referralAlertWebhook)],
+        ['referral_alert_cooldown_minutes', String(referralAlertCooldownMinutes)],
+        ['paylater_enabled', String(paylaterEnabled)],
+        ['paylater_profit_to_limit_percent', String(paylaterProfitToLimitPercent)],
+        ['paylater_fee_week_1', String(paylaterFeeWeek1)],
+        ['paylater_fee_week_2', String(paylaterFeeWeek2)],
+        ['paylater_fee_week_3', String(paylaterFeeWeek3)],
+        ['paylater_fee_week_4', String(paylaterFeeWeek4)],
+        ['paylater_daily_penalty_percent', String(paylaterDailyPenaltyPercent)],
+        ['paylater_penalty_cap_percent', String(paylaterPenaltyCapPercent)],
+        ['paylater_max_active_invoices', String(paylaterMaxActiveInvoices)],
+        ['paylater_max_limit', String(paylaterMaxLimit)]
+    ];
 
     try {
-        await Promise.all([
-            GASActions.upsertSetting('referral_enabled', String(referralEnabled)),
-            GASActions.upsertSetting('referral_reward_referrer', String(referralRewardReferrer)),
-            GASActions.upsertSetting('referral_reward_referee', String(referralRewardReferee)),
-            GASActions.upsertSetting('referral_min_first_order', String(referralMinFirstOrder)),
-            GASActions.upsertSetting('referral_alert_enabled', String(referralAlertEnabled)),
-            GASActions.upsertSetting('referral_pending_days_threshold', String(referralPendingDaysThreshold)),
-            GASActions.upsertSetting('referral_mismatch_threshold', String(referralMismatchThreshold)),
-            GASActions.upsertSetting('referral_spike_multiplier', String(referralSpikeMultiplier)),
-            GASActions.upsertSetting('referral_alert_email', String(referralAlertEmail)),
-            GASActions.upsertSetting('referral_alert_webhook', String(referralAlertWebhook)),
-            GASActions.upsertSetting('referral_alert_cooldown_minutes', String(referralAlertCooldownMinutes))
-        ]);
+        await Promise.all(settingEntries.map(([key, value]) => GASActions.upsertSetting(key, value)));
     } catch (settingError) {
         console.warn('upsert_setting not available, fallback to append create:', settingError);
         try {
-            await Promise.all([
-                GASActions.create('settings', { key: 'referral_enabled', value: String(referralEnabled) }),
-                GASActions.create('settings', { key: 'referral_reward_referrer', value: String(referralRewardReferrer) }),
-                GASActions.create('settings', { key: 'referral_reward_referee', value: String(referralRewardReferee) }),
-                GASActions.create('settings', { key: 'referral_min_first_order', value: String(referralMinFirstOrder) }),
-                GASActions.create('settings', { key: 'referral_alert_enabled', value: String(referralAlertEnabled) }),
-                GASActions.create('settings', { key: 'referral_pending_days_threshold', value: String(referralPendingDaysThreshold) }),
-                GASActions.create('settings', { key: 'referral_mismatch_threshold', value: String(referralMismatchThreshold) }),
-                GASActions.create('settings', { key: 'referral_spike_multiplier', value: String(referralSpikeMultiplier) }),
-                GASActions.create('settings', { key: 'referral_alert_email', value: String(referralAlertEmail) }),
-                GASActions.create('settings', { key: 'referral_alert_webhook', value: String(referralAlertWebhook) }),
-                GASActions.create('settings', { key: 'referral_alert_cooldown_minutes', value: String(referralAlertCooldownMinutes) })
-            ]);
+            await Promise.all(settingEntries.map(([key, value]) => GASActions.create('settings', { key, value })));
             showAdminToast('Fallback aktif: settings masih disimpan dengan metode append.', 'warning');
         } catch (fallbackErr) {
             console.warn('Fallback create settings failed:', fallbackErr);
