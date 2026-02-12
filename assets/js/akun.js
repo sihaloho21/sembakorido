@@ -46,6 +46,10 @@ const buildSessionQuery = (user) => {
     return sessionToken ? `&session_token=${encodeURIComponent(sessionToken)}` : '';
 };
 
+const hasPublicSession = (user) => {
+    return String((user && user.session_token) || '').trim() !== '';
+};
+
 let referralProfileCache = null;
 
 function toReferralCodeValue(value) {
@@ -655,6 +659,13 @@ async function loadLoyaltyPoints(user) {
         if (pointsValue !== null) {
             document.getElementById('loyalty-points').textContent = String(pointsValue);
             setRewardContextFromAkun(user.whatsapp, pointsValue, user.nama);
+            return;
+        }
+
+        // Old localStorage sessions may not have session_token; avoid sensitive endpoint calls.
+        if (!hasPublicSession(user)) {
+            document.getElementById('loyalty-points').textContent = String(fallbackPoints);
+            setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
             return;
         }
 
@@ -1873,6 +1884,11 @@ async function loadModalPoints() {
                     return;
                 }
             }
+        }
+
+        if (!hasPublicSession(user)) {
+            document.getElementById('loyalty-modal-points').textContent = String(fallbackPoints);
+            return;
         }
 
         const response = await fetch(`${apiUrl}?sheet=user_points`);
