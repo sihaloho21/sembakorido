@@ -129,7 +129,12 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
   - detail tagihan
   - input pembayaran manual
 - [x] `P1` Halaman `Credit Ledger` untuk audit trail
-- [ ] `P1` Validasi role/akses admin pada aksi sensitif
+- [x] `P1` Validasi role/akses admin pada aksi sensitif
+  - Implementasi:
+    - backend role guard opsional via setting `admin_role_enforce=true`
+    - role dibaca dari request (`admin_role`/`role`) dan divalidasi per aksi sensitif (`operator`/`manager`/`superadmin`)
+    - frontend admin mengirim role pada semua request write/read sensitif
+    - panel admin pengaturan menambah input role browser + toggle enforce role guard
 
 ---
 

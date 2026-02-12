@@ -8,6 +8,60 @@
 
 const GASActions = {
     /**
+     * Resolve admin role from URL/localStorage/input.
+     * Priority:
+     * 1) current URL query (?admin_role=...|role=...)
+     * 2) admin API URL query
+     * 3) localStorage sembako_admin_role / admin_role
+     * 4) settings input (#settings-admin-role)
+     * @returns {string}
+     */
+    getAdminRole() {
+        const queryKeys = ['admin_role', 'role', 'ar'];
+
+        try {
+            const currentUrl = new URL(window.location.href);
+            for (let i = 0; i < queryKeys.length; i++) {
+                const value = String(currentUrl.searchParams.get(queryKeys[i]) || '').trim().toLowerCase();
+                if (value) {
+                    localStorage.setItem('sembako_admin_role', value);
+                    return value;
+                }
+            }
+        } catch (error) {
+            // Ignore parse issues and continue fallback chain
+        }
+
+        try {
+            const apiUrl = CONFIG.getAdminApiUrl();
+            const url = new URL(apiUrl, window.location.origin);
+            for (let i = 0; i < queryKeys.length; i++) {
+                const roleFromUrl = String(url.searchParams.get(queryKeys[i]) || '').trim().toLowerCase();
+                if (roleFromUrl) return roleFromUrl;
+            }
+        } catch (error) {
+            // Ignore URL parse issues and fallback to localStorage
+        }
+
+        const storageKeys = ['sembako_admin_role', 'admin_role', 'sembako_role'];
+        for (let i = 0; i < storageKeys.length; i++) {
+            const value = String(localStorage.getItem(storageKeys[i]) || '').trim().toLowerCase();
+            if (value) return value;
+        }
+
+        const roleInput = document.getElementById('settings-admin-role');
+        if (roleInput) {
+            const value = String(roleInput.value || '').trim().toLowerCase();
+            if (value) {
+                localStorage.setItem('sembako_admin_role', value);
+                return value;
+            }
+        }
+
+        return '';
+    },
+
+    /**
      * Resolve admin token from API URL query or localStorage.
      * Priority:
      * 1) token in admin API URL (?token=...)
@@ -84,6 +138,7 @@ const GASActions = {
     async post(payload) {
         let apiUrl = CONFIG.getAdminApiUrl();
         const token = this.getAdminToken();
+        const adminRole = this.getAdminRole();
 
         // Mirror token into query param to guarantee Apps Script sees it in e.parameter.
         if (token) {
@@ -102,13 +157,17 @@ const GASActions = {
         const payloadWithToken = {
             ...payload,
             token: token || (payload && payload.token) || '',
-            admin_token: token || (payload && payload.admin_token) || ''
+            admin_token: token || (payload && payload.admin_token) || '',
+            role: adminRole || (payload && payload.role) || '',
+            admin_role: adminRole || (payload && payload.admin_role) || ''
         };
         if (payloadWithToken.data && typeof payloadWithToken.data === 'object') {
             payloadWithToken.data = {
                 ...payloadWithToken.data,
                 token: payloadWithToken.data.token || token || '',
-                admin_token: payloadWithToken.data.admin_token || token || ''
+                admin_token: payloadWithToken.data.admin_token || token || '',
+                role: payloadWithToken.data.role || adminRole || '',
+                admin_role: payloadWithToken.data.admin_role || adminRole || ''
             };
         }
         
@@ -118,6 +177,10 @@ const GASActions = {
         if (token) {
             formData.append('token', token);
             formData.append('admin_token', token);
+        }
+        if (adminRole) {
+            formData.append('role', adminRole);
+            formData.append('admin_role', adminRole);
         }
         
         // POST with FormData - no Content-Type header (browser sets multipart/form-data)
