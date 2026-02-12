@@ -21,6 +21,8 @@ const PURCHASES_SHEET = 'pembelian';
 const SUPPLIERS_SHEET = 'suppliers';
 const MONTHLY_COST_SHEET = 'biaya_bulanan';
 const REFERRALS_SHEET = 'referrals';
+const CREDIT_ACCOUNTS_SHEET = 'credit_accounts';
+const CREDIT_INVOICES_SHEET = 'credit_invoices';
 const REFERRAL_ALERT_STATE_KEY = 'gos_referral_alert_state_v1';
 
 let allProducts = [];
@@ -31,6 +33,8 @@ let allPurchases = [];
 let allSuppliers = [];
 let allMonthlyCosts = [];
 let allReferrals = [];
+let allCreditAccounts = [];
+let allCreditInvoices = [];
 let currentOrderFilter = 'semua';
 let currentOrderPage = 1;
 const ordersPerPage = 10;
@@ -55,6 +59,8 @@ function showSection(sectionId) {
         kategori: 'Kategori',
         pesanan: 'Pesanan',
         referrals: 'Referral',
+        'credit-accounts': 'Credit Accounts',
+        'credit-invoices': 'Credit Invoices',
         'tukar-poin': 'Tukar Poin',
         banners: 'Banner Promosi',
         'user-points': 'Poin Pengguna',
@@ -80,6 +86,8 @@ function showSection(sectionId) {
     if (sectionId === 'biaya') fetchMonthlyCosts();
     if (sectionId === 'pesanan') fetchOrders();
     if (sectionId === 'referrals') fetchReferrals();
+    if (sectionId === 'credit-accounts') fetchCreditAccounts();
+    if (sectionId === 'credit-invoices') fetchCreditInvoices();
     if (sectionId === 'tukar-poin') fetchTukarPoin();
     if (sectionId === 'banners') fetchBanners();
     if (sectionId === 'user-points') fetchUserPoints();
@@ -664,6 +672,306 @@ async function handleRejectReferral(referralId) {
     } catch (error) {
         console.error(error);
         showAdminToast('Terjadi kesalahan saat reject referral.', 'error');
+    }
+}
+
+function getCreditStatusBadgeClass(status) {
+    const s = String(status || '').toLowerCase();
+    if (s === 'active') return 'bg-green-100 text-green-700';
+    if (s === 'frozen') return 'bg-amber-100 text-amber-700';
+    if (s === 'locked') return 'bg-red-100 text-red-700';
+    if (s === 'paid') return 'bg-green-100 text-green-700';
+    if (s === 'overdue') return 'bg-amber-100 text-amber-700';
+    if (s === 'cancelled' || s === 'defaulted') return 'bg-red-100 text-red-700';
+    return 'bg-gray-100 text-gray-700';
+}
+
+function resetCreditAccountForm() {
+    const form = document.getElementById('credit-account-form');
+    if (!form) return;
+    form.reset();
+    const statusEl = document.getElementById('credit-account-status');
+    if (statusEl) statusEl.value = 'active';
+}
+
+function fillCreditAccountForm(row) {
+    if (!row) return;
+    const phoneEl = document.getElementById('credit-account-phone');
+    const userIdEl = document.getElementById('credit-account-user-id');
+    const limitEl = document.getElementById('credit-account-limit');
+    const statusEl = document.getElementById('credit-account-status');
+    const notesEl = document.getElementById('credit-account-notes');
+    if (phoneEl) phoneEl.value = normalizePhone(row.phone || '');
+    if (userIdEl) userIdEl.value = row.user_id || '';
+    if (limitEl) limitEl.value = parseCurrencyValue(row.credit_limit || 0);
+    if (statusEl) statusEl.value = String(row.status || 'active').toLowerCase();
+    if (notesEl) notesEl.value = row.notes || '';
+}
+
+function renderCreditAccounts() {
+    const tbody = document.getElementById('credit-accounts-list');
+    if (!tbody) return;
+
+    const query = normalizePhone((document.getElementById('credit-accounts-search') || {}).value || '');
+    const rows = (Array.isArray(allCreditAccounts) ? allCreditAccounts : []).filter((row) => {
+        if (!query) return true;
+        return normalizePhone(row.phone || '').includes(query);
+    });
+
+    if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">Tidak ada credit account.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = rows.map((row) => {
+        const limit = parseCurrencyValue(row.credit_limit || 0);
+        const used = parseCurrencyValue(row.used_limit || 0);
+        const available = parseCurrencyValue(row.available_limit || 0);
+        const status = String(row.status || 'active').toLowerCase();
+        const badge = getCreditStatusBadgeClass(status);
+
+        return `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-6 py-4 text-sm font-semibold text-gray-700">${escapeHtml(normalizePhone(row.phone || '-'))}</td>
+                <td class="px-6 py-4 text-sm font-bold text-gray-800">Rp ${limit.toLocaleString('id-ID')}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">Rp ${used.toLocaleString('id-ID')}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">Rp ${available.toLocaleString('id-ID')}</td>
+                <td class="px-6 py-4"><span class="text-xs px-2 py-1 rounded-full font-bold ${badge}">${escapeHtml(status)}</span></td>
+                <td class="px-6 py-4 text-right">
+                    <div class="inline-flex gap-2">
+                        <button data-action="credit-account-fill" data-phone="${escapeAttr(row.phone || '')}" class="px-3 py-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold transition">Edit</button>
+                        <button data-action="credit-account-quick-status" data-phone="${escapeAttr(row.phone || '')}" data-status="active" class="px-2 py-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold transition">Active</button>
+                        <button data-action="credit-account-quick-status" data-phone="${escapeAttr(row.phone || '')}" data-status="frozen" class="px-2 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-700 text-xs font-bold transition">Frozen</button>
+                        <button data-action="credit-account-quick-status" data-phone="${escapeAttr(row.phone || '')}" data-status="locked" class="px-2 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold transition">Locked</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function fetchCreditAccounts() {
+    const tbody = document.getElementById('credit-accounts-list');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">Memuat credit account...</td></tr>';
+    }
+    try {
+        allCreditAccounts = await fetchSheetRows(CREDIT_ACCOUNTS_SHEET);
+        allCreditAccounts.sort((a, b) => {
+            const tA = new Date(a.updated_at || a.created_at || 0).getTime();
+            const tB = new Date(b.updated_at || b.created_at || 0).getTime();
+            return tB - tA;
+        });
+        renderCreditAccounts();
+    } catch (error) {
+        console.error(error);
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-red-500">Gagal memuat credit account: ${escapeHtml(error.message || 'Unknown error')}</td></tr>`;
+        }
+    }
+}
+
+async function submitCreditAccountForm() {
+    const phone = normalizePhone((document.getElementById('credit-account-phone') || {}).value || '');
+    const userId = String((document.getElementById('credit-account-user-id') || {}).value || '').trim();
+    const creditLimit = parseCurrencyValue((document.getElementById('credit-account-limit') || {}).value || 0);
+    const status = String((document.getElementById('credit-account-status') || {}).value || 'active').trim();
+    const notes = String((document.getElementById('credit-account-notes') || {}).value || '').trim();
+
+    if (!phone || creditLimit < 0) {
+        showAdminToast('Phone dan limit wajib valid.', 'error');
+        return;
+    }
+
+    try {
+        const result = await GASActions.upsertCreditAccount({
+            phone,
+            user_id: userId,
+            credit_limit: creditLimit,
+            status,
+            notes,
+            actor: 'admin'
+        });
+
+        if (result && result.success) {
+            showAdminToast('Credit account berhasil disimpan.', 'success');
+            await fetchCreditAccounts();
+            return;
+        }
+        showAdminToast(result && (result.message || result.error) ? String(result.message || result.error) : 'Gagal simpan credit account.', 'error');
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal simpan credit account.', 'error');
+    }
+}
+
+async function setCreditAccountStatus(phone, status) {
+    const normalizedPhone = normalizePhone(phone || '');
+    if (!normalizedPhone || !status) return;
+    try {
+        const result = await GASActions.upsertCreditAccount({
+            phone: normalizedPhone,
+            status: String(status).toLowerCase(),
+            actor: 'admin'
+        });
+        if (result && result.success) {
+            showAdminToast(`Status account ${normalizedPhone} => ${status}`, 'success');
+            await fetchCreditAccounts();
+            return;
+        }
+        showAdminToast('Gagal update status credit account.', 'error');
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal update status credit account.', 'error');
+    }
+}
+
+function resetCreditInvoiceForm() {
+    const form = document.getElementById('credit-invoice-create-form');
+    if (!form) return;
+    form.reset();
+    const tenorEl = document.getElementById('credit-invoice-tenor');
+    if (tenorEl) tenorEl.value = '1';
+}
+
+function renderCreditInvoices() {
+    const tbody = document.getElementById('credit-invoices-list');
+    if (!tbody) return;
+
+    const searchEl = document.getElementById('credit-invoices-search');
+    const rawQuery = String((searchEl && searchEl.value) || '').trim().toLowerCase();
+    const normalizedPhoneQuery = normalizePhone(rawQuery);
+
+    const rows = (Array.isArray(allCreditInvoices) ? allCreditInvoices : []).filter((row) => {
+        if (!rawQuery) return true;
+        const invoiceId = String(row.invoice_id || row.id || '').toLowerCase();
+        const phone = normalizePhone(row.phone || '');
+        return invoiceId.includes(rawQuery) || phone.includes(normalizedPhoneQuery);
+    });
+
+    if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">Tidak ada credit invoice.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = rows.map((row) => {
+        const invoiceId = String(row.invoice_id || row.id || '-');
+        const phone = normalizePhone(row.phone || '-');
+        const principal = parseCurrencyValue(row.principal || 0);
+        const totalDue = parseCurrencyValue(row.total_due || 0);
+        const paid = parseCurrencyValue(row.paid_amount || 0);
+        const remaining = Math.max(0, totalDue - paid);
+        const status = String(row.status || 'active').toLowerCase();
+        const badge = getCreditStatusBadgeClass(status);
+        const dueDate = row.due_date ? new Date(row.due_date).toLocaleDateString('id-ID') : '-';
+
+        return `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-6 py-4 text-sm font-semibold text-blue-700">
+                    ${escapeHtml(invoiceId)}
+                    <div class="text-xs text-gray-500 mt-1">Due: ${escapeHtml(dueDate)}</div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-700">${escapeHtml(phone)}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">Rp ${principal.toLocaleString('id-ID')}</td>
+                <td class="px-6 py-4 text-sm font-bold text-gray-800">
+                    Rp ${totalDue.toLocaleString('id-ID')}
+                    <div class="text-xs font-medium text-gray-500 mt-1">Sisa: Rp ${remaining.toLocaleString('id-ID')}</div>
+                </td>
+                <td class="px-6 py-4"><span class="text-xs px-2 py-1 rounded-full font-bold ${badge}">${escapeHtml(status)}</span></td>
+                <td class="px-6 py-4 text-right">
+                    <div class="inline-flex gap-2">
+                        <button data-action="credit-invoice-pay-full" data-id="${escapeAttr(invoiceId)}" data-amount="${escapeAttr(String(remaining))}" class="px-3 py-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold transition" ${remaining <= 0 ? 'disabled' : ''}>Bayar Lunas</button>
+                        <button data-action="credit-invoice-pay-custom" data-id="${escapeAttr(invoiceId)}" data-max="${escapeAttr(String(remaining))}" class="px-3 py-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold transition" ${remaining <= 0 ? 'disabled' : ''}>Bayar Custom</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function fetchCreditInvoices() {
+    const tbody = document.getElementById('credit-invoices-list');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">Memuat credit invoice...</td></tr>';
+    }
+    try {
+        allCreditInvoices = await fetchSheetRows(CREDIT_INVOICES_SHEET);
+        allCreditInvoices.sort((a, b) => {
+            const tA = new Date(a.created_at || 0).getTime();
+            const tB = new Date(b.created_at || 0).getTime();
+            return tB - tA;
+        });
+        renderCreditInvoices();
+    } catch (error) {
+        console.error(error);
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-red-500">Gagal memuat credit invoice: ${escapeHtml(error.message || 'Unknown error')}</td></tr>`;
+        }
+    }
+}
+
+async function submitCreditInvoiceCreateForm() {
+    const phone = normalizePhone((document.getElementById('credit-invoice-phone') || {}).value || '');
+    const userId = String((document.getElementById('credit-invoice-user-id') || {}).value || '').trim();
+    const principal = parseCurrencyValue((document.getElementById('credit-invoice-principal') || {}).value || 0);
+    const tenorWeeks = parseInt((document.getElementById('credit-invoice-tenor') || {}).value || '1', 10) || 1;
+    const dueDate = String((document.getElementById('credit-invoice-due-date') || {}).value || '').trim();
+    const sourceOrderId = String((document.getElementById('credit-invoice-order-id') || {}).value || '').trim();
+    const notes = String((document.getElementById('credit-invoice-notes') || {}).value || '').trim();
+
+    if (!phone || principal <= 0) {
+        showAdminToast('Phone dan principal wajib valid.', 'error');
+        return;
+    }
+
+    try {
+        const result = await GASActions.createCreditInvoice({
+            phone,
+            user_id: userId,
+            principal,
+            tenor_weeks: tenorWeeks,
+            due_date: dueDate || undefined,
+            source_order_id: sourceOrderId,
+            notes,
+            actor: 'admin'
+        });
+
+        if (result && result.success) {
+            showAdminToast('Invoice PayLater berhasil dibuat.', 'success');
+            resetCreditInvoiceForm();
+            await fetchCreditInvoices();
+            await fetchCreditAccounts();
+            return;
+        }
+        showAdminToast(result && (result.message || result.error) ? String(result.message || result.error) : 'Gagal membuat invoice.', 'error');
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal membuat invoice.', 'error');
+    }
+}
+
+async function payCreditInvoice(invoiceId, amount) {
+    const paymentAmount = parseCurrencyValue(amount || 0);
+    if (!invoiceId || paymentAmount <= 0) {
+        showAdminToast('Nominal pembayaran tidak valid.', 'error');
+        return;
+    }
+    try {
+        const result = await GASActions.payCreditInvoice({
+            invoice_id: invoiceId,
+            payment_amount: paymentAmount,
+            actor: 'admin'
+        });
+        if (result && result.success) {
+            showAdminToast('Pembayaran invoice berhasil.', 'success');
+            await fetchCreditInvoices();
+            await fetchCreditAccounts();
+            return;
+        }
+        showAdminToast(result && (result.message || result.error) ? String(result.message || result.error) : 'Gagal memproses pembayaran.', 'error');
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal memproses pembayaran.', 'error');
     }
 }
 
@@ -2950,6 +3258,59 @@ function bindAdminActions() {
             return;
         }
 
+        if (action === 'refresh-credit-accounts') {
+            fetchCreditAccounts();
+            return;
+        }
+
+        if (action === 'refresh-credit-invoices') {
+            fetchCreditInvoices();
+            return;
+        }
+
+        if (action === 'reset-credit-account-form') {
+            resetCreditAccountForm();
+            return;
+        }
+
+        if (action === 'reset-credit-invoice-form') {
+            resetCreditInvoiceForm();
+            return;
+        }
+
+        if (action === 'credit-account-fill') {
+            const row = allCreditAccounts.find((item) => normalizePhone(item.phone || '') === normalizePhone(trigger.dataset.phone || ''));
+            fillCreditAccountForm(row);
+            return;
+        }
+
+        if (action === 'credit-account-quick-status') {
+            setCreditAccountStatus(trigger.dataset.phone, trigger.dataset.status);
+            return;
+        }
+
+        if (action === 'credit-invoice-pay-full') {
+            payCreditInvoice(trigger.dataset.id, trigger.dataset.amount);
+            return;
+        }
+
+        if (action === 'credit-invoice-pay-custom') {
+            const maxAmount = parseCurrencyValue(trigger.dataset.max || 0);
+            if (maxAmount <= 0) {
+                showAdminToast('Sisa tagihan tidak tersedia.', 'warning');
+                return;
+            }
+            const input = window.prompt(`Masukkan nominal pembayaran (maks Rp ${maxAmount.toLocaleString('id-ID')}):`, String(maxAmount));
+            if (input === null) return;
+            const amount = parseCurrencyValue(input);
+            if (amount <= 0) {
+                showAdminToast('Nominal pembayaran tidak valid.', 'error');
+                return;
+            }
+            payCreditInvoice(trigger.dataset.id, Math.min(amount, maxAmount));
+            return;
+        }
+
         if (action === 'reconcile-referral-ledger') {
             runReferralLedgerReconciliation();
             return;
@@ -3096,6 +3457,36 @@ document.addEventListener('DOMContentLoaded', () => {
         referralStatusEl.addEventListener('change', (event) => {
             referralFilterStatus = event.target.value || 'all';
             renderReferralTable();
+        });
+    }
+
+    const creditAccountForm = document.getElementById('credit-account-form');
+    if (creditAccountForm) {
+        creditAccountForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            await submitCreditAccountForm();
+        });
+    }
+
+    const creditInvoiceForm = document.getElementById('credit-invoice-create-form');
+    if (creditInvoiceForm) {
+        creditInvoiceForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            await submitCreditInvoiceCreateForm();
+        });
+    }
+
+    const creditAccountSearchEl = document.getElementById('credit-accounts-search');
+    if (creditAccountSearchEl) {
+        creditAccountSearchEl.addEventListener('input', () => {
+            renderCreditAccounts();
+        });
+    }
+
+    const creditInvoiceSearchEl = document.getElementById('credit-invoices-search');
+    if (creditInvoiceSearchEl) {
+        creditInvoiceSearchEl.addEventListener('input', () => {
+            renderCreditInvoices();
         });
     }
 });
