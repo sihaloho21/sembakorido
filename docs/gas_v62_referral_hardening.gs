@@ -455,7 +455,7 @@ function handlePublicReferralHistory(params) {
     .sort(function(a, b) {
       return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     })
-    .slice(0, 20);
+    .slice(0, 10);
   return { success: true, phone: phone, referrals: rows };
 }
 
