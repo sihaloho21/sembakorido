@@ -23,6 +23,7 @@ const MONTHLY_COST_SHEET = 'biaya_bulanan';
 const REFERRALS_SHEET = 'referrals';
 const CREDIT_ACCOUNTS_SHEET = 'credit_accounts';
 const CREDIT_INVOICES_SHEET = 'credit_invoices';
+const CREDIT_LEDGER_SHEET = 'credit_ledger';
 const REFERRAL_ALERT_STATE_KEY = 'gos_referral_alert_state_v1';
 
 let allProducts = [];
@@ -35,6 +36,10 @@ let allMonthlyCosts = [];
 let allReferrals = [];
 let allCreditAccounts = [];
 let allCreditInvoices = [];
+let allCreditLedger = [];
+let creditLedgerPage = 1;
+let creditLedgerPageSize = 50;
+let paylaterSchedulerRefreshTimer = null;
 let currentOrderFilter = 'semua';
 let currentOrderPage = 1;
 const ordersPerPage = 10;
@@ -42,6 +47,7 @@ let referralFilterStatus = 'all';
 let referralSearch = '';
 
 function showSection(sectionId) {
+    stopPaylaterSchedulerAutoRefresh();
     document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
     document.getElementById(`section-${sectionId}`).classList.remove('hidden');
     document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
@@ -61,6 +67,7 @@ function showSection(sectionId) {
         referrals: 'Referral',
         'credit-accounts': 'Credit Accounts',
         'credit-invoices': 'Credit Invoices',
+        'credit-ledger': 'Credit Ledger',
         'tukar-poin': 'Tukar Poin',
         banners: 'Banner Promosi',
         'user-points': 'Poin Pengguna',
@@ -86,8 +93,12 @@ function showSection(sectionId) {
     if (sectionId === 'biaya') fetchMonthlyCosts();
     if (sectionId === 'pesanan') fetchOrders();
     if (sectionId === 'referrals') fetchReferrals();
-    if (sectionId === 'credit-accounts') fetchCreditAccounts();
+    if (sectionId === 'credit-accounts') {
+        fetchCreditAccounts();
+        startPaylaterSchedulerAutoRefresh();
+    }
     if (sectionId === 'credit-invoices') fetchCreditInvoices();
+    if (sectionId === 'credit-ledger') fetchCreditLedger();
     if (sectionId === 'tukar-poin') fetchTukarPoin();
     if (sectionId === 'banners') fetchBanners();
     if (sectionId === 'user-points') fetchUserPoints();
@@ -763,6 +774,7 @@ async function fetchCreditAccounts() {
             return tB - tA;
         });
         renderCreditAccounts();
+        refreshPaylaterSchedulerStatus();
     } catch (error) {
         console.error(error);
         if (tbody) {
@@ -786,6 +798,101 @@ async function runPaylaterLimitSync() {
     } catch (error) {
         console.error(error);
         showAdminToast('Gagal sync limit order.', 'error');
+    }
+}
+
+function updatePaylaterSchedulerStatusText(info) {
+    const statusEl = document.getElementById('paylater-scheduler-status');
+    if (!statusEl) return;
+    if (!info || info.success !== true) {
+        statusEl.textContent = 'Gagal memuat status scheduler.';
+        statusEl.className = 'text-xs text-red-600';
+        return;
+    }
+
+    if (!info.active) {
+        statusEl.textContent = 'Scheduler nonaktif.';
+        statusEl.className = 'text-xs text-gray-600';
+        return;
+    }
+
+    const mode = String(info.mode || 'hourly');
+    const hour = parseInt(info.hour || 0, 10) || 0;
+    statusEl.textContent = mode === 'daily'
+        ? `Scheduler aktif: daily jam ${hour.toString().padStart(2, '0')}:00`
+        : 'Scheduler aktif: hourly';
+    statusEl.className = 'text-xs text-green-700';
+}
+
+function getPaylaterSchedulerRefreshSeconds() {
+    const inputEl = document.getElementById('paylater-scheduler-refresh-seconds');
+    const raw = parseInt((inputEl && inputEl.value) || '30', 10) || 30;
+    return Math.max(5, Math.min(3600, raw));
+}
+
+function stopPaylaterSchedulerAutoRefresh() {
+    if (paylaterSchedulerRefreshTimer) {
+        clearInterval(paylaterSchedulerRefreshTimer);
+        paylaterSchedulerRefreshTimer = null;
+    }
+}
+
+function startPaylaterSchedulerAutoRefresh() {
+    stopPaylaterSchedulerAutoRefresh();
+    const section = document.getElementById('section-credit-accounts');
+    if (!section || section.classList.contains('hidden')) return;
+    const seconds = getPaylaterSchedulerRefreshSeconds();
+    paylaterSchedulerRefreshTimer = setInterval(() => {
+        refreshPaylaterSchedulerStatus();
+    }, seconds * 1000);
+}
+
+async function refreshPaylaterSchedulerStatus() {
+    try {
+        const info = await GASActions.getPaylaterLimitScheduler();
+        updatePaylaterSchedulerStatusText(info);
+    } catch (error) {
+        console.error(error);
+        updatePaylaterSchedulerStatusText(null);
+    }
+}
+
+async function installPaylaterSchedulerFromUI() {
+    const modeEl = document.getElementById('paylater-scheduler-mode');
+    const hourEl = document.getElementById('paylater-scheduler-hour');
+    const mode = String((modeEl && modeEl.value) || 'hourly').toLowerCase();
+    const hour = Math.max(0, Math.min(23, parseInt((hourEl && hourEl.value) || '1', 10) || 1));
+
+    try {
+        const result = await GASActions.installPaylaterLimitScheduler({
+            mode,
+            hour
+        });
+        if (result && result.success) {
+            showAdminToast(result.message || 'Scheduler PayLater berhasil dipasang.', 'success');
+            await refreshPaylaterSchedulerStatus();
+            return;
+        }
+        showAdminToast((result && (result.message || result.error)) || 'Gagal memasang scheduler PayLater.', 'error');
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal memasang scheduler PayLater.', 'error');
+    }
+}
+
+async function removePaylaterSchedulerFromUI() {
+    if (!window.confirm('Hapus scheduler otomatis PayLater?')) return;
+    try {
+        const result = await GASActions.removePaylaterLimitScheduler();
+        if (result && result.success) {
+            showAdminToast(result.message || 'Scheduler PayLater dihapus.', 'success');
+            await refreshPaylaterSchedulerStatus();
+            return;
+        }
+        showAdminToast((result && (result.message || result.error)) || 'Gagal menghapus scheduler PayLater.', 'error');
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal menghapus scheduler PayLater.', 'error');
     }
 }
 
@@ -925,6 +1032,105 @@ async function fetchCreditInvoices() {
         console.error(error);
         if (tbody) {
             tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-red-500">Gagal memuat credit invoice: ${escapeHtml(error.message || 'Unknown error')}</td></tr>`;
+        }
+    }
+}
+
+function renderCreditLedger() {
+    const tbody = document.getElementById('credit-ledger-list');
+    const infoEl = document.getElementById('credit-ledger-pagination-info');
+    const prevBtn = document.querySelector('[data-action="credit-ledger-prev-page"]');
+    const nextBtn = document.querySelector('[data-action="credit-ledger-next-page"]');
+    const pageSizeEl = document.getElementById('credit-ledger-page-size');
+    if (!tbody) return;
+
+    creditLedgerPageSize = Math.max(
+        1,
+        parseInt((pageSizeEl && pageSizeEl.value) || String(creditLedgerPageSize), 10) || 50
+    );
+
+    const rawQuery = String((document.getElementById('credit-ledger-search') || {}).value || '').trim().toLowerCase();
+    const normalizedPhoneQuery = normalizePhone(rawQuery);
+    const hasDigitQuery = /[0-9]/.test(rawQuery);
+
+    const filteredRows = (Array.isArray(allCreditLedger) ? allCreditLedger : []).filter((row) => {
+        if (!rawQuery) return true;
+        const phone = normalizePhone(row.phone || '');
+        const invoiceId = String(row.invoice_id || '').toLowerCase();
+        const type = String(row.type || '').toLowerCase();
+        const refId = String(row.ref_id || '').toLowerCase();
+        const note = String(row.note || '').toLowerCase();
+        const phoneMatch = hasDigitQuery ? phone.includes(normalizedPhoneQuery) : false;
+        return (
+            phoneMatch ||
+            invoiceId.includes(rawQuery) ||
+            type.includes(rawQuery) ||
+            refId.includes(rawQuery) ||
+            note.includes(rawQuery)
+        );
+    });
+
+    if (filteredRows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="px-6 py-8 text-center text-gray-500">Tidak ada credit ledger.</td></tr>';
+        if (infoEl) infoEl.textContent = 'Page 0 / 0 | Total 0';
+        if (prevBtn) prevBtn.disabled = true;
+        if (nextBtn) nextBtn.disabled = true;
+        return;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(filteredRows.length / creditLedgerPageSize));
+    if (creditLedgerPage > totalPages) creditLedgerPage = totalPages;
+    if (creditLedgerPage < 1) creditLedgerPage = 1;
+    const start = (creditLedgerPage - 1) * creditLedgerPageSize;
+    const end = start + creditLedgerPageSize;
+    const pageRows = filteredRows.slice(start, end);
+
+    tbody.innerHTML = pageRows.map((row) => {
+        const createdAt = row.created_at ? new Date(row.created_at).toLocaleString('id-ID') : '-';
+        const amount = parseCurrencyValue(row.amount || 0);
+        const before = parseCurrencyValue(row.balance_before || 0);
+        const after = parseCurrencyValue(row.balance_after || 0);
+        return `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-4 py-3 text-xs text-gray-700">${escapeHtml(createdAt)}</td>
+                <td class="px-4 py-3 text-xs font-semibold text-gray-700">${escapeHtml(normalizePhone(row.phone || '-'))}</td>
+                <td class="px-4 py-3 text-xs text-blue-700 font-semibold">${escapeHtml(String(row.invoice_id || '-'))}</td>
+                <td class="px-4 py-3 text-xs"><span class="px-2 py-1 rounded-full bg-slate-100 text-slate-700 font-bold">${escapeHtml(String(row.type || '-'))}</span></td>
+                <td class="px-4 py-3 text-xs text-gray-700">Rp ${amount.toLocaleString('id-ID')}</td>
+                <td class="px-4 py-3 text-xs text-gray-700">Rp ${before.toLocaleString('id-ID')}</td>
+                <td class="px-4 py-3 text-xs text-gray-700">Rp ${after.toLocaleString('id-ID')}</td>
+                <td class="px-4 py-3 text-xs text-gray-700">${escapeHtml(String(row.actor || '-'))}</td>
+                <td class="px-4 py-3 text-xs text-gray-700">${escapeHtml(String(row.ref_id || '-'))}</td>
+                <td class="px-4 py-3 text-xs text-gray-700">${escapeHtml(String(row.note || '-'))}</td>
+            </tr>
+        `;
+    }).join('');
+
+    if (infoEl) {
+        infoEl.textContent = `Page ${creditLedgerPage} / ${totalPages} | Total ${filteredRows.length}`;
+    }
+    if (prevBtn) prevBtn.disabled = creditLedgerPage <= 1;
+    if (nextBtn) nextBtn.disabled = creditLedgerPage >= totalPages;
+}
+
+async function fetchCreditLedger() {
+    const tbody = document.getElementById('credit-ledger-list');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="10" class="px-6 py-8 text-center text-gray-500">Memuat credit ledger...</td></tr>';
+    }
+    try {
+        creditLedgerPage = 1;
+        allCreditLedger = await fetchSheetRows(CREDIT_LEDGER_SHEET);
+        allCreditLedger.sort((a, b) => {
+            const tA = new Date(a.created_at || 0).getTime();
+            const tB = new Date(b.created_at || 0).getTime();
+            return tB - tA;
+        });
+        renderCreditLedger();
+    } catch (error) {
+        console.error(error);
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="10" class="px-6 py-8 text-center text-red-500">Gagal memuat credit ledger: ${escapeHtml(error.message || 'Unknown error')}</td></tr>`;
         }
     }
 }
@@ -3363,8 +3569,40 @@ function bindAdminActions() {
             return;
         }
 
+        if (action === 'install-paylater-scheduler') {
+            installPaylaterSchedulerFromUI();
+            return;
+        }
+
+        if (action === 'remove-paylater-scheduler') {
+            removePaylaterSchedulerFromUI();
+            return;
+        }
+
+        if (action === 'refresh-paylater-scheduler') {
+            refreshPaylaterSchedulerStatus();
+            return;
+        }
+
         if (action === 'refresh-credit-invoices') {
             fetchCreditInvoices();
+            return;
+        }
+
+        if (action === 'refresh-credit-ledger') {
+            fetchCreditLedger();
+            return;
+        }
+
+        if (action === 'credit-ledger-prev-page') {
+            creditLedgerPage = Math.max(1, creditLedgerPage - 1);
+            renderCreditLedger();
+            return;
+        }
+
+        if (action === 'credit-ledger-next-page') {
+            creditLedgerPage += 1;
+            renderCreditLedger();
             return;
         }
 
@@ -3592,6 +3830,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (creditInvoiceSearchEl) {
         creditInvoiceSearchEl.addEventListener('input', () => {
             renderCreditInvoices();
+        });
+    }
+
+    const creditLedgerSearchEl = document.getElementById('credit-ledger-search');
+    if (creditLedgerSearchEl) {
+        creditLedgerSearchEl.addEventListener('input', () => {
+            creditLedgerPage = 1;
+            renderCreditLedger();
+        });
+    }
+
+    const creditLedgerPageSizeEl = document.getElementById('credit-ledger-page-size');
+    if (creditLedgerPageSizeEl) {
+        creditLedgerPageSizeEl.addEventListener('change', () => {
+            creditLedgerPage = 1;
+            renderCreditLedger();
+        });
+    }
+
+    const schedulerRefreshSecondsEl = document.getElementById('paylater-scheduler-refresh-seconds');
+    if (schedulerRefreshSecondsEl) {
+        schedulerRefreshSecondsEl.addEventListener('change', () => {
+            startPaylaterSchedulerAutoRefresh();
         });
     }
 });

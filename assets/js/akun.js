@@ -440,6 +440,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-action="view-paylater-invoice"]');
+        if (!trigger) return;
+        openPaylaterDetailModal(trigger.getAttribute('data-invoice-id'));
+    });
     
     if (loggedInUser) {
         // User already logged in, show dashboard
@@ -478,6 +484,9 @@ function showDashboard(user) {
 
     // Load referral section
     loadReferralData(user);
+
+    // Load paylater section
+    loadPaylaterData(user);
     
     // Load order history
     loadOrderHistory(user);
@@ -915,6 +924,199 @@ async function loadLoyaltyPoints(user) {
         const fallbackPoints = parseInt(user.total_points || user.points || user.poin || 0, 10) || 0;
         document.getElementById('loyalty-points').textContent = String(fallbackPoints);
         setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
+    }
+}
+
+function getPaylaterStatusBadgeClass(status) {
+    const normalized = String(status || '').toLowerCase().trim();
+    if (normalized === 'active') return 'bg-green-100 text-green-700';
+    if (normalized === 'frozen') return 'bg-amber-100 text-amber-700';
+    if (normalized === 'locked') return 'bg-red-100 text-red-700';
+    if (normalized === 'overdue') return 'bg-red-100 text-red-700';
+    if (normalized === 'paid') return 'bg-green-100 text-green-700';
+    return 'bg-gray-100 text-gray-700';
+}
+
+function renderPaylaterSummary(summaryPayload) {
+    const account = (summaryPayload && summaryPayload.account) || {};
+    const summary = (summaryPayload && summaryPayload.summary) || {};
+    const status = String(account.status || 'inactive').toLowerCase().trim();
+
+    const statusEl = document.getElementById('paylater-account-status');
+    const limitEl = document.getElementById('paylater-credit-limit');
+    const availableEl = document.getElementById('paylater-available-limit');
+    const usedEl = document.getElementById('paylater-used-limit');
+    const totalEl = document.getElementById('paylater-invoice-total');
+    const activeEl = document.getElementById('paylater-invoice-active');
+    const overdueEl = document.getElementById('paylater-invoice-overdue');
+    const remainingEl = document.getElementById('paylater-remaining-open');
+
+    if (statusEl) {
+        statusEl.textContent = status || 'inactive';
+        statusEl.className = `text-xs font-bold px-2 py-1 rounded-full ${getPaylaterStatusBadgeClass(status)}`;
+    }
+    if (limitEl) limitEl.textContent = formatCurrency(account.credit_limit || 0);
+    if (availableEl) availableEl.textContent = formatCurrency(account.available_limit || 0);
+    if (usedEl) usedEl.textContent = formatCurrency(account.used_limit || 0);
+    if (totalEl) totalEl.textContent = String(parseInt(summary.invoice_count_total || 0, 10) || 0);
+    if (activeEl) activeEl.textContent = String(parseInt(summary.invoice_count_active || 0, 10) || 0);
+    if (overdueEl) overdueEl.textContent = String(parseInt(summary.invoice_count_overdue || 0, 10) || 0);
+    if (remainingEl) remainingEl.textContent = formatCurrency(summary.remaining_open || 0);
+}
+
+function renderPaylaterInvoices(invoices) {
+    const listEl = document.getElementById('paylater-invoice-list');
+    const badgeEl = document.getElementById('paylater-history-badge');
+    if (!listEl) return;
+
+    const rows = Array.isArray(invoices) ? invoices : [];
+    if (badgeEl) badgeEl.textContent = `${rows.length} data`;
+
+    if (!rows.length) {
+        listEl.innerHTML = '<p class="text-gray-400">Belum ada riwayat invoice.</p>';
+        return;
+    }
+
+    listEl.innerHTML = rows.slice(0, 10).map((row) => {
+        const invoiceId = String(row.invoice_id || row.id || '-');
+        const status = String(row.status || 'active').toLowerCase();
+        const totalDue = parseCurrencyValue(row.total_due || 0);
+        const paid = parseCurrencyValue(row.paid_amount || 0);
+        const remaining = Math.max(0, totalDue - paid);
+        const dueDate = formatDate(row.due_date || row.created_at || '');
+        return `
+            <div class="rounded-xl border border-gray-200 p-3 bg-white">
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <p class="font-bold text-gray-800">${escapeHtml(invoiceId)}</p>
+                    <span class="text-[10px] font-bold px-2 py-1 rounded-full ${getPaylaterStatusBadgeClass(status)}">${escapeHtml(status)}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-600">
+                    <p>Total Due: <span class="font-bold text-gray-800">${escapeHtml(formatCurrency(totalDue))}</span></p>
+                    <p>Sisa: <span class="font-bold text-red-600">${escapeHtml(formatCurrency(remaining))}</span></p>
+                    <p>Paid: <span class="font-bold text-green-700">${escapeHtml(formatCurrency(paid))}</span></p>
+                    <p>Jatuh Tempo: <span class="font-bold text-gray-800">${escapeHtml(dueDate)}</span></p>
+                </div>
+                <div class="mt-2">
+                    <button type="button" data-action="view-paylater-invoice" data-invoice-id="${escapeHtml(invoiceId)}" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition">Lihat Detail</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function closePaylaterDetailModal() {
+    const modal = document.getElementById('paylater-detail-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+}
+
+async function openPaylaterDetailModal(invoiceId) {
+    const user = getLoggedInUser();
+    if (!user || !invoiceId) return;
+    const modal = document.getElementById('paylater-detail-modal');
+    const contentEl = document.getElementById('paylater-detail-content');
+    if (!modal || !contentEl) return;
+
+    modal.classList.remove('hidden');
+    contentEl.innerHTML = '<p class="text-gray-500">Memuat detail tagihan...</p>';
+
+    try {
+        const apiUrl = CONFIG.getMainApiUrl();
+        const sessionQuery = buildSessionQuery(user);
+        if (!sessionQuery) {
+            contentEl.innerHTML = '<p class="text-red-600">Session tidak valid. Silakan login ulang.</p>';
+            return;
+        }
+        const resp = await fetch(`${apiUrl}?action=public_paylater_invoice_detail&invoice_id=${encodeURIComponent(invoiceId)}${sessionQuery}&_t=${Date.now()}`);
+        if (!resp.ok) throw new Error('Gagal memuat detail tagihan');
+        const payload = await resp.json();
+        if (!payload || payload.success !== true) {
+            throw new Error((payload && (payload.message || payload.error)) || 'Detail tagihan tidak tersedia');
+        }
+
+        const invoice = payload.invoice || {};
+        const ledgerRows = Array.isArray(payload.ledger) ? payload.ledger : [];
+        const totalDue = parseCurrencyValue(invoice.total_due || 0);
+        const paid = parseCurrencyValue(invoice.paid_amount || 0);
+        const remaining = Math.max(0, totalDue - paid);
+
+        const ledgerHtml = ledgerRows.length
+            ? ledgerRows.map((row) => {
+                return `
+                    <div class="rounded-lg border border-gray-200 p-2">
+                        <p class="text-xs font-bold text-gray-700">${escapeHtml(String(row.type || '-'))}</p>
+                        <p class="text-xs text-gray-600">${escapeHtml(formatDate(row.created_at || ''))}</p>
+                        <p class="text-xs text-gray-700">Amount: <span class="font-bold">${escapeHtml(formatCurrency(row.amount || 0))}</span></p>
+                        <p class="text-xs text-gray-500">${escapeHtml(String(row.note || '-'))}</p>
+                    </div>
+                `;
+            }).join('')
+            : '<p class="text-xs text-gray-500">Belum ada ledger untuk invoice ini.</p>';
+
+        contentEl.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="rounded-xl bg-gray-50 border border-gray-200 p-3">
+                    <p class="text-xs text-gray-500">Invoice ID</p>
+                    <p class="font-bold text-gray-800">${escapeHtml(String(invoice.invoice_id || invoice.id || '-'))}</p>
+                </div>
+                <div class="rounded-xl bg-gray-50 border border-gray-200 p-3">
+                    <p class="text-xs text-gray-500">Status</p>
+                    <p class="font-bold text-gray-800">${escapeHtml(String(invoice.status || '-'))}</p>
+                </div>
+                <div class="rounded-xl bg-gray-50 border border-gray-200 p-3">
+                    <p class="text-xs text-gray-500">Total Due</p>
+                    <p class="font-bold text-gray-800">${escapeHtml(formatCurrency(totalDue))}</p>
+                </div>
+                <div class="rounded-xl bg-gray-50 border border-gray-200 p-3">
+                    <p class="text-xs text-gray-500">Sisa Tagihan</p>
+                    <p class="font-bold text-red-700">${escapeHtml(formatCurrency(remaining))}</p>
+                </div>
+                <div class="rounded-xl bg-gray-50 border border-gray-200 p-3">
+                    <p class="text-xs text-gray-500">Jatuh Tempo</p>
+                    <p class="font-bold text-gray-800">${escapeHtml(formatDate(invoice.due_date || '-'))}</p>
+                </div>
+                <div class="rounded-xl bg-gray-50 border border-gray-200 p-3">
+                    <p class="text-xs text-gray-500">Tenor</p>
+                    <p class="font-bold text-gray-800">${escapeHtml(String(invoice.tenor_weeks || '-'))} minggu</p>
+                </div>
+            </div>
+            <div class="pt-3 border-t border-gray-100">
+                <p class="text-sm font-bold text-gray-800 mb-2">Riwayat Ledger</p>
+                <div class="space-y-2">${ledgerHtml}</div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error load paylater detail:', error);
+        contentEl.innerHTML = `<p class="text-red-600">${escapeHtml(error.message || 'Gagal memuat detail tagihan.')}</p>`;
+    }
+}
+
+async function loadPaylaterData(user) {
+    try {
+        const apiUrl = CONFIG.getMainApiUrl();
+        const sessionQuery = buildSessionQuery(user);
+        if (!sessionQuery) {
+            renderPaylaterSummary(null);
+            renderPaylaterInvoices([]);
+            return;
+        }
+
+        const [summaryResp, invoicesResp] = await Promise.all([
+            fetch(`${apiUrl}?action=public_paylater_summary${sessionQuery}&_t=${Date.now()}`),
+            fetch(`${apiUrl}?action=public_paylater_invoices${sessionQuery}&_t=${Date.now()}`)
+        ]);
+
+        let summaryPayload = null;
+        let invoicesPayload = null;
+        if (summaryResp.ok) summaryPayload = await summaryResp.json();
+        if (invoicesResp.ok) invoicesPayload = await invoicesResp.json();
+
+        renderPaylaterSummary(summaryPayload && summaryPayload.success ? summaryPayload : null);
+        renderPaylaterInvoices(invoicesPayload && invoicesPayload.success ? invoicesPayload.invoices : []);
+    } catch (error) {
+        console.error('Error loading paylater data:', error);
+        renderPaylaterSummary(null);
+        renderPaylaterInvoices([]);
     }
 }
 
