@@ -196,17 +196,13 @@
                         <p class="text-xs text-gray-500 mt-1">Gunakan format 08xxxxxxxxxx</p>
                     </div>
 
-                    <div>
-                        <label for="register-referral-code" class="block text-sm font-bold text-gray-700 mb-2">Kode Referral (Opsional)</label>
-                        <input
-                            type="text"
-                            id="register-referral-code"
-                            placeholder="Contoh: BUDI0821"
-                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-blue-500 transition uppercase"
-                            maxlength="24"
-                            autocomplete="off"
-                        >
-                        <p class="text-xs text-gray-500 mt-1">Isi jika Anda diajak teman.</p>
+                    <div id="register-referral-info" class="hidden bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">
+                        <div class="flex items-center gap-2">
+                            <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span id="register-referral-info-text">Referral dari link terdeteksi.</span>
+                        </div>
                     </div>
 
                     <!-- PIN Input -->
