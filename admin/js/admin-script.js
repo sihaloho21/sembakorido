@@ -1284,16 +1284,49 @@ if (bundleForm) {
 
 // ============ ORDER FUNCTIONS ============
 function getAdminGetToken() {
+    // Keep token resolution consistent with GASActions to avoid GET/POST mismatch.
+    if (typeof GASActions !== 'undefined' && typeof GASActions.getAdminToken === 'function') {
+        const tokenFromGASActions = String(GASActions.getAdminToken() || '').trim();
+        if (tokenFromGASActions) return tokenFromGASActions;
+    }
+
+    try {
+        const currentUrl = new URL(window.location.href);
+        const currentUrlToken = String(
+            currentUrl.searchParams.get('token') ||
+            currentUrl.searchParams.get('admin_token') ||
+            currentUrl.searchParams.get('auth_token') ||
+            ''
+        ).trim();
+        if (currentUrlToken) return currentUrlToken;
+    } catch (error) {
+        console.warn('Failed reading token from current page URL:', error);
+    }
+
     try {
         const apiUrl = CONFIG.getAdminApiUrl();
         const parsed = new URL(apiUrl, window.location.origin);
-        const tokenFromUrl = String(parsed.searchParams.get('token') || '').trim();
+        const tokenFromUrl = String(
+            parsed.searchParams.get('token') ||
+            parsed.searchParams.get('admin_token') ||
+            parsed.searchParams.get('auth_token') ||
+            ''
+        ).trim();
         if (tokenFromUrl) return tokenFromUrl;
     } catch (error) {
         console.warn('Failed reading token from admin URL:', error);
     }
 
-    const tokenKeys = ['sembako_admin_api_token', 'sembako_admin_token', 'admin_token'];
+    const tokenKeys = [
+        'sembako_admin_api_token',
+        'sembako_admin_write_token',
+        'sembako_admin_token',
+        'admin_token',
+        'api_token',
+        'sembako_api_token',
+        'gos_admin_token',
+        'gos_api_token'
+    ];
     for (let i = 0; i < tokenKeys.length; i += 1) {
         const token = String(localStorage.getItem(tokenKeys[i]) || '').trim();
         if (token) return token;
