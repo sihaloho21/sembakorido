@@ -155,7 +155,7 @@ function toggleStoreStatus() {
 
 async function updateDashboardStats() {
     try {
-        const [prodRes, orderRes, purchaseRes, costRes, referralRes, userPointsRes, ledgerRes, settingsRes] = await Promise.all([
+        const [prodRes, orderRes, purchaseRes, costRes, referralRes, userPointsRes, ledgerRes, settingsRes, creditInvoiceRes] = await Promise.all([
             fetch(`${API_URL}?sheet=${PRODUCTS_SHEET}`),
             fetch(`${API_URL}?sheet=${ORDERS_SHEET}`),
             fetch(`${API_URL}?sheet=${PURCHASES_SHEET}`),
@@ -163,7 +163,8 @@ async function updateDashboardStats() {
             fetch(`${API_URL}?sheet=referrals`),
             fetch(`${API_URL}?sheet=user_points`),
             fetch(`${API_URL}?sheet=point_transactions`),
-            fetch(`${API_URL}?sheet=settings`)
+            fetch(`${API_URL}?sheet=settings`),
+            fetch(`${API_URL}?sheet=${CREDIT_INVOICES_SHEET}`)
         ]);
         const prods = await prodRes.json();
         const orders = await orderRes.json();
@@ -173,6 +174,7 @@ async function updateDashboardStats() {
         const userPoints = userPointsRes.ok ? await userPointsRes.json() : [];
         const ledgerRows = ledgerRes.ok ? await ledgerRes.json() : [];
         const settingsRows = settingsRes.ok ? await settingsRes.json() : [];
+        const creditInvoices = creditInvoiceRes.ok ? await creditInvoiceRes.json() : [];
         allProducts = Array.isArray(prods) ? prods : [];
         allPurchases = Array.isArray(purchases) ? purchases : [];
         allMonthlyCosts = Array.isArray(costs) ? costs : [];
@@ -198,7 +200,133 @@ async function updateDashboardStats() {
         );
         renderReferralAnomalyWidgets(anomaly, monitoringConfig);
         maybeSendReferralAlertIfNeeded(anomaly, monitoringConfig, 'dashboard');
+        renderPaylaterKpiWidgets(normalizedOrders, Array.isArray(creditInvoices) ? creditInvoices : []);
     } catch (e) { console.error(e); }
+}
+
+function toPercentText(value) {
+    const n = Number(value) || 0;
+    return `${n.toFixed(1)}%`;
+}
+
+function getSafeDate(value) {
+    const d = new Date(value || 0);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function computePaylaterKpis(orders, creditInvoices) {
+    const invoiceRows = Array.isArray(creditInvoices) ? creditInvoices : [];
+    const orderRows = Array.isArray(orders) ? orders : [];
+    const totalInvoices = invoiceRows.length;
+
+    const paidRows = invoiceRows.filter((row) => String(row.status || '').toLowerCase() === 'paid');
+    const overdueRows = invoiceRows.filter((row) => String(row.status || '').toLowerCase() === 'overdue');
+    const defaultRows = invoiceRows.filter((row) => String(row.status || '').toLowerCase() === 'defaulted');
+
+    let onTimePaidCount = 0;
+    paidRows.forEach((row) => {
+        const paidAt = getSafeDate(row.paid_at || row.updated_at || row.closed_at);
+        const dueAt = getSafeDate(row.due_date);
+        if (paidAt && dueAt && paidAt.getTime() <= dueAt.getTime()) {
+            onTimePaidCount += 1;
+        }
+    });
+
+    const onTimeRate = paidRows.length > 0 ? (onTimePaidCount / paidRows.length) * 100 : 0;
+    const overdueRate = totalInvoices > 0 ? (overdueRows.length / totalInvoices) * 100 : 0;
+    const defaultRate = totalInvoices > 0 ? (defaultRows.length / totalInvoices) * 100 : 0;
+
+    const paylaterUserPhones = new Set(
+        invoiceRows
+            .map((row) => normalizePhone(row.phone || ''))
+            .filter((p) => Boolean(p))
+    );
+
+    const orderCountByPhone = new Map();
+    orderRows.forEach((row) => {
+        const phone = normalizePhone(row.phone || row.whatsapp || '');
+        if (!phone) return;
+        orderCountByPhone.set(phone, (orderCountByPhone.get(phone) || 0) + 1);
+    });
+
+    let paylaterUserOrderTotal = 0;
+    let paylaterUserCount = 0;
+    let nonPaylaterOrderTotal = 0;
+    let nonPaylaterUserCount = 0;
+    orderCountByPhone.forEach((count, phone) => {
+        if (paylaterUserPhones.has(phone)) {
+            paylaterUserOrderTotal += count;
+            paylaterUserCount += 1;
+        } else {
+            nonPaylaterOrderTotal += count;
+            nonPaylaterUserCount += 1;
+        }
+    });
+
+    const avgPaylaterOrders = paylaterUserCount > 0 ? paylaterUserOrderTotal / paylaterUserCount : 0;
+    const avgNonPaylaterOrders = nonPaylaterUserCount > 0 ? nonPaylaterOrderTotal / nonPaylaterUserCount : 0;
+    const repeatOrderLift = avgNonPaylaterOrders > 0
+        ? ((avgPaylaterOrders / avgNonPaylaterOrders) - 1) * 100
+        : 0;
+
+    const realizedMargin = paidRows.reduce((sum, row) => {
+        const principal = parseCurrencyValue(row.principal || 0);
+        const paidAmount = parseCurrencyValue(row.paid_amount || 0);
+        return sum + Math.max(0, paidAmount - principal);
+    }, 0);
+
+    const outstandingDefault = defaultRows.reduce((sum, row) => {
+        const totalDue = parseCurrencyValue(row.total_due || 0);
+        const paidAmount = parseCurrencyValue(row.paid_amount || 0);
+        return sum + Math.max(0, totalDue - paidAmount);
+    }, 0);
+
+    const netMargin = realizedMargin - outstandingDefault;
+
+    return {
+        totalInvoices,
+        paidCount: paidRows.length,
+        onTimePaidCount,
+        overdueCount: overdueRows.length,
+        defaultCount: defaultRows.length,
+        onTimeRate,
+        overdueRate,
+        defaultRate,
+        repeatOrderLift,
+        avgPaylaterOrders,
+        avgNonPaylaterOrders,
+        netMargin,
+        updatedAt: new Date().toISOString()
+    };
+}
+
+function renderPaylaterKpiWidgets(orders, creditInvoices) {
+    const kpi = computePaylaterKpis(orders, creditInvoices);
+    const onTimeEl = document.getElementById('stat-paylater-ontime-rate');
+    const onTimeDetailEl = document.getElementById('stat-paylater-ontime-detail');
+    const overdueEl = document.getElementById('stat-paylater-overdue-rate');
+    const overdueDetailEl = document.getElementById('stat-paylater-overdue-detail');
+    const defaultEl = document.getElementById('stat-paylater-default-rate');
+    const defaultDetailEl = document.getElementById('stat-paylater-default-detail');
+    const repeatLiftEl = document.getElementById('stat-paylater-repeat-lift');
+    const repeatDetailEl = document.getElementById('stat-paylater-repeat-detail');
+    const marginEl = document.getElementById('stat-paylater-net-margin');
+    const marginDetailEl = document.getElementById('stat-paylater-net-margin-detail');
+    const updatedEl = document.getElementById('paylater-kpi-updated');
+
+    if (onTimeEl) onTimeEl.textContent = toPercentText(kpi.onTimeRate);
+    if (onTimeDetailEl) onTimeDetailEl.textContent = `${kpi.onTimePaidCount} / ${kpi.paidCount} invoice paid tepat waktu`;
+    if (overdueEl) overdueEl.textContent = toPercentText(kpi.overdueRate);
+    if (overdueDetailEl) overdueDetailEl.textContent = `${kpi.overdueCount} overdue dari ${kpi.totalInvoices} invoice`;
+    if (defaultEl) defaultEl.textContent = toPercentText(kpi.defaultRate);
+    if (defaultDetailEl) defaultDetailEl.textContent = `${kpi.defaultCount} defaulted dari ${kpi.totalInvoices} invoice`;
+    if (repeatLiftEl) repeatLiftEl.textContent = toPercentText(kpi.repeatOrderLift);
+    if (repeatDetailEl) {
+        repeatDetailEl.textContent = `Avg order paylater ${kpi.avgPaylaterOrders.toFixed(2)} vs non-paylater ${kpi.avgNonPaylaterOrders.toFixed(2)}`;
+    }
+    if (marginEl) marginEl.textContent = `Rp ${Math.round(kpi.netMargin).toLocaleString('id-ID')}`;
+    if (marginDetailEl) marginDetailEl.textContent = 'Realized margin paid - outstanding default';
+    if (updatedEl) updatedEl.textContent = `Diperbarui ${new Date(kpi.updatedAt).toLocaleString('id-ID')}`;
 }
 
 function buildReferralMonitoringConfig(settingsRows) {
