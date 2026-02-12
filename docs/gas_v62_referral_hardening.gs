@@ -68,6 +68,9 @@ const AUDIT_TRIGGER_HANDLER = 'runReferralReconciliationAudit';
 const PAYLATER_LIMIT_TRIGGER_HANDLER = 'runProcessPaylaterLimitFromOrdersTrigger';
 const PAYLATER_LIMIT_TRIGGER_MODE_PROP = 'paylater_limit_trigger_mode';
 const PAYLATER_LIMIT_TRIGGER_HOUR_PROP = 'paylater_limit_trigger_hour';
+const PAYLATER_DUE_NOTIFY_TRIGGER_HANDLER = 'runPaylaterDueNotificationsTrigger';
+const PAYLATER_DUE_NOTIFY_TRIGGER_MODE_PROP = 'paylater_due_notify_trigger_mode';
+const PAYLATER_DUE_NOTIFY_TRIGGER_HOUR_PROP = 'paylater_due_notify_trigger_hour';
 const PUBLIC_CREATE_WINDOW_SECONDS = 60;
 const PUBLIC_CREATE_MAX_REQUESTS = 6;
 const ATTACH_REFERRAL_WINDOW_SECONDS = 60;
@@ -803,6 +806,24 @@ function doPost(e) {
 
     if (action === 'get_paylater_limit_scheduler') {
       return jsonOutput(getPaylaterLimitSchedulerInfo());
+    }
+
+    if (action === 'run_paylater_due_notifications') {
+      return jsonOutput(withScriptLock(function() {
+        return runPaylaterDueNotifications(data);
+      }));
+    }
+
+    if (action === 'install_paylater_due_notification_scheduler') {
+      return jsonOutput(installPaylaterDueNotificationScheduler(data));
+    }
+
+    if (action === 'remove_paylater_due_notification_scheduler') {
+      return jsonOutput(removePaylaterDueNotificationScheduler());
+    }
+
+    if (action === 'get_paylater_due_notification_scheduler') {
+      return jsonOutput(getPaylaterDueNotificationSchedulerInfo());
     }
 
     const sheet = getSheet(sheetName);
@@ -1697,6 +1718,19 @@ function getPaylaterConfig() {
   };
 }
 
+function getPaylaterDueNotificationConfig() {
+  const set = getSettingsMap();
+  return {
+    enabled: String(set.paylater_due_notification_enabled || 'false').toLowerCase() === 'true',
+    daysBeforeDue: Math.max(0, parseInt(set.paylater_due_notification_days_before || '1', 10) || 1),
+    notifyOverdue: String(set.paylater_due_notification_overdue_enabled || 'true').toLowerCase() === 'true',
+    cooldownHours: Math.max(1, parseInt(set.paylater_due_notification_cooldown_hours || '24', 10) || 24),
+    email: String(set.paylater_due_notification_email || '').trim(),
+    webhook: String(set.paylater_due_notification_webhook || '').trim(),
+    maxRowsPerRun: Math.max(1, Math.min(500, parseInt(set.paylater_due_notification_max_rows_per_run || '100', 10) || 100))
+  };
+}
+
 function parsePaylaterPilotAllowPhones(raw) {
   const txt = String(raw || '');
   if (!txt) return [];
@@ -1936,6 +1970,13 @@ function getOverdueDays(dueDateValue, asOfDateValue) {
   if (!dueDate || !asOfDate) return 0;
   const diffDays = Math.floor((asOfDate.getTime() - dueDate.getTime()) / (24 * 60 * 60 * 1000));
   return Math.max(0, diffDays);
+}
+
+function getDaysUntilDue(dueDateValue, asOfDateValue) {
+  const dueDate = getUtcDateStart(dueDateValue);
+  const asOfDate = getUtcDateStart(asOfDateValue || nowIso());
+  if (!dueDate || !asOfDate) return null;
+  return Math.floor((dueDate.getTime() - asOfDate.getTime()) / (24 * 60 * 60 * 1000));
 }
 
 function resolveCreditStatusFromActionOrStatus(raw) {
@@ -2872,6 +2913,297 @@ function getPaylaterLimitSchedulerInfo() {
   };
 }
 
+function sendPaylaterDueNotification(item, cfg) {
+  const invoiceId = String(item.invoice_id || '').trim();
+  const phone = normalizePhone(item.phone || '');
+  const type = String(item.type || '').trim().toLowerCase();
+  if (!invoiceId || !phone || !type) {
+    return { success: false, error: 'INVALID_ITEM', message: 'invoice/phone/type wajib valid' };
+  }
+
+  const cooldownSec = Math.max(3600, (parseInt(cfg.cooldownHours || 24, 10) || 24) * 3600);
+  const cacheKey = ['paylater_due_notice', type, invoiceId, phone].join(':');
+  if (isAlertCooldownActive(cacheKey)) {
+    return { success: true, throttled: true, channels: [], errors: [] };
+  }
+
+  const channels = [];
+  const errors = [];
+  const email = String(cfg.email || '').trim();
+  const webhook = String(cfg.webhook || '').trim();
+  if (!email && !webhook) {
+    return { success: false, error: 'NO_CHANNEL', message: 'Channel notifikasi belum di-set' };
+  }
+
+  const dueDate = String(item.due_date || '').slice(0, 10);
+  const totalDue = toMoneyInt(item.total_due || 0);
+  const paidAmount = toMoneyInt(item.paid_amount || 0);
+  const remaining = Math.max(0, totalDue - paidAmount);
+  const overdueDays = Math.max(0, parseInt(item.overdue_days || 0, 10) || 0);
+  const dueInDays = parseInt(item.due_in_days || 0, 10);
+  const subject = type === 'due_soon'
+    ? '[GoSembako] Reminder H-' + dueInDays + ' Tagihan PayLater'
+    : '[GoSembako] Tagihan PayLater Overdue';
+  const body = [
+    'Notifikasi PayLater:',
+    '- Tipe: ' + (type === 'due_soon' ? ('H-' + dueInDays) : ('Overdue ' + overdueDays + ' hari')),
+    '- Phone: ' + phone,
+    '- Invoice: ' + invoiceId,
+    '- Due date: ' + dueDate,
+    '- Total due: ' + totalDue,
+    '- Paid: ' + paidAmount,
+    '- Remaining: ' + remaining,
+    '- Status: ' + String(item.status || ''),
+    '- Waktu: ' + nowIso()
+  ].join('\n');
+
+  if (email) {
+    try {
+      MailApp.sendEmail(email, subject, body);
+      channels.push('email');
+    } catch (error) {
+      errors.push('email: ' + error.toString());
+    }
+  }
+
+  if (webhook) {
+    try {
+      const resp = UrlFetchApp.fetch(webhook, {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify({
+          subject: subject,
+          message: body,
+          event: 'paylater_due_notification',
+          data: {
+            type: type,
+            invoice_id: invoiceId,
+            phone: phone,
+            due_date: dueDate,
+            due_in_days: dueInDays,
+            overdue_days: overdueDays,
+            total_due: totalDue,
+            paid_amount: paidAmount,
+            remaining: remaining,
+            status: String(item.status || ''),
+            sent_at: nowIso()
+          }
+        }),
+        muteHttpExceptions: true
+      });
+      const code = resp.getResponseCode();
+      if (code >= 200 && code < 300) {
+        channels.push('webhook');
+      } else {
+        errors.push('webhook_http_' + code);
+      }
+    } catch (error) {
+      errors.push('webhook: ' + error.toString());
+    }
+  }
+
+  if (channels.length > 0) {
+    setAlertCooldown(cacheKey, cooldownSec);
+  }
+
+  return {
+    success: channels.length > 0,
+    throttled: false,
+    channels: channels,
+    errors: errors
+  };
+}
+
+function runPaylaterDueNotifications(data) {
+  data = data || {};
+  const cfg = getPaylaterDueNotificationConfig();
+  const force = Boolean(data.force);
+  if (!cfg.enabled && !force) {
+    return {
+      success: true,
+      disabled: true,
+      message: 'Notifikasi due PayLater nonaktif (paylater_due_notification_enabled=false)'
+    };
+  }
+
+  const asOfDate = data.as_of_date || nowIso();
+  const channelOverrideEmail = String(data.email || '').trim();
+  const channelOverrideWebhook = String(data.webhook || '').trim();
+  if (channelOverrideEmail) cfg.email = channelOverrideEmail;
+  if (channelOverrideWebhook) cfg.webhook = channelOverrideWebhook;
+
+  const invObj = getRowsAsObjects('credit_invoices');
+  const rows = invObj.rows || [];
+  const maxRows = Math.max(1, parseInt(cfg.maxRowsPerRun || 100, 10) || 100);
+
+  const candidates = [];
+  for (var i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const st = String(row.status || '').toLowerCase().trim();
+    if (st === 'paid' || st === 'cancelled') continue;
+
+    const dueInDays = getDaysUntilDue(row.due_date || '', asOfDate);
+    const overdueDays = getOverdueDays(row.due_date || '', asOfDate);
+    if (dueInDays === null) continue;
+
+    var type = '';
+    if (dueInDays === cfg.daysBeforeDue) {
+      type = 'due_soon';
+    } else if (cfg.notifyOverdue && overdueDays > 0) {
+      type = 'overdue';
+    }
+    if (!type) continue;
+
+    candidates.push({
+      type: type,
+      invoice_id: String(row.invoice_id || row.id || '').trim(),
+      phone: normalizePhone(row.phone || ''),
+      due_date: row.due_date || '',
+      due_in_days: dueInDays,
+      overdue_days: overdueDays,
+      total_due: row.total_due || 0,
+      paid_amount: row.paid_amount || 0,
+      status: row.status || ''
+    });
+  }
+
+  candidates.sort(function(a, b) {
+    return new Date(a.due_date || 0).getTime() - new Date(b.due_date || 0).getTime();
+  });
+
+  const selected = candidates.slice(0, maxRows);
+  var sent = 0;
+  var throttled = 0;
+  var failed = 0;
+  var dueSoonCount = 0;
+  var overdueCount = 0;
+  const details = [];
+
+  for (var j = 0; j < selected.length; j++) {
+    const item = selected[j];
+    if (item.type === 'due_soon') dueSoonCount++;
+    if (item.type === 'overdue') overdueCount++;
+
+    const notifyResult = sendPaylaterDueNotification(item, cfg);
+    if (notifyResult.throttled) {
+      throttled++;
+    } else if (notifyResult.success) {
+      sent++;
+    } else {
+      failed++;
+    }
+    details.push({
+      type: item.type,
+      invoice_id: item.invoice_id,
+      phone: item.phone,
+      due_date: String(item.due_date || '').slice(0, 10),
+      due_in_days: item.due_in_days,
+      overdue_days: item.overdue_days,
+      status: item.status,
+      success: Boolean(notifyResult.success),
+      throttled: Boolean(notifyResult.throttled),
+      channels: notifyResult.channels || [],
+      errors: notifyResult.errors || []
+    });
+  }
+
+  return {
+    success: true,
+    as_of_date: String(asOfDate),
+    scanned: rows.length,
+    matched: selected.length,
+    due_soon: dueSoonCount,
+    overdue: overdueCount,
+    sent: sent,
+    throttled: throttled,
+    failed: failed,
+    max_rows_per_run: maxRows,
+    details: details.slice(0, 100)
+  };
+}
+
+function runPaylaterDueNotificationsTrigger() {
+  return runPaylaterDueNotifications({ actor: 'trigger_scheduler' });
+}
+
+function installPaylaterDueNotificationScheduler(data) {
+  data = data || {};
+  const modeRaw = String(data.mode || data.schedule || 'daily').toLowerCase().trim();
+  const mode = modeRaw === 'hourly' ? 'hourly' : 'daily';
+  const hour = Math.max(0, Math.min(23, parseInt(data.hour || data.at_hour || 9, 10) || 9));
+
+  removePaylaterDueNotificationScheduler();
+
+  var builder = ScriptApp.newTrigger(PAYLATER_DUE_NOTIFY_TRIGGER_HANDLER).timeBased();
+  if (mode === 'hourly') {
+    builder = builder.everyHours(1);
+  } else {
+    builder = builder.everyDays(1).atHour(hour);
+  }
+  builder.create();
+
+  try {
+    const props = PropertiesService.getScriptProperties();
+    props.setProperty(PAYLATER_DUE_NOTIFY_TRIGGER_MODE_PROP, mode);
+    props.setProperty(PAYLATER_DUE_NOTIFY_TRIGGER_HOUR_PROP, String(hour));
+  } catch (error) {
+    Logger.log('Failed save paylater due trigger props: ' + error.toString());
+  }
+
+  return {
+    success: true,
+    mode: mode,
+    hour: hour,
+    message: mode === 'hourly'
+      ? 'Scheduler notifikasi due PayLater aktif hourly'
+      : ('Scheduler notifikasi due PayLater aktif daily jam ' + hour + ':00')
+  };
+}
+
+function removePaylaterDueNotificationScheduler() {
+  const triggers = ScriptApp.getProjectTriggers();
+  var removed = 0;
+  triggers.forEach(function(trigger) {
+    if (trigger.getHandlerFunction() === PAYLATER_DUE_NOTIFY_TRIGGER_HANDLER) {
+      ScriptApp.deleteTrigger(trigger);
+      removed++;
+    }
+  });
+  try {
+    const props = PropertiesService.getScriptProperties();
+    props.deleteProperty(PAYLATER_DUE_NOTIFY_TRIGGER_MODE_PROP);
+    props.deleteProperty(PAYLATER_DUE_NOTIFY_TRIGGER_HOUR_PROP);
+  } catch (error) {
+    Logger.log('Failed clear paylater due trigger props: ' + error.toString());
+  }
+  return { success: true, removed: removed, message: 'Scheduler notifikasi due PayLater dihapus' };
+}
+
+function getPaylaterDueNotificationSchedulerInfo() {
+  const triggers = ScriptApp.getProjectTriggers();
+  const found = triggers.filter(function(trigger) {
+    return trigger.getHandlerFunction() === PAYLATER_DUE_NOTIFY_TRIGGER_HANDLER;
+  });
+
+  var mode = 'daily';
+  var hour = 9;
+  try {
+    const props = PropertiesService.getScriptProperties();
+    mode = String(props.getProperty(PAYLATER_DUE_NOTIFY_TRIGGER_MODE_PROP) || 'daily');
+    hour = Math.max(0, Math.min(23, parseInt(props.getProperty(PAYLATER_DUE_NOTIFY_TRIGGER_HOUR_PROP) || '9', 10) || 9));
+  } catch (error) {
+    Logger.log('Failed read paylater due trigger props: ' + error.toString());
+  }
+
+  return {
+    success: true,
+    active: found.length > 0,
+    count: found.length,
+    mode: mode === 'hourly' ? 'hourly' : 'daily',
+    hour: hour
+  };
+}
+
 function handleCreditAccountSetStatus(data) {
   data = data || {};
   const phone = normalizePhone(data.phone || data.whatsapp || '');
@@ -3116,7 +3448,11 @@ function isSheetValidationRequired(actionKey) {
     process_paylater_limit_from_orders: true,
     install_paylater_limit_scheduler: true,
     remove_paylater_limit_scheduler: true,
-    get_paylater_limit_scheduler: true
+    get_paylater_limit_scheduler: true,
+    run_paylater_due_notifications: true,
+    install_paylater_due_notification_scheduler: true,
+    remove_paylater_due_notification_scheduler: true,
+    get_paylater_due_notification_scheduler: true
   };
   return !skip[actionKey];
 }
@@ -3188,6 +3524,8 @@ function getRequiredRoleForAction(actionKey, sheetName) {
   if (key === 'ensure_schema') return 'superadmin';
   if (key === 'install_paylater_limit_scheduler') return 'superadmin';
   if (key === 'remove_paylater_limit_scheduler') return 'superadmin';
+  if (key === 'install_paylater_due_notification_scheduler') return 'superadmin';
+  if (key === 'remove_paylater_due_notification_scheduler') return 'superadmin';
 
   if (key === 'create' || key === 'update') return 'manager';
   if (key === 'bulk_insert') return 'manager';
@@ -3201,9 +3539,11 @@ function getRequiredRoleForAction(actionKey, sheetName) {
   if (key === 'process_paylater_limit_from_orders') return 'manager';
   if (key === 'credit_invoice_apply_penalty') return 'manager';
   if (key === 'credit_account_set_status') return 'manager';
+  if (key === 'run_paylater_due_notifications') return 'manager';
 
   if (key === 'credit_account_get') return 'operator';
   if (key === 'get_paylater_limit_scheduler') return 'operator';
+  if (key === 'get_paylater_due_notification_scheduler') return 'operator';
 
   if (sheetName && isGetSheetSensitive(sheetName)) return 'manager';
   return 'manager';

@@ -903,6 +903,7 @@ async function fetchCreditAccounts() {
         });
         renderCreditAccounts();
         refreshPaylaterSchedulerStatus();
+        refreshPaylaterDueSchedulerStatus();
     } catch (error) {
         console.error(error);
         if (tbody) {
@@ -972,6 +973,7 @@ function startPaylaterSchedulerAutoRefresh() {
     const seconds = getPaylaterSchedulerRefreshSeconds();
     paylaterSchedulerRefreshTimer = setInterval(() => {
         refreshPaylaterSchedulerStatus();
+        refreshPaylaterDueSchedulerStatus();
     }, seconds * 1000);
 }
 
@@ -982,6 +984,101 @@ async function refreshPaylaterSchedulerStatus() {
     } catch (error) {
         console.error(error);
         updatePaylaterSchedulerStatusText(null);
+    }
+}
+
+function updatePaylaterDueSchedulerStatusText(info) {
+    const statusEl = document.getElementById('paylater-due-scheduler-status');
+    if (!statusEl) return;
+    if (!info || info.success !== true) {
+        statusEl.textContent = 'Gagal memuat status scheduler notifikasi.';
+        statusEl.className = 'text-xs text-red-600';
+        return;
+    }
+
+    if (!info.active) {
+        statusEl.textContent = 'Scheduler notifikasi nonaktif.';
+        statusEl.className = 'text-xs text-gray-600';
+        return;
+    }
+
+    const mode = String(info.mode || 'daily');
+    const hour = parseInt(info.hour || 0, 10) || 0;
+    statusEl.textContent = mode === 'hourly'
+        ? 'Scheduler notifikasi aktif: hourly'
+        : `Scheduler notifikasi aktif: daily jam ${hour.toString().padStart(2, '0')}:00`;
+    statusEl.className = 'text-xs text-cyan-700';
+}
+
+async function refreshPaylaterDueSchedulerStatus() {
+    try {
+        const info = await GASActions.getPaylaterDueNotificationScheduler();
+        updatePaylaterDueSchedulerStatusText(info);
+    } catch (error) {
+        console.error(error);
+        updatePaylaterDueSchedulerStatusText(null);
+    }
+}
+
+async function installPaylaterDueSchedulerFromUI() {
+    const modeEl = document.getElementById('paylater-due-scheduler-mode');
+    const hourEl = document.getElementById('paylater-due-scheduler-hour');
+    const mode = String((modeEl && modeEl.value) || 'daily').toLowerCase();
+    const hour = Math.max(0, Math.min(23, parseInt((hourEl && hourEl.value) || '9', 10) || 9));
+
+    try {
+        const result = await GASActions.installPaylaterDueNotificationScheduler({
+            mode,
+            hour
+        });
+        if (result && result.success) {
+            showAdminToast(result.message || 'Scheduler notifikasi PayLater berhasil dipasang.', 'success');
+            await refreshPaylaterDueSchedulerStatus();
+            return;
+        }
+        showAdminToast((result && (result.message || result.error)) || 'Gagal memasang scheduler notifikasi PayLater.', 'error');
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal memasang scheduler notifikasi PayLater.', 'error');
+    }
+}
+
+async function removePaylaterDueSchedulerFromUI() {
+    if (!window.confirm('Hapus scheduler notifikasi jatuh tempo PayLater?')) return;
+    try {
+        const result = await GASActions.removePaylaterDueNotificationScheduler();
+        if (result && result.success) {
+            showAdminToast(result.message || 'Scheduler notifikasi PayLater dihapus.', 'success');
+            await refreshPaylaterDueSchedulerStatus();
+            return;
+        }
+        showAdminToast((result && (result.message || result.error)) || 'Gagal menghapus scheduler notifikasi PayLater.', 'error');
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal menghapus scheduler notifikasi PayLater.', 'error');
+    }
+}
+
+async function runPaylaterDueNotificationsNow() {
+    if (!window.confirm('Jalankan notifikasi jatuh tempo/overdue PayLater sekarang?')) return;
+    try {
+        const result = await GASActions.runPaylaterDueNotifications({ actor: 'admin' });
+        if (result && result.success) {
+            if (result.disabled) {
+                showAdminToast(result.message || 'Notifikasi due PayLater nonaktif.', 'warning');
+                return;
+            }
+            const sent = parseInt(result.sent || 0, 10) || 0;
+            const throttled = parseInt(result.throttled || 0, 10) || 0;
+            const failed = parseInt(result.failed || 0, 10) || 0;
+            const matched = parseInt(result.matched || 0, 10) || 0;
+            showAdminToast(`Notifikasi due selesai. Matched: ${matched}, Sent: ${sent}, Throttled: ${throttled}, Failed: ${failed}.`, failed > 0 ? 'warning' : 'success');
+            return;
+        }
+        showAdminToast((result && (result.message || result.error)) || 'Gagal menjalankan notifikasi due PayLater.', 'error');
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal menjalankan notifikasi due PayLater.', 'error');
     }
 }
 
@@ -3179,6 +3276,20 @@ async function loadSettings() {
     const paylaterOverdueReduceLimitDaysEl = document.getElementById('paylater-overdue-reduce-limit-days');
     const paylaterOverdueReduceLimitPercentEl = document.getElementById('paylater-overdue-reduce-limit-percent');
     const paylaterOverdueDefaultDaysEl = document.getElementById('paylater-overdue-default-days');
+    const paylaterDueNotificationEnabledEl = document.getElementById('paylater-due-notification-enabled');
+    const paylaterDueNotificationOverdueEnabledEl = document.getElementById('paylater-due-notification-overdue-enabled');
+    const paylaterDueNotificationDaysBeforeEl = document.getElementById('paylater-due-notification-days-before');
+    const paylaterDueNotificationCooldownHoursEl = document.getElementById('paylater-due-notification-cooldown-hours');
+    const paylaterDueNotificationMaxRowsPerRunEl = document.getElementById('paylater-due-notification-max-rows-per-run');
+    const paylaterDueNotificationEmailEl = document.getElementById('paylater-due-notification-email');
+    const paylaterDueNotificationWebhookEl = document.getElementById('paylater-due-notification-webhook');
+    const paylaterDueNotificationEnabledEl = document.getElementById('paylater-due-notification-enabled');
+    const paylaterDueNotificationOverdueEnabledEl = document.getElementById('paylater-due-notification-overdue-enabled');
+    const paylaterDueNotificationDaysBeforeEl = document.getElementById('paylater-due-notification-days-before');
+    const paylaterDueNotificationCooldownHoursEl = document.getElementById('paylater-due-notification-cooldown-hours');
+    const paylaterDueNotificationMaxRowsPerRunEl = document.getElementById('paylater-due-notification-max-rows-per-run');
+    const paylaterDueNotificationEmailEl = document.getElementById('paylater-due-notification-email');
+    const paylaterDueNotificationWebhookEl = document.getElementById('paylater-due-notification-webhook');
 
     if (adminRoleEnforceEl) adminRoleEnforceEl.value = String(getLatestSettingValue(rows, 'admin_role_enforce', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
     if (paylaterEnabledEl) paylaterEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_enabled', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
@@ -3198,6 +3309,13 @@ async function loadSettings() {
     if (paylaterOverdueReduceLimitDaysEl) paylaterOverdueReduceLimitDaysEl.value = parseInt(getLatestSettingValue(rows, 'paylater_overdue_reduce_limit_days', '7'), 10) || 7;
     if (paylaterOverdueReduceLimitPercentEl) paylaterOverdueReduceLimitPercentEl.value = parseFloat(getLatestSettingValue(rows, 'paylater_overdue_reduce_limit_percent', '10')) || 10;
     if (paylaterOverdueDefaultDaysEl) paylaterOverdueDefaultDaysEl.value = parseInt(getLatestSettingValue(rows, 'paylater_overdue_default_days', '30'), 10) || 30;
+    if (paylaterDueNotificationEnabledEl) paylaterDueNotificationEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_due_notification_enabled', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
+    if (paylaterDueNotificationOverdueEnabledEl) paylaterDueNotificationOverdueEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_due_notification_overdue_enabled', 'true')).toLowerCase() === 'false' ? 'false' : 'true';
+    if (paylaterDueNotificationDaysBeforeEl) paylaterDueNotificationDaysBeforeEl.value = parseInt(getLatestSettingValue(rows, 'paylater_due_notification_days_before', '1'), 10) || 1;
+    if (paylaterDueNotificationCooldownHoursEl) paylaterDueNotificationCooldownHoursEl.value = parseInt(getLatestSettingValue(rows, 'paylater_due_notification_cooldown_hours', '24'), 10) || 24;
+    if (paylaterDueNotificationMaxRowsPerRunEl) paylaterDueNotificationMaxRowsPerRunEl.value = parseInt(getLatestSettingValue(rows, 'paylater_due_notification_max_rows_per_run', '100'), 10) || 100;
+    if (paylaterDueNotificationEmailEl) paylaterDueNotificationEmailEl.value = String(getLatestSettingValue(rows, 'paylater_due_notification_email', '') || '');
+    if (paylaterDueNotificationWebhookEl) paylaterDueNotificationWebhookEl.value = String(getLatestSettingValue(rows, 'paylater_due_notification_webhook', '') || '');
 
     const referralEnabled = getLatestSettingValue(rows, 'referral_enabled', 'true');
     const referralRewardReferrer = getLatestSettingValue(rows, 'referral_reward_referrer', '20');
@@ -3380,6 +3498,13 @@ async function saveSettings() {
     const paylaterOverdueReduceLimitDays = paylaterOverdueReduceLimitDaysEl ? parseInt(paylaterOverdueReduceLimitDaysEl.value || '0', 10) : 0;
     const paylaterOverdueReduceLimitPercent = paylaterOverdueReduceLimitPercentEl ? parseFloat(paylaterOverdueReduceLimitPercentEl.value || '0') : 0;
     const paylaterOverdueDefaultDays = paylaterOverdueDefaultDaysEl ? parseInt(paylaterOverdueDefaultDaysEl.value || '0', 10) : 0;
+    const paylaterDueNotificationEnabled = paylaterDueNotificationEnabledEl ? paylaterDueNotificationEnabledEl.value : 'false';
+    const paylaterDueNotificationOverdueEnabled = paylaterDueNotificationOverdueEnabledEl ? paylaterDueNotificationOverdueEnabledEl.value : 'true';
+    const paylaterDueNotificationDaysBefore = paylaterDueNotificationDaysBeforeEl ? parseInt(paylaterDueNotificationDaysBeforeEl.value || '1', 10) : 1;
+    const paylaterDueNotificationCooldownHours = paylaterDueNotificationCooldownHoursEl ? parseInt(paylaterDueNotificationCooldownHoursEl.value || '24', 10) : 24;
+    const paylaterDueNotificationMaxRowsPerRun = paylaterDueNotificationMaxRowsPerRunEl ? parseInt(paylaterDueNotificationMaxRowsPerRunEl.value || '100', 10) : 100;
+    const paylaterDueNotificationEmail = paylaterDueNotificationEmailEl ? String(paylaterDueNotificationEmailEl.value || '').trim() : '';
+    const paylaterDueNotificationWebhook = paylaterDueNotificationWebhookEl ? String(paylaterDueNotificationWebhookEl.value || '').trim() : '';
 
     const settingEntries = [
         ['referral_enabled', String(referralEnabled)],
@@ -3410,7 +3535,14 @@ async function saveSettings() {
         ['paylater_overdue_lock_days', String(Math.max(0, paylaterOverdueLockDays))],
         ['paylater_overdue_reduce_limit_days', String(Math.max(0, paylaterOverdueReduceLimitDays))],
         ['paylater_overdue_reduce_limit_percent', String(Math.max(0, paylaterOverdueReduceLimitPercent))],
-        ['paylater_overdue_default_days', String(Math.max(0, paylaterOverdueDefaultDays))]
+        ['paylater_overdue_default_days', String(Math.max(0, paylaterOverdueDefaultDays))],
+        ['paylater_due_notification_enabled', String(paylaterDueNotificationEnabled)],
+        ['paylater_due_notification_overdue_enabled', String(paylaterDueNotificationOverdueEnabled)],
+        ['paylater_due_notification_days_before', String(Math.max(0, paylaterDueNotificationDaysBefore))],
+        ['paylater_due_notification_cooldown_hours', String(Math.max(1, paylaterDueNotificationCooldownHours))],
+        ['paylater_due_notification_max_rows_per_run', String(Math.max(1, paylaterDueNotificationMaxRowsPerRun))],
+        ['paylater_due_notification_email', String(paylaterDueNotificationEmail)],
+        ['paylater_due_notification_webhook', String(paylaterDueNotificationWebhook)]
     ];
 
     try {
@@ -3761,6 +3893,26 @@ function bindAdminActions() {
 
         if (action === 'refresh-paylater-scheduler') {
             refreshPaylaterSchedulerStatus();
+            return;
+        }
+
+        if (action === 'run-paylater-due-notify-now') {
+            runPaylaterDueNotificationsNow();
+            return;
+        }
+
+        if (action === 'install-paylater-due-scheduler') {
+            installPaylaterDueSchedulerFromUI();
+            return;
+        }
+
+        if (action === 'remove-paylater-due-scheduler') {
+            removePaylaterDueSchedulerFromUI();
+            return;
+        }
+
+        if (action === 'refresh-paylater-due-scheduler') {
+            refreshPaylaterDueSchedulerStatus();
             return;
         }
 

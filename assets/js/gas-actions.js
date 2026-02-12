@@ -398,5 +398,51 @@ const GASActions = {
             action: 'get_paylater_limit_scheduler',
             data: {}
         });
+    },
+
+    /**
+     * Run due reminder notification for paylater invoices (H-1/overdue).
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
+    async runPaylaterDueNotifications(data) {
+        return this.post({
+            action: 'run_paylater_due_notifications',
+            data: data || {}
+        });
+    },
+
+    /**
+     * Install scheduler for due reminder notification (daily/hourly).
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
+    async installPaylaterDueNotificationScheduler(data) {
+        return this.post({
+            action: 'install_paylater_due_notification_scheduler',
+            data: data || {}
+        });
+    },
+
+    /**
+     * Remove scheduler for due reminder notification.
+     * @returns {Promise<object>}
+     */
+    async removePaylaterDueNotificationScheduler() {
+        return this.post({
+            action: 'remove_paylater_due_notification_scheduler',
+            data: {}
+        });
+    },
+
+    /**
+     * Get scheduler info for due reminder notification.
+     * @returns {Promise<object>}
+     */
+    async getPaylaterDueNotificationScheduler() {
+        return this.post({
+            action: 'get_paylater_due_notification_scheduler',
+            data: {}
+        });
     }
 };
