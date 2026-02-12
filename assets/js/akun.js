@@ -41,6 +41,11 @@ const isUnauthorizedApiResponse = (data) => {
     );
 };
 
+const buildSessionQuery = (user) => {
+    const sessionToken = String((user && user.session_token) || '').trim();
+    return sessionToken ? `&session_token=${encodeURIComponent(sessionToken)}` : '';
+};
+
 let referralProfileCache = null;
 
 function toReferralCodeValue(value) {
@@ -175,10 +180,24 @@ async function loadReferralHistory(user) {
     try {
         const apiUrl = CONFIG.getMainApiUrl();
         const phone = normalizePhoneTo08(user.whatsapp);
-        const response = await fetch(`${apiUrl}?sheet=referrals&phone=${encodeURIComponent(phone)}&_t=${Date.now()}`);
-        if (!response.ok) throw new Error('Gagal memuat riwayat referral');
+        let rows = [];
 
-        const rows = parseSheetResponse(await response.json());
+        const sessionQuery = buildSessionQuery(user);
+        if (sessionQuery) {
+            const publicResp = await fetch(`${apiUrl}?action=public_referral_history${sessionQuery}&_t=${Date.now()}`);
+            if (publicResp.ok) {
+                const publicData = await publicResp.json();
+                if (publicData && publicData.success && Array.isArray(publicData.referrals)) {
+                    rows = publicData.referrals;
+                }
+            }
+        }
+        if (!rows.length) {
+            const response = await fetch(`${apiUrl}?sheet=referrals&phone=${encodeURIComponent(phone)}&_t=${Date.now()}`);
+            if (!response.ok) throw new Error('Gagal memuat riwayat referral');
+            rows = parseSheetResponse(await response.json());
+        }
+
         const mine = rows
             .filter((r) => {
                 const referrer = normalizePhoneTo08(r.referrer_phone || '');
@@ -478,7 +497,8 @@ function saveLoggedInUser(user) {
         kode_referral: toReferralCodeValue(user.kode_referral || ''),
         referred_by: toReferralCodeValue(user.referred_by || ''),
         referral_count: parseInt(user.referral_count || 0, 10) || 0,
-        referral_points_total: parseInt(user.referral_points_total || 0, 10) || 0
+        referral_points_total: parseInt(user.referral_points_total || 0, 10) || 0,
+        session_token: String(user.session_token || '').trim()
     }));
 }
 
@@ -490,6 +510,7 @@ function getLoggedInUser() {
     if (!userJson) return null;
     const user = JSON.parse(userJson);
     user.whatsapp = normalizePhoneTo08(user.whatsapp || user.phone || '') || user.whatsapp;
+    user.session_token = String(user.session_token || '').trim();
     return user;
 }
 
@@ -619,7 +640,25 @@ async function loadLoyaltyPoints(user) {
         
         console.log(`🔍 Loading loyalty points for phone: ${normalizedPhone}`);
         
-        // Fetch all user_points records
+        let pointsValue = null;
+        const sessionQuery = buildSessionQuery(user);
+        if (sessionQuery) {
+            const publicResp = await fetch(`${apiUrl}?action=public_user_points${sessionQuery}&_t=${Date.now()}`);
+            if (publicResp.ok) {
+                const publicData = await publicResp.json();
+                if (publicData && publicData.success) {
+                    pointsValue = parseInt(publicData.points || 0, 10) || 0;
+                }
+            }
+        }
+
+        if (pointsValue !== null) {
+            document.getElementById('loyalty-points').textContent = String(pointsValue);
+            setRewardContextFromAkun(user.whatsapp, pointsValue, user.nama);
+            return;
+        }
+
+        // Legacy fallback: fetch all user_points records
         const response = await fetch(`${apiUrl}?sheet=user_points`);
         
         if (!response.ok) {
@@ -703,16 +742,27 @@ async function loadOrderHistory(user) {
     
     try {
         const apiUrl = CONFIG.getMainApiUrl();
-        
-        // Fetch all orders and filter by phone on client-side
-        let response = await fetch(`${apiUrl}?sheet=orders`);
-        
-        if (!response.ok) {
-            throw new Error('Gagal memuat riwayat pesanan');
+        let orders = [];
+        const sessionQuery = buildSessionQuery(user);
+        if (sessionQuery) {
+            const publicResp = await fetch(`${apiUrl}?action=public_user_orders${sessionQuery}&_t=${Date.now()}`);
+            if (publicResp.ok) {
+                const publicData = await publicResp.json();
+                if (publicData && publicData.success && Array.isArray(publicData.orders)) {
+                    orders = publicData.orders;
+                }
+            }
         }
-        
-        let allOrders = await response.json();
-        let orders = Array.isArray(allOrders) ? allOrders.filter(o => normalizePhoneTo08(o.phone) === normalizePhoneTo08(user.whatsapp)) : [];
+
+        if (!orders.length) {
+            // Legacy fallback: fetch all orders and filter by phone on client-side
+            let response = await fetch(`${apiUrl}?sheet=orders`);
+            if (!response.ok) {
+                throw new Error('Gagal memuat riwayat pesanan');
+            }
+            let allOrders = await response.json();
+            orders = Array.isArray(allOrders) ? allOrders.filter(o => normalizePhoneTo08(o.phone) === normalizePhoneTo08(user.whatsapp)) : [];
+        }
         
         // Hide loading
         loadingDiv.classList.add('hidden');
@@ -1813,6 +1863,18 @@ async function loadModalPoints() {
     
     try {
         const apiUrl = CONFIG.getMainApiUrl();
+        const sessionQuery = buildSessionQuery(user);
+        if (sessionQuery) {
+            const publicResp = await fetch(`${apiUrl}?action=public_user_points${sessionQuery}&_t=${Date.now()}`);
+            if (publicResp.ok) {
+                const publicData = await publicResp.json();
+                if (publicData && publicData.success) {
+                    document.getElementById('loyalty-modal-points').textContent = String(parseInt(publicData.points || 0, 10) || 0);
+                    return;
+                }
+            }
+        }
+
         const response = await fetch(`${apiUrl}?sheet=user_points`);
         
         if (!response.ok) {

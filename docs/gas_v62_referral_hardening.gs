@@ -74,6 +74,7 @@ const CLAIM_REWARD_WINDOW_SECONDS = 60;
 const CLAIM_REWARD_MAX_REQUESTS = 8;
 const PUBLIC_LOGIN_WINDOW_SECONDS = 60;
 const PUBLIC_LOGIN_MAX_REQUESTS = 12;
+const PUBLIC_SESSION_TTL_SECONDS = 86400;
 
 const SENSITIVE_GET_SHEETS = {
   orders: true,
@@ -144,6 +145,18 @@ function doGet(e) {
 
   if (action === 'public_login') {
     return jsonOutput(handlePublicLogin(params));
+  }
+  if (action === 'public_user_profile') {
+    return jsonOutput(handlePublicUserProfile(params));
+  }
+  if (action === 'public_user_points') {
+    return jsonOutput(handlePublicUserPoints(params));
+  }
+  if (action === 'public_user_orders') {
+    return jsonOutput(handlePublicUserOrders(params));
+  }
+  if (action === 'public_referral_history') {
+    return jsonOutput(handlePublicReferralHistory(params));
   }
 
   if (!sheetName || SHEET_WHITELIST.indexOf(sheetName) === -1) {
@@ -280,8 +293,11 @@ function handlePublicLogin(params) {
     foundUser.kode_referral = kodeReferral;
   }
 
+  const sessionToken = issuePublicSession(phone);
+
   return {
     success: true,
+    session_token: sessionToken,
     user: {
       id: foundUser.id || '',
       nama: foundUser.nama || '',
@@ -293,9 +309,151 @@ function handlePublicLogin(params) {
       kode_referral: kodeReferral || '',
       referred_by: referredByCol !== -1 ? String(foundUser.referred_by || '').trim().toUpperCase() : '',
       referral_count: referralCountCol !== -1 ? parseInt(foundUser.referral_count || 0, 10) || 0 : 0,
-      referral_points_total: referralPointsTotalCol !== -1 ? parseInt(foundUser.referral_points_total || 0, 10) || 0 : 0
+      referral_points_total: referralPointsTotalCol !== -1 ? parseInt(foundUser.referral_points_total || 0, 10) || 0 : 0,
+      session_token: sessionToken
     }
   };
+}
+
+function issuePublicSession(phone) {
+  const normalizedPhone = normalizePhone(phone || '');
+  if (!normalizedPhone) return '';
+  const token = 'sess_' + Utilities.getUuid() + '_' + Date.now();
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.put('pub_session:' + token, normalizedPhone, PUBLIC_SESSION_TTL_SECONDS);
+  } catch (error) {
+    Logger.log('Issue public session cache error: ' + error.toString());
+  }
+  return token;
+}
+
+function resolvePublicSessionPhone(params) {
+  const token = String((params && (params.session_token || params.session || params.st)) || '').trim();
+  if (!token) return '';
+  try {
+    const cache = CacheService.getScriptCache();
+    return normalizePhone(cache.get('pub_session:' + token) || '');
+  } catch (error) {
+    Logger.log('Resolve public session cache error: ' + error.toString());
+    return '';
+  }
+}
+
+function findUserByPhone(phone) {
+  const target = normalizePhone(phone || '');
+  if (!target) return { usersData: null, user: null, rowNumber: -1 };
+  const usersData = getRowsAsObjects('users');
+  for (var i = 0; i < usersData.rows.length; i++) {
+    const row = usersData.rows[i];
+    if (normalizePhone(row.whatsapp || row.phone || '') === target) {
+      return { usersData: usersData, user: row, rowNumber: i + 2 };
+    }
+  }
+  return { usersData: usersData, user: null, rowNumber: -1 };
+}
+
+function ensureReferralCodeForUser(usersData, foundUser, foundUserRowNumber, phone) {
+  const headers = usersData.headers || [];
+  const kodeReferralCol = headers.indexOf('kode_referral');
+  var kodeReferral = String(foundUser.kode_referral || '').trim().toUpperCase();
+  if (!kodeReferral && kodeReferralCol !== -1 && foundUserRowNumber !== -1) {
+    const existingCodes = {};
+    for (var j = 0; j < usersData.rows.length; j++) {
+      const code = String(usersData.rows[j].kode_referral || '').trim().toUpperCase();
+      if (code) existingCodes[code] = true;
+    }
+    kodeReferral = generateReferralCodeForUser(foundUser.nama || 'USER', phone, existingCodes);
+    usersData.sheet.getRange(foundUserRowNumber, kodeReferralCol + 1).setValue(kodeReferral);
+    foundUser.kode_referral = kodeReferral;
+  }
+  return kodeReferral;
+}
+
+function buildPublicUserPayload(foundUser, phone, sessionToken) {
+  return {
+    id: foundUser.id || '',
+    nama: foundUser.nama || '',
+    whatsapp: phone,
+    phone: phone,
+    status: foundUser.status || '',
+    tanggal_daftar: foundUser.tanggal_daftar || '',
+    total_points: parseNumber(foundUser.total_points || foundUser.points || foundUser.poin || 0),
+    kode_referral: String(foundUser.kode_referral || '').trim().toUpperCase(),
+    referred_by: String(foundUser.referred_by || '').trim().toUpperCase(),
+    referral_count: parseInt(foundUser.referral_count || 0, 10) || 0,
+    referral_points_total: parseInt(foundUser.referral_points_total || 0, 10) || 0,
+    session_token: sessionToken || ''
+  };
+}
+
+function handlePublicUserProfile(params) {
+  const phone = resolvePublicSessionPhone(params);
+  if (!phone) {
+    return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
+  }
+  const found = findUserByPhone(phone);
+  if (!found.user) {
+    return { success: false, error: 'USER_NOT_FOUND', message: 'User tidak ditemukan' };
+  }
+  const kodeReferral = ensureReferralCodeForUser(found.usersData, found.user, found.rowNumber, phone);
+  found.user.kode_referral = kodeReferral;
+  return { success: true, user: buildPublicUserPayload(found.user, phone, String(params.session_token || '')) };
+}
+
+function handlePublicUserPoints(params) {
+  const phone = resolvePublicSessionPhone(params);
+  if (!phone) {
+    return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
+  }
+  const pointsObj = getRowsAsObjects('user_points');
+  var points = 0;
+  var updatedAt = '';
+  for (var i = 0; i < pointsObj.rows.length; i++) {
+    const row = pointsObj.rows[i];
+    if (normalizePhone(row.phone || row.whatsapp || '') === phone) {
+      points = parseNumber(row.points || row.poin || 0);
+      updatedAt = String(row.last_updated || '');
+      break;
+    }
+  }
+  return {
+    success: true,
+    phone: phone,
+    points: points,
+    last_updated: updatedAt
+  };
+}
+
+function handlePublicUserOrders(params) {
+  const phone = resolvePublicSessionPhone(params);
+  if (!phone) {
+    return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
+  }
+  const ordersObj = getRowsAsObjects('orders');
+  const rows = ordersObj.rows.filter(function(r) {
+    return normalizePhone(r.phone || r.whatsapp || '') === phone;
+  });
+  return { success: true, phone: phone, orders: rows };
+}
+
+function handlePublicReferralHistory(params) {
+  const phone = resolvePublicSessionPhone(params);
+  if (!phone) {
+    return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
+  }
+  const refsObj = getRowsAsObjects('referrals');
+  const rows = refsObj.rows
+    .filter(function(r) {
+      const referrer = normalizePhone(r.referrer_phone || '');
+      const referee = normalizePhone(r.referee_phone || '');
+      return referrer === phone || referee === phone;
+    })
+    .sort(function(a, b) {
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    })
+    .slice(0, 20);
+  return { success: true, phone: phone, referrals: rows };
 }
 
 function generateReferralCodeForUser(name, phone, existingCodesMap) {
