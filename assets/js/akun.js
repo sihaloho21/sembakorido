@@ -52,6 +52,11 @@ const hasPublicSession = (user) => {
 
 let referralProfileCache = null;
 let pendingReferralCodeFromUrl = '';
+let referralConfigCache = {
+    rewardReferrerPoints: 20,
+    rewardRefereePoints: 10,
+    minFirstOrder: 50000
+};
 
 function toReferralCodeValue(value) {
     return String(value || '').trim().toUpperCase();
@@ -90,6 +95,67 @@ function updateRegisterReferralInfo() {
         infoEl.classList.remove('hidden');
     } else {
         infoEl.classList.add('hidden');
+    }
+}
+
+function buildReferralShareMessage(code, link) {
+    const referralCode = toReferralCodeValue(code);
+    if (!referralCode || referralCode === '-' || !link) return '';
+    const rewardReferrer = parseInt(referralConfigCache.rewardReferrerPoints || 0, 10) || 0;
+    const rewardReferee = parseInt(referralConfigCache.rewardRefereePoints || 0, 10) || 0;
+    const minOrder = parseInt(referralConfigCache.minFirstOrder || 0, 10) || 0;
+    const minOrderText = minOrder > 0 ? formatCurrency(minOrder) : 'sesuai ketentuan program';
+
+    return [
+        'Halo, yuk daftar GoSembako pakai link referral saya.',
+        '',
+        `Link: ${link}`,
+        `Kode Referral: ${referralCode}`,
+        '',
+        `Bonus pengguna baru: ${rewardReferee} poin`,
+        `Bonus pengajak: ${rewardReferrer} poin`,
+        `Bonus aktif setelah pesanan pertama selesai (minimal ${minOrderText}).`,
+        '',
+        'Terima kasih.'
+    ].join('\n');
+}
+
+function updateReferralShareUI(profile) {
+    const code = toReferralCodeValue(profile && profile.kode_referral ? profile.kode_referral : '');
+    const link = buildReferralShareUrl(code);
+    const linkEl = document.getElementById('referral-link-display');
+    const messageEl = document.getElementById('referral-share-message');
+    const rewardEl = document.getElementById('referral-reward-info');
+
+    if (linkEl) linkEl.value = link || '-';
+    if (messageEl) {
+        messageEl.textContent = link
+            ? buildReferralShareMessage(code, link)
+            : 'Link referral akan muncul setelah kode referral tersedia.';
+    }
+    if (rewardEl) {
+        const rewardReferrer = parseInt(referralConfigCache.rewardReferrerPoints || 0, 10) || 0;
+        const rewardReferee = parseInt(referralConfigCache.rewardRefereePoints || 0, 10) || 0;
+        const minOrder = parseInt(referralConfigCache.minFirstOrder || 0, 10) || 0;
+        rewardEl.textContent = `Pengajak: ${rewardReferrer} poin, Pengguna baru: ${rewardReferee} poin (setelah pesanan pertama selesai${minOrder > 0 ? `, minimal ${formatCurrency(minOrder)}` : ''}).`;
+    }
+}
+
+async function loadPublicReferralConfig() {
+    try {
+        const apiUrl = CONFIG.getMainApiUrl();
+        const response = await fetch(`${apiUrl}?action=public_referral_config&_t=${Date.now()}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!data || data.success !== true) return;
+
+        referralConfigCache = {
+            rewardReferrerPoints: parseInt(data.reward_referrer_points || referralConfigCache.rewardReferrerPoints, 10) || referralConfigCache.rewardReferrerPoints,
+            rewardRefereePoints: parseInt(data.reward_referee_points || referralConfigCache.rewardRefereePoints, 10) || referralConfigCache.rewardRefereePoints,
+            minFirstOrder: parseInt(data.min_first_order || referralConfigCache.minFirstOrder, 10) || referralConfigCache.minFirstOrder
+        };
+    } catch (error) {
+        console.warn('Failed to load public referral config:', error);
     }
 }
 
@@ -192,6 +258,8 @@ function applyReferralDataToUI(profile) {
     } else {
         setReferralStatus('Kode referral hanya bisa dipakai satu kali.', 'info');
     }
+
+    updateReferralShareUI(profile);
 }
 
 function buildReferralProfileFallback(user) {
@@ -304,6 +372,9 @@ async function loadReferralData(user) {
 document.addEventListener('DOMContentLoaded', () => {
     pendingReferralCodeFromUrl = getReferralCodeFromUrl();
     updateRegisterReferralInfo();
+    loadPublicReferralConfig().then(() => {
+        if (referralProfileCache) updateReferralShareUI(referralProfileCache);
+    });
 
     const loggedInUser = getLoggedInUser();
 
@@ -597,6 +668,20 @@ async function copyReferralCode() {
         console.error('Copy referral failed:', error);
         setReferralStatus('Gagal menyalin link referral.', 'error');
     }
+}
+
+function shareReferralWhatsApp() {
+    const code = toReferralCodeValue(document.getElementById('referral-code-display')?.value || '');
+    const link = buildReferralShareUrl(code);
+    if (!link) {
+        setReferralStatus('Link referral belum tersedia.', 'warning');
+        return;
+    }
+
+    const message = buildReferralShareMessage(code, link);
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank', 'noopener');
+    setReferralStatus('Link referral siap dibagikan ke WhatsApp.', 'success');
 }
 
 async function applyReferralCode() {
