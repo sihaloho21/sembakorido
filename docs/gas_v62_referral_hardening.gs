@@ -624,6 +624,18 @@ function doPost(e) {
       }));
     }
 
+    if (action === 'credit_invoice_apply_penalty') {
+      return jsonOutput(withScriptLock(function() {
+        return handleCreditInvoiceApplyPenalty(data);
+      }));
+    }
+
+    if (action === 'credit_account_set_status') {
+      return jsonOutput(withScriptLock(function() {
+        return handleCreditAccountSetStatus(data);
+      }));
+    }
+
     const sheet = getSheet(sheetName);
     const values = sheet.getDataRange().getValues();
     if (values.length === 0) {
@@ -1467,7 +1479,9 @@ function getPaylaterConfig() {
     dailyPenaltyPercent: parseFloat(set.paylater_daily_penalty_percent || '0.5') || 0.5,
     penaltyCapPercent: parseFloat(set.paylater_penalty_cap_percent || '15') || 15,
     maxActiveInvoices: parseInt(set.paylater_max_active_invoices || '1', 10) || 1,
-    maxLimit: toMoneyInt(set.paylater_max_limit || '1000000')
+    maxLimit: toMoneyInt(set.paylater_max_limit || '1000000'),
+    overdueFreezeDays: parseInt(set.paylater_overdue_freeze_days || '0', 10) || 0,
+    overdueLockDays: parseInt(set.paylater_overdue_lock_days || '0', 10) || 0
   };
 }
 
@@ -1536,6 +1550,123 @@ function appendCreditLedger(entry) {
     created_at: entry.created_at || nowIso()
   });
   return { success: true };
+}
+
+function findCreditInvoiceByInvoiceId(invoiceId) {
+  const targetId = String(invoiceId || '').trim();
+  if (!targetId) return { invObj: null, row: null, rowNumber: -1 };
+  const invObj = getRowsAsObjects('credit_invoices');
+  for (var i = 0; i < invObj.rows.length; i++) {
+    const row = invObj.rows[i];
+    if (String(row.invoice_id || row.id || '').trim() === targetId) {
+      return { invObj: invObj, row: row, rowNumber: i + 2 };
+    }
+  }
+  return { invObj: invObj, row: null, rowNumber: -1 };
+}
+
+function findCreditPaymentLedgerByRef(paymentRefId, invoiceId) {
+  const ref = String(paymentRefId || '').trim();
+  const inv = String(invoiceId || '').trim();
+  if (!ref || !inv) return null;
+  const ledObj = getRowsAsObjects('credit_ledger');
+  for (var i = 0; i < ledObj.rows.length; i++) {
+    const row = ledObj.rows[i];
+    const type = String(row.type || '').trim().toLowerCase();
+    if (type !== 'payment_partial' && type !== 'payment_settle') continue;
+    if (String(row.ref_id || '').trim() !== ref) continue;
+    if (String(row.invoice_id || '').trim() !== inv) continue;
+    return row;
+  }
+  return null;
+}
+
+function getUtcDateStart(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return new Date(raw + 'T00:00:00.000Z');
+  }
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+}
+
+function getOverdueDays(dueDateValue, asOfDateValue) {
+  const dueDate = getUtcDateStart(dueDateValue);
+  const asOfDate = getUtcDateStart(asOfDateValue || nowIso());
+  if (!dueDate || !asOfDate) return 0;
+  const diffDays = Math.floor((asOfDate.getTime() - dueDate.getTime()) / (24 * 60 * 60 * 1000));
+  return Math.max(0, diffDays);
+}
+
+function resolveCreditStatusFromActionOrStatus(raw) {
+  const value = String(raw || '').trim().toLowerCase();
+  if (!value) return '';
+  const map = {
+    active: 'active',
+    unfreeze: 'active',
+    unlock: 'active',
+    frozen: 'frozen',
+    freeze: 'frozen',
+    locked: 'locked',
+    lock: 'locked'
+  };
+  return map[value] || '';
+}
+
+function getCreditStatusRank(status) {
+  const s = String(status || '').toLowerCase().trim();
+  if (s === 'locked') return 3;
+  if (s === 'frozen') return 2;
+  return 1;
+}
+
+function applyCreditAccountStatus(phone, targetStatus, actor, note, refId, allowDowngrade) {
+  const normalizedPhone = normalizePhone(phone || '');
+  const resolvedStatus = resolveCreditStatusFromActionOrStatus(targetStatus);
+  if (!normalizedPhone || !resolvedStatus) {
+    return { success: false, error: 'INVALID_PAYLOAD', message: 'phone/status wajib valid' };
+  }
+
+  const found = findCreditAccountByPhone(normalizedPhone);
+  if (!found || !found.row) {
+    return { success: false, error: 'ACCOUNT_NOT_FOUND', message: 'Credit account belum ada' };
+  }
+
+  const currentStatus = String(found.row.status || 'active').toLowerCase().trim() || 'active';
+  if (currentStatus === resolvedStatus) {
+    return { success: true, dedup: true, phone: normalizedPhone, status: currentStatus };
+  }
+
+  if (!allowDowngrade && getCreditStatusRank(resolvedStatus) < getCreditStatusRank(currentStatus)) {
+    return {
+      success: true,
+      skipped: true,
+      phone: normalizedPhone,
+      status: currentStatus,
+      message: 'Status account lebih ketat, downgrade dilewati'
+    };
+  }
+
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'status', resolvedStatus);
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'updated_at', nowIso());
+
+  appendCreditLedger({
+    phone: normalizedPhone,
+    user_id: found.row.user_id || '',
+    type: resolvedStatus === 'active' ? 'unfreeze' : resolvedStatus,
+    amount: 0,
+    balance_before: toMoneyInt(found.row.available_limit || 0),
+    balance_after: toMoneyInt(found.row.available_limit || 0),
+    ref_id: String(refId || ''),
+    note: String(note || ('Set status account: ' + resolvedStatus)),
+    actor: String(actor || 'admin')
+  });
+
+  return { success: true, phone: normalizedPhone, status: resolvedStatus };
 }
 
 function handleCreditAccountGet(data) {
@@ -1665,13 +1796,48 @@ function handleCreditInvoiceCreate(data) {
   const tenorWeeks = Math.max(1, Math.min(4, parseInt(data.tenor_weeks, 10) || 1));
   const sourceOrderId = String(data.source_order_id || '').trim();
   const actor = String(data.actor || 'system');
+  const invoiceId = String(data.invoice_id || genId('INV')).trim();
 
   if (!phone) return { success: false, error: 'INVALID_PAYLOAD', message: 'phone wajib diisi' };
   if (principal <= 0) return { success: false, error: 'INVALID_PAYLOAD', message: 'principal harus > 0' };
+  if (!invoiceId) return { success: false, error: 'INVALID_PAYLOAD', message: 'invoice_id wajib valid' };
 
   const cfg = getPaylaterConfig();
   if (!cfg.enabled) return { success: false, error: 'PAYLATER_DISABLED', message: 'PayLater nonaktif' };
-  if (hasActiveCreditInvoice(phone)) {
+
+  // Idempotency guard by invoice_id and source_order_id.
+  const invLookup = findCreditInvoiceByInvoiceId(invoiceId);
+  if (invLookup.row) {
+    return {
+      success: true,
+      dedup: true,
+      message: 'Invoice sudah pernah dibuat',
+      invoice_id: String(invLookup.row.invoice_id || invLookup.row.id || ''),
+      total_due: toMoneyInt(invLookup.row.total_due || 0),
+      status: String(invLookup.row.status || '')
+    };
+  }
+  if (sourceOrderId) {
+    const invObjForOrder = getRowsAsObjects('credit_invoices');
+    for (var io = 0; io < invObjForOrder.rows.length; io++) {
+      const invRow = invObjForOrder.rows[io];
+      const samePhone = normalizePhone(invRow.phone || '') === phone;
+      const sameOrder = String(invRow.source_order_id || '').trim() === sourceOrderId;
+      if (samePhone && sameOrder) {
+        return {
+          success: true,
+          dedup: true,
+          message: 'Invoice source_order_id sudah pernah dibuat',
+          invoice_id: String(invRow.invoice_id || invRow.id || ''),
+          total_due: toMoneyInt(invRow.total_due || 0),
+          status: String(invRow.status || '')
+        };
+      }
+    }
+  }
+
+  const maxActive = Math.max(1, parseInt(cfg.maxActiveInvoices || 1, 10) || 1);
+  if (hasActiveCreditInvoice(phone) && maxActive <= 1) {
     return { success: false, error: 'ACTIVE_INVOICE_EXISTS', message: 'Masih ada tagihan aktif' };
   }
 
@@ -1700,7 +1866,6 @@ function handleCreditInvoiceCreate(data) {
   const totalBeforePenalty = principal + feeAmount;
   const penaltyDaily = parseFloat(cfg.dailyPenaltyPercent || 0) || 0;
   const penaltyCap = parseFloat(cfg.penaltyCapPercent || 0) || 0;
-  const invoiceId = String(data.invoice_id || genId('INV'));
   const dueDate = String(data.due_date || '').trim() || nowIso();
   const now = nowIso();
 
@@ -1764,10 +1929,29 @@ function handleCreditInvoicePay(data) {
   data = data || {};
   const invoiceId = String(data.invoice_id || data.id || '').trim();
   const paymentAmount = toMoneyInt(data.payment_amount || data.amount || 0);
+  const paymentRefId = String(data.payment_ref_id || data.request_id || '').trim();
   const actor = String(data.actor || 'admin');
   const note = String(data.note || 'Pembayaran tagihan');
   if (!invoiceId) return { success: false, error: 'INVALID_PAYLOAD', message: 'invoice_id wajib diisi' };
   if (paymentAmount <= 0) return { success: false, error: 'INVALID_PAYLOAD', message: 'payment_amount harus > 0' };
+
+  if (paymentRefId) {
+    const paymentDup = findCreditPaymentLedgerByRef(paymentRefId, invoiceId);
+    if (paymentDup) {
+      const lookup = findCreditInvoiceByInvoiceId(invoiceId);
+      const paidSnapshot = lookup.row ? toMoneyInt(lookup.row.paid_amount || 0) : 0;
+      const dueSnapshot = lookup.row ? toMoneyInt(lookup.row.total_due || 0) : 0;
+      return {
+        success: true,
+        dedup: true,
+        message: 'Payment request sudah pernah diproses',
+        invoice_id: invoiceId,
+        paid_total: paidSnapshot,
+        total_due: dueSnapshot,
+        status: lookup.row ? String(lookup.row.status || '') : ''
+      };
+    }
+  }
 
   const invObj = getRowsAsObjects('credit_invoices');
   let invoice = null;
@@ -1833,7 +2017,7 @@ function handleCreditInvoicePay(data) {
     amount: paidNow,
     balance_before: oldPaid,
     balance_after: newPaid,
-    ref_id: invoiceId,
+    ref_id: paymentRefId || invoiceId,
     note: note,
     actor: actor
   });
@@ -1856,6 +2040,7 @@ function handleCreditInvoicePay(data) {
   return {
     success: true,
     invoice_id: invoiceId,
+    payment_ref_id: paymentRefId || '',
     paid_now: paidNow,
     paid_total: newPaid,
     total_due: totalDue,
@@ -1938,6 +2123,138 @@ function handleCreditLimitFromProfit(data) {
   };
 }
 
+function handleCreditAccountSetStatus(data) {
+  data = data || {};
+  const phone = normalizePhone(data.phone || data.whatsapp || '');
+  const targetStatus = resolveCreditStatusFromActionOrStatus(data.status || data.action || '');
+  const actor = String(data.actor || 'admin');
+  const note = String(data.note || data.notes || '').trim();
+  const refId = String(data.ref_id || '').trim();
+  if (!phone) return { success: false, error: 'INVALID_PAYLOAD', message: 'phone wajib diisi' };
+  if (!targetStatus) return { success: false, error: 'INVALID_PAYLOAD', message: 'status/action wajib valid' };
+  return applyCreditAccountStatus(phone, targetStatus, actor, note, refId, true);
+}
+
+function handleCreditInvoiceApplyPenalty(data) {
+  data = data || {};
+  const invoiceId = String(data.invoice_id || data.id || '').trim();
+  const applyAll = Boolean(data.apply_all_overdue) || !invoiceId;
+  const asOfDate = data.as_of_date || nowIso();
+  const actor = String(data.actor || 'system');
+  const cfg = getPaylaterConfig();
+
+  const invObj = getRowsAsObjects('credit_invoices');
+  if (!invObj.headers.length) {
+    return { success: false, error: 'CREDIT_INVOICES_HEADERS_INVALID', message: 'Header credit_invoices belum valid' };
+  }
+
+  const candidates = [];
+  for (var i = 0; i < invObj.rows.length; i++) {
+    const row = invObj.rows[i];
+    const invId = String(row.invoice_id || row.id || '').trim();
+    const st = String(row.status || '').toLowerCase().trim();
+    if (st === 'paid' || st === 'cancelled' || st === 'defaulted') continue;
+    if (!applyAll && invId !== invoiceId) continue;
+    candidates.push({ row: row, rowNumber: i + 2, invoiceId: invId });
+  }
+
+  if (!candidates.length) {
+    return {
+      success: false,
+      error: invoiceId ? 'INVOICE_NOT_FOUND' : 'NO_OVERDUE_INVOICE',
+      message: invoiceId ? 'Invoice tidak ditemukan/aktif' : 'Tidak ada invoice aktif untuk diproses'
+    };
+  }
+
+  const results = [];
+  for (var c = 0; c < candidates.length; c++) {
+    const item = candidates[c];
+    const row = item.row;
+    const overdueDays = getOverdueDays(row.due_date || '', asOfDate);
+    if (overdueDays <= 0) continue;
+
+    const principal = toMoneyInt(row.principal || 0);
+    const totalBeforePenalty = toMoneyInt(row.total_before_penalty || 0);
+    const paidAmount = toMoneyInt(row.paid_amount || 0);
+    const currentPenalty = toMoneyInt(row.penalty_amount || 0);
+    const dailyPenaltyPercent = parseFloat(row.penalty_percent_daily || cfg.dailyPenaltyPercent || 0) || 0;
+    const penaltyCapPercent = parseFloat(row.penalty_cap_percent || cfg.penaltyCapPercent || 0) || 0;
+    const capAmount = toMoneyInt((principal * penaltyCapPercent) / 100);
+    const targetPenalty = Math.min(capAmount, toMoneyInt((principal * dailyPenaltyPercent * overdueDays) / 100));
+    const additionalPenalty = Math.max(0, targetPenalty - currentPenalty);
+    const nextTotalDue = totalBeforePenalty + targetPenalty;
+
+    if (additionalPenalty <= 0 && String(row.status || '').toLowerCase().trim() === 'overdue') {
+      continue;
+    }
+
+    const isSettled = paidAmount >= nextTotalDue;
+    const nextStatus = isSettled ? 'paid' : 'overdue';
+
+    setCellIfColumnExists(invObj.sheet, invObj.headers, item.rowNumber, 'penalty_amount', targetPenalty);
+    setCellIfColumnExists(invObj.sheet, invObj.headers, item.rowNumber, 'total_due', nextTotalDue);
+    setCellIfColumnExists(invObj.sheet, invObj.headers, item.rowNumber, 'status', nextStatus);
+    setCellIfColumnExists(invObj.sheet, invObj.headers, item.rowNumber, 'updated_at', nowIso());
+
+    if (isSettled) {
+      setCellIfColumnExists(invObj.sheet, invObj.headers, item.rowNumber, 'paid_at', nowIso());
+      setCellIfColumnExists(invObj.sheet, invObj.headers, item.rowNumber, 'closed_at', nowIso());
+    }
+
+    if (additionalPenalty > 0) {
+      appendCreditLedger({
+        phone: normalizePhone(row.phone || ''),
+        user_id: row.user_id || '',
+        invoice_id: item.invoiceId,
+        type: 'penalty',
+        amount: additionalPenalty,
+        balance_before: currentPenalty,
+        balance_after: targetPenalty,
+        ref_id: item.invoiceId,
+        note: 'Apply penalty overdue ' + overdueDays + ' hari',
+        actor: actor
+      });
+    }
+
+    const freezeDays = Math.max(0, parseInt(cfg.overdueFreezeDays || 0, 10) || 0);
+    const lockDays = Math.max(0, parseInt(cfg.overdueLockDays || 0, 10) || 0);
+    if (!isSettled && lockDays > 0 && overdueDays >= lockDays) {
+      applyCreditAccountStatus(
+        normalizePhone(row.phone || ''),
+        'locked',
+        actor,
+        'Auto lock karena overdue ' + overdueDays + ' hari',
+        item.invoiceId,
+        false
+      );
+    } else if (!isSettled && freezeDays > 0 && overdueDays >= freezeDays) {
+      applyCreditAccountStatus(
+        normalizePhone(row.phone || ''),
+        'frozen',
+        actor,
+        'Auto freeze karena overdue ' + overdueDays + ' hari',
+        item.invoiceId,
+        false
+      );
+    }
+
+    results.push({
+      invoice_id: item.invoiceId,
+      overdue_days: overdueDays,
+      penalty_added: additionalPenalty,
+      penalty_total: targetPenalty,
+      total_due: nextTotalDue,
+      status: nextStatus
+    });
+  }
+
+  return {
+    success: true,
+    processed: results.length,
+    invoices: results
+  };
+}
+
 // ========================================
 // UTILS
 // ========================================
@@ -1988,7 +2305,9 @@ function isSheetValidationRequired(actionKey) {
     credit_account_upsert: true,
     credit_invoice_create: true,
     credit_invoice_pay: true,
-    credit_limit_from_profit: true
+    credit_limit_from_profit: true,
+    credit_invoice_apply_penalty: true,
+    credit_account_set_status: true
   };
   return !skip[actionKey];
 }

@@ -256,6 +256,30 @@ const GASActions = {
     },
 
     /**
+     * Apply overdue penalty to one invoice or all overdue invoices.
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
+    async applyCreditInvoicePenalty(data) {
+        return this.post({
+            action: 'credit_invoice_apply_penalty',
+            data: data || {}
+        });
+    },
+
+    /**
+     * Set credit account status (active/frozen/locked).
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
+    async setCreditAccountStatus(data) {
+        return this.post({
+            action: 'credit_account_set_status',
+            data: data || {}
+        });
+    },
+
+    /**
      * Increase limit from order profit (idempotent by order_id).
      * @param {object} data
      * @returns {Promise<object>}
