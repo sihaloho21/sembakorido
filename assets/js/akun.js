@@ -121,7 +121,12 @@ function buildReferralShareMessage(code, link) {
 }
 
 function updateReferralShareUI(profile) {
-    const code = toReferralCodeValue(profile && profile.kode_referral ? profile.kode_referral : '');
+    const code = toReferralCodeValue(
+        (profile && profile.kode_referral) ||
+        (referralProfileCache && referralProfileCache.kode_referral) ||
+        (getLoggedInUser() && getLoggedInUser().kode_referral) ||
+        ''
+    );
     const link = buildReferralShareUrl(code);
     const displayEl = document.getElementById('referral-code-display');
     const messageEl = document.getElementById('referral-share-message');
@@ -253,7 +258,7 @@ function applyReferralDataToUI(profile) {
     const countEl = document.getElementById('referral-count');
     const pointsEl = document.getElementById('referral-points-total');
 
-    if (codeEl) codeEl.value = toReferralCodeValue(profile.kode_referral) || '-';
+    if (codeEl) codeEl.value = '-';
     if (countEl) countEl.textContent = String(parseInt(profile.referral_count || 0, 10) || 0);
     if (pointsEl) pointsEl.textContent = String(parseInt(profile.referral_points_total || 0, 10) || 0);
 
