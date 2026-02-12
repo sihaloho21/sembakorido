@@ -559,6 +559,14 @@
                                 </div>
                             </div>
                         </label>
+                        <label class="radio-card relative cursor-pointer">
+                            <input type="radio" name="pay-method" value="PayLater" onchange="updatePaymentMethodInfo('paylater'); updateOrderTotal()" class="absolute opacity-0">
+                            <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
+                                <p class="font-bold text-gray-800 text-[10px]">PAYLATER</p>
+                                <p class="text-[9px] text-gray-500">Bayar bertahap</p>
+                                <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
+                            </div>
+                        </label>
                     </fieldset>
                 </div>
 
@@ -591,7 +599,7 @@
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                         Metode Pembayaran
                     </h4>
-                    <fieldset class="grid grid-cols-3 gap-2">
+                    <fieldset class="grid grid-cols-2 md:grid-cols-4 gap-2">
                         <legend class="sr-only">Metode Pembayaran</legend>
                         <label class="radio-card relative cursor-pointer">
                             <input type="radio" name="pay-method" value="Cash / Transfer" onchange="updatePaymentMethodInfo('tunai'); updateOrderTotal()" class="absolute opacity-0">
@@ -638,6 +646,50 @@
                                 <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                                 Download QRIS
                             </a>
+                        </div>
+                    </div>
+                    <div id="paylater-checkout-panel" class="hidden bg-indigo-50 border border-indigo-200 rounded-xl p-3 space-y-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="text-xs font-bold text-indigo-700">Status Eligibility PayLater</p>
+                            <span id="paylater-eligibility-badge" class="text-[10px] font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-700">Belum dicek</span>
+                        </div>
+                        <p id="paylater-eligibility-message" class="text-xs text-indigo-800">Masukkan nomor WhatsApp lalu pilih PayLater untuk cek limit.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label for="paylater-tenor" class="block text-xs font-bold text-indigo-700 mb-1">Tenor (minggu)</label>
+                                <select id="paylater-tenor" class="w-full p-2 border border-indigo-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-indigo-500">
+                                    <option value="1">1 minggu</option>
+                                    <option value="2">2 minggu</option>
+                                    <option value="3">3 minggu</option>
+                                    <option value="4">4 minggu</option>
+                                </select>
+                            </div>
+                            <div class="text-[11px] text-indigo-700 bg-white border border-indigo-200 rounded-lg p-2">
+                                <p><span class="font-bold">Limit tersedia:</span> <span id="paylater-limit-available">Rp 0</span></p>
+                                <p><span class="font-bold">Tagihan aktif:</span> <span id="paylater-active-invoices">0</span></p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-[11px]">
+                            <div class="bg-white border border-indigo-200 rounded-lg p-2">
+                                <p class="text-indigo-600 font-bold">Pokok</p>
+                                <p id="paylater-sim-principal" class="font-black text-gray-800">Rp 0</p>
+                            </div>
+                            <div class="bg-white border border-indigo-200 rounded-lg p-2">
+                                <p class="text-indigo-600 font-bold">Fee Tenor</p>
+                                <p id="paylater-sim-fee" class="font-black text-gray-800">Rp 0</p>
+                            </div>
+                            <div class="bg-white border border-indigo-200 rounded-lg p-2">
+                                <p class="text-indigo-600 font-bold">Denda/Hari</p>
+                                <p id="paylater-sim-penalty-daily" class="font-black text-gray-800">Rp 0</p>
+                            </div>
+                            <div class="bg-white border border-indigo-200 rounded-lg p-2">
+                                <p class="text-indigo-600 font-bold">Cap Denda</p>
+                                <p id="paylater-sim-penalty-cap" class="font-black text-gray-800">Rp 0</p>
+                            </div>
+                            <div class="bg-white border border-indigo-200 rounded-lg p-2">
+                                <p class="text-indigo-600 font-bold">Jatuh Tempo</p>
+                                <p id="paylater-sim-total-due" class="font-black text-indigo-700">Rp 0</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1067,8 +1119,18 @@
         </div>
     </footer>
 
-    <script src="assets/js/index.bundle.min.js"></script>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api-service.js"></script>
+    <script src="assets/js/gas-actions.js"></script>
+    <script src="assets/js/api-helper.js"></script>
+    <script src="assets/js/payment-logic.js"></script>
     <script src="assets/js/paylater-logic.js"></script>
+    <script src="assets/js/tiered-pricing-logic.js"></script>
+    <script src="assets/js/image-slider.js"></script>
+    <script src="assets/js/promo-banner-carousel.js"></script>
+    <script src="assets/js/banner-carousel.js"></script>
+    <script src="assets/js/sanitize.js"></script>
+    <script src="assets/js/script.js"></script>
 
     <script>
         (function () {
