@@ -3023,6 +3023,9 @@ async function loadSettings() {
     const paylaterMaxLimitEl = document.getElementById('paylater-max-limit');
     const paylaterOverdueFreezeDaysEl = document.getElementById('paylater-overdue-freeze-days');
     const paylaterOverdueLockDaysEl = document.getElementById('paylater-overdue-lock-days');
+    const paylaterOverdueReduceLimitDaysEl = document.getElementById('paylater-overdue-reduce-limit-days');
+    const paylaterOverdueReduceLimitPercentEl = document.getElementById('paylater-overdue-reduce-limit-percent');
+    const paylaterOverdueDefaultDaysEl = document.getElementById('paylater-overdue-default-days');
 
     if (paylaterEnabledEl) paylaterEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_enabled', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
     if (paylaterProfitToLimitPercentEl) paylaterProfitToLimitPercentEl.value = parseFloat(getLatestSettingValue(rows, 'paylater_profit_to_limit_percent', '10')) || 10;
@@ -3034,8 +3037,11 @@ async function loadSettings() {
     if (paylaterPenaltyCapPercentEl) paylaterPenaltyCapPercentEl.value = parseFloat(getLatestSettingValue(rows, 'paylater_penalty_cap_percent', '15')) || 15;
     if (paylaterMaxActiveInvoicesEl) paylaterMaxActiveInvoicesEl.value = parseInt(getLatestSettingValue(rows, 'paylater_max_active_invoices', '1'), 10) || 1;
     if (paylaterMaxLimitEl) paylaterMaxLimitEl.value = parseInt(getLatestSettingValue(rows, 'paylater_max_limit', '1000000'), 10) || 1000000;
-    if (paylaterOverdueFreezeDaysEl) paylaterOverdueFreezeDaysEl.value = parseInt(getLatestSettingValue(rows, 'paylater_overdue_freeze_days', '0'), 10) || 0;
-    if (paylaterOverdueLockDaysEl) paylaterOverdueLockDaysEl.value = parseInt(getLatestSettingValue(rows, 'paylater_overdue_lock_days', '0'), 10) || 0;
+    if (paylaterOverdueFreezeDaysEl) paylaterOverdueFreezeDaysEl.value = parseInt(getLatestSettingValue(rows, 'paylater_overdue_freeze_days', '3'), 10) || 3;
+    if (paylaterOverdueLockDaysEl) paylaterOverdueLockDaysEl.value = parseInt(getLatestSettingValue(rows, 'paylater_overdue_lock_days', '14'), 10) || 14;
+    if (paylaterOverdueReduceLimitDaysEl) paylaterOverdueReduceLimitDaysEl.value = parseInt(getLatestSettingValue(rows, 'paylater_overdue_reduce_limit_days', '7'), 10) || 7;
+    if (paylaterOverdueReduceLimitPercentEl) paylaterOverdueReduceLimitPercentEl.value = parseFloat(getLatestSettingValue(rows, 'paylater_overdue_reduce_limit_percent', '10')) || 10;
+    if (paylaterOverdueDefaultDaysEl) paylaterOverdueDefaultDaysEl.value = parseInt(getLatestSettingValue(rows, 'paylater_overdue_default_days', '30'), 10) || 30;
 
     const referralEnabled = getLatestSettingValue(rows, 'referral_enabled', 'true');
     const referralRewardReferrer = getLatestSettingValue(rows, 'referral_reward_referrer', '20');
@@ -3193,6 +3199,9 @@ async function saveSettings() {
     const paylaterMaxLimitEl = document.getElementById('paylater-max-limit');
     const paylaterOverdueFreezeDaysEl = document.getElementById('paylater-overdue-freeze-days');
     const paylaterOverdueLockDaysEl = document.getElementById('paylater-overdue-lock-days');
+    const paylaterOverdueReduceLimitDaysEl = document.getElementById('paylater-overdue-reduce-limit-days');
+    const paylaterOverdueReduceLimitPercentEl = document.getElementById('paylater-overdue-reduce-limit-percent');
+    const paylaterOverdueDefaultDaysEl = document.getElementById('paylater-overdue-default-days');
 
     const paylaterEnabled = paylaterEnabledEl ? paylaterEnabledEl.value : 'false';
     const paylaterProfitToLimitPercent = paylaterProfitToLimitPercentEl ? parseFloat(paylaterProfitToLimitPercentEl.value || '10') : 10;
@@ -3206,6 +3215,9 @@ async function saveSettings() {
     const paylaterMaxLimit = paylaterMaxLimitEl ? parseInt(paylaterMaxLimitEl.value || '1000000', 10) : 1000000;
     const paylaterOverdueFreezeDays = paylaterOverdueFreezeDaysEl ? parseInt(paylaterOverdueFreezeDaysEl.value || '0', 10) : 0;
     const paylaterOverdueLockDays = paylaterOverdueLockDaysEl ? parseInt(paylaterOverdueLockDaysEl.value || '0', 10) : 0;
+    const paylaterOverdueReduceLimitDays = paylaterOverdueReduceLimitDaysEl ? parseInt(paylaterOverdueReduceLimitDaysEl.value || '0', 10) : 0;
+    const paylaterOverdueReduceLimitPercent = paylaterOverdueReduceLimitPercentEl ? parseFloat(paylaterOverdueReduceLimitPercentEl.value || '0') : 0;
+    const paylaterOverdueDefaultDays = paylaterOverdueDefaultDaysEl ? parseInt(paylaterOverdueDefaultDaysEl.value || '0', 10) : 0;
 
     const settingEntries = [
         ['referral_enabled', String(referralEnabled)],
@@ -3230,7 +3242,10 @@ async function saveSettings() {
         ['paylater_max_active_invoices', String(paylaterMaxActiveInvoices)],
         ['paylater_max_limit', String(paylaterMaxLimit)],
         ['paylater_overdue_freeze_days', String(Math.max(0, paylaterOverdueFreezeDays))],
-        ['paylater_overdue_lock_days', String(Math.max(0, paylaterOverdueLockDays))]
+        ['paylater_overdue_lock_days', String(Math.max(0, paylaterOverdueLockDays))],
+        ['paylater_overdue_reduce_limit_days', String(Math.max(0, paylaterOverdueReduceLimitDays))],
+        ['paylater_overdue_reduce_limit_percent', String(Math.max(0, paylaterOverdueReduceLimitPercent))],
+        ['paylater_overdue_default_days', String(Math.max(0, paylaterOverdueDefaultDays))]
     ];
 
     try {
