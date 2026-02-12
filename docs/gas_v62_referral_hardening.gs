@@ -59,7 +59,8 @@ const ADMIN_TOKEN = ''; // contoh: 'SECRET123'
 const SHEET_WHITELIST = [
   'products', 'categories', 'orders', 'users', 'user_points', 'tukar_poin',
   'banners', 'claims', 'settings', 'pembelian', 'suppliers', 'biaya_bulanan',
-  'referrals', 'point_transactions', 'referral_audit_logs', 'fraud_risk_logs'
+  'referrals', 'point_transactions', 'referral_audit_logs', 'fraud_risk_logs',
+  'credit_accounts', 'credit_invoices', 'credit_ledger'
 ];
 
 const LOCK_TIMEOUT_MS = 30000;
@@ -88,7 +89,10 @@ const SENSITIVE_GET_SHEETS = {
   referrals: true,
   point_transactions: true,
   referral_audit_logs: true,
-  fraud_risk_logs: true
+  fraud_risk_logs: true,
+  credit_accounts: true,
+  credit_invoices: true,
+  credit_ledger: true
 };
 
 const PUBLIC_POST_RULES = {
@@ -127,6 +131,22 @@ const SCHEMA_REQUIREMENTS = {
     'id', 'created_at', 'event', 'referral_id', 'referrer_phone', 'referee_phone',
     'order_id', 'order_total', 'ip_address', 'device_id', 'user_agent',
     'risk_score', 'risk_level', 'decision', 'triggered_rules_json', 'notes'
+  ],
+  credit_accounts: [
+    'id', 'phone', 'user_id', 'credit_limit', 'available_limit', 'used_limit',
+    'status', 'admin_initial_limit', 'limit_growth_total', 'notes',
+    'created_at', 'updated_at'
+  ],
+  credit_invoices: [
+    'id', 'invoice_id', 'phone', 'user_id', 'source_order_id',
+    'principal', 'tenor_weeks', 'fee_percent', 'fee_amount',
+    'penalty_percent_daily', 'penalty_cap_percent', 'penalty_amount',
+    'total_before_penalty', 'total_due', 'paid_amount',
+    'due_date', 'status', 'notes', 'created_at', 'updated_at', 'paid_at', 'closed_at'
+  ],
+  credit_ledger: [
+    'id', 'phone', 'user_id', 'invoice_id', 'type', 'amount',
+    'balance_before', 'balance_after', 'ref_id', 'note', 'actor', 'created_at'
   ]
 };
 
@@ -573,6 +593,34 @@ function doPost(e) {
     if (action === 'run_referral_reconciliation_audit') {
       return jsonOutput(withScriptLock(function() {
         return runReferralReconciliationAudit();
+      }));
+    }
+
+    if (action === 'credit_account_get') {
+      return jsonOutput(handleCreditAccountGet(data));
+    }
+
+    if (action === 'credit_account_upsert') {
+      return jsonOutput(withScriptLock(function() {
+        return handleCreditAccountUpsert(data);
+      }));
+    }
+
+    if (action === 'credit_invoice_create') {
+      return jsonOutput(withScriptLock(function() {
+        return handleCreditInvoiceCreate(data);
+      }));
+    }
+
+    if (action === 'credit_invoice_pay') {
+      return jsonOutput(withScriptLock(function() {
+        return handleCreditInvoicePay(data);
+      }));
+    }
+
+    if (action === 'credit_limit_from_profit') {
+      return jsonOutput(withScriptLock(function() {
+        return handleCreditLimitFromProfit(data);
       }));
     }
 
@@ -1398,6 +1446,499 @@ function handleEnsureSchema(data) {
 }
 
 // ========================================
+// PAYLATER CORE
+// ========================================
+
+function toMoneyInt(value) {
+  const n = parseFloat(value);
+  if (isNaN(n) || !isFinite(n)) return 0;
+  return Math.max(0, Math.round(n));
+}
+
+function getPaylaterConfig() {
+  const set = getSettingsMap();
+  return {
+    enabled: String(set.paylater_enabled || 'false').toLowerCase() === 'true',
+    profitToLimitPercent: parseFloat(set.paylater_profit_to_limit_percent || '10') || 10,
+    feeWeek1: parseFloat(set.paylater_fee_week_1 || '5') || 5,
+    feeWeek2: parseFloat(set.paylater_fee_week_2 || '10') || 10,
+    feeWeek3: parseFloat(set.paylater_fee_week_3 || '15') || 15,
+    feeWeek4: parseFloat(set.paylater_fee_week_4 || '20') || 20,
+    dailyPenaltyPercent: parseFloat(set.paylater_daily_penalty_percent || '0.5') || 0.5,
+    penaltyCapPercent: parseFloat(set.paylater_penalty_cap_percent || '15') || 15,
+    maxActiveInvoices: parseInt(set.paylater_max_active_invoices || '1', 10) || 1,
+    maxLimit: toMoneyInt(set.paylater_max_limit || '1000000')
+  };
+}
+
+function getPaylaterFeePercentForTenor(tenorWeeks, cfg) {
+  const week = Math.max(1, Math.min(4, parseInt(tenorWeeks, 10) || 1));
+  if (week === 1) return parseFloat(cfg.feeWeek1 || 0) || 0;
+  if (week === 2) return parseFloat(cfg.feeWeek2 || 0) || 0;
+  if (week === 3) return parseFloat(cfg.feeWeek3 || 0) || 0;
+  return parseFloat(cfg.feeWeek4 || 0) || 0;
+}
+
+function findCreditAccountByPhone(phone) {
+  const normalizedPhone = normalizePhone(phone || '');
+  if (!normalizedPhone) return null;
+  const accObj = getRowsAsObjects('credit_accounts');
+  for (var i = 0; i < accObj.rows.length; i++) {
+    const row = accObj.rows[i];
+    if (normalizePhone(row.phone || '') === normalizedPhone) {
+      return {
+        sheet: accObj.sheet,
+        headers: accObj.headers,
+        row: row,
+        rowNumber: i + 2
+      };
+    }
+  }
+  return {
+    sheet: accObj.sheet,
+    headers: accObj.headers,
+    row: null,
+    rowNumber: -1
+  };
+}
+
+function hasActiveCreditInvoice(phone) {
+  const normalizedPhone = normalizePhone(phone || '');
+  if (!normalizedPhone) return false;
+  const invObj = getRowsAsObjects('credit_invoices');
+  var count = 0;
+  for (var i = 0; i < invObj.rows.length; i++) {
+    const row = invObj.rows[i];
+    if (normalizePhone(row.phone || '') !== normalizedPhone) continue;
+    const st = String(row.status || '').toLowerCase().trim();
+    if (st === 'active' || st === 'overdue') count++;
+  }
+  return count > 0;
+}
+
+function appendCreditLedger(entry) {
+  const ledObj = getRowsAsObjects('credit_ledger');
+  if (!ledObj.headers.length) {
+    return { success: false, error: 'credit_ledger headers invalid' };
+  }
+  appendByHeaders(ledObj.sheet, ledObj.headers, {
+    id: entry.id || genId('CLG'),
+    phone: normalizePhone(entry.phone || ''),
+    user_id: entry.user_id || '',
+    invoice_id: entry.invoice_id || '',
+    type: entry.type || 'adjustment',
+    amount: toMoneyInt(entry.amount || 0),
+    balance_before: toMoneyInt(entry.balance_before || 0),
+    balance_after: toMoneyInt(entry.balance_after || 0),
+    ref_id: entry.ref_id || '',
+    note: entry.note || '',
+    actor: entry.actor || 'system',
+    created_at: entry.created_at || nowIso()
+  });
+  return { success: true };
+}
+
+function handleCreditAccountGet(data) {
+  data = data || {};
+  const phone = normalizePhone(data.phone || data.whatsapp || '');
+  if (!phone) {
+    return { success: false, error: 'INVALID_PAYLOAD', message: 'phone wajib diisi' };
+  }
+  const found = findCreditAccountByPhone(phone);
+  if (!found || !found.row) {
+    return { success: false, error: 'ACCOUNT_NOT_FOUND', message: 'Credit account belum ada' };
+  }
+  return { success: true, account: found.row };
+}
+
+function handleCreditAccountUpsert(data) {
+  data = data || {};
+  const phone = normalizePhone(data.phone || data.whatsapp || '');
+  const userId = String(data.user_id || '').trim();
+  if (!phone) {
+    return { success: false, error: 'INVALID_PAYLOAD', message: 'phone wajib diisi' };
+  }
+
+  const found = findCreditAccountByPhone(phone);
+  const now = nowIso();
+  const status = String(data.status || '').trim().toLowerCase() || 'active';
+  const allowedStatus = { active: true, frozen: true, locked: true };
+  const safeStatus = allowedStatus[status] ? status : 'active';
+
+  if (!found.row) {
+    const initialLimit = toMoneyInt(data.admin_initial_limit || data.credit_limit || 0);
+    const creditLimit = initialLimit;
+    const usedLimit = 0;
+    const availableLimit = Math.max(0, creditLimit - usedLimit);
+    appendByHeaders(found.sheet, found.headers, {
+      id: genId('CAC'),
+      phone: phone,
+      user_id: userId,
+      credit_limit: creditLimit,
+      available_limit: availableLimit,
+      used_limit: usedLimit,
+      status: safeStatus,
+      admin_initial_limit: initialLimit,
+      limit_growth_total: 0,
+      notes: data.notes || '',
+      created_at: now,
+      updated_at: now
+    });
+
+    if (initialLimit > 0) {
+      appendCreditLedger({
+        phone: phone,
+        user_id: userId,
+        type: 'limit_init',
+        amount: initialLimit,
+        balance_before: 0,
+        balance_after: creditLimit,
+        ref_id: String(data.ref_id || ''),
+        note: 'Set limit awal manual',
+        actor: data.actor || 'admin'
+      });
+    }
+
+    return { success: true, created: 1, phone: phone, credit_limit: creditLimit, available_limit: availableLimit };
+  }
+
+  const headers = found.headers;
+  const rowNumber = found.rowNumber;
+  const row = found.row;
+
+  const oldLimit = toMoneyInt(row.credit_limit || 0);
+  const oldUsed = toMoneyInt(row.used_limit || 0);
+  const oldAvailable = toMoneyInt(row.available_limit || Math.max(0, oldLimit - oldUsed));
+
+  const nextLimit = data.credit_limit !== undefined ? toMoneyInt(data.credit_limit) : oldLimit;
+  const nextUsed = data.used_limit !== undefined ? toMoneyInt(data.used_limit) : oldUsed;
+  const nextAvailable = data.available_limit !== undefined
+    ? toMoneyInt(data.available_limit)
+    : Math.max(0, nextLimit - nextUsed);
+
+  setCellIfColumnExists(found.sheet, headers, rowNumber, 'user_id', userId || row.user_id || '');
+  setCellIfColumnExists(found.sheet, headers, rowNumber, 'credit_limit', nextLimit);
+  setCellIfColumnExists(found.sheet, headers, rowNumber, 'used_limit', nextUsed);
+  setCellIfColumnExists(found.sheet, headers, rowNumber, 'available_limit', nextAvailable);
+  setCellIfColumnExists(found.sheet, headers, rowNumber, 'status', safeStatus);
+  if (data.notes !== undefined) {
+    setCellIfColumnExists(found.sheet, headers, rowNumber, 'notes', String(data.notes || ''));
+  }
+  setCellIfColumnExists(found.sheet, headers, rowNumber, 'updated_at', now);
+
+  if (nextLimit !== oldLimit) {
+    appendCreditLedger({
+      phone: phone,
+      user_id: userId || row.user_id || '',
+      type: 'limit_adjustment',
+      amount: Math.abs(nextLimit - oldLimit),
+      balance_before: oldLimit,
+      balance_after: nextLimit,
+      ref_id: String(data.ref_id || ''),
+      note: 'Adjust limit manual',
+      actor: data.actor || 'admin'
+    });
+  }
+
+  if (nextAvailable !== oldAvailable) {
+    appendCreditLedger({
+      phone: phone,
+      user_id: userId || row.user_id || '',
+      type: 'available_adjustment',
+      amount: Math.abs(nextAvailable - oldAvailable),
+      balance_before: oldAvailable,
+      balance_after: nextAvailable,
+      ref_id: String(data.ref_id || ''),
+      note: 'Adjust available limit manual',
+      actor: data.actor || 'admin'
+    });
+  }
+
+  return { success: true, affected: 1, phone: phone, credit_limit: nextLimit, available_limit: nextAvailable };
+}
+
+function handleCreditInvoiceCreate(data) {
+  data = data || {};
+  const phone = normalizePhone(data.phone || data.whatsapp || '');
+  const userId = String(data.user_id || '').trim();
+  const principal = toMoneyInt(data.principal || data.amount || 0);
+  const tenorWeeks = Math.max(1, Math.min(4, parseInt(data.tenor_weeks, 10) || 1));
+  const sourceOrderId = String(data.source_order_id || '').trim();
+  const actor = String(data.actor || 'system');
+
+  if (!phone) return { success: false, error: 'INVALID_PAYLOAD', message: 'phone wajib diisi' };
+  if (principal <= 0) return { success: false, error: 'INVALID_PAYLOAD', message: 'principal harus > 0' };
+
+  const cfg = getPaylaterConfig();
+  if (!cfg.enabled) return { success: false, error: 'PAYLATER_DISABLED', message: 'PayLater nonaktif' };
+  if (hasActiveCreditInvoice(phone)) {
+    return { success: false, error: 'ACTIVE_INVOICE_EXISTS', message: 'Masih ada tagihan aktif' };
+  }
+
+  const found = findCreditAccountByPhone(phone);
+  if (!found || !found.row) {
+    return { success: false, error: 'ACCOUNT_NOT_FOUND', message: 'Credit account belum tersedia' };
+  }
+
+  const account = found.row;
+  const accountStatus = String(account.status || 'active').toLowerCase();
+  if (accountStatus !== 'active') {
+    return { success: false, error: 'ACCOUNT_NOT_ACTIVE', message: 'Akun kredit tidak aktif' };
+  }
+
+  const oldLimit = toMoneyInt(account.credit_limit || 0);
+  const oldUsed = toMoneyInt(account.used_limit || 0);
+  const oldAvailable = toMoneyInt(account.available_limit || Math.max(0, oldLimit - oldUsed));
+  if (oldAvailable < principal) {
+    return { success: false, error: 'INSUFFICIENT_LIMIT', message: 'Limit tersedia tidak cukup' };
+  }
+
+  const feePercent = data.fee_percent !== undefined
+    ? parseFloat(data.fee_percent) || 0
+    : getPaylaterFeePercentForTenor(tenorWeeks, cfg);
+  const feeAmount = toMoneyInt((principal * feePercent) / 100);
+  const totalBeforePenalty = principal + feeAmount;
+  const penaltyDaily = parseFloat(cfg.dailyPenaltyPercent || 0) || 0;
+  const penaltyCap = parseFloat(cfg.penaltyCapPercent || 0) || 0;
+  const invoiceId = String(data.invoice_id || genId('INV'));
+  const dueDate = String(data.due_date || '').trim() || nowIso();
+  const now = nowIso();
+
+  const invObj = getRowsAsObjects('credit_invoices');
+  appendByHeaders(invObj.sheet, invObj.headers, {
+    id: invoiceId,
+    invoice_id: invoiceId,
+    phone: phone,
+    user_id: userId || account.user_id || '',
+    source_order_id: sourceOrderId,
+    principal: principal,
+    tenor_weeks: tenorWeeks,
+    fee_percent: feePercent,
+    fee_amount: feeAmount,
+    penalty_percent_daily: penaltyDaily,
+    penalty_cap_percent: penaltyCap,
+    penalty_amount: 0,
+    total_before_penalty: totalBeforePenalty,
+    total_due: totalBeforePenalty,
+    paid_amount: 0,
+    due_date: dueDate,
+    status: 'active',
+    notes: String(data.notes || ''),
+    created_at: now,
+    updated_at: now,
+    paid_at: '',
+    closed_at: ''
+  });
+
+  const newUsed = oldUsed + principal;
+  const newAvailable = Math.max(0, oldLimit - newUsed);
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'used_limit', newUsed);
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'available_limit', newAvailable);
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'updated_at', now);
+
+  appendCreditLedger({
+    phone: phone,
+    user_id: userId || account.user_id || '',
+    invoice_id: invoiceId,
+    type: 'invoice_create',
+    amount: principal,
+    balance_before: oldAvailable,
+    balance_after: newAvailable,
+    ref_id: sourceOrderId || invoiceId,
+    note: 'Membuat tagihan PayLater',
+    actor: actor
+  });
+
+  return {
+    success: true,
+    created: 1,
+    invoice_id: invoiceId,
+    principal: principal,
+    fee_amount: feeAmount,
+    total_due: totalBeforePenalty,
+    account_available_limit: newAvailable
+  };
+}
+
+function handleCreditInvoicePay(data) {
+  data = data || {};
+  const invoiceId = String(data.invoice_id || data.id || '').trim();
+  const paymentAmount = toMoneyInt(data.payment_amount || data.amount || 0);
+  const actor = String(data.actor || 'admin');
+  const note = String(data.note || 'Pembayaran tagihan');
+  if (!invoiceId) return { success: false, error: 'INVALID_PAYLOAD', message: 'invoice_id wajib diisi' };
+  if (paymentAmount <= 0) return { success: false, error: 'INVALID_PAYLOAD', message: 'payment_amount harus > 0' };
+
+  const invObj = getRowsAsObjects('credit_invoices');
+  let invoice = null;
+  let rowNumber = -1;
+  for (var i = 0; i < invObj.rows.length; i++) {
+    const row = invObj.rows[i];
+    if (String(row.invoice_id || row.id || '').trim() === invoiceId) {
+      invoice = row;
+      rowNumber = i + 2;
+      break;
+    }
+  }
+  if (!invoice) return { success: false, error: 'INVOICE_NOT_FOUND', message: 'Invoice tidak ditemukan' };
+
+  const currentStatus = String(invoice.status || '').toLowerCase().trim();
+  if (currentStatus === 'paid' || currentStatus === 'cancelled' || currentStatus === 'defaulted') {
+    return { success: false, error: 'INVOICE_CLOSED', message: 'Invoice sudah tidak aktif' };
+  }
+
+  const phone = normalizePhone(invoice.phone || '');
+  const found = findCreditAccountByPhone(phone);
+  if (!found || !found.row) {
+    return { success: false, error: 'ACCOUNT_NOT_FOUND', message: 'Credit account tidak ditemukan' };
+  }
+
+  const totalDue = toMoneyInt(invoice.total_due || 0);
+  const oldPaid = toMoneyInt(invoice.paid_amount || 0);
+  const remaining = Math.max(0, totalDue - oldPaid);
+  const paidNow = Math.min(paymentAmount, remaining);
+  const newPaid = oldPaid + paidNow;
+  const isSettled = newPaid >= totalDue;
+  const nextStatus = isSettled ? 'paid' : currentStatus || 'active';
+
+  setCellIfColumnExists(invObj.sheet, invObj.headers, rowNumber, 'paid_amount', newPaid);
+  setCellIfColumnExists(invObj.sheet, invObj.headers, rowNumber, 'status', nextStatus);
+  setCellIfColumnExists(invObj.sheet, invObj.headers, rowNumber, 'updated_at', nowIso());
+  if (isSettled) {
+    setCellIfColumnExists(invObj.sheet, invObj.headers, rowNumber, 'paid_at', nowIso());
+    setCellIfColumnExists(invObj.sheet, invObj.headers, rowNumber, 'closed_at', nowIso());
+  }
+
+  const principal = toMoneyInt(invoice.principal || 0);
+  const account = found.row;
+  const oldLimit = toMoneyInt(account.credit_limit || 0);
+  const oldUsed = toMoneyInt(account.used_limit || 0);
+  const oldAvailable = toMoneyInt(account.available_limit || Math.max(0, oldLimit - oldUsed));
+
+  let newUsed = oldUsed;
+  let newAvailable = oldAvailable;
+  if (isSettled) {
+    newUsed = Math.max(0, oldUsed - principal);
+    newAvailable = Math.max(0, oldLimit - newUsed);
+    setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'used_limit', newUsed);
+    setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'available_limit', newAvailable);
+    setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'updated_at', nowIso());
+  }
+
+  appendCreditLedger({
+    phone: phone,
+    user_id: invoice.user_id || account.user_id || '',
+    invoice_id: invoiceId,
+    type: isSettled ? 'payment_settle' : 'payment_partial',
+    amount: paidNow,
+    balance_before: oldPaid,
+    balance_after: newPaid,
+    ref_id: invoiceId,
+    note: note,
+    actor: actor
+  });
+
+  if (isSettled) {
+    appendCreditLedger({
+      phone: phone,
+      user_id: invoice.user_id || account.user_id || '',
+      invoice_id: invoiceId,
+      type: 'limit_release',
+      amount: principal,
+      balance_before: oldAvailable,
+      balance_after: newAvailable,
+      ref_id: invoiceId,
+      note: 'Release limit setelah pelunasan',
+      actor: actor
+    });
+  }
+
+  return {
+    success: true,
+    invoice_id: invoiceId,
+    paid_now: paidNow,
+    paid_total: newPaid,
+    total_due: totalDue,
+    status: nextStatus,
+    account_available_limit: newAvailable
+  };
+}
+
+function handleCreditLimitFromProfit(data) {
+  data = data || {};
+  const phone = normalizePhone(data.phone || data.whatsapp || '');
+  const orderId = normalizeOrderId(data.order_id || data.ref_id || '');
+  const profitNet = toMoneyInt(data.profit_net || data.profit || 0);
+  const actor = String(data.actor || 'system');
+  if (!phone) return { success: false, error: 'INVALID_PAYLOAD', message: 'phone wajib diisi' };
+  if (!orderId) return { success: false, error: 'INVALID_PAYLOAD', message: 'order_id wajib diisi' };
+  if (profitNet <= 0) return { success: false, error: 'INVALID_PAYLOAD', message: 'profit_net harus > 0' };
+
+  const cfg = getPaylaterConfig();
+  const increase = toMoneyInt((profitNet * (parseFloat(cfg.profitToLimitPercent || 0) || 0)) / 100);
+  if (increase <= 0) {
+    return { success: true, increased: 0, message: 'Tidak ada kenaikan limit' };
+  }
+
+  const ledObj = getRowsAsObjects('credit_ledger');
+  const dedupFound = ledObj.rows.some(function(row) {
+    return String(row.type || '') === 'limit_increase' &&
+      String(row.ref_id || '') === orderId &&
+      normalizePhone(row.phone || '') === phone;
+  });
+  if (dedupFound) {
+    return { success: true, increased: 0, dedup: true, message: 'Order sudah diproses sebelumnya' };
+  }
+
+  const found = findCreditAccountByPhone(phone);
+  if (!found || !found.row) {
+    return { success: false, error: 'ACCOUNT_NOT_FOUND', message: 'Credit account belum tersedia' };
+  }
+
+  const account = found.row;
+  const oldLimit = toMoneyInt(account.credit_limit || 0);
+  const oldUsed = toMoneyInt(account.used_limit || 0);
+  const oldAvailable = toMoneyInt(account.available_limit || Math.max(0, oldLimit - oldUsed));
+  const oldGrowth = toMoneyInt(account.limit_growth_total || 0);
+  const maxLimit = toMoneyInt(cfg.maxLimit || 0) || oldLimit + increase;
+
+  let newLimit = oldLimit + increase;
+  if (newLimit > maxLimit) newLimit = maxLimit;
+  const realIncrease = Math.max(0, newLimit - oldLimit);
+  const newAvailable = Math.max(0, oldAvailable + realIncrease);
+  const newGrowth = oldGrowth + realIncrease;
+
+  if (realIncrease <= 0) {
+    return { success: true, increased: 0, message: 'Limit sudah mencapai maksimum' };
+  }
+
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'credit_limit', newLimit);
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'available_limit', newAvailable);
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'limit_growth_total', newGrowth);
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'updated_at', nowIso());
+
+  appendCreditLedger({
+    phone: phone,
+    user_id: account.user_id || '',
+    type: 'limit_increase',
+    amount: realIncrease,
+    balance_before: oldLimit,
+    balance_after: newLimit,
+    ref_id: orderId,
+    note: 'Kenaikan limit dari profit order',
+    actor: actor
+  });
+
+  return {
+    success: true,
+    increased: realIncrease,
+    credit_limit: newLimit,
+    available_limit: newAvailable,
+    limit_growth_total: newGrowth
+  };
+}
+
+// ========================================
 // UTILS
 // ========================================
 
@@ -1440,7 +1981,16 @@ function resolveRequestToken(e, body) {
 }
 
 function isSheetValidationRequired(actionKey) {
-  return !(actionKey === 'attach_referral' || actionKey === 'claim_reward');
+  const skip = {
+    attach_referral: true,
+    claim_reward: true,
+    credit_account_get: true,
+    credit_account_upsert: true,
+    credit_invoice_create: true,
+    credit_invoice_pay: true,
+    credit_limit_from_profit: true
+  };
+  return !skip[actionKey];
 }
 
 function isPublicCreateAction(actionKey, sheetName) {

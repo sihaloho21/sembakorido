@@ -4,6 +4,7 @@ const path = require('path');
 const root = process.cwd();
 const sources = [
   'assets/js/sanitize.min.js',
+  'assets/js/paylater-logic.min.js',
   'assets/js/script.min.js',
   'assets/js/akun.min.js'
 ];

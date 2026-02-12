@@ -201,5 +201,69 @@ const GASActions = {
                 value: String(value)
             }
         });
+    },
+
+    // ===========================
+    // PayLater Actions
+    // ===========================
+
+    /**
+     * Get credit account by phone.
+     * @param {string} phone
+     * @returns {Promise<object>}
+     */
+    async getCreditAccount(phone) {
+        return this.post({
+            action: 'credit_account_get',
+            data: { phone }
+        });
+    },
+
+    /**
+     * Create/update credit account.
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
+    async upsertCreditAccount(data) {
+        return this.post({
+            action: 'credit_account_upsert',
+            data: data || {}
+        });
+    },
+
+    /**
+     * Create credit invoice.
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
+    async createCreditInvoice(data) {
+        return this.post({
+            action: 'credit_invoice_create',
+            data: data || {}
+        });
+    },
+
+    /**
+     * Apply credit invoice payment.
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
+    async payCreditInvoice(data) {
+        return this.post({
+            action: 'credit_invoice_pay',
+            data: data || {}
+        });
+    },
+
+    /**
+     * Increase limit from order profit (idempotent by order_id).
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
+    async increaseCreditLimitFromProfit(data) {
+        return this.post({
+            action: 'credit_limit_from_profit',
+            data: data || {}
+        });
     }
 };
