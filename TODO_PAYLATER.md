@@ -180,9 +180,12 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
 
 ## 8. Testing
 
-- [ ] `P0` Unit test kalkulasi fee tenor
-- [ ] `P0` Unit test kalkulasi denda + cap 15%
-- [ ] `P0` Unit test validasi eligibility
+- [x] `P0` Unit test kalkulasi fee tenor
+  - Implementasi: `scripts/test-paylater-logic.js` (`calculatePaylaterInvoice`, tenor fee)
+- [x] `P0` Unit test kalkulasi denda + cap 15%
+  - Implementasi: `scripts/test-paylater-logic.js` (`calculatePenaltyAmount`, cap penalty)
+- [x] `P0` Unit test validasi eligibility
+  - Implementasi: `scripts/test-paylater-logic.js` (`evaluatePaylaterEligibility`)
 - [ ] `P0` Integration test alur:
   - checkout paylater -> invoice aktif
   - bayar -> invoice lunas -> limit pulih
