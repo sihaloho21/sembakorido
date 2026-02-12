@@ -510,6 +510,7 @@ function handlePublicPaylaterSummary(params) {
   if (!phone) {
     return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
   }
+  const pilotCheck = evaluatePaylaterPilotEligibility(phone);
 
   const found = findCreditAccountByPhone(phone);
   const account = (found && found.row) ? found.row : null;
@@ -537,6 +538,7 @@ function handlePublicPaylaterSummary(params) {
   return {
     success: true,
     phone: phone,
+    pilot: pilotCheck,
     account: account || {
       phone: phone,
       credit_limit: 0,
@@ -620,6 +622,7 @@ function handlePublicPaylaterConfig(params) {
   return {
     success: true,
     paylater_enabled: cfg.enabled,
+    pilot_enabled: cfg.pilotEnabled,
     fee_week_1: parseFloat(cfg.feeWeek1 || 0) || 0,
     fee_week_2: parseFloat(cfg.feeWeek2 || 0) || 0,
     fee_week_3: parseFloat(cfg.feeWeek3 || 0) || 0,
@@ -1656,6 +1659,8 @@ function getPaylaterConfig() {
   const set = getSettingsMap();
   return {
     enabled: String(set.paylater_enabled || 'false').toLowerCase() === 'true',
+    pilotEnabled: String(set.paylater_pilot_enabled || 'false').toLowerCase() === 'true',
+    pilotAllowPhones: String(set.paylater_pilot_allow_phones || ''),
     profitToLimitPercent: parseFloat(set.paylater_profit_to_limit_percent || '10') || 10,
     feeWeek1: parseFloat(set.paylater_fee_week_1 || '5') || 5,
     feeWeek2: parseFloat(set.paylater_fee_week_2 || '10') || 10,
@@ -1670,6 +1675,40 @@ function getPaylaterConfig() {
     overdueReduceLimitDays: parseInt(set.paylater_overdue_reduce_limit_days || '7', 10) || 7,
     overdueReduceLimitPercent: parseFloat(set.paylater_overdue_reduce_limit_percent || '10') || 10,
     overdueDefaultDays: parseInt(set.paylater_overdue_default_days || '30', 10) || 30
+  };
+}
+
+function parsePaylaterPilotAllowPhones(raw) {
+  const txt = String(raw || '');
+  if (!txt) return [];
+  const chunks = txt.split(/[\n,;|]+/);
+  const seen = {};
+  const list = [];
+  for (var i = 0; i < chunks.length; i++) {
+    const p = normalizePhone(chunks[i] || '');
+    if (!p || seen[p]) continue;
+    seen[p] = true;
+    list.push(p);
+  }
+  return list;
+}
+
+function evaluatePaylaterPilotEligibility(phone) {
+  const cfg = getPaylaterConfig();
+  const normalizedPhone = normalizePhone(phone || '');
+  if (!cfg.pilotEnabled) {
+    return {
+      active: false,
+      eligible: true,
+      reason: 'pilot_inactive'
+    };
+  }
+  const allowList = parsePaylaterPilotAllowPhones(cfg.pilotAllowPhones);
+  const allowed = allowList.indexOf(normalizedPhone) !== -1;
+  return {
+    active: true,
+    eligible: allowed,
+    reason: allowed ? 'pilot_allowed' : 'pilot_not_included'
   };
 }
 
@@ -2149,6 +2188,15 @@ function handleCreditInvoiceCreate(data) {
 
   const cfg = getPaylaterConfig();
   if (!cfg.enabled) return { success: false, error: 'PAYLATER_DISABLED', message: 'PayLater nonaktif' };
+  const pilotCheck = evaluatePaylaterPilotEligibility(phone);
+  if (!pilotCheck.eligible) {
+    return {
+      success: false,
+      error: 'PILOT_NOT_ELIGIBLE',
+      message: 'PayLater masih tahap pilot dan akun belum masuk whitelist.',
+      pilot: pilotCheck
+    };
+  }
 
   // Idempotency guard by invoice_id and source_order_id.
   const invLookup = findCreditInvoiceByInvoiceId(invoiceId);
