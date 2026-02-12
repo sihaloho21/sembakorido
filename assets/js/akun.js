@@ -51,9 +51,46 @@ const hasPublicSession = (user) => {
 };
 
 let referralProfileCache = null;
+let pendingReferralCodeFromUrl = '';
 
 function toReferralCodeValue(value) {
     return String(value || '').trim().toUpperCase();
+}
+
+function getReferralCodeFromUrl() {
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        return toReferralCodeValue(
+            params.get('ref') ||
+            params.get('referral') ||
+            params.get('kode_referral') ||
+            ''
+        );
+    } catch (error) {
+        console.warn('Failed parsing referral code from URL:', error);
+        return '';
+    }
+}
+
+function buildReferralShareUrl(code) {
+    const referralCode = toReferralCodeValue(code);
+    if (!referralCode || referralCode === '-') return '';
+    const shareUrl = new URL(`${window.location.origin}${window.location.pathname}`);
+    shareUrl.searchParams.set('ref', referralCode);
+    return shareUrl.toString();
+}
+
+function updateRegisterReferralInfo() {
+    const infoEl = document.getElementById('register-referral-info');
+    const textEl = document.getElementById('register-referral-info-text');
+    if (!infoEl || !textEl) return;
+
+    if (pendingReferralCodeFromUrl) {
+        textEl.textContent = `Referral dari link aktif: ${pendingReferralCodeFromUrl}`;
+        infoEl.classList.remove('hidden');
+    } else {
+        infoEl.classList.add('hidden');
+    }
 }
 
 function setReferralStatus(message, type) {
@@ -265,6 +302,9 @@ async function loadReferralData(user) {
 
 // Check if user is already logged in
 document.addEventListener('DOMContentLoaded', () => {
+    pendingReferralCodeFromUrl = getReferralCodeFromUrl();
+    updateRegisterReferralInfo();
+
     const loggedInUser = getLoggedInUser();
 
     const referralInput = document.getElementById('referral-input');
@@ -535,22 +575,27 @@ async function copyReferralCode() {
         setReferralStatus('Kode referral belum tersedia.', 'warning');
         return;
     }
+    const referralLink = buildReferralShareUrl(code);
+    if (!referralLink) {
+        setReferralStatus('Link referral tidak tersedia.', 'warning');
+        return;
+    }
 
     try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(code);
+            await navigator.clipboard.writeText(referralLink);
         } else {
             const temp = document.createElement('textarea');
-            temp.value = code;
+            temp.value = referralLink;
             document.body.appendChild(temp);
             temp.select();
             document.execCommand('copy');
             document.body.removeChild(temp);
         }
-        setReferralStatus('Kode referral berhasil disalin.', 'success');
+        setReferralStatus('Link referral berhasil disalin.', 'success');
     } catch (error) {
         console.error('Copy referral failed:', error);
-        setReferralStatus('Gagal menyalin kode referral.', 'error');
+        setReferralStatus('Gagal menyalin link referral.', 'error');
     }
 }
 
@@ -1132,6 +1177,7 @@ function showRegister() {
     document.getElementById('register-section').classList.remove('hidden');
     document.getElementById('forgot-pin-section').classList.add('hidden');
     document.getElementById('dashboard-section').classList.add('hidden');
+    updateRegisterReferralInfo();
 }
 
 /**
@@ -1154,7 +1200,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     const whatsapp = document.getElementById('register-whatsapp').value.trim();
     const pin = document.getElementById('register-pin').value.trim();
     const pinConfirm = document.getElementById('register-pin-confirm').value.trim();
-    const referralCode = toReferralCodeValue(document.getElementById('register-referral-code')?.value || '');
+    const referralCode = pendingReferralCodeFromUrl;
     
     const errorDiv = document.getElementById('register-error');
     const errorText = document.getElementById('register-error-text');
