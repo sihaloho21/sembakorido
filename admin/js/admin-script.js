@@ -771,6 +771,24 @@ async function fetchCreditAccounts() {
     }
 }
 
+async function runPaylaterLimitSync() {
+    if (!window.confirm('Proses sinkron kenaikan limit dari order final sekarang?')) return;
+    try {
+        const result = await GASActions.processPaylaterLimitFromOrders({ actor: 'admin' });
+        if (result && result.success) {
+            const processed = parseInt(result.processed || 0, 10) || 0;
+            const failed = parseInt(result.failed || 0, 10) || 0;
+            showAdminToast(`Sync limit selesai. Processed: ${processed}, Failed: ${failed}.`, failed > 0 ? 'warning' : 'success');
+            await fetchCreditAccounts();
+            return;
+        }
+        showAdminToast(result && (result.message || result.error) ? String(result.message || result.error) : 'Gagal sync limit order.', 'error');
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal sync limit order.', 'error');
+    }
+}
+
 async function submitCreditAccountForm() {
     const phone = normalizePhone((document.getElementById('credit-account-phone') || {}).value || '');
     const userId = String((document.getElementById('credit-account-user-id') || {}).value || '').trim();
@@ -2797,6 +2815,8 @@ async function loadSettings() {
     const paylaterPenaltyCapPercentEl = document.getElementById('paylater-penalty-cap-percent');
     const paylaterMaxActiveInvoicesEl = document.getElementById('paylater-max-active-invoices');
     const paylaterMaxLimitEl = document.getElementById('paylater-max-limit');
+    const paylaterOverdueFreezeDaysEl = document.getElementById('paylater-overdue-freeze-days');
+    const paylaterOverdueLockDaysEl = document.getElementById('paylater-overdue-lock-days');
 
     if (paylaterEnabledEl) paylaterEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_enabled', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
     if (paylaterProfitToLimitPercentEl) paylaterProfitToLimitPercentEl.value = parseFloat(getLatestSettingValue(rows, 'paylater_profit_to_limit_percent', '10')) || 10;
@@ -2808,6 +2828,8 @@ async function loadSettings() {
     if (paylaterPenaltyCapPercentEl) paylaterPenaltyCapPercentEl.value = parseFloat(getLatestSettingValue(rows, 'paylater_penalty_cap_percent', '15')) || 15;
     if (paylaterMaxActiveInvoicesEl) paylaterMaxActiveInvoicesEl.value = parseInt(getLatestSettingValue(rows, 'paylater_max_active_invoices', '1'), 10) || 1;
     if (paylaterMaxLimitEl) paylaterMaxLimitEl.value = parseInt(getLatestSettingValue(rows, 'paylater_max_limit', '1000000'), 10) || 1000000;
+    if (paylaterOverdueFreezeDaysEl) paylaterOverdueFreezeDaysEl.value = parseInt(getLatestSettingValue(rows, 'paylater_overdue_freeze_days', '0'), 10) || 0;
+    if (paylaterOverdueLockDaysEl) paylaterOverdueLockDaysEl.value = parseInt(getLatestSettingValue(rows, 'paylater_overdue_lock_days', '0'), 10) || 0;
 
     const referralEnabled = getLatestSettingValue(rows, 'referral_enabled', 'true');
     const referralRewardReferrer = getLatestSettingValue(rows, 'referral_reward_referrer', '20');
@@ -2963,6 +2985,8 @@ async function saveSettings() {
     const paylaterPenaltyCapPercentEl = document.getElementById('paylater-penalty-cap-percent');
     const paylaterMaxActiveInvoicesEl = document.getElementById('paylater-max-active-invoices');
     const paylaterMaxLimitEl = document.getElementById('paylater-max-limit');
+    const paylaterOverdueFreezeDaysEl = document.getElementById('paylater-overdue-freeze-days');
+    const paylaterOverdueLockDaysEl = document.getElementById('paylater-overdue-lock-days');
 
     const paylaterEnabled = paylaterEnabledEl ? paylaterEnabledEl.value : 'false';
     const paylaterProfitToLimitPercent = paylaterProfitToLimitPercentEl ? parseFloat(paylaterProfitToLimitPercentEl.value || '10') : 10;
@@ -2974,6 +2998,8 @@ async function saveSettings() {
     const paylaterPenaltyCapPercent = paylaterPenaltyCapPercentEl ? parseFloat(paylaterPenaltyCapPercentEl.value || '15') : 15;
     const paylaterMaxActiveInvoices = paylaterMaxActiveInvoicesEl ? parseInt(paylaterMaxActiveInvoicesEl.value || '1', 10) : 1;
     const paylaterMaxLimit = paylaterMaxLimitEl ? parseInt(paylaterMaxLimitEl.value || '1000000', 10) : 1000000;
+    const paylaterOverdueFreezeDays = paylaterOverdueFreezeDaysEl ? parseInt(paylaterOverdueFreezeDaysEl.value || '0', 10) : 0;
+    const paylaterOverdueLockDays = paylaterOverdueLockDaysEl ? parseInt(paylaterOverdueLockDaysEl.value || '0', 10) : 0;
 
     const settingEntries = [
         ['referral_enabled', String(referralEnabled)],
@@ -2996,7 +3022,9 @@ async function saveSettings() {
         ['paylater_daily_penalty_percent', String(paylaterDailyPenaltyPercent)],
         ['paylater_penalty_cap_percent', String(paylaterPenaltyCapPercent)],
         ['paylater_max_active_invoices', String(paylaterMaxActiveInvoices)],
-        ['paylater_max_limit', String(paylaterMaxLimit)]
+        ['paylater_max_limit', String(paylaterMaxLimit)],
+        ['paylater_overdue_freeze_days', String(Math.max(0, paylaterOverdueFreezeDays))],
+        ['paylater_overdue_lock_days', String(Math.max(0, paylaterOverdueLockDays))]
     ];
 
     try {
@@ -3327,6 +3355,11 @@ function bindAdminActions() {
 
         if (action === 'refresh-credit-accounts') {
             fetchCreditAccounts();
+            return;
+        }
+
+        if (action === 'sync-paylater-limit-orders') {
+            runPaylaterLimitSync();
             return;
         }
 

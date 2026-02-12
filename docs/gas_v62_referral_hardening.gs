@@ -624,6 +624,12 @@ function doPost(e) {
       }));
     }
 
+    if (action === 'process_paylater_limit_from_orders') {
+      return jsonOutput(withScriptLock(function() {
+        return processPaylaterLimitFromOrders(data);
+      }));
+    }
+
     if (action === 'credit_invoice_apply_penalty') {
       return jsonOutput(withScriptLock(function() {
         return handleCreditInvoiceApplyPenalty(data);
@@ -2123,6 +2129,135 @@ function handleCreditLimitFromProfit(data) {
   };
 }
 
+function isFinalOrderStatusForLimit(status) {
+  const normalized = String(status || '').toLowerCase().trim();
+  const finals = {
+    paid: true,
+    selesai: true,
+    lunas: true,
+    diterima: true
+  };
+  return Boolean(finals[normalized]);
+}
+
+function processPaylaterLimitFromOrders(data) {
+  data = data || {};
+  const onlyOrderId = String(data.order_id || '').trim();
+  const actor = String(data.actor || 'system');
+  const dryRun = Boolean(data.dry_run);
+
+  const ordersObj = getRowsAsObjects('orders');
+  if (!ordersObj.headers.length) {
+    return { success: false, error: 'ORDERS_HEADERS_INVALID', message: 'Header orders belum valid' };
+  }
+
+  const headers = ordersObj.headers;
+  const sheet = ordersObj.sheet;
+  const rows = ordersObj.rows;
+
+  const statusCol = headers.indexOf('status');
+  const processedCol = headers.indexOf('credit_limit_processed');
+  const profitCol = headers.indexOf('profit_net');
+  const phoneCol = headers.indexOf('phone');
+  const orderIdCol = headers.indexOf('id');
+  const orderCodeCol = headers.indexOf('order_id');
+
+  if (statusCol === -1 || processedCol === -1 || profitCol === -1 || phoneCol === -1) {
+    return {
+      success: false,
+      error: 'ORDERS_HEADERS_INVALID',
+      message: 'Kolom orders wajib: status, credit_limit_processed, profit_net, phone'
+    };
+  }
+
+  var scanned = 0;
+  var eligible = 0;
+  var processed = 0;
+  var skipped = 0;
+  var failed = 0;
+  const details = [];
+
+  for (var i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    scanned++;
+
+    const rowStatus = String(row.status || '').trim().toLowerCase();
+    if (!isFinalOrderStatusForLimit(rowStatus)) {
+      skipped++;
+      continue;
+    }
+
+    const processedFlag = String(row.credit_limit_processed || '').trim().toLowerCase();
+    if (processedFlag === 'yes') {
+      skipped++;
+      continue;
+    }
+
+    const orderIdRaw = (orderIdCol !== -1 ? row.id : '') || (orderCodeCol !== -1 ? row.order_id : '') || ('orders_row_' + (i + 2));
+    const orderId = normalizeOrderId(orderIdRaw);
+    if (onlyOrderId && orderId !== onlyOrderId) {
+      continue;
+    }
+
+    const phone = normalizePhone(row.phone || '');
+    const profitNet = toMoneyInt(row.profit_net || 0);
+    if (!phone || profitNet <= 0) {
+      skipped++;
+      continue;
+    }
+
+    eligible++;
+    if (dryRun) {
+      details.push({ order_id: orderId, phone: phone, profit_net: profitNet, action: 'would_process' });
+      continue;
+    }
+
+    const result = handleCreditLimitFromProfit({
+      phone: phone,
+      order_id: orderId,
+      profit_net: profitNet,
+      actor: actor
+    });
+
+    if (result && (result.success || result.dedup)) {
+      sheet.getRange(i + 2, processedCol + 1).setValue('Yes');
+      processed++;
+      details.push({
+        order_id: orderId,
+        phone: phone,
+        increased: parseInt(result.increased || 0, 10) || 0,
+        dedup: Boolean(result.dedup)
+      });
+    } else {
+      failed++;
+      details.push({
+        order_id: orderId,
+        phone: phone,
+        error: result && (result.error || result.message) ? String(result.error || result.message) : 'UNKNOWN_ERROR'
+      });
+    }
+  }
+
+  if (onlyOrderId && scanned > 0 && details.length === 0) {
+    return {
+      success: false,
+      error: 'ORDER_NOT_ELIGIBLE_OR_NOT_FOUND',
+      message: 'Order tidak ditemukan atau belum eligible untuk proses limit'
+    };
+  }
+
+  return {
+    success: true,
+    scanned: scanned,
+    eligible: eligible,
+    processed: processed,
+    skipped: skipped,
+    failed: failed,
+    dry_run: dryRun,
+    details: details.slice(0, 100)
+  };
+}
+
 function handleCreditAccountSetStatus(data) {
   data = data || {};
   const phone = normalizePhone(data.phone || data.whatsapp || '');
@@ -2307,7 +2442,8 @@ function isSheetValidationRequired(actionKey) {
     credit_invoice_pay: true,
     credit_limit_from_profit: true,
     credit_invoice_apply_penalty: true,
-    credit_account_set_status: true
+    credit_account_set_status: true,
+    process_paylater_limit_from_orders: true
   };
   return !skip[actionKey];
 }

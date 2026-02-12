@@ -289,5 +289,17 @@ const GASActions = {
             action: 'credit_limit_from_profit',
             data: data || {}
         });
+    },
+
+    /**
+     * Process credit limit increase from eligible final orders.
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
+    async processPaylaterLimitFromOrders(data) {
+        return this.post({
+            action: 'process_paylater_limit_from_orders',
+            data: data || {}
+        });
     }
 };
