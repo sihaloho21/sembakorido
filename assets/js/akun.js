@@ -306,6 +306,7 @@ async function loadReferralHistory(user) {
         const apiUrl = CONFIG.getMainApiUrl();
         const phone = normalizePhoneTo08(user.whatsapp);
         let rows = [];
+        let usedPublicEndpoint = false;
 
         const sessionQuery = buildSessionQuery(user);
         if (sessionQuery) {
@@ -314,10 +315,11 @@ async function loadReferralHistory(user) {
                 const publicData = await publicResp.json();
                 if (publicData && publicData.success && Array.isArray(publicData.referrals)) {
                     rows = publicData.referrals;
+                    usedPublicEndpoint = true;
                 }
             }
         }
-        if (!rows.length) {
+        if (!rows.length && !usedPublicEndpoint) {
             const response = await fetch(`${apiUrl}?sheet=referrals&phone=${encodeURIComponent(phone)}&_t=${Date.now()}`);
             if (!response.ok) throw new Error('Gagal memuat riwayat referral');
             rows = parseSheetResponse(await response.json());
@@ -365,8 +367,37 @@ async function loadReferralHistory(user) {
     }
 }
 
+async function fetchPublicReferralProfile(user) {
+    if (!hasPublicSession(user)) return null;
+    const sessionQuery = buildSessionQuery(user);
+    if (!sessionQuery) return null;
+
+    try {
+        const apiUrl = CONFIG.getMainApiUrl();
+        const response = await fetch(`${apiUrl}?action=public_user_profile${sessionQuery}&_t=${Date.now()}`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        if (!data || data.success !== true || !data.user) return null;
+        return data.user;
+    } catch (error) {
+        console.warn('Failed to load public referral profile:', error);
+        return null;
+    }
+}
+
 async function loadReferralData(user) {
     try {
+        const publicProfile = await fetchPublicReferralProfile(user);
+        if (publicProfile) {
+            referralProfileCache = publicProfile;
+            applyReferralDataToUI(publicProfile);
+            await loadReferralHistory({
+                ...user,
+                session_token: String(user.session_token || publicProfile.session_token || '').trim()
+            });
+            return;
+        }
+
         const users = await fetchUsersList();
         const ensured = await ensureUserReferralCode(user, users);
         referralProfileCache = ensured.user;
@@ -374,6 +405,7 @@ async function loadReferralData(user) {
         if (ensured.missingProfile) {
             applyReferralDataToUI(buildReferralProfileFallback(user));
             setReferralStatus('Kode referral hanya bisa dipakai satu kali.', 'info');
+            await loadReferralHistory(user);
             return;
         }
         await loadReferralHistory(user);
@@ -381,6 +413,11 @@ async function loadReferralData(user) {
         console.error('Error loading referral data:', error);
         applyReferralDataToUI(buildReferralProfileFallback(user));
         setReferralStatus('Kode referral hanya bisa dipakai satu kali.', 'info');
+        try {
+            await loadReferralHistory(user);
+        } catch (historyError) {
+            console.warn('Failed loading referral history after fallback:', historyError);
+        }
     }
 }
 
