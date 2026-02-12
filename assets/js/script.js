@@ -49,6 +49,17 @@ let filteredProducts = [];
 let storeClosed = CONFIG.isStoreClosed();
 let selectedVariation = null;
 let currentModalProduct = null;
+let paylaterCheckoutState = {
+    loading: false,
+    eligible: false,
+    reason: 'not_checked',
+    message: 'Belum dicek',
+    account: null,
+    summary: null,
+    config: null,
+    simulation: null
+};
+let paylaterCheckoutRequestSeq = 0;
 
 /**
  * Normalize phone number to standard format (08xxxxxxxxxx)
@@ -1564,6 +1575,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const eventName = input.type === 'radio' ? 'change' : 'input';
             input.addEventListener(eventName, updateOrderCTAState);
         });
+        const phoneInput = document.getElementById('customer-phone');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', () => {
+                if (isPaylaterSelected()) refreshPaylaterCheckoutState();
+            });
+        }
+        const paylaterTenorEl = document.getElementById('paylater-tenor');
+        if (paylaterTenorEl) {
+            paylaterTenorEl.addEventListener('change', () => {
+                if (isPaylaterSelected()) refreshPaylaterCheckoutState(true);
+            });
+        }
         updateOrderCTAState();
     }
 
@@ -1774,20 +1797,333 @@ function getCurrentLocation() {
     );
 }
 
-function updateOrderTotal() {
+function getSelectedPayMethodValue() {
     const payEl = document.querySelector('input[name="pay-method"]:checked');
-    const shipEl = document.querySelector('input[name="ship-method"]:checked');
-    const isGajian = payEl && payEl.value === 'Bayar Gajian';
-    const isDelivery = shipEl && shipEl.value === 'Antar Nikomas';
-    
+    return payEl ? String(payEl.value || '').trim() : '';
+}
+
+function isPaylaterSelected() {
+    return getSelectedPayMethodValue() === 'PayLater';
+}
+
+function getOrderSubtotalByPayMethod(payMethod) {
+    const selectedPayMethod = String(payMethod || '');
+    const isGajian = selectedPayMethod === 'Bayar Gajian';
     let subtotal = 0;
-    cart.forEach(item => {
-        const price = isGajian ? item.hargaGajian : item.harga;
-        const effectivePrice = calculateTieredPrice(price, item.qty, item.grosir);
+    cart.forEach((item) => {
+        const basePrice = isGajian ? item.hargaGajian : item.harga;
+        const effectivePrice = calculateTieredPrice(basePrice, item.qty, item.grosir);
         subtotal += effectivePrice * item.qty;
     });
-    
-    const shippingFee = isDelivery ? 2000 : 0;
+    return subtotal;
+}
+
+function getShippingFeeBySelection() {
+    const shipEl = document.querySelector('input[name="ship-method"]:checked');
+    const isDelivery = shipEl && shipEl.value === 'Antar Nikomas';
+    return isDelivery ? 2000 : 0;
+}
+
+function getCurrentOrderGrandTotal() {
+    const payMethod = getSelectedPayMethodValue();
+    return getOrderSubtotalByPayMethod(payMethod) + getShippingFeeBySelection();
+}
+
+function getStoredLoggedInUser() {
+    const raw = localStorage.getItem('gosembako_user');
+    if (!raw) return null;
+    try {
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function getSessionQueryFromStoredUser() {
+    const user = getStoredLoggedInUser();
+    if (!user) return '';
+    const token = String(user.session_token || user.sessionToken || user.st || '').trim();
+    if (!token) return '';
+    return '&session_token=' + encodeURIComponent(token);
+}
+
+function getPaylaterEligibilityMessage(reason) {
+    const key = String(reason || '').toLowerCase();
+    const map = {
+        ok: 'PayLater bisa dipakai untuk pesanan ini.',
+        loading: 'Sedang cek eligibility PayLater...',
+        not_checked: 'Belum dicek.',
+        login_required: 'Login akun dulu untuk memakai PayLater.',
+        phone_mismatch: 'Nomor checkout harus sama dengan nomor akun yang login.',
+        session_invalid: 'Session login tidak valid. Silakan login ulang.',
+        paylater_disabled: 'PayLater sedang nonaktif.',
+        account_not_found: 'Akun kredit belum tersedia untuk nomor ini.',
+        account_frozen: 'Akun kredit sedang freeze.',
+        account_locked: 'Akun kredit sedang lock.',
+        account_inactive: 'Akun kredit belum aktif.',
+        active_invoice_exists: 'Masih ada tagihan aktif/overdue.',
+        below_min_order: 'Total belanja belum memenuhi minimum PayLater.',
+        insufficient_limit: 'Limit tersedia tidak mencukupi.',
+        fetch_failed: 'Gagal cek data PayLater, coba lagi.'
+    };
+    return map[key] || 'PayLater belum memenuhi syarat.';
+}
+
+function getPaylaterCheckoutConfigFallback() {
+    try {
+        return (typeof CONFIG !== 'undefined' && typeof CONFIG.getPaylaterConfig === 'function')
+            ? CONFIG.getPaylaterConfig()
+            : {
+                enabled: false,
+                tenorFees: { 1: 5, 2: 10, 3: 15, 4: 20 },
+                dailyPenaltyPercent: 0.5,
+                penaltyCapPercent: 15,
+                maxActiveInvoices: 1,
+                minOrderAmount: 0
+            };
+    } catch (error) {
+        return {
+            enabled: false,
+            tenorFees: { 1: 5, 2: 10, 3: 15, 4: 20 },
+            dailyPenaltyPercent: 0.5,
+            penaltyCapPercent: 15,
+            maxActiveInvoices: 1,
+            minOrderAmount: 0
+        };
+    }
+}
+
+async function fetchPublicPaylaterConfig() {
+    try {
+        const resp = await ApiService.get('?action=public_paylater_config', { cache: false });
+        if (resp && resp.success) {
+            return {
+                enabled: String(resp.paylater_enabled || 'false').toLowerCase() === 'true',
+                tenorFees: {
+                    1: parseFloat(resp.fee_week_1 || 5) || 5,
+                    2: parseFloat(resp.fee_week_2 || 10) || 10,
+                    3: parseFloat(resp.fee_week_3 || 15) || 15,
+                    4: parseFloat(resp.fee_week_4 || 20) || 20
+                },
+                dailyPenaltyPercent: parseFloat(resp.daily_penalty_percent || 0.5) || 0.5,
+                penaltyCapPercent: parseFloat(resp.penalty_cap_percent || 15) || 15,
+                maxActiveInvoices: parseInt(resp.max_active_invoices || 1, 10) || 1,
+                minOrderAmount: parseInt(resp.min_order_amount || 0, 10) || 0
+            };
+        }
+    } catch (error) {
+        console.warn('public_paylater_config unavailable, fallback to local config:', error);
+    }
+    return getPaylaterCheckoutConfigFallback();
+}
+
+function renderPaylaterCheckoutState() {
+    const panel = document.getElementById('paylater-checkout-panel');
+    const badge = document.getElementById('paylater-eligibility-badge');
+    const msg = document.getElementById('paylater-eligibility-message');
+    const limitAvailableEl = document.getElementById('paylater-limit-available');
+    const activeInvoicesEl = document.getElementById('paylater-active-invoices');
+    const simPrincipalEl = document.getElementById('paylater-sim-principal');
+    const simFeeEl = document.getElementById('paylater-sim-fee');
+    const simPenaltyDailyEl = document.getElementById('paylater-sim-penalty-daily');
+    const simPenaltyCapEl = document.getElementById('paylater-sim-penalty-cap');
+    const simTotalDueEl = document.getElementById('paylater-sim-total-due');
+    if (!panel) return;
+
+    if (!isPaylaterSelected()) {
+        panel.classList.add('hidden');
+        return;
+    }
+    panel.classList.remove('hidden');
+
+    const state = paylaterCheckoutState || {};
+    const eligibilityReason = state.loading ? 'loading' : (state.reason || 'not_checked');
+    const isEligible = Boolean(state.eligible);
+    const statusLabel = state.loading ? 'Mengecek...' : (isEligible ? 'Eligible' : 'Tidak Eligible');
+    const badgeClass = state.loading
+        ? 'bg-amber-100 text-amber-700'
+        : (isEligible ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700');
+
+    if (badge) {
+        badge.className = `text-[10px] font-bold px-2 py-1 rounded-full ${badgeClass}`;
+        badge.textContent = statusLabel;
+    }
+    if (msg) {
+        msg.textContent = state.message || getPaylaterEligibilityMessage(eligibilityReason);
+    }
+
+    const account = state.account || {};
+    const summary = state.summary || {};
+    const sim = state.simulation || {};
+
+    if (limitAvailableEl) {
+        limitAvailableEl.textContent = `Rp ${((parseInt(account.available_limit || 0, 10) || 0)).toLocaleString('id-ID')}`;
+    }
+    if (activeInvoicesEl) {
+        activeInvoicesEl.textContent = String(parseInt(summary.invoice_count_active || 0, 10) || 0);
+    }
+    if (simPrincipalEl) simPrincipalEl.textContent = `Rp ${((parseInt(sim.principal || 0, 10) || 0)).toLocaleString('id-ID')}`;
+    if (simFeeEl) simFeeEl.textContent = `Rp ${((parseInt(sim.feeAmount || 0, 10) || 0)).toLocaleString('id-ID')}`;
+    if (simPenaltyDailyEl) simPenaltyDailyEl.textContent = `Rp ${((parseInt(sim.dailyPenaltyAmount || 0, 10) || 0)).toLocaleString('id-ID')}`;
+    if (simPenaltyCapEl) simPenaltyCapEl.textContent = `Rp ${((parseInt(sim.penaltyCapAmount || 0, 10) || 0)).toLocaleString('id-ID')}`;
+    if (simTotalDueEl) simTotalDueEl.textContent = `Rp ${((parseInt(sim.totalBeforePenalty || 0, 10) || 0)).toLocaleString('id-ID')}`;
+}
+
+async function refreshPaylaterCheckoutState(force) {
+    if (!isPaylaterSelected()) {
+        paylaterCheckoutState = {
+            loading: false,
+            eligible: false,
+            reason: 'not_checked',
+            message: getPaylaterEligibilityMessage('not_checked'),
+            account: null,
+            summary: null,
+            config: null,
+            simulation: null
+        };
+        renderPaylaterCheckoutState();
+        return paylaterCheckoutState;
+    }
+
+    const reqId = ++paylaterCheckoutRequestSeq;
+    paylaterCheckoutState.loading = true;
+    paylaterCheckoutState.message = getPaylaterEligibilityMessage('loading');
+    paylaterCheckoutState.reason = 'loading';
+    renderPaylaterCheckoutState();
+
+    const phoneInput = document.getElementById('customer-phone');
+    const checkoutPhone = normalizePhone(phoneInput ? phoneInput.value : '');
+    const user = getStoredLoggedInUser();
+    const userPhone = normalizePhone((user && (user.whatsapp || user.phone)) || '');
+    const sessionQuery = getSessionQueryFromStoredUser();
+
+    if (!sessionQuery) {
+        paylaterCheckoutState = {
+            loading: false,
+            eligible: false,
+            reason: 'login_required',
+            message: getPaylaterEligibilityMessage('login_required'),
+            account: null,
+            summary: null,
+            config: null,
+            simulation: null
+        };
+        renderPaylaterCheckoutState();
+        return paylaterCheckoutState;
+    }
+    if (!checkoutPhone || !userPhone || checkoutPhone !== userPhone) {
+        paylaterCheckoutState = {
+            loading: false,
+            eligible: false,
+            reason: 'phone_mismatch',
+            message: getPaylaterEligibilityMessage('phone_mismatch'),
+            account: null,
+            summary: null,
+            config: null,
+            simulation: null
+        };
+        renderPaylaterCheckoutState();
+        return paylaterCheckoutState;
+    }
+
+    try {
+        const apiUrl = CONFIG.getMainApiUrl();
+        const [summaryResp, cfg] = await Promise.all([
+            fetch(`${apiUrl}?action=public_paylater_summary${sessionQuery}&_t=${Date.now()}`),
+            fetchPublicPaylaterConfig()
+        ]);
+
+        let summaryPayload = null;
+        if (summaryResp.ok) summaryPayload = await summaryResp.json();
+        if (!summaryPayload || summaryPayload.success !== true) {
+            const errCode = summaryPayload && (summaryPayload.error || summaryPayload.error_code);
+            const reason = errCode === 'UNAUTHORIZED_SESSION' ? 'session_invalid' : 'fetch_failed';
+            paylaterCheckoutState = {
+                loading: false,
+                eligible: false,
+                reason: reason,
+                message: getPaylaterEligibilityMessage(reason),
+                account: null,
+                summary: null,
+                config: cfg,
+                simulation: null
+            };
+            renderPaylaterCheckoutState();
+            return paylaterCheckoutState;
+        }
+
+        const orderTotal = getCurrentOrderGrandTotal();
+        const tenorSelect = document.getElementById('paylater-tenor');
+        const tenorWeeks = tenorSelect ? (parseInt(tenorSelect.value || '1', 10) || 1) : 1;
+        const logic = (typeof PaylaterLogic !== 'undefined') ? PaylaterLogic : null;
+        const account = summaryPayload.account || {};
+        const summary = summaryPayload.summary || {};
+        const activeInvoicesCount = parseInt(summary.invoice_count_active || 0, 10) || 0;
+
+        let eligibility = { eligible: false, reason: 'fetch_failed' };
+        if (logic && typeof logic.evaluatePaylaterEligibility === 'function') {
+            eligibility = logic.evaluatePaylaterEligibility({
+                account: account,
+                activeInvoicesCount: activeInvoicesCount,
+                orderTotal: orderTotal
+            }, cfg);
+        }
+
+        let simulation = null;
+        if (logic && typeof logic.calculatePaylaterInvoice === 'function') {
+            const invoiceSim = logic.calculatePaylaterInvoice(orderTotal, tenorWeeks, cfg);
+            const principal = parseInt(invoiceSim.principal || 0, 10) || 0;
+            const dailyPenaltyPercent = parseFloat(cfg.dailyPenaltyPercent || 0) || 0;
+            const penaltyCapPercent = parseFloat(cfg.penaltyCapPercent || 0) || 0;
+            simulation = {
+                tenorWeeks: tenorWeeks,
+                feePercent: parseFloat(invoiceSim.feePercent || 0) || 0,
+                principal: principal,
+                feeAmount: parseInt(invoiceSim.feeAmount || 0, 10) || 0,
+                totalBeforePenalty: parseInt(invoiceSim.totalBeforePenalty || 0, 10) || 0,
+                dailyPenaltyAmount: Math.max(0, Math.round((principal * dailyPenaltyPercent) / 100)),
+                penaltyCapAmount: Math.max(0, Math.round((principal * penaltyCapPercent) / 100))
+            };
+        }
+
+        if (reqId !== paylaterCheckoutRequestSeq && !force) {
+            return paylaterCheckoutState;
+        }
+
+        paylaterCheckoutState = {
+            loading: false,
+            eligible: Boolean(eligibility.eligible),
+            reason: eligibility.reason || (eligibility.eligible ? 'ok' : 'fetch_failed'),
+            message: getPaylaterEligibilityMessage(eligibility.reason || (eligibility.eligible ? 'ok' : 'fetch_failed')),
+            account: account,
+            summary: summary,
+            config: cfg,
+            simulation: simulation
+        };
+        renderPaylaterCheckoutState();
+        return paylaterCheckoutState;
+    } catch (error) {
+        console.error('Failed refresh PayLater checkout state:', error);
+        paylaterCheckoutState = {
+            loading: false,
+            eligible: false,
+            reason: 'fetch_failed',
+            message: getPaylaterEligibilityMessage('fetch_failed'),
+            account: null,
+            summary: null,
+            config: null,
+            simulation: null
+        };
+        renderPaylaterCheckoutState();
+        return paylaterCheckoutState;
+    }
+}
+
+function updateOrderTotal() {
+    const payMethod = getSelectedPayMethodValue();
+    const subtotal = getOrderSubtotalByPayMethod(payMethod);
+    const shippingFee = getShippingFeeBySelection();
     const total = subtotal + shippingFee;
     
     // Update the display elements
@@ -1807,6 +2143,11 @@ function updateOrderTotal() {
     if (shippingEl) shippingEl.innerText = `Rp ${shippingFee.toLocaleString('id-ID')}`;
 
     updateOrderCTAState();
+    if (isPaylaterSelected()) {
+        refreshPaylaterCheckoutState();
+    } else {
+        renderPaylaterCheckoutState();
+    }
 }
 
 function isOrderFormValid() {
@@ -1833,7 +2174,10 @@ function updateOrderCTAState() {
     const sendButton = document.getElementById('send-order-btn') || document.querySelector('[data-action="send-wa"]');
     if (!sendButton) return;
 
-    const isValid = isOrderFormValid();
+    let isValid = isOrderFormValid();
+    if (isValid && isPaylaterSelected()) {
+        isValid = Boolean(paylaterCheckoutState && paylaterCheckoutState.eligible && !paylaterCheckoutState.loading);
+    }
     sendButton.disabled = !isValid;
     sendButton.setAttribute('aria-disabled', String(!isValid));
 }
@@ -2001,6 +2345,7 @@ async function sendToWA() {
     }
     
     const isGajian = payMethod === 'Bayar Gajian';
+    const isPaylater = payMethod === 'PayLater';
     let total = 0;
     let totalQty = 0;
     let itemsText = '';
@@ -2022,6 +2367,31 @@ async function sendToWA() {
     
     const shippingFee = shipMethod === 'Antar Nikomas' ? 2000 : 0;
     total += shippingFee;
+
+    let paylaterDetailText = '';
+    let paylaterOrderMeta = {};
+    if (isPaylater) {
+        const state = await refreshPaylaterCheckoutState(true);
+        if (!state || !state.eligible || !state.simulation) {
+            alert((state && state.message) || 'PayLater belum memenuhi syarat untuk pesanan ini.');
+            return;
+        }
+        paylaterOrderMeta = {
+            paylater_tenor_weeks: state.simulation.tenorWeeks,
+            paylater_fee_percent: state.simulation.feePercent,
+            paylater_fee_amount: state.simulation.feeAmount,
+            paylater_total_due: state.simulation.totalBeforePenalty,
+            payment_method: 'paylater'
+        };
+        paylaterDetailText =
+            `*PayLater Simulasi:*\n` +
+            `- Pokok: Rp ${Number(state.simulation.principal || 0).toLocaleString('id-ID')}\n` +
+            `- Tenor: ${Number(state.simulation.tenorWeeks || 1)} minggu\n` +
+            `- Fee (${Number(state.simulation.feePercent || 0)}%): Rp ${Number(state.simulation.feeAmount || 0).toLocaleString('id-ID')}\n` +
+            `- Denda Harian: Rp ${Number(state.simulation.dailyPenaltyAmount || 0).toLocaleString('id-ID')}\n` +
+            `- Cap Denda: Rp ${Number(state.simulation.penaltyCapAmount || 0).toLocaleString('id-ID')}\n` +
+            `- Total Jatuh Tempo: Rp ${Number(state.simulation.totalBeforePenalty || 0).toLocaleString('id-ID')}\n\n`;
+    }
     
     // Calculate reward points (1 point per 10,000 IDR)
     const rewardConfig = CONFIG.getRewardConfig();
@@ -2044,6 +2414,7 @@ async function sendToWA() {
         `*Lokasi/Titik:* ${location}${locationText}\n\n` +
         `*Ongkir:* Rp ${shippingFee.toLocaleString('id-ID')}\n` +
         `*TOTAL BAYAR: Rp ${total.toLocaleString('id-ID')}*\n` +
+        `${paylaterDetailText}` +
         `*Estimasi Poin:* +${pointsEarned} Poin\n\n` +
         `Mohon segera diproses ya, terima kasih!`;
         
@@ -2057,11 +2428,13 @@ async function sendToWA() {
         produk: itemsForSheet.slice(0, -3), // Remove trailing ' | '
         qty: totalQty,
         total: total,
-        status: 'Pending',
+        status: isPaylater ? 'Pending PayLater' : 'Pending',
         tanggal: new Date().toLocaleString('id-ID'),
         phone: normalizePhone(phone),
         poin: pointsEarned,
-        point_processed: 'No'
+        point_processed: 'No',
+        payment_method: isPaylater ? 'paylater' : (isGajian ? 'gajian' : (payMethod === 'QRIS' ? 'qris' : 'cash')),
+        ...paylaterOrderMeta
     };
 
     // Log order to GAS using FormData (no CORS preflight)
@@ -2896,7 +3269,7 @@ function openClaimWhatsApp() {
 
 /**
  * Update payment method info text dynamically with smooth animations
- * @param {string} method - Payment method: 'tunai', 'qris', or 'gajian'
+ * @param {string} method - Payment method: 'tunai', 'qris', 'gajian', or 'paylater'
  */
 function updatePaymentMethodInfo(method) {
     const infoContainer = document.getElementById('payment-method-info');
@@ -2909,7 +3282,8 @@ function updatePaymentMethodInfo(method) {
     const paymentInfo = {
         'tunai': 'Pembayaran dilakukan secara tunai saat pesanan diterima atau diambil.',
         'qris': 'Pembayaran dilakukan melalui QRIS menggunakan e-wallet atau mobile banking.',
-        'gajian': 'Pembayaran ditagihkan pada periode gajian berikutnya, jatuh tempo tanggal 6–7.'
+        'gajian': 'Pembayaran ditagihkan pada periode gajian berikutnya, jatuh tempo tanggal 6-7.',
+        'paylater': 'PayLater membutuhkan akun login yang valid, limit cukup, dan tanpa tagihan aktif. Simulasi biaya ditampilkan sebelum konfirmasi.'
     };
     
     // Hide all first with fade out animation
@@ -2955,6 +3329,12 @@ function updatePaymentMethodInfo(method) {
             } else {
                 qrisDisplay.classList.add('hidden');
             }
+        }
+
+        if (method === 'paylater') {
+            refreshPaylaterCheckoutState();
+        } else {
+            renderPaylaterCheckoutState();
         }
     }, 150); // Half of transition duration
 }
@@ -3106,3 +3486,4 @@ updateCartUI = function() {
 document.addEventListener('DOMContentLoaded', function() {
     updateMobileCartCount();
 });
+

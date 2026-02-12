@@ -72,10 +72,11 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
   - note
   - actor (`system`/`admin`)
   - created_at
-- [ ] `P0` Tambah field order untuk integrasi kredit:
+- [x] `P0` Tambah field order untuk integrasi kredit:
   - `payment_method` (`cash`, `qris`, `gajian`, `paylater`)
   - `profit_net`
   - `credit_limit_processed` (`Yes/No`)
+  - Implementasi: backend auto-ensure kolom saat proses `process_paylater_limit_from_orders`
 
 ---
 
@@ -139,24 +140,27 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
   - limit tersedia
   - limit terpakai
   - status akun kredit
-- [ ] `P0` Checkout: opsi bayar `PayLater` dengan validasi eligibility realtime
-- [ ] `P0` Sebelum konfirmasi, tampilkan simulasi:
+- [x] `P0` Checkout: opsi bayar `PayLater` dengan validasi eligibility realtime
+- [x] `P0` Sebelum konfirmasi, tampilkan simulasi:
   - pokok
   - fee tenor
   - denda harian
   - cap denda
   - total jatuh tempo
 - [x] `P0` Halaman riwayat tagihan user + status
-- [ ] `P0` Halaman detail tagihan + tombol bayar/konfirmasi bayar
+- [x] `P0` Halaman detail tagihan + tombol bayar/konfirmasi bayar
 - [ ] `P1` Notifikasi WA/push untuk H-1 jatuh tempo dan overdue
 
 ---
 
 ## 6. Integrasi Order & Profit
 
-- [ ] `P0` Pastikan sumber `profit_net` jelas dan konsisten (per order)
-- [ ] `P0` Trigger limit increase saat order mencapai status final
-- [ ] `P0` Pastikan order batal/retur tidak menambah limit
+- [x] `P0` Pastikan sumber `profit_net` jelas dan konsisten (per order)
+  - Implementasi: hanya membaca field `orders.profit_net` (integer rupiah) sebagai basis kenaikan limit
+- [x] `P0` Trigger limit increase saat order mencapai status final
+  - Implementasi: hook di endpoint `update` sheet `orders` untuk auto-run `process_paylater_limit_from_orders` saat status final
+- [x] `P0` Pastikan order batal/retur tidak menambah limit
+  - Implementasi: status valid kenaikan limit dibatasi ke `lunas`/`diterima`
 - [ ] `P1` Mekanisme reversal jika ada refund setelah limit terlanjur naik
 
 ---
@@ -166,7 +170,10 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
 - [x] `P0` Rule `1 active invoice per user`
 - [x] `P0` Auto-freeze saat overdue melewati ambang (tentukan hari)
 - [x] `P0` Auto-lock untuk gagal bayar berat (tentukan kriteria)
-- [ ] `P0` Unfreeze/unlock hanya setelah pelunasan + verifikasi
+- [x] `P0` Unfreeze/unlock hanya setelah pelunasan + verifikasi
+  - Implementasi:
+    - status `active` wajib `verification_passed=true` + `verification_note` minimal 8 karakter
+    - ditolak jika masih ada invoice open (`active`/`overdue`/`defaulted`)
 - [x] `P1` Batas maksimum limit global per user (ceiling)
 
 ---

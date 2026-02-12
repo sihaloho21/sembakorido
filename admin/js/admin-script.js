@@ -933,19 +933,41 @@ async function submitCreditAccountForm() {
 async function setCreditAccountStatus(phone, status) {
     const normalizedPhone = normalizePhone(phone || '');
     if (!normalizedPhone || !status) return;
+    const normalizedStatus = String(status).toLowerCase();
+    const payload = {
+        phone: normalizedPhone,
+        status: normalizedStatus,
+        note: 'Status diubah dari Admin Panel',
+        actor: 'admin'
+    };
+
+    if (normalizedStatus === 'active') {
+        const verified = window.confirm('Aktifkan akun ini hanya jika semua tagihan sudah lunas dan verifikasi sudah selesai. Lanjutkan?');
+        if (!verified) return;
+        const verificationNote = window.prompt('Isi catatan verifikasi (minimal 8 karakter):', 'Verifikasi pelunasan manual admin');
+        if (verificationNote === null) return;
+        if (String(verificationNote || '').trim().length < 8) {
+            showAdminToast('Catatan verifikasi minimal 8 karakter.', 'error');
+            return;
+        }
+        payload.verification_passed = true;
+        payload.verification_note = String(verificationNote || '').trim();
+        payload.note = `Aktivasi terverifikasi: ${payload.verification_note}`;
+    }
+
     try {
-        const result = await GASActions.setCreditAccountStatus({
-            phone: normalizedPhone,
-            status: String(status).toLowerCase(),
-            note: 'Status diubah dari Admin Panel',
-            actor: 'admin'
-        });
+        const result = await GASActions.setCreditAccountStatus(payload);
         if (result && result.success) {
             showAdminToast(`Status account ${normalizedPhone} => ${status}`, 'success');
             await fetchCreditAccounts();
             return;
         }
-        showAdminToast('Gagal update status credit account.', 'error');
+        showAdminToast(
+            result && (result.message || result.error)
+                ? String(result.message || result.error)
+                : 'Gagal update status credit account.',
+            'error'
+        );
     } catch (error) {
         console.error(error);
         showAdminToast('Gagal update status credit account.', 'error');

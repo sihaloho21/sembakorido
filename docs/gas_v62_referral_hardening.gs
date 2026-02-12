@@ -193,6 +193,9 @@ function doGet(e) {
   if (action === 'public_paylater_invoice_detail') {
     return jsonOutput(handlePublicPaylaterInvoiceDetail(params));
   }
+  if (action === 'public_paylater_config') {
+    return jsonOutput(handlePublicPaylaterConfig(params));
+  }
 
   if (!sheetName || SHEET_WHITELIST.indexOf(sheetName) === -1) {
     return jsonOutput({ error: 'Invalid sheet' });
@@ -612,6 +615,22 @@ function handlePublicPaylaterInvoiceDetail(params) {
   };
 }
 
+function handlePublicPaylaterConfig(params) {
+  const cfg = getPaylaterConfig();
+  return {
+    success: true,
+    paylater_enabled: cfg.enabled,
+    fee_week_1: parseFloat(cfg.feeWeek1 || 0) || 0,
+    fee_week_2: parseFloat(cfg.feeWeek2 || 0) || 0,
+    fee_week_3: parseFloat(cfg.feeWeek3 || 0) || 0,
+    fee_week_4: parseFloat(cfg.feeWeek4 || 0) || 0,
+    daily_penalty_percent: parseFloat(cfg.dailyPenaltyPercent || 0) || 0,
+    penalty_cap_percent: parseFloat(cfg.penaltyCapPercent || 0) || 0,
+    max_active_invoices: parseInt(cfg.maxActiveInvoices || 1, 10) || 1,
+    min_order_amount: 0
+  };
+}
+
 function generateReferralCodeForUser(name, phone, existingCodesMap) {
   const baseName = String(name || 'USER').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'USER';
   const phoneDigits = normalizePhone(phone || '').replace(/[^0-9]/g, '');
@@ -836,7 +855,33 @@ function doPost(e) {
           sheet.getRange(actualRowIndex, colIndex + 1).setValue(data[h]);
         }
       });
-      return jsonOutput({ success: true, affected: 1 });
+
+      var paylaterSyncResult = null;
+      if (sheetName === 'orders' && data && data.status !== undefined) {
+        const updatedStatus = String(data.status || '').trim();
+        if (isFinalOrderStatusForLimit(updatedStatus)) {
+          const rowSnapshot = rows[rowIndex] || [];
+          const idCol = headers.indexOf('id');
+          const orderCodeCol = headers.indexOf('order_id');
+          const orderIdForLimit = normalizeOrderId(
+            (idCol !== -1 ? rowSnapshot[idCol] : '') ||
+            (orderCodeCol !== -1 ? rowSnapshot[orderCodeCol] : '') ||
+            String(id || '')
+          );
+          if (orderIdForLimit) {
+            paylaterSyncResult = processPaylaterLimitFromOrders({
+              order_id: orderIdForLimit,
+              actor: 'order_status_update'
+            });
+          }
+        }
+      }
+
+      const response = { success: true, affected: 1 };
+      if (paylaterSyncResult) {
+        response.paylater_limit_sync = paylaterSyncResult;
+      }
+      return jsonOutput(response);
     }
 
     if (action === 'delete') {
@@ -1797,6 +1842,23 @@ function applyOverdueLimitReduction(phone, invoiceId, cfg, actor, overdueDays) {
   };
 }
 
+function ensureOrderPaylaterIntegrationColumns() {
+  const ordersObj = getRowsAsObjects('orders');
+  if (!ordersObj.headers.length) {
+    return { success: false, error: 'ORDERS_HEADERS_INVALID', message: 'Header orders belum valid' };
+  }
+  const required = ['payment_method', 'profit_net', 'credit_limit_processed'];
+  const missing = required.filter(function(col) {
+    return ordersObj.headers.indexOf(col) === -1;
+  });
+  if (!missing.length) {
+    return { success: true, added: [] };
+  }
+  const startCol = ordersObj.headers.length + 1;
+  ordersObj.sheet.getRange(1, startCol, 1, missing.length).setValues([missing]);
+  return { success: true, added: missing };
+}
+
 function getUtcDateStart(value) {
   const raw = String(value || '').trim();
   if (!raw) return null;
@@ -1838,6 +1900,67 @@ function getCreditStatusRank(status) {
   if (s === 'locked') return 3;
   if (s === 'frozen') return 2;
   return 1;
+}
+
+function isClosedCreditInvoiceStatus(status) {
+  const s = String(status || '').toLowerCase().trim();
+  return s === 'paid' || s === 'cancelled' || s === 'void' || s === 'closed';
+}
+
+function getOpenCreditInvoicesByPhone(phone) {
+  const normalizedPhone = normalizePhone(phone || '');
+  if (!normalizedPhone) return [];
+  const invRows = getRowsAsObjects('credit_invoices').rows;
+  return invRows.filter(function(row) {
+    if (normalizePhone(row.phone || '') !== normalizedPhone) return false;
+    return !isClosedCreditInvoiceStatus(row.status || '');
+  });
+}
+
+function parseBooleanLike(value) {
+  if (value === true || value === 1) return true;
+  const s = String(value || '').toLowerCase().trim();
+  return s === '1' || s === 'true' || s === 'yes' || s === 'ya';
+}
+
+function validateCreditActivationRequest(phone, data) {
+  const payload = data || {};
+  const verificationPassed = parseBooleanLike(payload.verification_passed) || parseBooleanLike(payload.verified);
+  const verificationNote = String(
+    payload.verification_note ||
+    payload.verification_notes ||
+    payload.verification ||
+    ''
+  ).trim();
+  if (!verificationPassed || verificationNote.length < 8) {
+    return {
+      success: false,
+      error: 'VERIFICATION_REQUIRED',
+      message: 'Aktivasi akun kredit wajib verifikasi (verification_passed=true dan verification_note minimal 8 karakter).'
+    };
+  }
+
+  const openInvoices = getOpenCreditInvoicesByPhone(phone);
+  if (openInvoices.length > 0) {
+    var outstandingAmount = 0;
+    for (var i = 0; i < openInvoices.length; i++) {
+      const totalDue = toMoneyInt(openInvoices[i].total_due || 0);
+      const paid = toMoneyInt(openInvoices[i].paid_amount || 0);
+      outstandingAmount += Math.max(0, totalDue - paid);
+    }
+    return {
+      success: false,
+      error: 'OUTSTANDING_INVOICE_EXISTS',
+      message: 'Akun belum bisa diaktifkan: masih ada tagihan aktif/overdue/defaulted.',
+      outstanding_invoice_count: openInvoices.length,
+      outstanding_amount: outstandingAmount
+    };
+  }
+
+  return {
+    success: true,
+    verification_note: verificationNote
+  };
 }
 
 function applyCreditAccountStatus(phone, targetStatus, actor, note, refId, allowDowngrade) {
@@ -1952,6 +2075,12 @@ function handleCreditAccountUpsert(data) {
   const headers = found.headers;
   const rowNumber = found.rowNumber;
   const row = found.row;
+  const currentStatus = String(row.status || 'active').trim().toLowerCase() || 'active';
+
+  if (safeStatus === 'active' && currentStatus !== 'active') {
+    const activationGuard = validateCreditActivationRequest(phone, data);
+    if (!activationGuard.success) return activationGuard;
+  }
 
   const oldLimit = toMoneyInt(row.credit_limit || 0);
   const oldUsed = toMoneyInt(row.used_limit || 0);
@@ -2354,6 +2483,11 @@ function processPaylaterLimitFromOrders(data) {
   const actor = String(data.actor || 'system');
   const dryRun = Boolean(data.dry_run);
 
+  const ensureCols = ensureOrderPaylaterIntegrationColumns();
+  if (!ensureCols.success) {
+    return ensureCols;
+  }
+
   const ordersObj = getRowsAsObjects('orders');
   if (!ordersObj.headers.length) {
     return { success: false, error: 'ORDERS_HEADERS_INVALID', message: 'Header orders belum valid' };
@@ -2557,7 +2691,15 @@ function handleCreditAccountSetStatus(data) {
   const refId = String(data.ref_id || '').trim();
   if (!phone) return { success: false, error: 'INVALID_PAYLOAD', message: 'phone wajib diisi' };
   if (!targetStatus) return { success: false, error: 'INVALID_PAYLOAD', message: 'status/action wajib valid' };
-  return applyCreditAccountStatus(phone, targetStatus, actor, note, refId, true);
+
+  var finalNote = note;
+  if (targetStatus === 'active') {
+    const activationGuard = validateCreditActivationRequest(phone, data);
+    if (!activationGuard.success) return activationGuard;
+    finalNote = finalNote || ('Aktivasi account terverifikasi: ' + activationGuard.verification_note);
+  }
+
+  return applyCreditAccountStatus(phone, targetStatus, actor, finalNote, refId, true);
 }
 
 function handleCreditInvoiceApplyPenalty(data) {

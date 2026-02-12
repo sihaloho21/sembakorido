@@ -442,9 +442,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('click', (event) => {
-        const trigger = event.target.closest('[data-action="view-paylater-invoice"]');
-        if (!trigger) return;
-        openPaylaterDetailModal(trigger.getAttribute('data-invoice-id'));
+        const detailTrigger = event.target.closest('[data-action="view-paylater-invoice"]');
+        if (detailTrigger) {
+            openPaylaterDetailModal(detailTrigger.getAttribute('data-invoice-id'));
+            return;
+        }
+        const confirmTrigger = event.target.closest('[data-action="confirm-paylater-payment"]');
+        if (confirmTrigger) {
+            const link = String(confirmTrigger.getAttribute('data-wa-link') || '').trim();
+            if (link) {
+                window.open(link, '_blank');
+            }
+        }
     });
     
     if (loggedInUser) {
@@ -1039,6 +1048,16 @@ async function openPaylaterDetailModal(invoiceId) {
         const totalDue = parseCurrencyValue(invoice.total_due || 0);
         const paid = parseCurrencyValue(invoice.paid_amount || 0);
         const remaining = Math.max(0, totalDue - paid);
+        const invoiceStatus = String(invoice.status || '').toLowerCase().trim();
+        const canConfirmPayment = remaining > 0 && !['paid', 'cancelled', 'defaulted'].includes(invoiceStatus);
+        const invoiceCode = String(invoice.invoice_id || invoice.id || invoiceId || '-');
+        const waMessage = `KONFIRMASI PEMBAYARAN PAYLATER%0A%0A` +
+            `Invoice: ${encodeURIComponent(invoiceCode)}%0A` +
+            `Total Due: ${encodeURIComponent(formatCurrency(totalDue))}%0A` +
+            `Sudah Dibayar: ${encodeURIComponent(formatCurrency(paid))}%0A` +
+            `Sisa Tagihan: ${encodeURIComponent(formatCurrency(remaining))}%0A` +
+            `Mohon verifikasi pembayaran saya.`;
+        const waLink = `https://wa.me/628993370200?text=${waMessage}`;
 
         const ledgerHtml = ledgerRows.length
             ? ledgerRows.map((row) => {
@@ -1052,6 +1071,15 @@ async function openPaylaterDetailModal(invoiceId) {
                 `;
             }).join('')
             : '<p class="text-xs text-gray-500">Belum ada ledger untuk invoice ini.</p>';
+        const confirmPaymentHtml = canConfirmPayment
+            ? `
+                <div class="pt-3 border-t border-gray-100">
+                    <button type="button" data-action="confirm-paylater-payment" data-wa-link="${escapeHtml(waLink)}" class="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2.5 rounded-lg transition">
+                        Konfirmasi Bayar via WhatsApp
+                    </button>
+                </div>
+              `
+            : '';
 
         contentEl.innerHTML = `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1084,6 +1112,7 @@ async function openPaylaterDetailModal(invoiceId) {
                 <p class="text-sm font-bold text-gray-800 mb-2">Riwayat Ledger</p>
                 <div class="space-y-2">${ledgerHtml}</div>
             </div>
+            ${confirmPaymentHtml}
         `;
     } catch (error) {
         console.error('Error load paylater detail:', error);
