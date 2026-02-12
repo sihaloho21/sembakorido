@@ -1283,25 +1283,67 @@ if (bundleForm) {
 }
 
 // ============ ORDER FUNCTIONS ============
+function getAdminGetToken() {
+    try {
+        const apiUrl = CONFIG.getAdminApiUrl();
+        const parsed = new URL(apiUrl, window.location.origin);
+        const tokenFromUrl = String(parsed.searchParams.get('token') || '').trim();
+        if (tokenFromUrl) return tokenFromUrl;
+    } catch (error) {
+        console.warn('Failed reading token from admin URL:', error);
+    }
+
+    const tokenKeys = ['sembako_admin_api_token', 'sembako_admin_token', 'admin_token'];
+    for (let i = 0; i < tokenKeys.length; i += 1) {
+        const token = String(localStorage.getItem(tokenKeys[i]) || '').trim();
+        if (token) return token;
+    }
+    return '';
+}
+
+function buildAdminGetUrl(sheetName, extraParams) {
+    const params = new URLSearchParams({ sheet: String(sheetName || '').trim() });
+    const token = getAdminGetToken();
+    if (token) params.set('token', token);
+    if (extraParams && typeof extraParams === 'object') {
+        Object.keys(extraParams).forEach((key) => {
+            const value = extraParams[key];
+            if (value === undefined || value === null || value === '') return;
+            params.set(key, String(value));
+        });
+    }
+    return `${API_URL}?${params.toString()}`;
+}
+
+async function fetchSheetRows(sheetName, extraParams) {
+    const response = await fetch(buildAdminGetUrl(sheetName, extraParams));
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    const payload = await response.json();
+    if (payload && typeof payload === 'object' && !Array.isArray(payload) && payload.error) {
+        throw new Error(String(payload.message || payload.error));
+    }
+    return Array.isArray(payload) ? payload : [];
+}
+
 async function fetchOrders() {
     const tbody = document.getElementById('order-list-body');
     tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-10 text-center text-gray-500">Memuat data pesanan...</td></tr>';
     
     try {
-        const response = await fetch(`${API_URL}?sheet=${ORDERS_SHEET}`);
-        allOrders = await response.json();
-        if (!Array.isArray(allOrders)) allOrders = [];
+        allOrders = await fetchSheetRows(ORDERS_SHEET);
         renderOrderTable();
         updateOrderStats();
     } catch (error) {
         console.error('Error:', error);
-        tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-10 text-center text-red-500">Gagal memuat data pesanan.</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-10 text-center text-red-500">Gagal memuat data pesanan: ${escapeHtml(error.message || 'Unknown error')}</td></tr>`;
     }
 }
 
 function updateOrderStats() {
     const total = allOrders.length;
-    const pending = allOrders.filter(o => o.status.toLowerCase() === 'menunggu').length;
+    const pending = allOrders.filter((o) => String(o.status || '').toLowerCase() === 'menunggu').length;
     const revenue = allOrders.reduce((acc, o) => acc + (parseInt(o.total) || 0), 0);
     const avg = total > 0 ? Math.round(revenue / total) : 0;
 
