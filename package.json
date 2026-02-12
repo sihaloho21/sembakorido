@@ -1,6 +1,7 @@
 {
   "scripts": {
     "test:paylater": "node scripts/test-paylater-logic.js",
+    "test:paylater:integration": "node scripts/test-paylater-gas-integration.js",
     "test": "node scripts/lint-basic.js && node scripts/check-tailwind-up-to-date.js && node scripts/check-tailwind-not-manual.js",
     "build:bundle": "npm run build:tailwind && node scripts/bundle-index.js && node scripts/bundle-akun.js && esbuild assets/js/index.bundle.js --minify --outfile=assets/js/index.bundle.min.js && esbuild assets/js/akun.bundle.js --minify --outfile=assets/js/akun.bundle.min.js",
     "build:tailwind": "tailwindcss -c tailwind.config.js -i assets/css/tailwind-input.css -o assets/css/tailwind.min.css --minify && node scripts/report-css-size.js && node scripts/warn-browserslist.js",

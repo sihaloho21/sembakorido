@@ -186,11 +186,13 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
   - Implementasi: `scripts/test-paylater-logic.js` (`calculatePenaltyAmount`, cap penalty)
 - [x] `P0` Unit test validasi eligibility
   - Implementasi: `scripts/test-paylater-logic.js` (`evaluatePaylaterEligibility`)
-- [ ] `P0` Integration test alur:
+- [x] `P0` Integration test alur:
   - checkout paylater -> invoice aktif
   - bayar -> invoice lunas -> limit pulih
   - overdue -> penalty -> freeze
-- [ ] `P0` Test idempotency (double click / retry request)
+  - Implementasi: `scripts/test-paylater-gas-integration.js`
+- [x] `P0` Test idempotency (double click / retry request)
+  - Implementasi: `scripts/test-paylater-gas-integration.js` (invoice create, payment, limit increase)
 - [ ] `P1` UAT skenario admin manual limit + perubahan setting tenor
 
 ---
