@@ -158,6 +158,9 @@ function doGet(e) {
   if (action === 'public_referral_history') {
     return jsonOutput(handlePublicReferralHistory(params));
   }
+  if (action === 'public_referral_config') {
+    return jsonOutput(handlePublicReferralConfig(params));
+  }
 
   if (!sheetName || SHEET_WHITELIST.indexOf(sheetName) === -1) {
     return jsonOutput({ error: 'Invalid sheet' });
@@ -454,6 +457,17 @@ function handlePublicReferralHistory(params) {
     })
     .slice(0, 20);
   return { success: true, phone: phone, referrals: rows };
+}
+
+function handlePublicReferralConfig(params) {
+  const cfg = getReferralConfig();
+  return {
+    success: true,
+    referral_enabled: cfg.enabled,
+    reward_referrer_points: parseInt(cfg.rewardReferrer || 0, 10) || 0,
+    reward_referee_points: parseInt(cfg.rewardReferee || 0, 10) || 0,
+    min_first_order: parseNumber(cfg.minFirstOrder || 0)
+  };
 }
 
 function generateReferralCodeForUser(name, phone, existingCodesMap) {
