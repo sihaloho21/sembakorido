@@ -313,9 +313,15 @@ function testOverduePenaltyFreeze(ctx) {
   const account = ctx.findCreditAccountByPhone(phone).row;
   assert(String(account.status).toLowerCase() === 'frozen', 'Account harus auto frozen pada overdue threshold');
 
-  const ledRows = getRows(ctx, 'credit_ledger').filter((r) => String(r.invoice_id) === 'INV-OD-1');
-  const hasPenalty = ledRows.some((r) => String(r.type) === 'penalty');
-  const hasFrozen = ledRows.some((r) => String(r.type) === 'frozen');
+  const ledRows = getRows(ctx, 'credit_ledger');
+  const hasPenalty = ledRows.some((r) =>
+    String(r.type) === 'penalty' &&
+    String(r.invoice_id) === 'INV-OD-1'
+  );
+  const hasFrozen = ledRows.some((r) =>
+    String(r.type) === 'frozen' &&
+    String(r.ref_id) === 'INV-OD-1'
+  );
   assert(hasPenalty, 'Ledger harus punya entry penalty');
   assert(hasFrozen, 'Ledger harus punya entry frozen');
 }
@@ -420,6 +426,55 @@ function testIdempotency(ctx) {
   assert(limitLedCount === 1, 'Retry limit increase tidak boleh menambah ledger limit_increase');
 }
 
+function testRefundLimitReversal(ctx) {
+  const phone = '081234567894';
+  addCreditAccount(ctx, {
+    id: 'CAC-5',
+    phone,
+    user_id: 'USR-5',
+    credit_limit: 100000,
+    available_limit: 100000,
+    used_limit: 0,
+    status: 'active',
+    admin_initial_limit: 100000,
+    limit_growth_total: 0,
+    notes: '',
+    created_at: ctx.nowIso(),
+    updated_at: ctx.nowIso()
+  });
+
+  const inc = ctx.handleCreditLimitFromProfit({
+    phone,
+    order_id: 'ORD-REFUND-1',
+    profit_net: 50000,
+    actor: 'test'
+  });
+  assert(inc && inc.success && Number(inc.increased) === 5000, 'Kenaikan limit awal harus 5000');
+
+  const rev1 = ctx.handleCreditLimitRefundReversal({
+    phone,
+    order_id: 'ORD-REFUND-1',
+    actor: 'test'
+  });
+  assert(rev1 && rev1.success && Number(rev1.reversed) === 5000, 'Reversal penuh harus 5000');
+  assert(Number(rev1.credit_limit) === 100000, 'Credit limit harus kembali ke nilai awal');
+  assert(Number(rev1.limit_growth_total) === 0, 'Limit growth total harus kembali 0');
+
+  const rev2 = ctx.handleCreditLimitRefundReversal({
+    phone,
+    order_id: 'ORD-REFUND-1',
+    actor: 'test'
+  });
+  assert(rev2 && rev2.success && rev2.dedup, 'Retry reversal harus dedup=true');
+
+  const revLedgerCount = getRows(ctx, 'credit_ledger').filter((r) =>
+    String(r.type) === 'limit_reversal' &&
+    String(r.ref_id) === 'ORD-REFUND-1' &&
+    String(ctx.normalizePhone(r.phone || '')) === String(ctx.normalizePhone(phone))
+  ).length;
+  assert(revLedgerCount === 1, 'Retry reversal tidak boleh menambah ledger limit_reversal');
+}
+
 function seedSettings(ctx) {
   addSetting(ctx, 'paylater_enabled', 'true');
   addSetting(ctx, 'paylater_profit_to_limit_percent', '10');
@@ -444,6 +499,7 @@ function run() {
   testInvoiceCheckoutPayRelease(ctx);
   testOverduePenaltyFreeze(ctx);
   testIdempotency(ctx);
+  testRefundLimitReversal(ctx);
   console.log('PayLater GAS integration + idempotency tests passed.');
 }
 

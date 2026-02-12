@@ -768,6 +768,12 @@ function doPost(e) {
       }));
     }
 
+    if (action === 'credit_limit_refund_reversal') {
+      return jsonOutput(withScriptLock(function() {
+        return handleCreditLimitRefundReversal(data);
+      }));
+    }
+
     if (action === 'process_paylater_limit_from_orders') {
       return jsonOutput(withScriptLock(function() {
         return processPaylaterLimitFromOrders(data);
@@ -860,29 +866,41 @@ function doPost(e) {
       });
 
       var paylaterSyncResult = null;
+      var paylaterReversalResult = null;
       if (sheetName === 'orders' && data && data.status !== undefined) {
         const updatedStatus = String(data.status || '').trim();
-        if (isFinalOrderStatusForLimit(updatedStatus)) {
-          const rowSnapshot = rows[rowIndex] || [];
-          const idCol = headers.indexOf('id');
-          const orderCodeCol = headers.indexOf('order_id');
-          const orderIdForLimit = normalizeOrderId(
-            (idCol !== -1 ? rowSnapshot[idCol] : '') ||
-            (orderCodeCol !== -1 ? rowSnapshot[orderCodeCol] : '') ||
-            String(id || '')
-          );
-          if (orderIdForLimit) {
-            paylaterSyncResult = processPaylaterLimitFromOrders({
-              order_id: orderIdForLimit,
-              actor: 'order_status_update'
-            });
-          }
+        const rowSnapshot = rows[rowIndex] || [];
+        const idCol = headers.indexOf('id');
+        const orderCodeCol = headers.indexOf('order_id');
+        const phoneCol = headers.indexOf('phone');
+        const orderIdForLimit = normalizeOrderId(
+          (idCol !== -1 ? rowSnapshot[idCol] : '') ||
+          (orderCodeCol !== -1 ? rowSnapshot[orderCodeCol] : '') ||
+          String(id || '')
+        );
+        const orderPhone = normalizePhone(phoneCol !== -1 ? rowSnapshot[phoneCol] : '');
+
+        if (isFinalOrderStatusForLimit(updatedStatus) && orderIdForLimit) {
+          paylaterSyncResult = processPaylaterLimitFromOrders({
+            order_id: orderIdForLimit,
+            actor: 'order_status_update'
+          });
+        }
+        if (isRefundOrderStatusForLimit(updatedStatus) && orderIdForLimit) {
+          paylaterReversalResult = handleCreditLimitRefundReversal({
+            order_id: orderIdForLimit,
+            phone: orderPhone,
+            actor: 'order_status_refund'
+          });
         }
       }
 
       const response = { success: true, affected: 1 };
       if (paylaterSyncResult) {
         response.paylater_limit_sync = paylaterSyncResult;
+      }
+      if (paylaterReversalResult) {
+        response.paylater_limit_reversal = paylaterReversalResult;
       }
       return jsonOutput(response);
     }
@@ -2516,6 +2534,113 @@ function handleCreditLimitFromProfit(data) {
   };
 }
 
+function handleCreditLimitRefundReversal(data) {
+  data = data || {};
+  const orderId = normalizeOrderId(data.order_id || data.ref_id || '');
+  const actor = String(data.actor || 'system');
+  const phoneInput = normalizePhone(data.phone || data.whatsapp || '');
+  const requestedAmount = toMoneyInt(data.reversal_amount || data.amount || 0);
+  if (!orderId) {
+    return { success: false, error: 'INVALID_PAYLOAD', message: 'order_id wajib diisi' };
+  }
+
+  const ledRows = getRowsAsObjects('credit_ledger').rows;
+  var inferredPhone = phoneInput;
+  var userId = '';
+  var totalIncrease = 0;
+  var totalReversed = 0;
+
+  for (var i = 0; i < ledRows.length; i++) {
+    const row = ledRows[i];
+    if (String(row.ref_id || '').trim() !== orderId) continue;
+    const rowPhone = normalizePhone(row.phone || '');
+    if (phoneInput && rowPhone !== phoneInput) continue;
+    const type = String(row.type || '').toLowerCase().trim();
+    const amount = toMoneyInt(row.amount || 0);
+
+    if (!inferredPhone && rowPhone) {
+      inferredPhone = rowPhone;
+      userId = row.user_id || '';
+    }
+
+    if (type === 'limit_increase') totalIncrease += amount;
+    if (type === 'limit_reversal') totalReversed += amount;
+  }
+
+  if (!inferredPhone) {
+    return {
+      success: false,
+      error: 'LIMIT_INCREASE_NOT_FOUND',
+      message: 'Tidak ada kenaikan limit untuk order ini'
+    };
+  }
+
+  const reversible = Math.max(0, totalIncrease - totalReversed);
+  if (reversible <= 0) {
+    return {
+      success: true,
+      dedup: true,
+      reversed: 0,
+      order_id: orderId,
+      phone: inferredPhone,
+      message: 'Reversal limit untuk order ini sudah diproses'
+    };
+  }
+
+  const reversalAmount = requestedAmount > 0 ? Math.min(requestedAmount, reversible) : reversible;
+  if (reversalAmount <= 0) {
+    return {
+      success: true,
+      dedup: true,
+      reversed: 0,
+      order_id: orderId,
+      phone: inferredPhone
+    };
+  }
+
+  const found = findCreditAccountByPhone(inferredPhone);
+  if (!found || !found.row) {
+    return { success: false, error: 'ACCOUNT_NOT_FOUND', message: 'Credit account belum tersedia' };
+  }
+
+  const account = found.row;
+  const oldLimit = toMoneyInt(account.credit_limit || 0);
+  const oldUsed = toMoneyInt(account.used_limit || 0);
+  const oldGrowth = toMoneyInt(account.limit_growth_total || 0);
+
+  const newLimit = Math.max(0, oldLimit - reversalAmount);
+  const newAvailable = Math.max(0, newLimit - oldUsed);
+  const newGrowth = Math.max(0, oldGrowth - reversalAmount);
+
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'credit_limit', newLimit);
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'available_limit', newAvailable);
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'limit_growth_total', newGrowth);
+  setCellIfColumnExists(found.sheet, found.headers, found.rowNumber, 'updated_at', nowIso());
+
+  appendCreditLedger({
+    phone: inferredPhone,
+    user_id: userId || account.user_id || '',
+    type: 'limit_reversal',
+    amount: reversalAmount,
+    balance_before: oldLimit,
+    balance_after: newLimit,
+    ref_id: orderId,
+    note: 'Reversal limit karena refund/retur order',
+    actor: actor
+  });
+
+  return {
+    success: true,
+    order_id: orderId,
+    phone: inferredPhone,
+    reversed: reversalAmount,
+    remaining_reversible: Math.max(0, reversible - reversalAmount),
+    credit_limit: newLimit,
+    available_limit: newAvailable,
+    limit_growth_total: newGrowth
+  };
+}
+
 function isFinalOrderStatusForLimit(status) {
   const normalized = String(status || '').toLowerCase().trim();
   const finals = {
@@ -2523,6 +2648,22 @@ function isFinalOrderStatusForLimit(status) {
     diterima: true
   };
   return Boolean(finals[normalized]);
+}
+
+function isRefundOrderStatusForLimit(status) {
+  const normalized = String(status || '').toLowerCase().trim();
+  const refunds = {
+    refund: true,
+    refunded: true,
+    retur: true,
+    returned: true,
+    dibatalkan: true,
+    batal: true,
+    cancel: true,
+    canceled: true,
+    cancelled: true
+  };
+  return Boolean(refunds[normalized]);
 }
 
 function processPaylaterLimitFromOrders(data) {
@@ -2951,6 +3092,7 @@ function isSheetValidationRequired(actionKey) {
     credit_invoice_create: true,
     credit_invoice_pay: true,
     credit_limit_from_profit: true,
+    credit_limit_refund_reversal: true,
     credit_invoice_apply_penalty: true,
     credit_account_set_status: true,
     process_paylater_limit_from_orders: true,
