@@ -4,7 +4,7 @@ const crypto = require("crypto");
 const { spawnSync } = require("child_process");
 
 const projectRoot = path.resolve(__dirname, "..");
-const tailwindBin = path.join(projectRoot, "node_modules", ".bin", "tailwindcss");
+const tailwindCli = path.join(projectRoot, "node_modules", "tailwindcss", "lib", "cli.js");
 const inputCss = path.join(projectRoot, "assets", "css", "tailwind-input.css");
 const configPath = path.join(projectRoot, "tailwind.config.js");
 const outputCss = path.join(projectRoot, "assets", "css", "tailwind.min.css");
@@ -22,8 +22,8 @@ const hashFile = (filePath) => {
 const beforeHash = hashFile(outputCss);
 
 const result = spawnSync(
-  tailwindBin,
-  ["-c", configPath, "-i", inputCss, "-o", outputCss, "--minify"],
+  process.execPath,
+  [tailwindCli, "-c", configPath, "-i", inputCss, "-o", outputCss, "--minify"],
   { stdio: "inherit" }
 );
 

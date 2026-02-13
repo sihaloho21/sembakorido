@@ -2,6 +2,23 @@
 
 Gunakan checklist ini untuk memastikan semua sistem saling terhubung dengan benar dari sisi user, admin, API, dan data sheet.
 
+## Status Cek Ulang (2026-02-13) - Akun Focus
+- [x] Dashboard akun sudah pakai endpoint public ketat untuk area target:
+  - `public_login`, `public_user_profile`, `public_referral_history`
+  - `public_user_points`, `public_user_orders`
+  - `public_paylater_summary`, `public_paylater_invoices`, `public_paylater_invoice_detail`
+- [x] UI error/loading/retry untuk section target akun sudah ada (`referral`, `paylater`, `orders`, `points`).
+- [x] Retry per section sudah diarahkan ke refetch section terkait (bukan full reload halaman).
+- [x] Build artifact frontend JS sudah diregenerate.
+- [x] `npm run test` lulus di environment lokal saat cek ulang ini.
+- [x] Flow non-target akun sudah migrasi strict-public (tanpa `?sheet=` di `assets/js/akun.js`):
+  - Register: tanpa prefetch `users`, rely pada response public `create`.
+  - Forgot PIN: tanpa enumerasi `users`, langsung alur kontak admin.
+  - Edit profile: pindah ke action public `public_update_profile`.
+  - Loyalty non-target: riwayat klaim + katalog reward pindah ke `public_claim_history` dan `public_rewards_catalog`.
+- [x] `npm run test:paylater:integration` lulus setelah skenario overdue dibuat dinamis terhadap tanggal runtime.
+- [ ] Checklist end-to-end lain di bawah ini masih perlu verifikasi manual/integrasi sesuai scope masing-masing.
+
 ## 1. Persiapan Environment
 - [ ] Pastikan `SPREADSHEET_ID` mengarah ke sheet produksi/staging yang benar.
 - [ ] Pastikan semua sheet wajib ada dan header valid (`users`, `orders`, `user_points`, `claims`, `referrals`, `settings`, `credit_accounts`, `credit_invoices`, `credit_ledger`).
@@ -20,6 +37,17 @@ Gunakan checklist ini untuk memastikan semua sistem saling terhubung dengan bena
 - [ ] Login untuk akun nonaktif ditolak.
 - [ ] Endpoint publik berbasis session (`public_user_profile`, `public_user_points`, `public_user_orders`) gagal jika token invalid.
 - [ ] Token session lama (expired) tidak bisa dipakai.
+
+### Bukti Verifikasi Auth (2026-02-13)
+- `rg -n "\\?sheet=" assets/js/akun.js` => tidak ada match (flow akun source sudah tanpa query `sheet=`).
+- `assets/js/akun.js` sudah pakai:
+  - `action: 'public_update_profile'` untuk edit profil/PIN.
+  - `akunApiPost({ action: 'create', sheet: 'users', ... })` untuk register public.
+- `docs/gas_v62_referral_hardening.gs` sudah expose guard public untuk:
+  - `PUBLIC_POST_RULES.public_update_profile`
+  - `doPost` handler `public_update_profile`
+  - helper sesi `resolvePublicSessionPhoneFromData(...)`
+- Catatan: verifikasi E2E manual register/login/session-expiry belum dijalankan pada putaran ini.
 
 ## 3. Profil User & Data Dasar
 - [ ] `public_user_profile` mengembalikan data user sesuai nomor login.
@@ -49,6 +77,15 @@ Gunakan checklist ini untuk memastikan semua sistem saling terhubung dengan bena
 - [ ] Fraud review/block bekerja sesuai rule dan log masuk `fraud_risk_logs`.
 - [ ] Reversal referral saat order cancel berjalan dan idempotent.
 
+### Bukti Verifikasi Referral (2026-02-13)
+- Endpoint public referral di frontend tetap pakai action ketat:
+  - `public_referral_history`, `public_referral_config` (lihat `assets/js/akun.js`).
+- Guard backend referral masih aktif (cek `docs/gas_v62_referral_hardening.gs`):
+  - idempotency order referral (`findReferralByTriggerOrderId`)
+  - fraud engine (`evaluateReferralFraudRisk`, `logFraudRiskEvent`)
+  - reversal lifecycle (`handleReverseReferralByOrder`)
+- Catatan: checklist referral section ini masih butuh uji integrasi end-to-end (attach/evaluate/reverse real data).
+
 ## 7. Reward Points & Claim
 - [ ] Poin loyalty dari order diproses sekali per order (`point_processed`).
 - [ ] Claim reward valid memotong poin user dan mengurangi stok reward.
@@ -65,6 +102,15 @@ Gunakan checklist ini untuk memastikan semua sistem saling terhubung dengan bena
 - [ ] Apply penalty berjalan sesuai overdue days dan cap.
 - [ ] Auto freeze/lock/defaulted berjalan sesuai konfigurasi hari overdue.
 - [ ] `public_paylater_summary`, `public_paylater_invoices`, `public_paylater_invoice_detail` hanya akses milik user login.
+
+### Bukti Verifikasi PayLater (2026-02-13)
+- Test logic lulus: `npm run test:paylater` => `PayLater logic tests passed.`
+- Test integrasi lulus: `npm run test:paylater:integration` => `PayLater GAS integration + idempotency tests passed.`
+- Endpoint public akun untuk paylater tetap aktif di frontend:
+  - `public_paylater_summary`
+  - `public_paylater_invoices`
+  - `public_paylater_invoice_detail`
+- Catatan: item checklist PayLater di section ini tetap pending sampai smoke test data nyata selesai.
 
 ## 9. Scheduler & Background Jobs
 - [ ] Scheduler paylater limit terpasang dan handler trigger benar.

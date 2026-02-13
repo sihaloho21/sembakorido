@@ -105,6 +105,7 @@ const SENSITIVE_GET_SHEETS = {
 const PUBLIC_POST_RULES = {
   attach_referral: { anySheet: true },
   claim_reward: { anySheet: true },
+  public_update_profile: { anySheet: true },
   create: { sheets: { orders: true, users: true, claims: true } }
 };
 
@@ -202,6 +203,12 @@ function doGet(e) {
   }
   if (action === 'public_referral_config') {
     return jsonOutput(handlePublicReferralConfig(params));
+  }
+  if (action === 'public_claim_history') {
+    return jsonOutput(handlePublicClaimHistory(params));
+  }
+  if (action === 'public_rewards_catalog') {
+    return jsonOutput(handlePublicRewardsCatalog(params));
   }
   if (action === 'public_paylater_summary') {
     return jsonOutput(handlePublicPaylaterSummary(params));
@@ -410,6 +417,13 @@ function resolvePublicSessionPhone(params) {
     Logger.log('Resolve public session cache error: ' + error.toString());
     return '';
   }
+}
+
+function resolvePublicSessionPhoneFromData(data) {
+  const payload = data || {};
+  const token = String(payload.session_token || payload.session || payload.st || '').trim();
+  if (!token) return '';
+  return resolvePublicSessionPhone({ session_token: token });
 }
 
 function findUserByPhone(phone) {
@@ -668,6 +682,147 @@ function handlePublicPaylaterConfig(params) {
   };
 }
 
+function handlePublicClaimHistory(params) {
+  const phone = resolvePublicSessionPhone(params);
+  if (!phone) {
+    return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
+  }
+
+  const claimsObj = getRowsAsObjects('claims');
+  const rows = claimsObj.rows
+    .filter(function(row) {
+      return normalizePhone(row.phone || row.whatsapp || '') === phone;
+    })
+    .sort(function(a, b) {
+      return new Date(b.tanggal || b.date || b.created_at || 0).getTime() -
+        new Date(a.tanggal || a.date || a.created_at || 0).getTime();
+    })
+    .slice(0, 50);
+
+  return {
+    success: true,
+    phone: phone,
+    claims: rows
+  };
+}
+
+function handlePublicRewardsCatalog(params) {
+  const phone = resolvePublicSessionPhone(params);
+  if (!phone) {
+    return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
+  }
+
+  const rewardsObj = getRowsAsObjects('tukar_poin');
+  const items = rewardsObj.rows.map(function(row) {
+    return {
+      id: row.id || '',
+      nama: row.nama || row.judul || '',
+      judul: row.judul || row.nama || '',
+      poin: parseInt(row.poin || 0, 10) || 0,
+      gambar: row.gambar || '',
+      deskripsi: row.deskripsi || '',
+      reward_stock: Math.max(0, parseInt(row.reward_stock || 0, 10) || 0),
+      daily_quota: Math.max(0, parseInt(row.daily_quota || 0, 10) || 0),
+      daily_claim_count: Math.max(0, parseInt(row.daily_claim_count || 0, 10) || 0),
+      daily_claim_date: String(row.daily_claim_date || '')
+    };
+  });
+
+  return {
+    success: true,
+    phone: phone,
+    rewards: items
+  };
+}
+
+function handlePublicUpdateProfile(data) {
+  const payload = data || {};
+  const sessionToken = String(payload.session_token || payload.session || payload.st || '').trim();
+  const phone = resolvePublicSessionPhoneFromData(payload);
+  if (!phone) {
+    return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
+  }
+
+  const found = findUserByPhone(phone);
+  if (!found.user || found.rowNumber === -1) {
+    return { success: false, error: 'USER_NOT_FOUND', message: 'User tidak ditemukan' };
+  }
+
+  const usersData = found.usersData;
+  const headers = usersData.headers || [];
+  const sheet = usersData.sheet;
+  const rowNumber = found.rowNumber;
+
+  const nameCol = headers.indexOf('nama');
+  if (nameCol === -1) {
+    return { success: false, error: 'USERS_HEADERS_INVALID', message: 'Kolom nama belum tersedia' };
+  }
+  const pinCol = headers.indexOf('pin');
+  const updatedAtCol = headers.indexOf('updated_at');
+
+  const currentName = String(found.user.nama || '').trim();
+  const inputName = String(payload.nama || payload.name || currentName).trim();
+  const inputNameCompact = inputName.replace(/\s/g, '');
+  if (!inputName || inputNameCompact.length < 4) {
+    return {
+      success: false,
+      error: 'INVALID_PAYLOAD',
+      message: 'nama minimal 4 karakter non-spasi'
+    };
+  }
+
+  const oldPin = String(payload.old_pin || payload.oldPin || '').trim();
+  const newPin = String(payload.new_pin || payload.newPin || '').trim();
+  const confirmPin = String(payload.confirm_pin || payload.confirmPin || '').trim();
+  const hasPinChangeRequest = oldPin || newPin || confirmPin;
+
+  if (hasPinChangeRequest) {
+    if (!oldPin || !newPin || !confirmPin) {
+      return {
+        success: false,
+        error: 'INVALID_PAYLOAD',
+        message: 'old_pin, new_pin, confirm_pin wajib diisi untuk ubah PIN'
+      };
+    }
+    if (!/^\d{6}$/.test(newPin)) {
+      return {
+        success: false,
+        error: 'INVALID_PAYLOAD',
+        message: 'PIN baru harus 6 digit angka'
+      };
+    }
+    if (newPin !== confirmPin) {
+      return {
+        success: false,
+        error: 'INVALID_PAYLOAD',
+        message: 'Konfirmasi PIN baru tidak cocok'
+      };
+    }
+    if (pinCol === -1) {
+      return { success: false, error: 'USERS_HEADERS_INVALID', message: 'Kolom pin belum tersedia' };
+    }
+    if (String(found.user.pin || '').trim() !== oldPin) {
+      return { success: false, error: 'OLD_PIN_INVALID', message: 'PIN lama salah' };
+    }
+  }
+
+  setCellIfColumnExists(sheet, headers, rowNumber, 'nama', inputName);
+  if (hasPinChangeRequest && pinCol !== -1) {
+    setCellIfColumnExists(sheet, headers, rowNumber, 'pin', newPin);
+    found.user.pin = newPin;
+  }
+  if (updatedAtCol !== -1) {
+    setCellIfColumnExists(sheet, headers, rowNumber, 'updated_at', nowIso());
+  }
+  found.user.nama = inputName;
+
+  return {
+    success: true,
+    message: 'Profil berhasil diperbarui',
+    user: buildPublicUserPayload(found.user, phone, sessionToken)
+  };
+}
+
 function generateReferralCodeForUser(name, phone, existingCodesMap) {
   const baseName = String(name || 'USER').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'USER';
   const phoneDigits = normalizePhone(phone || '').replace(/[^0-9]/g, '');
@@ -754,6 +909,12 @@ function doPost(e) {
     if (action === 'claim_reward') {
       return jsonOutput(withScriptLock(function() {
         return handleClaimReward(data);
+      }));
+    }
+
+    if (action === 'public_update_profile') {
+      return jsonOutput(withScriptLock(function() {
+        return handlePublicUpdateProfile(data || body);
       }));
     }
 
@@ -3845,6 +4006,7 @@ function isSheetValidationRequired(actionKey) {
   const skip = {
     attach_referral: true,
     claim_reward: true,
+    public_update_profile: true,
     credit_account_get: true,
     credit_account_upsert: true,
     credit_invoice_create: true,
