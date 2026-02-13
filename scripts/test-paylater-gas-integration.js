@@ -276,6 +276,12 @@ function testInvoiceCheckoutPayRelease(ctx) {
 
 function testOverduePenaltyFreeze(ctx) {
   const phone = '081234567891';
+  const now = new Date();
+  const dueDate = new Date(now.getTime() + (24 * 60 * 60 * 1000));
+  const asOfDate = new Date(now.getTime() + (12 * 24 * 60 * 60 * 1000));
+  const dueDateIso = dueDate.toISOString().slice(0, 10);
+  const asOfDateIso = asOfDate.toISOString().slice(0, 10);
+
   addCreditAccount(ctx, {
     id: 'CAC-2',
     phone,
@@ -298,14 +304,14 @@ function testOverduePenaltyFreeze(ctx) {
     tenor_weeks: 1,
     source_order_id: 'ORD-INT-2',
     invoice_id: 'INV-OD-1',
-    due_date: '2026-02-01',
+    due_date: dueDateIso,
     actor: 'test'
   });
   assert(created && created.success, 'Invoice overdue test harus berhasil dibuat');
 
   const penalized = ctx.handleCreditInvoiceApplyPenalty({
     invoice_id: 'INV-OD-1',
-    as_of_date: '2026-02-12',
+    as_of_date: asOfDateIso,
     actor: 'test'
   });
   assert(penalized && penalized.success, 'Apply penalty harus success');

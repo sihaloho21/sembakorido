@@ -4,7 +4,7 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 
 const projectRoot = path.resolve(__dirname, "..");
-const tailwindBin = path.join(projectRoot, "node_modules", ".bin", "tailwindcss");
+const tailwindCli = path.join(projectRoot, "node_modules", "tailwindcss", "lib", "cli.js");
 const inputCss = path.join(projectRoot, "assets", "css", "tailwind-input.css");
 const outputCss = path.join(projectRoot, "assets", "css", "tailwind.min.css");
 const configPath = path.join(projectRoot, "tailwind.config.js");
@@ -18,8 +18,8 @@ const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tailwind-check-"));
 const tempOutput = path.join(tempDir, "tailwind.min.css");
 
 const result = spawnSync(
-  tailwindBin,
-  ["-c", configPath, "-i", inputCss, "-o", tempOutput, "--minify"],
+  process.execPath,
+  [tailwindCli, "-c", configPath, "-i", inputCss, "-o", tempOutput, "--minify"],
   { stdio: "inherit" }
 );
 

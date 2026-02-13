@@ -1642,15 +1642,8 @@ function prefillCustomerInfo() {
     const phoneEl = document.getElementById('customer-phone');
     if (!nameEl || !phoneEl) return;
 
-    const saved = localStorage.getItem('gosembako_user');
-    if (!saved) return;
-
-    let user;
-    try {
-        user = JSON.parse(saved);
-    } catch (e) {
-        return;
-    }
+    const user = getStoredLoggedInUser();
+    if (!user) return;
 
     const savedName = (user.nama || '').trim();
     const savedPhone = normalizePhoneNumber(user.whatsapp || user.phone || '');
@@ -1675,7 +1668,8 @@ function shareProduct(name) {
     const text = `Cek paket sembako murah "${name}" di GoSembako! Kualitas terjamin, harga bersahabat.`;
     const url = window.location.href;
     const waUrl = `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`;
-    window.open(waUrl, '_blank');
+    const popup = window.open(waUrl, '_blank', 'noopener,noreferrer');
+    if (popup) popup.opener = null;
 }
 
 function startNotificationLoop() {
@@ -2052,7 +2046,18 @@ function getStoredLoggedInUser() {
     if (!raw) return null;
     try {
         const parsed = JSON.parse(raw);
-        return parsed && typeof parsed === 'object' ? parsed : null;
+        if (!parsed || typeof parsed !== 'object') return null;
+
+        const normalizedPhone = normalizePhone(parsed.whatsapp || parsed.phone || '');
+        const resolvedPhone = normalizedPhone || String(parsed.whatsapp || parsed.phone || '').trim();
+        const sessionToken = String(parsed.session_token || parsed.sessionToken || parsed.st || '').trim();
+
+        return {
+            ...parsed,
+            whatsapp: resolvedPhone,
+            phone: resolvedPhone,
+            session_token: sessionToken
+        };
     } catch (error) {
         return null;
     }
@@ -2944,7 +2949,8 @@ async function claimReward(rewardId) {
         
         // Small delay before opening WhatsApp
         setTimeout(() => {
-            window.open(waUrl, '_blank');
+            const popup = window.open(waUrl, '_blank', 'noopener,noreferrer');
+            if (popup) popup.opener = null;
         }, 1500);
 
     } catch (error) {
@@ -3487,7 +3493,8 @@ function closeClaimSuccessModal() {
  */
 function openClaimWhatsApp() {
     if (window.claimWhatsAppUrl) {
-        window.open(window.claimWhatsAppUrl, '_blank');
+        const popup = window.open(window.claimWhatsAppUrl, '_blank', 'noopener,noreferrer');
+        if (popup) popup.opener = null;
         // Close modal after opening WhatsApp
         setTimeout(() => {
             closeClaimSuccessModal();

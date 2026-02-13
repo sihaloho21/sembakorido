@@ -32,15 +32,6 @@ const parseSheetResponse = (data) => {
     return [];
 };
 
-const isUnauthorizedApiResponse = (data) => {
-    return Boolean(
-        data &&
-        typeof data === 'object' &&
-        !Array.isArray(data) &&
-        String(data.error || '').toLowerCase() === 'unauthorized'
-    );
-};
-
 const buildSessionQuery = (user) => {
     const sessionToken = String((user && user.session_token) || '').trim();
     return sessionToken ? `&session_token=${encodeURIComponent(sessionToken)}` : '';
@@ -49,6 +40,159 @@ const buildSessionQuery = (user) => {
 const hasPublicSession = (user) => {
     return String((user && user.session_token) || '').trim() !== '';
 };
+
+const SESSION_INVALID_MESSAGE = 'Session login tidak valid. Silakan login ulang.';
+const NETWORK_ERROR_MESSAGE = 'Gagal memuat data. Periksa koneksi lalu coba lagi.';
+
+const SECTION_UI_MAP = {
+    referral: {
+        loadingId: 'referral-loading',
+        errorId: 'referral-error',
+        errorTextId: 'referral-error-text',
+        loginCtaId: 'referral-login-cta',
+        retryAction: 'retry-referral'
+    },
+    paylater: {
+        loadingId: 'paylater-loading',
+        errorId: 'paylater-error',
+        errorTextId: 'paylater-error-text',
+        loginCtaId: 'paylater-login-cta',
+        retryAction: 'retry-paylater'
+    },
+    orders: {
+        loadingId: 'order-loading',
+        errorId: 'order-error',
+        errorTextId: 'order-error-text',
+        loginCtaId: 'orders-login-cta',
+        retryAction: 'retry-orders'
+    },
+    points: {
+        loadingId: 'points-loading',
+        errorId: 'points-error',
+        errorTextId: 'points-error-text',
+        loginCtaId: 'points-login-cta',
+        retryAction: 'retry-points'
+    }
+};
+
+let lastPaylaterDetailInvoiceId = '';
+
+function createAkunError(message, code) {
+    const err = new Error(message || 'Unknown error');
+    err.code = String(code || '').toUpperCase();
+    err.isSessionError = err.code === 'UNAUTHORIZED_SESSION';
+    return err;
+}
+
+function setPointsStaleNotice(state) {
+    const staleEl = document.getElementById('points-stale-note');
+    if (!staleEl) return;
+    staleEl.classList.toggle('hidden', !state);
+}
+
+function setSectionLoading(section, state) {
+    const cfg = SECTION_UI_MAP[section];
+    if (!cfg || !cfg.loadingId) return;
+    const loadingEl = document.getElementById(cfg.loadingId);
+    if (!loadingEl) return;
+    loadingEl.classList.toggle('hidden', !state);
+}
+
+function clearSectionError(section) {
+    const cfg = SECTION_UI_MAP[section];
+    if (!cfg) return;
+    const errorEl = cfg.errorId ? document.getElementById(cfg.errorId) : null;
+    const errorTextEl = cfg.errorTextId ? document.getElementById(cfg.errorTextId) : null;
+    const loginCtaEl = cfg.loginCtaId ? document.getElementById(cfg.loginCtaId) : null;
+    if (errorEl) errorEl.classList.add('hidden');
+    if (errorTextEl) errorTextEl.textContent = '';
+    if (loginCtaEl) loginCtaEl.classList.add('hidden');
+}
+
+function setSectionError(section, message, retryAction) {
+    const cfg = SECTION_UI_MAP[section];
+    if (!cfg) return;
+    const errorEl = cfg.errorId ? document.getElementById(cfg.errorId) : null;
+    const errorTextEl = cfg.errorTextId ? document.getElementById(cfg.errorTextId) : null;
+    const loginCtaEl = cfg.loginCtaId ? document.getElementById(cfg.loginCtaId) : null;
+    const retryBtn = errorEl ? errorEl.querySelector('[data-action^="retry-"]') : null;
+    const resolvedMessage = String(message || NETWORK_ERROR_MESSAGE);
+
+    if (errorTextEl) errorTextEl.textContent = resolvedMessage;
+    if (retryBtn) retryBtn.setAttribute('data-action', retryAction || cfg.retryAction);
+    if (loginCtaEl) {
+        const showLogin = resolvedMessage.indexOf(SESSION_INVALID_MESSAGE) !== -1;
+        loginCtaEl.classList.toggle('hidden', !showLogin);
+    }
+    if (errorEl) errorEl.classList.remove('hidden');
+}
+
+function isSessionError(payload) {
+    if (!payload || typeof payload !== 'object') return false;
+    const code = String(payload.error || payload.error_code || '').toLowerCase();
+    const msg = String(payload.message || '').toLowerCase();
+    return code === 'unauthorized_session' ||
+        code === 'session_unavailable' ||
+        msg.indexOf('session login tidak valid') !== -1;
+}
+
+function parsePublicSuccess(payload, fallbackMessage) {
+    if (payload && payload.success === true) {
+        return payload;
+    }
+    if (isSessionError(payload)) {
+        throw createAkunError(SESSION_INVALID_MESSAGE, 'UNAUTHORIZED_SESSION');
+    }
+    const message = String(
+        (payload && (payload.message || payload.error || payload.error_code)) ||
+        fallbackMessage ||
+        NETWORK_ERROR_MESSAGE
+    ).trim();
+    const errorCode = String((payload && (payload.error || payload.error_code)) || '').toUpperCase();
+    throw createAkunError(message, errorCode);
+}
+
+function resolvePublicErrorMessage(error, fallbackMessage) {
+    if (!error) return fallbackMessage || NETWORK_ERROR_MESSAGE;
+    const code = String(error.code || '').toUpperCase();
+    const rawMessage = String(error.message || '').trim();
+    const rawLower = rawMessage.toLowerCase();
+    if (error.isSessionError || code === 'UNAUTHORIZED_SESSION' || rawLower.indexOf('session') !== -1) {
+        return SESSION_INVALID_MESSAGE;
+    }
+    if (
+        rawLower.indexOf('failed to fetch') !== -1 ||
+        rawLower.indexOf('network') !== -1 ||
+        rawLower.indexOf('rate limit') !== -1 ||
+        rawLower.indexOf('http ') !== -1 ||
+        rawLower.indexOf('timeout') !== -1
+    ) {
+        return NETWORK_ERROR_MESSAGE;
+    }
+    return rawMessage || fallbackMessage || NETWORK_ERROR_MESSAGE;
+}
+
+async function akunApiGet(endpoint, options = {}) {
+    if (typeof ApiService === 'undefined' || typeof ApiService.get !== 'function') {
+        throw createAkunError('ApiService belum tersedia.', 'API_SERVICE_UNAVAILABLE');
+    }
+    return ApiService.get(endpoint, {
+        cache: false,
+        maxRetries: 3,
+        ...options
+    });
+}
+
+async function akunApiPost(payload, options = {}) {
+    if (typeof ApiService === 'undefined' || typeof ApiService.post !== 'function') {
+        throw createAkunError('ApiService belum tersedia.', 'API_SERVICE_UNAVAILABLE');
+    }
+    return ApiService.post('', payload, {
+        cache: false,
+        maxRetries: 2,
+        ...options
+    });
+}
 
 let referralProfileCache = null;
 let pendingReferralCodeFromUrl = '';
@@ -159,11 +303,10 @@ function getCurrentReferralCode() {
 
 async function loadPublicReferralConfig() {
     try {
-        const apiUrl = CONFIG.getMainApiUrl();
-        const response = await fetch(`${apiUrl}?action=public_referral_config&_t=${Date.now()}`);
-        if (!response.ok) return;
-        const data = await response.json();
-        if (!data || data.success !== true) return;
+        const data = parsePublicSuccess(
+            await akunApiGet('?action=public_referral_config', { cache: true, cacheDuration: 5 * 60 * 1000 }),
+            'Gagal memuat konfigurasi referral.'
+        );
 
         referralConfigCache = {
             rewardReferrerPoints: parseInt(data.reward_referrer_points || referralConfigCache.rewardReferrerPoints, 10) || referralConfigCache.rewardReferrerPoints,
@@ -189,66 +332,6 @@ function setReferralStatus(message, type) {
     } else {
         statusEl.classList.add('text-gray-500');
     }
-}
-
-function generateReferralCode(name, phone, existingCodes) {
-    const baseName = String(name || 'USER').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'USER';
-    const digits = normalizePhoneTo08(phone).replace(/\D/g, '');
-    const suffix = digits.slice(-4) || Math.floor(1000 + Math.random() * 9000).toString();
-    let candidate = `${baseName}${suffix}`.slice(0, 24);
-
-    if (!existingCodes.has(candidate)) {
-        return candidate;
-    }
-
-    for (let i = 1; i <= 2000; i += 1) {
-        const alt = `${baseName}${suffix}${i}`.slice(0, 24);
-        if (!existingCodes.has(alt)) return alt;
-    }
-
-    return `${baseName}${Date.now().toString().slice(-6)}`.slice(0, 24);
-}
-
-async function fetchUsersList() {
-    const apiUrl = CONFIG.getMainApiUrl();
-    const response = await fetch(`${apiUrl}?sheet=users&_t=${Date.now()}`);
-    if (!response.ok) throw new Error('Gagal memuat data users');
-    return parseSheetResponse(await response.json());
-}
-
-async function ensureUserReferralCode(user, users) {
-    const currentUser = users.find((u) => String(u.id) === String(user.id)) ||
-        users.find((u) => normalizePhoneTo08(u.whatsapp || u.phone || '') === normalizePhoneTo08(user.whatsapp));
-    if (!currentUser) {
-        return {
-            user: {
-                id: user.id || '',
-                nama: user.nama || 'User',
-                whatsapp: normalizePhoneTo08(user.whatsapp || user.phone || ''),
-                kode_referral: '',
-                referred_by: '',
-                referral_count: 0,
-                referral_points_total: 0
-            },
-            code: '',
-            missingProfile: true
-        };
-    }
-
-    const currentCode = toReferralCodeValue(currentUser.kode_referral);
-    if (currentCode) return { user: currentUser, code: currentCode };
-
-    const existingCodes = new Set(
-        users
-            .map((u) => toReferralCodeValue(u.kode_referral))
-            .filter(Boolean)
-    );
-    const nextCode = generateReferralCode(currentUser.nama, currentUser.whatsapp || currentUser.phone, existingCodes);
-
-    await GASActions.update('users', currentUser.id, { kode_referral: nextCode });
-
-    currentUser.kode_referral = nextCode;
-    return { user: currentUser, code: nextCode };
 }
 
 function applyReferralDataToUI(profile) {
@@ -302,122 +385,94 @@ async function loadReferralHistory(user) {
     const badgeEl = document.getElementById('referral-history-badge');
     if (!listEl || !badgeEl) return;
 
-    try {
-        const apiUrl = CONFIG.getMainApiUrl();
-        const phone = normalizePhoneTo08(user.whatsapp);
-        let rows = [];
-        let usedPublicEndpoint = false;
-
-        const sessionQuery = buildSessionQuery(user);
-        if (sessionQuery) {
-            const publicResp = await fetch(`${apiUrl}?action=public_referral_history${sessionQuery}&_t=${Date.now()}`);
-            if (publicResp.ok) {
-                const publicData = await publicResp.json();
-                if (publicData && publicData.success && Array.isArray(publicData.referrals)) {
-                    rows = publicData.referrals;
-                    usedPublicEndpoint = true;
-                }
-            }
-        }
-        if (!rows.length && !usedPublicEndpoint) {
-            const response = await fetch(`${apiUrl}?sheet=referrals&phone=${encodeURIComponent(phone)}&_t=${Date.now()}`);
-            if (!response.ok) throw new Error('Gagal memuat riwayat referral');
-            rows = parseSheetResponse(await response.json());
-        }
-
-        const mine = rows
-            .filter((r) => {
-                const referrer = normalizePhoneTo08(r.referrer_phone || '');
-                const referee = normalizePhoneTo08(r.referee_phone || '');
-                return referrer === phone || referee === phone;
-            })
-            .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
-            .slice(0, 5);
-
-        badgeEl.textContent = `${mine.length} data`;
-        if (mine.length === 0) {
-            listEl.innerHTML = '<p class="text-gray-400">Belum ada riwayat referral.</p>';
-            return;
-        }
-
-        listEl.innerHTML = mine.map((r) => {
-            const role = normalizePhoneTo08(r.referrer_phone || '') === phone ? 'Anda mengajak' : 'Anda diajak';
-            const otherPhone = role === 'Anda mengajak'
-                ? normalizePhoneTo08(r.referee_phone || '')
-                : normalizePhoneTo08(r.referrer_phone || '');
-            const reward = role === 'Anda mengajak'
-                ? parseInt(r.reward_referrer_points || 0, 10) || 0
-                : parseInt(r.reward_referee_points || 0, 10) || 0;
-
-            return `
-                <div class="border border-gray-200 rounded-lg p-2 bg-gray-50">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="font-bold text-gray-700">${escapeHtml(role)}</span>
-                        ${getReferralStatusBadge(r.status)}
-                    </div>
-                    <p class="text-gray-600">No: ${escapeHtml(otherPhone || '-')}</p>
-                    <p class="text-green-700 font-semibold">Reward: ${escapeHtml(String(reward))} poin</p>
-                </div>
-            `;
-        }).join('');
-    } catch (error) {
-        console.error('Error loading referral history:', error);
-        badgeEl.textContent = 'error';
-        listEl.innerHTML = '<p class="text-red-500">Gagal memuat riwayat referral.</p>';
+    const sessionQuery = buildSessionQuery(user);
+    if (!sessionQuery) {
+        throw createAkunError(SESSION_INVALID_MESSAGE, 'UNAUTHORIZED_SESSION');
     }
+
+    const payload = parsePublicSuccess(
+        await akunApiGet(`?action=public_referral_history${sessionQuery}`),
+        'Gagal memuat riwayat referral.'
+    );
+
+    const phone = normalizePhoneTo08(user.whatsapp);
+    const rows = Array.isArray(payload.referrals) ? payload.referrals : [];
+    const mine = rows
+        .filter((r) => {
+            const referrer = normalizePhoneTo08(r.referrer_phone || '');
+            const referee = normalizePhoneTo08(r.referee_phone || '');
+            return referrer === phone || referee === phone;
+        })
+        .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+        .slice(0, 10);
+
+    badgeEl.textContent = `${mine.length} data`;
+    if (mine.length === 0) {
+        listEl.innerHTML = '<p class="text-gray-400">Belum ada riwayat referral.</p>';
+        return;
+    }
+
+    listEl.innerHTML = mine.map((r) => {
+        const role = normalizePhoneTo08(r.referrer_phone || '') === phone ? 'Anda mengajak' : 'Anda diajak';
+        const otherPhone = role === 'Anda mengajak'
+            ? normalizePhoneTo08(r.referee_phone || '')
+            : normalizePhoneTo08(r.referrer_phone || '');
+        const reward = role === 'Anda mengajak'
+            ? parseInt(r.reward_referrer_points || 0, 10) || 0
+            : parseInt(r.reward_referee_points || 0, 10) || 0;
+
+        return `
+            <div class="border border-gray-200 rounded-lg p-2 bg-gray-50">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-gray-700">${escapeHtml(role)}</span>
+                    ${getReferralStatusBadge(r.status)}
+                </div>
+                <p class="text-gray-600">No: ${escapeHtml(otherPhone || '-')}</p>
+                <p class="text-green-700 font-semibold">Reward: ${escapeHtml(String(reward))} poin</p>
+            </div>
+        `;
+    }).join('');
 }
 
 async function fetchPublicReferralProfile(user) {
-    if (!hasPublicSession(user)) return null;
     const sessionQuery = buildSessionQuery(user);
-    if (!sessionQuery) return null;
-
-    try {
-        const apiUrl = CONFIG.getMainApiUrl();
-        const response = await fetch(`${apiUrl}?action=public_user_profile${sessionQuery}&_t=${Date.now()}`);
-        if (!response.ok) return null;
-        const data = await response.json();
-        if (!data || data.success !== true || !data.user) return null;
-        return data.user;
-    } catch (error) {
-        console.warn('Failed to load public referral profile:', error);
-        return null;
+    if (!sessionQuery) {
+        throw createAkunError(SESSION_INVALID_MESSAGE, 'UNAUTHORIZED_SESSION');
     }
+
+    const payload = parsePublicSuccess(
+        await akunApiGet(`?action=public_user_profile${sessionQuery}`),
+        'Gagal memuat profil referral.'
+    );
+    return payload.user || null;
 }
 
 async function loadReferralData(user) {
+    clearSectionError('referral');
+    setSectionLoading('referral', true);
     try {
         const publicProfile = await fetchPublicReferralProfile(user);
-        if (publicProfile) {
-            referralProfileCache = publicProfile;
-            applyReferralDataToUI(publicProfile);
-            await loadReferralHistory({
-                ...user,
-                session_token: String(user.session_token || publicProfile.session_token || '').trim()
-            });
-            return;
+        if (!publicProfile) {
+            throw createAkunError('Profil referral tidak tersedia', 'REFERRAL_PROFILE_NOT_FOUND');
         }
 
-        const users = await fetchUsersList();
-        const ensured = await ensureUserReferralCode(user, users);
-        referralProfileCache = ensured.user;
-        applyReferralDataToUI(ensured.user);
-        if (ensured.missingProfile) {
-            applyReferralDataToUI(buildReferralProfileFallback(user));
-            setReferralStatus('Kode referral hanya bisa dipakai satu kali.', 'info');
-            await loadReferralHistory(user);
-            return;
-        }
-        await loadReferralHistory(user);
+        referralProfileCache = publicProfile;
+        applyReferralDataToUI(publicProfile);
+        await loadReferralHistory({
+            ...user,
+            session_token: String(user.session_token || publicProfile.session_token || '').trim()
+        });
     } catch (error) {
         console.error('Error loading referral data:', error);
         applyReferralDataToUI(buildReferralProfileFallback(user));
         setReferralStatus('Kode referral hanya bisa dipakai satu kali.', 'info');
-        try {
-            await loadReferralHistory(user);
-        } catch (historyError) {
-            console.warn('Failed loading referral history after fallback:', historyError);
-        }
+        const listEl = document.getElementById('referral-history-list');
+        const badgeEl = document.getElementById('referral-history-badge');
+        if (badgeEl) badgeEl.textContent = 'error';
+        if (listEl) listEl.innerHTML = '<p class="text-red-500">Gagal memuat riwayat referral.</p>';
+        setSectionError('referral', resolvePublicErrorMessage(error), 'retry-referral');
+    } finally {
+        setSectionLoading('referral', false);
     }
 }
 
@@ -442,6 +497,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('click', (event) => {
+        const showLoginTrigger = event.target.closest('[data-action="show-login"]');
+        if (showLoginTrigger) {
+            showLogin();
+            return;
+        }
+        const retryPaylaterDetail = event.target.closest('[data-action="retry-paylater-detail"]');
+        if (retryPaylaterDetail) {
+            if (lastPaylaterDetailInvoiceId) {
+                openPaylaterDetailModal(lastPaylaterDetailInvoiceId);
+            }
+            return;
+        }
         const detailTrigger = event.target.closest('[data-action="view-paylater-invoice"]');
         if (detailTrigger) {
             openPaylaterDetailModal(detailTrigger.getAttribute('data-invoice-id'));
@@ -451,7 +518,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (confirmTrigger) {
             const link = String(confirmTrigger.getAttribute('data-wa-link') || '').trim();
             if (link) {
-                window.open(link, '_blank');
+                const popup = window.open(link, '_blank', 'noopener,noreferrer');
+                if (popup) popup.opener = null;
             }
         }
     });
@@ -501,9 +569,54 @@ function showDashboard(user) {
     loadOrderHistory(user);
 }
 
+function retryReferralSection() {
+    const user = getLoggedInUser();
+    if (!user) {
+        showLogin();
+        return;
+    }
+    loadReferralData(user);
+}
+
+function retryPaylaterSection() {
+    const user = getLoggedInUser();
+    if (!user) {
+        showLogin();
+        return;
+    }
+    loadPaylaterData(user);
+}
+
+function retryOrdersSection() {
+    const user = getLoggedInUser();
+    if (!user) {
+        showLogin();
+        return;
+    }
+    loadOrderHistory(user);
+}
+
+function retryPointsSection() {
+    const user = getLoggedInUser();
+    if (!user) {
+        showLogin();
+        return;
+    }
+    loadLoyaltyPoints(user);
+}
+
 /**
  * Handle login form submission
  */
+function mapPublicLoginError(payload) {
+    const code = String((payload && (payload.error || payload.error_code)) || '').toUpperCase();
+    if (code === 'LOGIN_FAILED') return 'Nomor WhatsApp atau PIN salah';
+    if (code === 'ACCOUNT_INACTIVE') return 'Akun Anda tidak aktif. Hubungi admin.';
+    if (code === 'RATE_LIMITED') return String(payload.message || 'Terlalu banyak percobaan login, coba lagi.');
+    if (code === 'UNAUTHORIZED_SESSION') return SESSION_INVALID_MESSAGE;
+    return String((payload && payload.message) || 'Login gagal. Silakan coba lagi.');
+}
+
 document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -546,82 +659,15 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     errorDiv.classList.add('hidden');
     
     try {
-        const apiUrl = CONFIG.getMainApiUrl();
-        const cacheBuster = '&_t=' + Date.now();
-        let foundUser = null;
-
-        // Preferred secure path: ask backend to validate phone+pin via public_login.
-        const loginUrl = `${apiUrl}?action=public_login&phone=${encodeURIComponent(normalizedPhone)}&pin=${encodeURIComponent(pin)}${cacheBuster}`;
-        const loginResp = await fetch(loginUrl);
-        if (loginResp.ok) {
-            const loginData = await loginResp.json();
-            if (loginData && loginData.success && loginData.user) {
-                foundUser = loginData.user;
-            } else {
-                const loginError = String(loginData && loginData.error ? loginData.error : '').toLowerCase();
-                if (loginError === 'login_failed') {
-                    showError('Nomor WhatsApp atau PIN salah');
-                    resetLoginButton();
-                    return;
-                }
-                if (loginError === 'account_inactive') {
-                    showError('Akun Anda tidak aktif. Hubungi admin.');
-                    resetLoginButton();
-                    return;
-                }
-                if (loginError === 'rate_limited') {
-                    showError((loginData && loginData.message) || 'Terlalu banyak percobaan login, coba lagi.');
-                    resetLoginButton();
-                    return;
-                }
-
-                // Backward compatibility for old backend without public_login endpoint.
-                const isLegacyBackend = loginError === 'invalid sheet' || loginError === 'invalid action';
-                if (!isLegacyBackend) {
-                    showError((loginData && loginData.message) || 'Login gagal. Silakan coba lagi.');
-                    resetLoginButton();
-                    return;
-                }
-            }
+        const loginPayload = await akunApiGet(
+            `?action=public_login&phone=${encodeURIComponent(normalizedPhone)}&pin=${encodeURIComponent(pin)}`
+        );
+        if (!loginPayload || loginPayload.success !== true || !loginPayload.user) {
+            showError(mapPublicLoginError(loginPayload));
+            resetLoginButton();
+            return;
         }
-
-        // Legacy fallback path (older backend): fetch users and validate in frontend.
-        if (!foundUser) {
-            const variants = phoneLookupVariants(normalizedPhone);
-            const resp = await fetch(`${apiUrl}?sheet=users${cacheBuster}`);
-            if (!resp.ok) {
-                showError('Gagal menghubungi server. Silakan coba lagi.');
-                resetLoginButton();
-                return;
-            }
-            const data = await resp.json();
-            if (isUnauthorizedApiResponse(data)) {
-                showError('Layanan login membutuhkan endpoint public_login. Hubungi admin.');
-                resetLoginButton();
-                return;
-            }
-            const users = parseSheetResponse(data);
-
-            for (const variant of variants) {
-                const candidate = users.find(u => normalizePhoneTo08(u.whatsapp || u.phone || '') === normalizePhoneTo08(variant));
-                if (candidate) {
-                    foundUser = candidate;
-                    break;
-                }
-            }
-
-            if (!foundUser) {
-                showError('Nomor WhatsApp tidak terdaftar');
-                resetLoginButton();
-                return;
-            }
-
-            if ((foundUser.pin || '').toString() !== pin) {
-                showError('PIN salah. Silakan coba lagi.');
-                resetLoginButton();
-                return;
-            }
-        }
+        const foundUser = loginPayload.user;
         
         // Check if account is active
         if (foundUser.status && foundUser.status.toLowerCase() !== 'aktif') {
@@ -638,7 +684,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         
     } catch (error) {
         console.error('Login error:', error);
-        showError('Terjadi kesalahan. Silakan coba lagi.');
+        showError(resolvePublicErrorMessage(error, NETWORK_ERROR_MESSAGE));
         resetLoginButton();
     }
 });
@@ -694,10 +740,16 @@ function saveLoggedInUser(user) {
 function getLoggedInUser() {
     const userJson = localStorage.getItem('gosembako_user');
     if (!userJson) return null;
-    const user = JSON.parse(userJson);
-    user.whatsapp = normalizePhoneTo08(user.whatsapp || user.phone || '') || user.whatsapp;
-    user.session_token = String(user.session_token || '').trim();
-    return user;
+    try {
+        const user = JSON.parse(userJson);
+        if (!user || typeof user !== 'object') return null;
+        user.whatsapp = normalizePhoneTo08(user.whatsapp || user.phone || '') || user.whatsapp || '';
+        user.session_token = String(user.session_token || user.sessionToken || user.st || '').trim();
+        return user;
+    } catch (error) {
+        console.warn('Invalid gosembako_user payload:', error);
+        return null;
+    }
 }
 
 /**
@@ -750,7 +802,8 @@ function shareReferralWhatsApp() {
 
     const message = buildReferralShareMessage(code, link);
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank', 'noopener');
+    const popup = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    if (popup) popup.opener = null;
     setReferralStatus('Link referral siap dibagikan ke WhatsApp.', 'success');
 }
 
@@ -830,109 +883,36 @@ async function applyReferralCode() {
  * Load loyalty points from user_points sheet
  */
 async function loadLoyaltyPoints(user) {
+    const pointsEl = document.getElementById('loyalty-points');
+    if (!pointsEl) return;
+
+    const fallbackPoints = parseInt(user.total_points || user.points || user.poin || 0, 10) || 0;
+    clearSectionError('points');
+    setSectionLoading('points', true);
+    setPointsStaleNotice(false);
+
     try {
-        const apiUrl = CONFIG.getMainApiUrl();
-        const normalizedPhone = normalizePhoneTo08(user.whatsapp);
-        const fallbackPoints = parseInt(user.total_points || user.points || user.poin || 0, 10) || 0;
-        
-        if (!normalizedPhone) {
-            console.warn('⚠️ Invalid phone number for loyalty points lookup');
-            document.getElementById('loyalty-points').textContent = String(fallbackPoints);
-            setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
-            return;
-        }
-        
-        console.log(`🔍 Loading loyalty points for phone: ${normalizedPhone}`);
-        
-        let pointsValue = null;
         const sessionQuery = buildSessionQuery(user);
-        if (sessionQuery) {
-            const publicResp = await fetch(`${apiUrl}?action=public_user_points${sessionQuery}&_t=${Date.now()}`);
-            if (publicResp.ok) {
-                const publicData = await publicResp.json();
-                if (publicData && publicData.success) {
-                    pointsValue = parseInt(publicData.points || 0, 10) || 0;
-                }
-            }
+        if (!sessionQuery) {
+            throw createAkunError(SESSION_INVALID_MESSAGE, 'UNAUTHORIZED_SESSION');
         }
 
-        if (pointsValue !== null) {
-            document.getElementById('loyalty-points').textContent = String(pointsValue);
-            setRewardContextFromAkun(user.whatsapp, pointsValue, user.nama);
-            return;
-        }
-
-        // Old localStorage sessions may not have session_token; avoid sensitive endpoint calls.
-        if (!hasPublicSession(user)) {
-            document.getElementById('loyalty-points').textContent = String(fallbackPoints);
-            setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
-            return;
-        }
-
-        // Legacy fallback: fetch all user_points records
-        const response = await fetch(`${apiUrl}?sheet=user_points`);
-        
-        if (!response.ok) {
-            console.error('❌ Failed to fetch loyalty points');
-            document.getElementById('loyalty-points').textContent = '0';
-            return;
-        }
-        
-        const pointsData = await response.json();
-        console.log('📥 Points data received:', pointsData);
-
-        if (pointsData && typeof pointsData === 'object' && String(pointsData.error || '').toLowerCase() === 'unauthorized') {
-            console.warn('⚠️ Unauthorized access to user_points. Falling back to user profile points.');
-            document.getElementById('loyalty-points').textContent = String(fallbackPoints);
-            setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
-            return;
-        }
-        
-        // Parse response (handle both array and object with result property)
-        let allPoints = Array.isArray(pointsData) ? pointsData : (pointsData.result || []);
-        
-        if (!Array.isArray(allPoints)) {
-            console.warn('⚠️ Unexpected points data format');
-            document.getElementById('loyalty-points').textContent = '0';
-            return;
-        }
-        
-        // Find user by phone with multiple variants
-        const variants = phoneLookupVariants(normalizedPhone);
-        let userPoints = null;
-        
-        for (const variant of variants) {
-            userPoints = allPoints.find(record => {
-                const recordPhone = normalizePhoneTo08(record.phone || record.whatsapp || '');
-                return recordPhone === normalizePhoneTo08(variant);
-            });
-            if (userPoints) {
-                console.log(`✅ Found points record for ${variant}:`, userPoints);
-                break;
-            }
-        }
-        
-        // Update display
-        if (userPoints) {
-            const points = parseInt(userPoints.points || userPoints.poin || 0);
-            console.log(`✅ User points: ${points}`);
-            document.getElementById('loyalty-points').textContent = points;
-            
-            // Auto-set reward context for seamless redemption
-            setRewardContextFromAkun(user.whatsapp, points, user.nama);
-        } else {
-            console.log('⚠️ No points record found for user');
-            document.getElementById('loyalty-points').textContent = String(fallbackPoints);
-            
-            // Set context with fallback points from profile
-            setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
-        }
-        
+        const payload = parsePublicSuccess(
+            await akunApiGet(`?action=public_user_points${sessionQuery}`),
+            'Gagal memuat poin loyalitas.'
+        );
+        const points = parseInt(payload.points || 0, 10) || 0;
+        pointsEl.textContent = String(points);
+        setRewardContextFromAkun(user.whatsapp, points, user.nama);
     } catch (error) {
-        console.error('❌ Error loading loyalty points:', error);
-        const fallbackPoints = parseInt(user.total_points || user.points || user.poin || 0, 10) || 0;
-        document.getElementById('loyalty-points').textContent = String(fallbackPoints);
+        console.error('Error loading loyalty points:', error);
+        pointsEl.textContent = String(fallbackPoints);
         setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
+        setPointsStaleNotice(true);
+        const message = resolvePublicErrorMessage(error);
+        setSectionError('points', `${message} data bisa tidak terbaru`, 'retry-points');
+    } finally {
+        setSectionLoading('points', false);
     }
 }
 
@@ -1026,22 +1006,19 @@ async function openPaylaterDetailModal(invoiceId) {
     const contentEl = document.getElementById('paylater-detail-content');
     if (!modal || !contentEl) return;
 
+    lastPaylaterDetailInvoiceId = String(invoiceId || '').trim();
     modal.classList.remove('hidden');
     contentEl.innerHTML = '<p class="text-gray-500">Memuat detail tagihan...</p>';
 
     try {
-        const apiUrl = CONFIG.getMainApiUrl();
         const sessionQuery = buildSessionQuery(user);
         if (!sessionQuery) {
-            contentEl.innerHTML = '<p class="text-red-600">Session tidak valid. Silakan login ulang.</p>';
-            return;
+            throw createAkunError(SESSION_INVALID_MESSAGE, 'UNAUTHORIZED_SESSION');
         }
-        const resp = await fetch(`${apiUrl}?action=public_paylater_invoice_detail&invoice_id=${encodeURIComponent(invoiceId)}${sessionQuery}&_t=${Date.now()}`);
-        if (!resp.ok) throw new Error('Gagal memuat detail tagihan');
-        const payload = await resp.json();
-        if (!payload || payload.success !== true) {
-            throw new Error((payload && (payload.message || payload.error)) || 'Detail tagihan tidak tersedia');
-        }
+        const payload = parsePublicSuccess(
+            await akunApiGet(`?action=public_paylater_invoice_detail&invoice_id=${encodeURIComponent(invoiceId)}${sessionQuery}`),
+            'Gagal memuat detail tagihan.'
+        );
 
         const invoice = payload.invoice || {};
         const ledgerRows = Array.isArray(payload.ledger) ? payload.ledger : [];
@@ -1116,36 +1093,44 @@ async function openPaylaterDetailModal(invoiceId) {
         `;
     } catch (error) {
         console.error('Error load paylater detail:', error);
-        contentEl.innerHTML = `<p class="text-red-600">${escapeHtml(error.message || 'Gagal memuat detail tagihan.')}</p>`;
+        const message = resolvePublicErrorMessage(error, 'Gagal memuat detail tagihan.');
+        const showLogin = message === SESSION_INVALID_MESSAGE;
+        contentEl.innerHTML = `
+            <div class="rounded-xl border border-red-200 bg-red-50 p-3">
+                <p class="text-red-700 text-sm font-semibold">${escapeHtml(message)}</p>
+                <div class="flex items-center gap-2 mt-3">
+                    <button type="button" data-action="retry-paylater-detail" class="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition">
+                        Coba Lagi
+                    </button>
+                    ${showLogin ? '<button type="button" data-action="show-login" class="px-3 py-1.5 rounded-lg bg-white text-red-700 text-xs font-bold border border-red-200 hover:bg-red-100 transition">Login Ulang</button>' : ''}
+                </div>
+            </div>
+        `;
     }
 }
 
 async function loadPaylaterData(user) {
+    clearSectionError('paylater');
+    setSectionLoading('paylater', true);
     try {
-        const apiUrl = CONFIG.getMainApiUrl();
         const sessionQuery = buildSessionQuery(user);
         if (!sessionQuery) {
-            renderPaylaterSummary(null);
-            renderPaylaterInvoices([]);
-            return;
+            throw createAkunError(SESSION_INVALID_MESSAGE, 'UNAUTHORIZED_SESSION');
         }
 
-        const [summaryResp, invoicesResp] = await Promise.all([
-            fetch(`${apiUrl}?action=public_paylater_summary${sessionQuery}&_t=${Date.now()}`),
-            fetch(`${apiUrl}?action=public_paylater_invoices${sessionQuery}&_t=${Date.now()}`)
+        const [summaryPayload, invoicesPayload] = await Promise.all([
+            akunApiGet(`?action=public_paylater_summary${sessionQuery}`),
+            akunApiGet(`?action=public_paylater_invoices${sessionQuery}`)
         ]);
-
-        let summaryPayload = null;
-        let invoicesPayload = null;
-        if (summaryResp.ok) summaryPayload = await summaryResp.json();
-        if (invoicesResp.ok) invoicesPayload = await invoicesResp.json();
-
-        renderPaylaterSummary(summaryPayload && summaryPayload.success ? summaryPayload : null);
-        renderPaylaterInvoices(invoicesPayload && invoicesPayload.success ? invoicesPayload.invoices : []);
+        const summary = parsePublicSuccess(summaryPayload, 'Gagal memuat ringkasan PayLater.');
+        const invoices = parsePublicSuccess(invoicesPayload, 'Gagal memuat daftar invoice PayLater.');
+        renderPaylaterSummary(summary);
+        renderPaylaterInvoices(invoices.invoices || []);
     } catch (error) {
         console.error('Error loading paylater data:', error);
-        renderPaylaterSummary(null);
-        renderPaylaterInvoices([]);
+        setSectionError('paylater', resolvePublicErrorMessage(error), 'retry-paylater');
+    } finally {
+        setSectionLoading('paylater', false);
     }
 }
 
@@ -1156,44 +1141,38 @@ async function loadOrderHistory(user) {
     const loadingDiv = document.getElementById('order-loading');
     const emptyDiv = document.getElementById('order-empty');
     const orderList = document.getElementById('order-list');
+    const orderError = document.getElementById('order-error');
+    const paginationDiv = document.getElementById('order-pagination');
     const totalAcceptedEl = document.getElementById('total-accepted-spend');
-    
-    // Show loading
-    loadingDiv.classList.remove('hidden');
-    emptyDiv.classList.add('hidden');
-    orderList.innerHTML = '';
+
+    clearSectionError('orders');
+    setSectionLoading('orders', true);
+    if (emptyDiv) emptyDiv.classList.add('hidden');
+    if (orderError) orderError.classList.add('hidden');
+    if (orderList) orderList.innerHTML = '';
+    if (paginationDiv) {
+        paginationDiv.classList.add('hidden');
+        paginationDiv.innerHTML = '';
+    }
     if (totalAcceptedEl) totalAcceptedEl.textContent = 'Rp 0';
     
     try {
-        const apiUrl = CONFIG.getMainApiUrl();
-        let orders = [];
         const sessionQuery = buildSessionQuery(user);
-        if (sessionQuery) {
-            const publicResp = await fetch(`${apiUrl}?action=public_user_orders${sessionQuery}&_t=${Date.now()}`);
-            if (publicResp.ok) {
-                const publicData = await publicResp.json();
-                if (publicData && publicData.success && Array.isArray(publicData.orders)) {
-                    orders = publicData.orders;
-                }
-            }
+        if (!sessionQuery) {
+            throw createAkunError(SESSION_INVALID_MESSAGE, 'UNAUTHORIZED_SESSION');
         }
 
-        if (!orders.length) {
-            // Legacy fallback: fetch all orders and filter by phone on client-side
-            let response = await fetch(`${apiUrl}?sheet=orders`);
-            if (!response.ok) {
-                throw new Error('Gagal memuat riwayat pesanan');
-            }
-            let allOrders = await response.json();
-            orders = Array.isArray(allOrders) ? allOrders.filter(o => normalizePhoneTo08(o.phone) === normalizePhoneTo08(user.whatsapp)) : [];
-        }
+        const payload = parsePublicSuccess(
+            await akunApiGet(`?action=public_user_orders${sessionQuery}`),
+            'Gagal memuat riwayat pesanan.'
+        );
+        let orders = Array.isArray(payload.orders) ? payload.orders : [];
         
-        // Hide loading
-        loadingDiv.classList.add('hidden');
+        setSectionLoading('orders', false);
         
         // Check if orders exist
         if (!orders || orders.length === 0) {
-            emptyDiv.classList.remove('hidden');
+            if (emptyDiv) emptyDiv.classList.remove('hidden');
             return;
         }
         
@@ -1206,7 +1185,7 @@ async function loadOrderHistory(user) {
         
         // Check again after filtering
         if (orders.length === 0) {
-            emptyDiv.classList.remove('hidden');
+            if (emptyDiv) emptyDiv.classList.remove('hidden');
             return;
         }
         
@@ -1238,16 +1217,11 @@ async function loadOrderHistory(user) {
         
     } catch (error) {
         console.error('Error loading order history:', error);
-        loadingDiv.classList.add('hidden');
-        orderList.innerHTML = `
-            <div class="text-center py-8 text-red-600">
-                <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <p class="text-sm">Gagal memuat riwayat pesanan</p>
-                <button onclick="location.reload()" class="mt-3 text-green-600 hover:underline text-sm font-bold">Coba Lagi</button>
-            </div>
-        `;
+        setSectionLoading('orders', false);
+        if (emptyDiv) emptyDiv.classList.add('hidden');
+        if (orderList) orderList.innerHTML = '';
+        if (paginationDiv) paginationDiv.classList.add('hidden');
+        setSectionError('orders', resolvePublicErrorMessage(error), 'retry-orders');
     }
 }
 
@@ -1652,44 +1626,6 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     registerBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
     
     try {
-        const apiUrl = CONFIG.getMainApiUrl();
-        
-        // Check if WhatsApp already registered (try multiple formats)
-        const phonesToCheck = phoneLookupVariants(normalizedPhone);
-        let existingUsers = [];
-        const cacheBuster = '&_t=' + Date.now();
-        
-        console.log('🔍 Checking phone formats:', phonesToCheck);
-        
-        try {
-            const checkResponse = await fetch(`${apiUrl}?sheet=users${cacheBuster}`);
-            if (!checkResponse.ok) {
-                console.warn(`API error: ${checkResponse.status}`);
-            } else {
-                const data = await checkResponse.json();
-                const allUsers = parseSheetResponse(data);
-                existingUsers = allUsers.filter(u => {
-                    const userPhone = normalizePhoneTo08(u.whatsapp || u.phone || '');
-                    return phonesToCheck.some(p => normalizePhoneTo08(p) === userPhone);
-                });
-                if (existingUsers && existingUsers.length > 0) {
-                    console.log(`📊 Found existing user:`, existingUsers);
-                }
-            }
-        } catch (err) {
-            console.warn(`Check failed:`, err.message);
-        }
-        
-        console.log('📊 Final check result for', whatsapp, ':', existingUsers);
-        
-        if (existingUsers && existingUsers.length > 0) {
-            errorText.textContent = 'Nomor WhatsApp sudah terdaftar';
-            errorDiv.classList.remove('hidden');
-            registerBtn.disabled = false;
-            registerBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg> Daftar';
-            return;
-        }
-        
         // Generate user ID
         const userId = `USR-${Date.now().toString().slice(-6)}`;
         const today = new Date().toISOString().split('T')[0];
@@ -1705,24 +1641,40 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
 
         
         // Create new user
-        const createResult = await GASActions.create('users', {
-            id: userId,
-            nama: name,
-            whatsapp: normalizedPhone,
-            pin: pin,
-            tanggal_daftar: today,
-            status: 'aktif',
-            total_points: 0,
-            created_at: now,
-            referred_by: '',
-            referred_by_phone: '',
-            referral_count: 0,
-            referral_points_total: 0,
-            kode_referral: ''
+        const createResult = await akunApiPost({
+            action: 'create',
+            sheet: 'users',
+            data: {
+                id: userId,
+                nama: name,
+                whatsapp: normalizedPhone,
+                pin: pin,
+                tanggal_daftar: today,
+                status: 'aktif',
+                total_points: 0,
+                created_at: now,
+                referred_by: '',
+                referred_by_phone: '',
+                referral_count: 0,
+                referral_points_total: 0,
+                kode_referral: ''
+            }
         });
+
+        if (createResult && createResult.error) {
+            throw createAkunError(
+                String(createResult.message || createResult.error || 'Gagal mendaftar'),
+                String(createResult.error || '')
+            );
+        }
         
-        if (!createResult.created || createResult.created < 1) {
-            throw new Error('Gagal mendaftar');
+        if (!createResult || createResult.success !== true || !createResult.created || createResult.created < 1) {
+            throw new Error(
+                String(
+                    (createResult && (createResult.message || createResult.error || createResult.error_code)) ||
+                    'Gagal mendaftar'
+                )
+            );
         }
         
         let referralNotice = '';
@@ -1764,7 +1716,14 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         
     } catch (error) {
         console.error('Registration error:', error);
-        errorText.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
+        const errorCode = String(error.code || error.message || '').toUpperCase();
+        if (errorCode.indexOf('DUPLICATE_PHONE') !== -1) {
+            errorText.textContent = 'Nomor WhatsApp sudah terdaftar';
+        } else if (errorCode.indexOf('RATE_LIMITED') !== -1) {
+            errorText.textContent = 'Terlalu banyak percobaan pendaftaran. Coba lagi sebentar.';
+        } else {
+            errorText.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
+        }
         errorDiv.classList.remove('hidden');
     } finally {
         registerBtn.disabled = false;
@@ -1796,25 +1755,11 @@ document.getElementById('forgot-pin-form').addEventListener('submit', async (e) 
     forgotBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
     
     try {
-        const apiUrl = CONFIG.getMainApiUrl();
-        const response = await fetch(`${apiUrl}?sheet=users`);
-        const allUsers = parseSheetResponse(await response.json());
-        const users = allUsers.filter(u => normalizePhoneTo08(u.whatsapp || u.phone || '') === normalizedPhone);
-        
-        if (!users || users.length === 0) {
-            errorText.textContent = 'Nomor WhatsApp tidak terdaftar';
-            errorDiv.classList.remove('hidden');
-            forgotBtn.disabled = false;
-            forgotBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> Kirim Kode Verifikasi';
-            return;
-        }
-        
-        // Simulate sending verification code
-        alert(`Kode verifikasi telah dikirim ke WhatsApp ${normalizedPhone}.\n\nUntuk sementara, hubungi admin untuk reset PIN.`);
-        
-        // Redirect to WhatsApp admin
+        // Strict-public: tidak melakukan enumerasi user dari sheet users.
+        alert(`Untuk reset PIN, hubungi admin melalui WhatsApp terdaftar: ${normalizedPhone}.`);
         const waLinkPhone = normalizedPhone.replace(/^0/, '62');
-        window.open(`https://wa.me/628993370200?text=Halo, saya ingin reset PIN akun saya. Nomor WhatsApp: ${waLinkPhone}`, '_blank');
+        const popup = window.open(`https://wa.me/628993370200?text=Halo, saya ingin reset PIN akun saya. Nomor WhatsApp: ${waLinkPhone}`, '_blank', 'noopener,noreferrer');
+        if (popup) popup.opener = null;
         
         // Back to login
         setTimeout(() => {
@@ -1914,50 +1859,29 @@ document.getElementById('edit-profile-form').addEventListener('submit', async (e
     saveBtn.textContent = 'Menyimpan...';
     
     try {
-        const apiUrl = CONFIG.getMainApiUrl();
-        
-        // Fetch current user data to verify old PIN
-        const response = await fetch(`${apiUrl}?sheet=users&id=${user.id}`);
-        const users = await response.json();
-        
-        if (!users || users.length === 0) {
-            throw new Error('User not found');
+        const sessionToken = String(user.session_token || '').trim();
+        if (!sessionToken) {
+            throw createAkunError(SESSION_INVALID_MESSAGE, 'UNAUTHORIZED_SESSION');
         }
-        
-        const currentUser = users[0];
-        
-        // If changing PIN, verify old PIN
-        if (oldPin) {
-            if (currentUser.pin !== oldPin) {
-                errorText.textContent = 'PIN lama salah';
-                errorDiv.classList.remove('hidden');
-                saveBtn.disabled = false;
-                saveBtn.textContent = 'Simpan';
-                return;
-            }
-        }
-        
-        // Update user data
-        const updateData = {
-            nama: name
-        };
-        
-        if (newPin) {
-            updateData.pin = newPin;
-        }
-        
-        const updateResult = await GASActions.update('users', user.id, updateData);
-        
-        if (!updateResult.affected || updateResult.affected < 1) {
-            throw new Error('Failed to update');
-        }
-        
-        // Update localStorage
-        user.nama = name;
-        saveLoggedInUser(user);
+
+        const payload = parsePublicSuccess(
+            await akunApiPost({
+                action: 'public_update_profile',
+                data: {
+                    session_token: sessionToken,
+                    nama: name,
+                    old_pin: oldPin,
+                    new_pin: newPin,
+                    confirm_pin: confirmPin
+                }
+            }),
+            'Gagal memperbarui profil.'
+        );
+        const updatedUser = payload && payload.user ? payload.user : user;
+        saveLoggedInUser(updatedUser);
         
         // Update display
-        document.getElementById('user-name').textContent = name;
+        document.getElementById('user-name').textContent = updatedUser.nama || name;
         
         // Close modal
         closeEditProfile();
@@ -1966,7 +1890,14 @@ document.getElementById('edit-profile-form').addEventListener('submit', async (e
         
     } catch (error) {
         console.error('Edit profile error:', error);
-        errorText.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
+        const code = String(error.code || error.message || '').toUpperCase();
+        if (code.indexOf('OLD_PIN_INVALID') !== -1) {
+            errorText.textContent = 'PIN lama salah';
+        } else if (code.indexOf('UNAUTHORIZED_SESSION') !== -1) {
+            errorText.textContent = SESSION_INVALID_MESSAGE;
+        } else {
+            errorText.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
+        }
         errorDiv.classList.remove('hidden');
     } finally {
         saveBtn.disabled = false;
@@ -2145,18 +2076,15 @@ async function loadClaimsHistory() {
     claimsList.innerHTML = '';
     
     try {
-        const apiUrl = CONFIG.getMainApiUrl();
-        
-        // Fetch claims by phone from claims sheet
-        const variants = phoneLookupVariants(user.whatsapp);
-        const phoneQuery = variants.map(v => `phone=${encodeURIComponent(v)}`).join('&');
-        const response = await fetch(`${apiUrl}?sheet=claims&${phoneQuery}`);
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch claims');
+        const sessionQuery = buildSessionQuery(user);
+        if (!sessionQuery) {
+            throw createAkunError(SESSION_INVALID_MESSAGE, 'UNAUTHORIZED_SESSION');
         }
-        
-        const claimsData = parseSheetResponse(await response.json());
+        const payload = parsePublicSuccess(
+            await akunApiGet(`?action=public_claim_history${sessionQuery}`),
+            'Gagal memuat riwayat klaim.'
+        );
+        const claimsData = Array.isArray(payload.claims) ? payload.claims : [];
         
         // Hide loading
         loadingDiv.classList.add('hidden');
@@ -2285,51 +2213,23 @@ async function loadModalPoints() {
     const user = getLoggedInUser();
     if (!user) return;
     const fallbackPoints = parseInt(user.total_points || user.points || user.poin || 0, 10) || 0;
-    
+    const pointsEl = document.getElementById('loyalty-modal-points');
+    if (!pointsEl) return;
+
     try {
-        const apiUrl = CONFIG.getMainApiUrl();
         const sessionQuery = buildSessionQuery(user);
-        if (sessionQuery) {
-            const publicResp = await fetch(`${apiUrl}?action=public_user_points${sessionQuery}&_t=${Date.now()}`);
-            if (publicResp.ok) {
-                const publicData = await publicResp.json();
-                if (publicData && publicData.success) {
-                    document.getElementById('loyalty-modal-points').textContent = String(parseInt(publicData.points || 0, 10) || 0);
-                    return;
-                }
-            }
-        }
-
-        if (!hasPublicSession(user)) {
-            document.getElementById('loyalty-modal-points').textContent = String(fallbackPoints);
+        if (!sessionQuery) {
+            pointsEl.textContent = String(fallbackPoints);
             return;
         }
-
-        const response = await fetch(`${apiUrl}?sheet=user_points`);
-        
-        if (!response.ok) {
-            document.getElementById('loyalty-modal-points').textContent = String(fallbackPoints);
-            return;
-        }
-        
-        const allPoints = await response.json();
-        if (allPoints && typeof allPoints === 'object' && String(allPoints.error || '').toLowerCase() === 'unauthorized') {
-            console.warn('⚠️ Unauthorized access to user_points (modal). Falling back to user profile points.');
-            document.getElementById('loyalty-modal-points').textContent = String(fallbackPoints);
-            return;
-        }
-        const pointsData = Array.isArray(allPoints) ? allPoints.filter(p => normalizePhoneTo08(p.phone) === normalizePhoneTo08(user.whatsapp)) : [];
-        
-        if (pointsData && pointsData.length > 0) {
-            const userPoints = pointsData[0];
-            const points = parseInt(userPoints.points || userPoints.poin || 0);
-            document.getElementById('loyalty-modal-points').textContent = points;
-        } else {
-            document.getElementById('loyalty-modal-points').textContent = String(fallbackPoints);
-        }
+        const payload = parsePublicSuccess(
+            await akunApiGet(`?action=public_user_points${sessionQuery}`),
+            'Gagal memuat poin.'
+        );
+        pointsEl.textContent = String(parseInt(payload.points || 0, 10) || 0);
     } catch (error) {
         console.error('Error loading modal points:', error);
-        document.getElementById('loyalty-modal-points').textContent = String(fallbackPoints);
+        pointsEl.textContent = String(fallbackPoints);
     }
 }
 
@@ -2355,7 +2255,7 @@ function hideRewardLoaders() {
 }
 
 /**
- * Fetch reward items from tukar_poin sheet for akun page
+ * Fetch reward items via strict-public catalog endpoint for akun page
  */
 async function fetchRewardItemsForAkun() {
     const loadingEl = document.getElementById('reward-items-loading');
@@ -2370,15 +2270,16 @@ async function fetchRewardItemsForAkun() {
     listEl.innerHTML = '';
     
     try {
-        const apiUrl = CONFIG.getMainApiUrl();
-        const response = await fetch(`${apiUrl}?sheet=tukar_poin`);
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch reward items');
+        const user = getLoggedInUser();
+        const sessionQuery = buildSessionQuery(user);
+        if (!sessionQuery) {
+            throw createAkunError(SESSION_INVALID_MESSAGE, 'UNAUTHORIZED_SESSION');
         }
-        
-        const data = await response.json();
-        const items = parseSheetResponse(data);
+        const payload = parsePublicSuccess(
+            await akunApiGet(`?action=public_rewards_catalog${sessionQuery}`),
+            'Gagal memuat daftar hadiah.'
+        );
+        const items = Array.isArray(payload.rewards) ? payload.rewards : [];
         
         // Render items
         renderRewardItemsListAkun(items);
