@@ -2,6 +2,9 @@
 
 Gunakan checklist ini untuk memastikan semua sistem saling terhubung dengan benar dari sisi user, admin, API, dan data sheet.
 
+Runbook eksekusi manual:
+- `docs/MANUAL_SMOKE_TEST_FRONTEND_CHECKOUT_SCHEDULER.md`
+
 ## Status Cek Ulang (2026-02-13) - Akun Focus
 - [x] Dashboard akun sudah pakai endpoint public ketat untuk area target:
   - `public_login`, `public_user_profile`, `public_referral_history`
