@@ -4855,7 +4855,13 @@ function pointTransactionExists(phone, source, sourceId) {
   const normalizedSourceId = String(sourceId || '').trim();
   if (!normalizedPhone || !normalizedSource || !normalizedSourceId) return false;
 
-  const trx = getRowsAsObjects('point_transactions');
+  let trx;
+  try {
+    trx = getRowsAsObjects('point_transactions');
+  } catch (error) {
+    Logger.log('pointTransactionExists sheet read error: ' + error.toString());
+    return false;
+  }
   if (!trx.headers.length) return false;
 
   for (var i = 0; i < trx.rows.length; i++) {
@@ -4990,17 +4996,30 @@ function upsertUserPoints(phone, delta, source, sourceId, notes, actor) {
   const normalized = normalizePhone(phone || '');
   if (!normalized) return { success: false, error: 'Invalid phone' };
 
-  // Ledger dedup guard before mutation.
-  if (pointTransactionExists(normalized, source, sourceId)) {
-    const snap = getRowsAsObjects('user_points');
-    var currentBalance = 0;
-    for (var i = 0; i < snap.rows.length; i++) {
-      if (normalizePhone(snap.rows[i].phone || '') === normalized) {
-        currentBalance = parseNumber(snap.rows[i].points);
-        break;
-      }
-    }
-    return { success: true, dedup: true, balance: currentBalance };
+  let trx = null;
+  try {
+    trx = getRowsAsObjects('point_transactions');
+  } catch (error) {
+    return {
+      success: false,
+      error: 'POINT_TRANSACTIONS_UNAVAILABLE',
+      message: 'Sheet point_transactions tidak ditemukan'
+    };
+  }
+  const requiredTrxHeaders = [
+    'id', 'phone', 'type', 'points_delta', 'balance_after',
+    'source', 'source_id', 'notes', 'created_at', 'actor'
+  ];
+  const missingTrxHeaders = requiredTrxHeaders.filter(function(col) {
+    return trx.headers.indexOf(col) === -1;
+  });
+  if (!trx.headers.length || missingTrxHeaders.length > 0) {
+    return {
+      success: false,
+      error: 'POINT_TRANSACTIONS_HEADERS_INVALID',
+      message: 'Kolom point_transactions belum lengkap',
+      missing_columns: missingTrxHeaders
+    };
   }
 
   const u = getRowsAsObjects('user_points');
@@ -5021,28 +5040,84 @@ function upsertUserPoints(phone, delta, source, sourceId, notes, actor) {
     }
   }
 
-  const next = current + parseNumber(delta);
-  if (rowNo === -1) {
-    u.sheet.appendRow([normalized, next, nowIso()]);
-  } else {
-    u.sheet.getRange(rowNo, pointsCol + 1).setValue(next);
-    u.sheet.getRange(rowNo, lastCol + 1).setValue(nowIso());
+  const normalizedSource = String(source || '').trim();
+  const normalizedSourceId = String(sourceId || '').trim();
+
+  // Ledger dedup guard before mutation.
+  if (normalizedSource && normalizedSourceId) {
+    for (var d = 0; d < trx.rows.length; d++) {
+      const tr = trx.rows[d];
+      const samePhone = normalizePhone(tr.phone || '') === normalized;
+      const sameSource = String(tr.source || '').trim() === normalizedSource;
+      const sameSourceId = String(tr.source_id || '').trim() === normalizedSourceId;
+      if (samePhone && sameSource && sameSourceId) {
+        return { success: true, dedup: true, balance: current };
+      }
+    }
   }
 
-  const trx = getRowsAsObjects('point_transactions');
-  if (trx.headers.length > 0) {
+  const oldLastUpdated = rowNo === -1 ? '' : String(u.rows[rowNo - 2].last_updated || '');
+  const deltaValue = parseNumber(delta);
+  const next = current + deltaValue;
+  const mutationTimestamp = nowIso();
+
+  try {
+    if (rowNo === -1) {
+      u.sheet.appendRow([normalized, next, mutationTimestamp]);
+    } else {
+      u.sheet.getRange(rowNo, pointsCol + 1).setValue(next);
+      u.sheet.getRange(rowNo, lastCol + 1).setValue(mutationTimestamp);
+    }
+
     appendByHeaders(trx.sheet, trx.headers, {
       id: genId('PTX'),
       phone: normalized,
-      type: parseNumber(delta) >= 0 ? 'referral_bonus' : 'adjustment',
-      points_delta: parseNumber(delta),
+      type: deltaValue >= 0 ? 'referral_bonus' : 'adjustment',
+      points_delta: deltaValue,
       balance_after: next,
       source: source || 'referrals',
       source_id: sourceId || '',
       notes: notes || '',
-      created_at: nowIso(),
+      created_at: mutationTimestamp,
       actor: actor || 'system'
     });
+  } catch (error) {
+    var rollbackSuccess = false;
+    var rollbackError = '';
+    try {
+      if (rowNo === -1) {
+        const values = u.sheet.getDataRange().getValues();
+        for (var r = values.length - 1; r >= 1; r--) {
+          const row = values[r];
+          const rowPhone = normalizePhone(row[pCol] || '');
+          const rowPoints = parseNumber(row[pointsCol] || 0);
+          const rowLastUpdated = String(row[lastCol] || '');
+          if (
+            rowPhone === normalized &&
+            Math.abs(rowPoints - next) < 0.0001 &&
+            rowLastUpdated === mutationTimestamp
+          ) {
+            u.sheet.deleteRow(r + 1);
+            rollbackSuccess = true;
+            break;
+          }
+        }
+      } else {
+        u.sheet.getRange(rowNo, pointsCol + 1).setValue(current);
+        u.sheet.getRange(rowNo, lastCol + 1).setValue(oldLastUpdated);
+        rollbackSuccess = true;
+      }
+    } catch (rbError) {
+      rollbackError = rbError.toString();
+    }
+    return {
+      success: false,
+      error: 'POINT_LEDGER_WRITE_FAILED',
+      message: 'Gagal menulis ledger point_transactions',
+      rollback_success: rollbackSuccess,
+      rollback_error: rollbackError,
+      details: error.toString()
+    };
   }
 
   return { success: true, balance: next };
