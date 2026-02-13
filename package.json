@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "test:gas:auth-referral-security": "node scripts/test-gas-auth-referral-security.js",
     "test:paylater": "node scripts/test-paylater-logic.js",
     "test:paylater:integration": "node scripts/test-paylater-gas-integration.js",
     "test": "node scripts/lint-basic.js && node scripts/check-tailwind-up-to-date.js && node scripts/check-tailwind-not-manual.js",
