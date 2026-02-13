@@ -1055,8 +1055,13 @@ function handleAttachReferral(data) {
     return { success: false, error_code: 'REFERRAL_ALREADY_SET', message: 'User sudah punya referrer' };
   }
 
+  const refs = getRowsAsObjects('referrals');
+  if (refs.headers.length === 0) {
+    return { success: false, error_code: 'REFERRALS_HEADERS_INVALID', message: 'Sheet referrals belum ada header' };
+  }
+
   // Guard duplicate attach by existing pending/approved referral record
-  const refsSnapshot = getRowsAsObjects('referrals').rows;
+  const refsSnapshot = refs.rows;
   const existed = refsSnapshot.some(function(r) {
     const sameReferee = normalizePhone(r.referee_phone || '') === refereePhone;
     const st = String(r.status || '').toLowerCase();
@@ -1090,11 +1095,6 @@ function handleAttachReferral(data) {
 
   usersData.sheet.getRange(refereeRowIndex, referredByCol + 1).setValue(refCode);
   usersData.sheet.getRange(refereeRowIndex, referredByPhoneCol + 1).setValue(referrerPhone);
-
-  const refs = getRowsAsObjects('referrals');
-  if (refs.headers.length === 0) {
-    return { success: false, error_code: 'REFERRALS_HEADERS_INVALID', message: 'Sheet referrals belum ada header' };
-  }
 
   const referralId = genId('REF');
   appendByHeaders(refs.sheet, refs.headers, {
