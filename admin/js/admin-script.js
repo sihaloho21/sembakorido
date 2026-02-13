@@ -1129,6 +1129,89 @@ async function runPaylaterPostmortem() {
     }
 }
 
+function safeParseJson(raw, fallback) {
+    try {
+        if (raw === null || raw === undefined || raw === '') return fallback;
+        return JSON.parse(String(raw));
+    } catch (_error) {
+        return fallback;
+    }
+}
+
+function escapeCsvCell(value) {
+    const text = String(value === undefined || value === null ? '' : value);
+    if (text.indexOf('"') !== -1 || text.indexOf(',') !== -1 || text.indexOf('\n') !== -1 || text.indexOf('\r') !== -1) {
+        return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
+}
+
+function downloadCsvFile(filename, rows) {
+    const content = rows.map((row) => row.map(escapeCsvCell).join(',')).join('\r\n');
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+async function exportPaylaterPostmortemCsv() {
+    try {
+        const result = await GASActions.getPaylaterPostmortemLogs({ limit: 1 });
+        if (!result || !result.success) {
+            showAdminToast((result && (result.message || result.error)) || 'Gagal mengambil snapshot post-mortem.', 'error');
+            return;
+        }
+        const logs = Array.isArray(result.logs) ? result.logs : [];
+        if (logs.length === 0) {
+            showAdminToast('Belum ada snapshot post-mortem untuk diexport.', 'warning');
+            return;
+        }
+
+        const row = logs[0];
+        const summary = safeParseJson(row.summary_json, {});
+        const tuning = safeParseJson(row.tuning_json, []);
+        const csvRows = [];
+        csvRows.push(['section', 'key', 'value']);
+        csvRows.push(['metadata', 'run_at', row.run_at || '']);
+        csvRows.push(['metadata', 'window_days', row.window_days || summary.window_days || '']);
+        csvRows.push(['metrics', 'invoice_total', summary.invoice_total || row.invoice_total || 0]);
+        csvRows.push(['metrics', 'paid_ontime_count', summary.paid_ontime_count || row.paid_ontime_count || 0]);
+        csvRows.push(['metrics', 'paid_late_count', summary.paid_late_count || row.paid_late_count || 0]);
+        csvRows.push(['metrics', 'overdue_open_count', summary.overdue_open_count || row.overdue_open_count || 0]);
+        csvRows.push(['metrics', 'defaulted_count', summary.defaulted_count || row.defaulted_count || 0]);
+        csvRows.push(['metrics', 'outstanding_default_amount', summary.outstanding_default_amount || row.outstanding_default_amount || 0]);
+        csvRows.push(['metrics', 'on_time_rate', summary.on_time_rate || row.on_time_rate || 0]);
+        csvRows.push(['metrics', 'overdue_rate', summary.overdue_rate || row.overdue_rate || 0]);
+        csvRows.push(['metrics', 'default_rate', summary.default_rate || row.default_rate || 0]);
+        csvRows.push([]);
+        csvRows.push(['tuning_key', 'current_value', 'suggested_value', 'reason']);
+        if (Array.isArray(tuning) && tuning.length > 0) {
+            tuning.forEach((item) => {
+                csvRows.push([
+                    item.key || '',
+                    item.current_value,
+                    item.suggested_value,
+                    item.reason || ''
+                ]);
+            });
+        } else {
+            csvRows.push(['-', '-', '-', 'Tidak ada rekomendasi tuning']);
+        }
+
+        const runAt = String(row.run_at || new Date().toISOString()).replace(/[:.]/g, '-');
+        downloadCsvFile(`paylater_postmortem_snapshot_${runAt}.csv`, csvRows);
+        showAdminToast('CSV snapshot post-mortem berhasil diunduh.', 'success');
+    } catch (error) {
+        console.error(error);
+        showAdminToast('Gagal export CSV snapshot post-mortem.', 'error');
+    }
+}
+
 async function installPaylaterSchedulerFromUI() {
     const modeEl = document.getElementById('paylater-scheduler-mode');
     const hourEl = document.getElementById('paylater-scheduler-hour');
@@ -3965,6 +4048,11 @@ function bindAdminActions() {
 
         if (action === 'run-paylater-postmortem') {
             runPaylaterPostmortem();
+            return;
+        }
+
+        if (action === 'export-paylater-postmortem-csv') {
+            exportPaylaterPostmortemCsv();
             return;
         }
 

@@ -456,5 +456,17 @@ const GASActions = {
             action: 'run_paylater_postmortem_two_weeks',
             data: data || {}
         });
+    },
+
+    /**
+     * Get paylater postmortem snapshots.
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
+    async getPaylaterPostmortemLogs(data) {
+        return this.post({
+            action: 'get_paylater_postmortem_logs',
+            data: data || {}
+        });
     }
 };
