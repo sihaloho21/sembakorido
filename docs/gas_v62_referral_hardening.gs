@@ -114,6 +114,15 @@ const SCHEMA_REQUIREMENTS = {
     'tanggal_daftar', 'kode_referral', 'referred_by', 'referred_by_phone',
     'referral_count', 'referral_points_total'
   ],
+  orders: [
+    'id', 'order_id', 'pelanggan', 'phone', 'qty', 'total', 'status',
+    'poin', 'point_processed', 'payment_method', 'profit_net',
+    'credit_limit_processed', 'created_at', 'updated_at'
+  ],
+  claims: [
+    'id', 'phone', 'nama', 'hadiah', 'poin', 'status', 'tanggal',
+    'reward_id', 'request_id'
+  ],
   user_points: ['phone', 'points', 'last_updated'],
   referrals: [
     'id', 'referrer_phone', 'referrer_code', 'referee_phone', 'referee_user_id',
@@ -1801,6 +1810,14 @@ function getPaylaterFeePercentForTenor(tenorWeeks, cfg) {
   return parseFloat(cfg.feeWeek4 || 0) || 0;
 }
 
+function buildDefaultPaylaterDueDate(tenorWeeks) {
+  const weeks = Math.max(1, Math.min(4, parseInt(tenorWeeks, 10) || 1));
+  const due = new Date();
+  due.setUTCHours(0, 0, 0, 0);
+  due.setUTCDate(due.getUTCDate() + (weeks * 7));
+  return due.toISOString().slice(0, 10);
+}
+
 function findCreditAccountByPhone(phone) {
   const normalizedPhone = normalizePhone(phone || '');
   if (!normalizedPhone) return null;
@@ -2347,7 +2364,16 @@ function handleCreditInvoiceCreate(data) {
   const totalBeforePenalty = principal + feeAmount;
   const penaltyDaily = parseFloat(cfg.dailyPenaltyPercent || 0) || 0;
   const penaltyCap = parseFloat(cfg.penaltyCapPercent || 0) || 0;
-  const dueDate = String(data.due_date || '').trim() || nowIso();
+  const dueDateInput = String(data.due_date || '').trim();
+  const dueDate = dueDateInput || buildDefaultPaylaterDueDate(tenorWeeks);
+  const dueDateStart = getUtcDateStart(dueDate);
+  const todayStart = getUtcDateStart(nowIso());
+  if (!dueDateStart) {
+    return { success: false, error: 'INVALID_PAYLOAD', message: 'due_date tidak valid' };
+  }
+  if (todayStart && dueDateStart.getTime() < todayStart.getTime()) {
+    return { success: false, error: 'INVALID_PAYLOAD', message: 'due_date tidak boleh di masa lalu' };
+  }
   const now = nowIso();
 
   const invObj = getRowsAsObjects('credit_invoices');
@@ -4064,11 +4090,15 @@ function validatePublicCreatePayload(sheetName, payload) {
   if (sheetName === 'users') {
     const name = String(data.nama || '').trim();
     const phone = normalizePhone(data.whatsapp || data.phone || '');
+    const pin = String(data.pin === undefined ? '' : data.pin).trim();
     if (!name || name.length < 2) {
       return { success: false, error: 'INVALID_PAYLOAD', message: 'nama minimal 2 karakter' };
     }
     if (!phone || phone.length < 10) {
       return { success: false, error: 'INVALID_PAYLOAD', message: 'nomor whatsapp tidak valid' };
+    }
+    if (!/^\d{6}$/.test(pin)) {
+      return { success: false, error: 'INVALID_PAYLOAD', message: 'PIN harus 6 digit angka' };
     }
     return null;
   }
@@ -4179,7 +4209,18 @@ function validatePublicCreateSignature(e, body, actionKey, sheetName, payload) {
 
 function createUserWithAtomicLock(payload) {
   return withScriptLock(function() {
-    const dupError = ensureUserPhoneNotDuplicate(payload);
+    const data = payload || {};
+    const pin = String(data.pin === undefined ? '' : data.pin).trim();
+    if (!/^\d{6}$/.test(pin)) {
+      return {
+        success: false,
+        error: 'INVALID_PAYLOAD',
+        message: 'PIN harus 6 digit angka'
+      };
+    }
+
+    const normalizedPayload = Object.assign({}, data, { pin: pin });
+    const dupError = ensureUserPhoneNotDuplicate(normalizedPayload);
     if (dupError) return dupError;
 
     const users = getRowsAsObjects('users');
@@ -4188,7 +4229,7 @@ function createUserWithAtomicLock(payload) {
     }
 
     const row = users.headers.map(function(h) {
-      return (payload && payload[h] !== undefined ? payload[h] : '');
+      return (normalizedPayload[h] !== undefined ? normalizedPayload[h] : '');
     });
     users.sheet.appendRow(row);
     return { success: true, created: 1 };
