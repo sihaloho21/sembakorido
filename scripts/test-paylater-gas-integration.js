@@ -214,6 +214,11 @@ function addCreditAccount(ctx, data) {
   ctx.appendByHeaders(a.sheet, a.headers, data);
 }
 
+function addCreditInvoice(ctx, data) {
+  const inv = ctx.getRowsAsObjects('credit_invoices');
+  ctx.appendByHeaders(inv.sheet, inv.headers, data);
+}
+
 function getRows(ctx, sheet) {
   return ctx.getRowsAsObjects(sheet).rows;
 }
@@ -532,6 +537,130 @@ function testAdminManualLimitAndTenorSettingChange(ctx) {
   assert(Number(created.total_due) === 225000, 'Total due harus principal + fee sesuai setting terbaru');
 }
 
+function testPostmortemTwoWeeksAndTuning(ctx) {
+  const now = '2026-03-01T00:00:00.000Z';
+
+  // Seed 14-day window invoices:
+  // 1 paid on-time, 1 paid late, 1 overdue open, 1 defaulted open
+  addCreditInvoice(ctx, {
+    id: 'PMR-INV-1',
+    invoice_id: 'PMR-INV-1',
+    phone: '081299900001',
+    user_id: 'USR-PMR-1',
+    source_order_id: 'ORD-PMR-1',
+    principal: 100000,
+    tenor_weeks: 1,
+    fee_percent: 5,
+    fee_amount: 5000,
+    penalty_percent_daily: 0.5,
+    penalty_cap_percent: 15,
+    penalty_amount: 0,
+    total_before_penalty: 105000,
+    total_due: 105000,
+    paid_amount: 105000,
+    due_date: '2026-02-20',
+    status: 'paid',
+    notes: '',
+    created_at: '2026-02-18T10:00:00.000Z',
+    updated_at: '2026-02-20T11:00:00.000Z',
+    paid_at: '2026-02-20T11:00:00.000Z',
+    closed_at: '2026-02-20T11:00:00.000Z'
+  });
+
+  addCreditInvoice(ctx, {
+    id: 'PMR-INV-2',
+    invoice_id: 'PMR-INV-2',
+    phone: '081299900002',
+    user_id: 'USR-PMR-2',
+    source_order_id: 'ORD-PMR-2',
+    principal: 100000,
+    tenor_weeks: 1,
+    fee_percent: 5,
+    fee_amount: 5000,
+    penalty_percent_daily: 0.5,
+    penalty_cap_percent: 15,
+    penalty_amount: 0,
+    total_before_penalty: 105000,
+    total_due: 105000,
+    paid_amount: 105000,
+    due_date: '2026-02-20',
+    status: 'paid',
+    notes: '',
+    created_at: '2026-02-18T12:00:00.000Z',
+    updated_at: '2026-02-23T08:00:00.000Z',
+    paid_at: '2026-02-23T08:00:00.000Z',
+    closed_at: '2026-02-23T08:00:00.000Z'
+  });
+
+  addCreditInvoice(ctx, {
+    id: 'PMR-INV-3',
+    invoice_id: 'PMR-INV-3',
+    phone: '081299900003',
+    user_id: 'USR-PMR-3',
+    source_order_id: 'ORD-PMR-3',
+    principal: 100000,
+    tenor_weeks: 1,
+    fee_percent: 5,
+    fee_amount: 5000,
+    penalty_percent_daily: 0.5,
+    penalty_cap_percent: 15,
+    penalty_amount: 2000,
+    total_before_penalty: 105000,
+    total_due: 107000,
+    paid_amount: 0,
+    due_date: '2026-02-25',
+    status: 'overdue',
+    notes: '',
+    created_at: '2026-02-24T09:00:00.000Z',
+    updated_at: '2026-02-28T09:00:00.000Z',
+    paid_at: '',
+    closed_at: ''
+  });
+
+  addCreditInvoice(ctx, {
+    id: 'PMR-INV-4',
+    invoice_id: 'PMR-INV-4',
+    phone: '081299900004',
+    user_id: 'USR-PMR-4',
+    source_order_id: 'ORD-PMR-4',
+    principal: 120000,
+    tenor_weeks: 1,
+    fee_percent: 5,
+    fee_amount: 6000,
+    penalty_percent_daily: 0.5,
+    penalty_cap_percent: 15,
+    penalty_amount: 3000,
+    total_before_penalty: 126000,
+    total_due: 129000,
+    paid_amount: 10000,
+    due_date: '2026-02-22',
+    status: 'defaulted',
+    notes: '',
+    created_at: '2026-02-20T09:00:00.000Z',
+    updated_at: '2026-02-28T09:00:00.000Z',
+    paid_at: '',
+    closed_at: ''
+  });
+
+  const result = ctx.runPaylaterPostmortemTwoWeeks({
+    as_of_date: now,
+    window_days: 14
+  });
+  assert(result && result.success, 'Post-mortem two weeks harus success');
+  assert(result.metrics && Number(result.metrics.invoice_total) === 4, 'Invoice total window harus 4');
+  assert(Number(result.metrics.paid_ontime_count) === 1, 'Paid on-time count harus 1');
+  assert(Number(result.metrics.paid_late_count) === 1, 'Paid late count harus 1');
+  assert(Number(result.metrics.overdue_open_count) === 2, 'Overdue open count harus 2 (overdue + defaulted)');
+  assert(Number(result.metrics.defaulted_count) === 1, 'Defaulted count harus 1');
+  assert(Number(result.metrics.outstanding_default_amount) === 119000, 'Outstanding default amount harus sesuai');
+
+  const tuning = Array.isArray(result.tuning_recommendations) ? result.tuning_recommendations : [];
+  assert(tuning.length >= 1, 'Post-mortem harus menghasilkan minimal 1 rekomendasi tuning pada skenario berisiko');
+
+  const logs = getRows(ctx, 'paylater_postmortem_logs');
+  assert(logs.length >= 1, 'Post-mortem harus menulis log ke sheet paylater_postmortem_logs');
+}
+
 function seedSettings(ctx) {
   addSetting(ctx, 'paylater_enabled', 'true');
   addSetting(ctx, 'paylater_profit_to_limit_percent', '10');
@@ -558,6 +687,7 @@ function run() {
   testIdempotency(ctx);
   testRefundLimitReversal(ctx);
   testAdminManualLimitAndTenorSettingChange(ctx);
+  testPostmortemTwoWeeksAndTuning(ctx);
   console.log('PayLater GAS integration + idempotency tests passed.');
 }
 
