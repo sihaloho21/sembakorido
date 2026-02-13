@@ -1097,7 +1097,11 @@ function renderPaylaterPostmortemStatus(result) {
     const onTimeRate = (parseFloat(metrics.on_time_rate || 0) || 0) * 100;
     const overdueRate = (parseFloat(metrics.overdue_rate || 0) || 0) * 100;
     const defaultRate = (parseFloat(metrics.default_rate || 0) || 0) * 100;
-    statusEl.textContent = `Run ${parseInt(metrics.window_days || 14, 10) || 14} hari: invoice=${invoiceTotal}, on-time=${onTimeRate.toFixed(1)}%, overdue=${overdueRate.toFixed(1)}%, default=${defaultRate.toFixed(1)}%, rekomendasi=${tuning.length}`;
+    const alertInfo = result.default_rate_alert || {};
+    const alertText = alertInfo.throttled
+        ? 'alert=throttled'
+        : (alertInfo.alerted ? 'alert=sent' : 'alert=none');
+    statusEl.textContent = `Run ${parseInt(metrics.window_days || 14, 10) || 14} hari: invoice=${invoiceTotal}, on-time=${onTimeRate.toFixed(1)}%, overdue=${overdueRate.toFixed(1)}%, default=${defaultRate.toFixed(1)}%, rekomendasi=${tuning.length}, ${alertText}`;
     statusEl.className = 'text-xs text-emerald-700';
 }
 
@@ -1117,6 +1121,12 @@ async function runPaylaterPostmortem() {
                 showAdminToast(`Post-mortem selesai. ${tuning.length} rekomendasi tuning. ${preview}`, 'warning');
             } else {
                 showAdminToast('Post-mortem selesai. Tidak ada rekomendasi tuning saat ini.', 'success');
+            }
+            const alertInfo = result.default_rate_alert || {};
+            if (alertInfo.alerted) {
+                showAdminToast('Alert default rate dikirim otomatis (threshold terlampaui).', 'warning');
+            } else if (alertInfo.throttled) {
+                showAdminToast('Alert default rate ditahan cooldown.', 'info');
             }
             return;
         }
@@ -3413,6 +3423,16 @@ async function loadSettings() {
     const paylaterDueNotificationMaxRowsPerRunEl = document.getElementById('paylater-due-notification-max-rows-per-run');
     const paylaterDueNotificationEmailEl = document.getElementById('paylater-due-notification-email');
     const paylaterDueNotificationWebhookEl = document.getElementById('paylater-due-notification-webhook');
+    const paylaterPostmortemAlertEnabledEl = document.getElementById('paylater-postmortem-alert-enabled');
+    const paylaterPostmortemDefaultRateThresholdEl = document.getElementById('paylater-postmortem-default-rate-threshold');
+    const paylaterPostmortemAlertCooldownHoursEl = document.getElementById('paylater-postmortem-alert-cooldown-hours');
+    const paylaterPostmortemAlertEmailEl = document.getElementById('paylater-postmortem-alert-email');
+    const paylaterPostmortemAlertWebhookEl = document.getElementById('paylater-postmortem-alert-webhook');
+    const paylaterPostmortemAlertEnabledEl = document.getElementById('paylater-postmortem-alert-enabled');
+    const paylaterPostmortemDefaultRateThresholdEl = document.getElementById('paylater-postmortem-default-rate-threshold');
+    const paylaterPostmortemAlertCooldownHoursEl = document.getElementById('paylater-postmortem-alert-cooldown-hours');
+    const paylaterPostmortemAlertEmailEl = document.getElementById('paylater-postmortem-alert-email');
+    const paylaterPostmortemAlertWebhookEl = document.getElementById('paylater-postmortem-alert-webhook');
     const paylaterDueNotificationEnabledEl = document.getElementById('paylater-due-notification-enabled');
     const paylaterDueNotificationOverdueEnabledEl = document.getElementById('paylater-due-notification-overdue-enabled');
     const paylaterDueNotificationDaysBeforeEl = document.getElementById('paylater-due-notification-days-before');
@@ -3446,6 +3466,11 @@ async function loadSettings() {
     if (paylaterDueNotificationMaxRowsPerRunEl) paylaterDueNotificationMaxRowsPerRunEl.value = parseInt(getLatestSettingValue(rows, 'paylater_due_notification_max_rows_per_run', '100'), 10) || 100;
     if (paylaterDueNotificationEmailEl) paylaterDueNotificationEmailEl.value = String(getLatestSettingValue(rows, 'paylater_due_notification_email', '') || '');
     if (paylaterDueNotificationWebhookEl) paylaterDueNotificationWebhookEl.value = String(getLatestSettingValue(rows, 'paylater_due_notification_webhook', '') || '');
+    if (paylaterPostmortemAlertEnabledEl) paylaterPostmortemAlertEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_postmortem_alert_enabled', 'true')).toLowerCase() === 'false' ? 'false' : 'true';
+    if (paylaterPostmortemDefaultRateThresholdEl) paylaterPostmortemDefaultRateThresholdEl.value = parseFloat(getLatestSettingValue(rows, 'paylater_postmortem_default_rate_threshold', '0.08')) || 0.08;
+    if (paylaterPostmortemAlertCooldownHoursEl) paylaterPostmortemAlertCooldownHoursEl.value = parseInt(getLatestSettingValue(rows, 'paylater_postmortem_alert_cooldown_hours', '24'), 10) || 24;
+    if (paylaterPostmortemAlertEmailEl) paylaterPostmortemAlertEmailEl.value = String(getLatestSettingValue(rows, 'paylater_postmortem_alert_email', '') || '');
+    if (paylaterPostmortemAlertWebhookEl) paylaterPostmortemAlertWebhookEl.value = String(getLatestSettingValue(rows, 'paylater_postmortem_alert_webhook', '') || '');
 
     const referralEnabled = getLatestSettingValue(rows, 'referral_enabled', 'true');
     const referralRewardReferrer = getLatestSettingValue(rows, 'referral_reward_referrer', '20');
@@ -3635,6 +3660,11 @@ async function saveSettings() {
     const paylaterDueNotificationMaxRowsPerRun = paylaterDueNotificationMaxRowsPerRunEl ? parseInt(paylaterDueNotificationMaxRowsPerRunEl.value || '100', 10) : 100;
     const paylaterDueNotificationEmail = paylaterDueNotificationEmailEl ? String(paylaterDueNotificationEmailEl.value || '').trim() : '';
     const paylaterDueNotificationWebhook = paylaterDueNotificationWebhookEl ? String(paylaterDueNotificationWebhookEl.value || '').trim() : '';
+    const paylaterPostmortemAlertEnabled = paylaterPostmortemAlertEnabledEl ? paylaterPostmortemAlertEnabledEl.value : 'true';
+    const paylaterPostmortemDefaultRateThreshold = paylaterPostmortemDefaultRateThresholdEl ? parseFloat(paylaterPostmortemDefaultRateThresholdEl.value || '0.08') : 0.08;
+    const paylaterPostmortemAlertCooldownHours = paylaterPostmortemAlertCooldownHoursEl ? parseInt(paylaterPostmortemAlertCooldownHoursEl.value || '24', 10) : 24;
+    const paylaterPostmortemAlertEmail = paylaterPostmortemAlertEmailEl ? String(paylaterPostmortemAlertEmailEl.value || '').trim() : '';
+    const paylaterPostmortemAlertWebhook = paylaterPostmortemAlertWebhookEl ? String(paylaterPostmortemAlertWebhookEl.value || '').trim() : '';
 
     const settingEntries = [
         ['referral_enabled', String(referralEnabled)],
@@ -3672,7 +3702,12 @@ async function saveSettings() {
         ['paylater_due_notification_cooldown_hours', String(Math.max(1, paylaterDueNotificationCooldownHours))],
         ['paylater_due_notification_max_rows_per_run', String(Math.max(1, paylaterDueNotificationMaxRowsPerRun))],
         ['paylater_due_notification_email', String(paylaterDueNotificationEmail)],
-        ['paylater_due_notification_webhook', String(paylaterDueNotificationWebhook)]
+        ['paylater_due_notification_webhook', String(paylaterDueNotificationWebhook)],
+        ['paylater_postmortem_alert_enabled', String(paylaterPostmortemAlertEnabled)],
+        ['paylater_postmortem_default_rate_threshold', String(Math.max(0, Math.min(1, paylaterPostmortemDefaultRateThreshold)))],
+        ['paylater_postmortem_alert_cooldown_hours', String(Math.max(1, paylaterPostmortemAlertCooldownHours))],
+        ['paylater_postmortem_alert_email', String(paylaterPostmortemAlertEmail)],
+        ['paylater_postmortem_alert_webhook', String(paylaterPostmortemAlertWebhook)]
     ];
 
     try {
