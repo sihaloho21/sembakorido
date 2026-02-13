@@ -19,6 +19,20 @@ Gunakan checklist ini untuk memastikan semua sistem saling terhubung dengan bena
 - [x] `npm run test:paylater:integration` lulus setelah skenario overdue dibuat dinamis terhadap tanggal runtime.
 - [ ] Checklist end-to-end lain di bawah ini masih perlu verifikasi manual/integrasi sesuai scope masing-masing.
 
+## 0. Poin Besar Fitur Website (Checklist Cepat)
+- [ ] Landing page, navigasi utama, dan konten promosi tampil normal.
+- [ ] Katalog produk (search, kategori, sorting, detail, variasi, stok, harga) berjalan normal.
+- [ ] Keranjang belanja (tambah/hapus/ubah qty) dan kalkulasi subtotal/total konsisten.
+- [ ] Checkout (data pelanggan, metode kirim, metode bayar) tervalidasi dan bisa submit order.
+- [ ] Akun user (register, login, logout, update profil, ubah PIN, lupa PIN) berjalan end-to-end.
+- [ ] Loyalty points tampil benar dan sinkron dengan data backend.
+- [ ] Reward & claim (katalog hadiah, tukar poin, riwayat klaim) berjalan tanpa mismatch poin.
+- [ ] Referral (attach kode, riwayat, evaluasi reward, reverse saat cancel) berjalan sesuai rule.
+- [ ] PayLater sisi user (eligibility, ringkasan limit, list invoice, detail invoice) bisa diakses sesuai session.
+- [ ] PayLater sisi backend (invoice create/pay/penalty/freeze-lock/default) berjalan dan idempotent.
+- [ ] Security hardening aktif (session guard, whitelist action public, rate limit, no direct sheet exposure di flow user).
+- [ ] Scheduler/monitoring operasional (due notification, limit processor, postmortem, alert) berjalan tanpa error kritikal.
+
 ## 1. Persiapan Environment
 - [ ] Pastikan `SPREADSHEET_ID` mengarah ke sheet produksi/staging yang benar.
 - [ ] Pastikan semua sheet wajib ada dan header valid (`users`, `orders`, `user_points`, `claims`, `referrals`, `settings`, `credit_accounts`, `credit_invoices`, `credit_ledger`).
