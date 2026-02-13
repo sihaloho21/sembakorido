@@ -4261,17 +4261,18 @@ function enforceAttachReferralRateLimit(payload) {
   const data = payload || {};
   const refereePhone = normalizePhone(data.referee_phone || '');
   const key = 'attach_ref:' + (refereePhone || 'anon');
+  const cfg = getRateLimitConfig();
   try {
     const cache = CacheService.getScriptCache();
     const current = parseInt(cache.get(key) || '0', 10) || 0;
-    if (current >= ATTACH_REFERRAL_MAX_REQUESTS) {
+    if (current >= cfg.attachReferralMaxRequests) {
       return {
         success: false,
         error: 'RATE_LIMITED',
         message: 'Terlalu banyak percobaan referral, coba lagi sebentar.'
       };
     }
-    cache.put(key, String(current + 1), ATTACH_REFERRAL_WINDOW_SECONDS);
+    cache.put(key, String(current + 1), cfg.attachReferralWindowSeconds);
   } catch (error) {
     Logger.log('Attach referral rate limit cache error: ' + error.toString());
   }
@@ -4304,17 +4305,18 @@ function enforceClaimRewardRateLimit(payload) {
   const phone = normalizePhone(data.phone || data.whatsapp || '');
   const rewardId = String(data.reward_id || data.id || '').trim();
   const key = 'claim_reward:' + (phone || 'anon') + ':' + (rewardId || 'unknown');
+  const cfg = getRateLimitConfig();
   try {
     const cache = CacheService.getScriptCache();
     const current = parseInt(cache.get(key) || '0', 10) || 0;
-    if (current >= CLAIM_REWARD_MAX_REQUESTS) {
+    if (current >= cfg.claimRewardMaxRequests) {
       return {
         success: false,
         error: 'RATE_LIMITED',
         message: 'Terlalu banyak percobaan klaim, coba lagi sebentar.'
       };
     }
-    cache.put(key, String(current + 1), CLAIM_REWARD_WINDOW_SECONDS);
+    cache.put(key, String(current + 1), cfg.claimRewardWindowSeconds);
   } catch (error) {
     Logger.log('Claim reward rate limit cache error: ' + error.toString());
   }
@@ -4349,17 +4351,18 @@ function ensureUserPhoneNotDuplicate(payload) {
 function enforcePublicCreateRateLimit(sheetName, payload) {
   const identity = getPublicCreateIdentity(sheetName, payload);
   const key = 'pub_create:' + sheetName + ':' + (identity || 'anon');
+  const cfg = getRateLimitConfig();
   try {
     const cache = CacheService.getScriptCache();
     const current = parseInt(cache.get(key) || '0', 10) || 0;
-    if (current >= PUBLIC_CREATE_MAX_REQUESTS) {
+    if (current >= cfg.publicCreateMaxRequests) {
       return {
         success: false,
         error: 'RATE_LIMITED',
         message: 'Terlalu banyak request, coba lagi sebentar.'
       };
     }
-    cache.put(key, String(current + 1), PUBLIC_CREATE_WINDOW_SECONDS);
+    cache.put(key, String(current + 1), cfg.publicCreateWindowSeconds);
   } catch (error) {
     Logger.log('Rate limit cache error: ' + error.toString());
   }
@@ -4369,17 +4372,18 @@ function enforcePublicCreateRateLimit(sheetName, payload) {
 function enforcePublicLoginRateLimit(phone) {
   const normalizedPhone = normalizePhone(phone || '');
   const key = 'pub_login:' + (normalizedPhone || 'anon');
+  const cfg = getRateLimitConfig();
   try {
     const cache = CacheService.getScriptCache();
     const current = parseInt(cache.get(key) || '0', 10) || 0;
-    if (current >= PUBLIC_LOGIN_MAX_REQUESTS) {
+    if (current >= cfg.publicLoginMaxRequests) {
       return {
         success: false,
         error: 'RATE_LIMITED',
         message: 'Terlalu banyak percobaan login, coba lagi sebentar.'
       };
     }
-    cache.put(key, String(current + 1), PUBLIC_LOGIN_WINDOW_SECONDS);
+    cache.put(key, String(current + 1), cfg.publicLoginWindowSeconds);
   } catch (error) {
     Logger.log('Public login rate limit cache error: ' + error.toString());
   }
@@ -4525,6 +4529,68 @@ function getSecurityConfig() {
       set.public_create_hmac_max_age_seconds || String(PUBLIC_CREATE_HMAC_MAX_AGE_SECONDS),
       10
     ) || PUBLIC_CREATE_HMAC_MAX_AGE_SECONDS
+  };
+}
+
+function getRateLimitConfig() {
+  const set = getSettingsMap();
+  const asPositiveInt = function(value, fallback, minValue, maxValue) {
+    const min = Math.max(1, parseInt(minValue || 1, 10) || 1);
+    const max = Math.max(min, parseInt(maxValue || 999999, 10) || 999999);
+    const raw = parseInt(String(value === undefined ? '' : value), 10);
+    const base = Number.isFinite(raw) && raw > 0 ? raw : fallback;
+    return Math.max(min, Math.min(max, parseInt(base, 10) || fallback));
+  };
+
+  return {
+    publicCreateWindowSeconds: asPositiveInt(
+      set.public_create_window_seconds,
+      PUBLIC_CREATE_WINDOW_SECONDS,
+      1,
+      3600
+    ),
+    publicCreateMaxRequests: asPositiveInt(
+      set.public_create_max_requests,
+      PUBLIC_CREATE_MAX_REQUESTS,
+      1,
+      200
+    ),
+    attachReferralWindowSeconds: asPositiveInt(
+      set.attach_referral_window_seconds,
+      ATTACH_REFERRAL_WINDOW_SECONDS,
+      1,
+      3600
+    ),
+    attachReferralMaxRequests: asPositiveInt(
+      set.attach_referral_max_requests,
+      ATTACH_REFERRAL_MAX_REQUESTS,
+      1,
+      200
+    ),
+    claimRewardWindowSeconds: asPositiveInt(
+      set.claim_reward_window_seconds,
+      CLAIM_REWARD_WINDOW_SECONDS,
+      1,
+      3600
+    ),
+    claimRewardMaxRequests: asPositiveInt(
+      set.claim_reward_max_requests,
+      CLAIM_REWARD_MAX_REQUESTS,
+      1,
+      200
+    ),
+    publicLoginWindowSeconds: asPositiveInt(
+      set.public_login_window_seconds,
+      PUBLIC_LOGIN_WINDOW_SECONDS,
+      1,
+      3600
+    ),
+    publicLoginMaxRequests: asPositiveInt(
+      set.public_login_max_requests,
+      PUBLIC_LOGIN_MAX_REQUESTS,
+      1,
+      500
+    )
   };
 }
 
