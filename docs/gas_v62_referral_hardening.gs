@@ -60,7 +60,7 @@ const SHEET_WHITELIST = [
   'products', 'categories', 'orders', 'users', 'user_points', 'tukar_poin',
   'banners', 'claims', 'settings', 'pembelian', 'suppliers', 'biaya_bulanan',
   'referrals', 'point_transactions', 'referral_audit_logs', 'fraud_risk_logs',
-  'credit_accounts', 'credit_invoices', 'credit_ledger'
+  'credit_accounts', 'credit_invoices', 'credit_ledger', 'paylater_postmortem_logs'
 ];
 
 const LOCK_TIMEOUT_MS = 30000;
@@ -98,7 +98,8 @@ const SENSITIVE_GET_SHEETS = {
   fraud_risk_logs: true,
   credit_accounts: true,
   credit_invoices: true,
-  credit_ledger: true
+  credit_ledger: true,
+  paylater_postmortem_logs: true
 };
 
 const PUBLIC_POST_RULES = {
@@ -153,6 +154,12 @@ const SCHEMA_REQUIREMENTS = {
   credit_ledger: [
     'id', 'phone', 'user_id', 'invoice_id', 'type', 'amount',
     'balance_before', 'balance_after', 'ref_id', 'note', 'actor', 'created_at'
+  ],
+  paylater_postmortem_logs: [
+    'id', 'run_at', 'window_days', 'invoice_total', 'paid_ontime_count',
+    'paid_late_count', 'overdue_open_count', 'defaulted_count',
+    'outstanding_default_amount', 'on_time_rate', 'overdue_rate', 'default_rate',
+    'summary_json', 'tuning_json'
   ]
 };
 
@@ -824,6 +831,12 @@ function doPost(e) {
 
     if (action === 'get_paylater_due_notification_scheduler') {
       return jsonOutput(getPaylaterDueNotificationSchedulerInfo());
+    }
+
+    if (action === 'run_paylater_postmortem_two_weeks') {
+      return jsonOutput(withScriptLock(function() {
+        return runPaylaterPostmortemTwoWeeks(data);
+      }));
     }
 
     const sheet = getSheet(sheetName);
@@ -3126,6 +3139,170 @@ function runPaylaterDueNotificationsTrigger() {
   return runPaylaterDueNotifications({ actor: 'trigger_scheduler' });
 }
 
+function getRemainingInvoiceAmount(row) {
+  const totalDue = toMoneyInt(row.total_due || 0);
+  const paid = toMoneyInt(row.paid_amount || 0);
+  return Math.max(0, totalDue - paid);
+}
+
+function buildPaylaterRuleTuningSuggestions(metrics, cfg) {
+  const suggestions = [];
+  const overdueRate = parseFloat(metrics.overdue_rate || 0) || 0;
+  const defaultRate = parseFloat(metrics.default_rate || 0) || 0;
+  const onTimeRate = parseFloat(metrics.on_time_rate || 0) || 0;
+  const avgOverdueDays = parseFloat(metrics.avg_overdue_days || 0) || 0;
+
+  if (defaultRate >= 0.08 || (defaultRate >= 0.05 && avgOverdueDays >= 10)) {
+    const nextProfitPercent = Math.max(5, (parseFloat(cfg.profitToLimitPercent || 10) || 10) - 2);
+    suggestions.push({
+      key: 'paylater_profit_to_limit_percent',
+      current_value: parseFloat(cfg.profitToLimitPercent || 10) || 10,
+      suggested_value: nextProfitPercent,
+      reason: 'Default rate tinggi, kurangi laju kenaikan limit dari profit.'
+    });
+  }
+
+  if (overdueRate >= 0.2) {
+    const nextFreezeDays = Math.max(1, (parseInt(cfg.overdueFreezeDays || 3, 10) || 3) - 1);
+    suggestions.push({
+      key: 'paylater_overdue_freeze_days',
+      current_value: parseInt(cfg.overdueFreezeDays || 3, 10) || 3,
+      suggested_value: nextFreezeDays,
+      reason: 'Overdue rate tinggi, percepat freeze agar exposure menurun.'
+    });
+  }
+
+  if (defaultRate >= 0.1) {
+    const nextLockDays = Math.max(3, (parseInt(cfg.overdueLockDays || 14, 10) || 14) - 2);
+    suggestions.push({
+      key: 'paylater_overdue_lock_days',
+      current_value: parseInt(cfg.overdueLockDays || 14, 10) || 14,
+      suggested_value: nextLockDays,
+      reason: 'Default rate sangat tinggi, percepat lock pada invoice bermasalah.'
+    });
+  }
+
+  if (onTimeRate >= 0.9 && overdueRate <= 0.05 && defaultRate <= 0.02) {
+    const nextProfitPercent = Math.min(15, (parseFloat(cfg.profitToLimitPercent || 10) || 10) + 1);
+    suggestions.push({
+      key: 'paylater_profit_to_limit_percent',
+      current_value: parseFloat(cfg.profitToLimitPercent || 10) || 10,
+      suggested_value: nextProfitPercent,
+      reason: 'Performa sangat sehat, bisa uji kenaikan limit growth secara bertahap.'
+    });
+  }
+
+  return suggestions;
+}
+
+function runPaylaterPostmortemTwoWeeks(data) {
+  data = data || {};
+  ensureSchema(true);
+  const asOfDate = data.as_of_date || nowIso();
+  const windowDays = Math.max(7, Math.min(60, parseInt(data.window_days || 14, 10) || 14));
+  const cutoffMs = getUtcDateStart(asOfDate).getTime() - (windowDays * 24 * 60 * 60 * 1000);
+
+  const invRows = getRowsAsObjects('credit_invoices').rows;
+  const windowInvoices = invRows.filter(function(row) {
+    const createdAt = new Date(row.created_at || 0);
+    if (Number.isNaN(createdAt.getTime())) return false;
+    return createdAt.getTime() >= cutoffMs;
+  });
+
+  const totals = {
+    invoice_total: windowInvoices.length,
+    paid_ontime_count: 0,
+    paid_late_count: 0,
+    overdue_open_count: 0,
+    defaulted_count: 0,
+    outstanding_default_amount: 0,
+    avg_overdue_days: 0
+  };
+
+  var overdueDaysTotal = 0;
+  var overdueDaysCount = 0;
+  for (var i = 0; i < windowInvoices.length; i++) {
+    const row = windowInvoices[i];
+    const st = String(row.status || '').toLowerCase().trim();
+    const dueDate = getUtcDateStart(row.due_date || '');
+
+    if (st === 'paid') {
+      const paidAt = getUtcDateStart(row.paid_at || row.updated_at || '');
+      if (dueDate && paidAt && paidAt.getTime() <= dueDate.getTime()) {
+        totals.paid_ontime_count++;
+      } else {
+        totals.paid_late_count++;
+      }
+      continue;
+    }
+
+    if (st === 'overdue' || st === 'defaulted') {
+      totals.overdue_open_count++;
+      const overdueDays = getOverdueDays(row.due_date || '', asOfDate);
+      if (overdueDays > 0) {
+        overdueDaysTotal += overdueDays;
+        overdueDaysCount++;
+      }
+    }
+
+    if (st === 'defaulted') {
+      totals.defaulted_count++;
+      totals.outstanding_default_amount += getRemainingInvoiceAmount(row);
+    }
+  }
+
+  totals.avg_overdue_days = overdueDaysCount > 0 ? (overdueDaysTotal / overdueDaysCount) : 0;
+  const invoiceTotal = Math.max(1, totals.invoice_total);
+  const onTimeRate = totals.paid_ontime_count / invoiceTotal;
+  const overdueRate = totals.overdue_open_count / invoiceTotal;
+  const defaultRate = totals.defaulted_count / invoiceTotal;
+
+  const metrics = {
+    run_at: nowIso(),
+    as_of_date: String(asOfDate),
+    window_days: windowDays,
+    invoice_total: totals.invoice_total,
+    paid_ontime_count: totals.paid_ontime_count,
+    paid_late_count: totals.paid_late_count,
+    overdue_open_count: totals.overdue_open_count,
+    defaulted_count: totals.defaulted_count,
+    outstanding_default_amount: totals.outstanding_default_amount,
+    avg_overdue_days: totals.avg_overdue_days,
+    on_time_rate: onTimeRate,
+    overdue_rate: overdueRate,
+    default_rate: defaultRate
+  };
+
+  const cfg = getPaylaterConfig();
+  const tuning = buildPaylaterRuleTuningSuggestions(metrics, cfg);
+
+  const logObj = getRowsAsObjects('paylater_postmortem_logs');
+  if (logObj.headers.length > 0) {
+    appendByHeaders(logObj.sheet, logObj.headers, {
+      id: genId('PMR'),
+      run_at: nowIso(),
+      window_days: windowDays,
+      invoice_total: totals.invoice_total,
+      paid_ontime_count: totals.paid_ontime_count,
+      paid_late_count: totals.paid_late_count,
+      overdue_open_count: totals.overdue_open_count,
+      defaulted_count: totals.defaulted_count,
+      outstanding_default_amount: totals.outstanding_default_amount,
+      on_time_rate: onTimeRate,
+      overdue_rate: overdueRate,
+      default_rate: defaultRate,
+      summary_json: JSON.stringify(metrics),
+      tuning_json: JSON.stringify(tuning)
+    });
+  }
+
+  return {
+    success: true,
+    metrics: metrics,
+    tuning_recommendations: tuning
+  };
+}
+
 function installPaylaterDueNotificationScheduler(data) {
   data = data || {};
   const modeRaw = String(data.mode || data.schedule || 'daily').toLowerCase().trim();
@@ -3452,7 +3629,8 @@ function isSheetValidationRequired(actionKey) {
     run_paylater_due_notifications: true,
     install_paylater_due_notification_scheduler: true,
     remove_paylater_due_notification_scheduler: true,
-    get_paylater_due_notification_scheduler: true
+    get_paylater_due_notification_scheduler: true,
+    run_paylater_postmortem_two_weeks: true,
   };
   return !skip[actionKey];
 }
@@ -3540,6 +3718,7 @@ function getRequiredRoleForAction(actionKey, sheetName) {
   if (key === 'credit_invoice_apply_penalty') return 'manager';
   if (key === 'credit_account_set_status') return 'manager';
   if (key === 'run_paylater_due_notifications') return 'manager';
+  if (key === 'run_paylater_postmortem_two_weeks') return 'manager';
 
   if (key === 'credit_account_get') return 'operator';
   if (key === 'get_paylater_limit_scheduler') return 'operator';

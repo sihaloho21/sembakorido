@@ -236,7 +236,11 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
   - Implementasi: widget KPI PayLater di `admin/index.html` + kalkulasi di `admin/js/admin-script.js`
 - [x] `P0` Siapkan SOP operasional penagihan
   - Implementasi: `docs/PAYLATER_COLLECTION_SOP.md`
-- [ ] `P1` Post-mortem 2 minggu pertama + tuning rule
+- [x] `P1` Post-mortem 2 minggu pertama + tuning rule
+  - Implementasi:
+    - endpoint `run_paylater_postmortem_two_weeks` untuk ringkasan KPI 14 hari + rekomendasi tuning rule otomatis
+    - hasil run dilog ke sheet `paylater_postmortem_logs` (summary + tuning JSON)
+    - panel admin tambah tombol `Run Post-mortem` + ringkasan hasil cepat di section Credit Accounts
 
 ---
 
