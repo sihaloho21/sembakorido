@@ -7,52 +7,34 @@
  */
 
 const GASActions = {
+    readStorageValue(keys) {
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            const sessionValue = String(sessionStorage.getItem(key) || '').trim();
+            if (sessionValue) return sessionValue;
+            const localValue = String(localStorage.getItem(key) || '').trim();
+            if (localValue) return localValue;
+        }
+        return '';
+    },
+
     /**
-     * Resolve admin role from URL/localStorage/input.
+     * Resolve admin role from storage/input.
      * Priority:
-     * 1) current URL query (?admin_role=...|role=...)
-     * 2) admin API URL query
-     * 3) localStorage sembako_admin_role / admin_role
-     * 4) settings input (#settings-admin-role)
+     * 1) session/local storage sembako_admin_role / admin_role
+     * 2) settings input (#settings-admin-role)
      * @returns {string}
      */
     getAdminRole() {
-        const queryKeys = ['admin_role', 'role', 'ar'];
-
-        try {
-            const currentUrl = new URL(window.location.href);
-            for (let i = 0; i < queryKeys.length; i++) {
-                const value = String(currentUrl.searchParams.get(queryKeys[i]) || '').trim().toLowerCase();
-                if (value) {
-                    localStorage.setItem('sembako_admin_role', value);
-                    return value;
-                }
-            }
-        } catch (error) {
-            // Ignore parse issues and continue fallback chain
-        }
-
-        try {
-            const apiUrl = CONFIG.getAdminApiUrl();
-            const url = new URL(apiUrl, window.location.origin);
-            for (let i = 0; i < queryKeys.length; i++) {
-                const roleFromUrl = String(url.searchParams.get(queryKeys[i]) || '').trim().toLowerCase();
-                if (roleFromUrl) return roleFromUrl;
-            }
-        } catch (error) {
-            // Ignore URL parse issues and fallback to localStorage
-        }
-
         const storageKeys = ['sembako_admin_role', 'admin_role', 'sembako_role'];
-        for (let i = 0; i < storageKeys.length; i++) {
-            const value = String(localStorage.getItem(storageKeys[i]) || '').trim().toLowerCase();
-            if (value) return value;
-        }
+        const storedRole = String(this.readStorageValue(storageKeys) || '').trim().toLowerCase();
+        if (storedRole) return storedRole;
 
         const roleInput = document.getElementById('settings-admin-role');
         if (roleInput) {
             const value = String(roleInput.value || '').trim().toLowerCase();
             if (value) {
+                sessionStorage.setItem('sembako_admin_role', value);
                 localStorage.setItem('sembako_admin_role', value);
                 return value;
             }
@@ -62,42 +44,13 @@ const GASActions = {
     },
 
     /**
-     * Resolve admin token from API URL query or localStorage.
+     * Resolve admin token from storage/input.
      * Priority:
-     * 1) token in admin API URL (?token=...)
-     * 2) localStorage sembako_admin_api_token
-     * 3) localStorage sembako_admin_token
-     * 4) localStorage admin_token
+     * 1) session/local storage
+     * 2) token input in admin settings page
      * @returns {string}
      */
     getAdminToken() {
-        const queryKeys = ['token', 'admin_token', 'auth_token'];
-
-        // Priority 0: token from current page URL (useful when admin opens /admin/?token=...)
-        try {
-            const currentUrl = new URL(window.location.href);
-            for (let i = 0; i < queryKeys.length; i++) {
-                const value = String(currentUrl.searchParams.get(queryKeys[i]) || '').trim();
-                if (value) {
-                    localStorage.setItem('sembako_admin_api_token', value);
-                    return value;
-                }
-            }
-        } catch (error) {
-            // Ignore parse issues and continue fallback chain
-        }
-
-        try {
-            const apiUrl = CONFIG.getAdminApiUrl();
-            const url = new URL(apiUrl, window.location.origin);
-            for (let i = 0; i < queryKeys.length; i++) {
-                const tokenFromUrl = String(url.searchParams.get(queryKeys[i]) || '').trim();
-                if (tokenFromUrl) return tokenFromUrl;
-            }
-        } catch (error) {
-            // Ignore URL parse issues and fallback to localStorage
-        }
-
         const storageKeys = [
             'sembako_admin_api_token',
             'sembako_admin_write_token',
@@ -109,11 +62,8 @@ const GASActions = {
             'gos_api_token'
         ];
 
-        for (let i = 0; i < storageKeys.length; i++) {
-            const key = storageKeys[i];
-            const value = String(localStorage.getItem(key) || '').trim();
-            if (value) return value;
-        }
+        const storedToken = this.readStorageValue(storageKeys);
+        if (storedToken) return storedToken;
 
         // Fallback: read from token input in admin settings page if available.
         const tokenInputIds = ['settings-admin-token', 'admin-token-input', 'admin-token'];
@@ -122,7 +72,9 @@ const GASActions = {
             if (!el) continue;
             const value = String(el.value || '').trim();
             if (value) {
-                localStorage.setItem('sembako_admin_write_token', value);
+                sessionStorage.setItem('sembako_admin_write_token', value);
+                localStorage.removeItem('sembako_admin_write_token');
+                localStorage.removeItem('sembako_admin_api_token');
                 return value;
             }
         }
@@ -136,22 +88,9 @@ const GASActions = {
      * @returns {Promise<object>} Response JSON
      */
     async post(payload) {
-        let apiUrl = CONFIG.getAdminApiUrl();
+        const apiUrl = CONFIG.getAdminApiUrl();
         const token = this.getAdminToken();
         const adminRole = this.getAdminRole();
-
-        // Mirror token into query param to guarantee Apps Script sees it in e.parameter.
-        if (token) {
-            try {
-                const urlObj = new URL(apiUrl, window.location.origin);
-                if (!urlObj.searchParams.get('token')) {
-                    urlObj.searchParams.set('token', token);
-                }
-                apiUrl = urlObj.toString();
-            } catch (error) {
-                // Keep original URL if parsing fails.
-            }
-        }
 
         // Duplicate token in payload for backend compatibility.
         const payloadWithToken = {

@@ -3,14 +3,89 @@ var escapeHtml = (window.AdminSanitize && window.AdminSanitize.escapeHtml) || ((
 var escapeAttr = (window.AdminSanitize && window.AdminSanitize.escapeAttr) || ((value) => String(value || ''));
 var sanitizeUrl = (window.AdminSanitize && window.AdminSanitize.sanitizeUrl) || ((url) => String(url || ''));
 
-// Auth Check
-if (localStorage.getItem('admin_logged_in') !== 'true') {
-    window.location.href = 'login.html';
+const ADMIN_SESSION_KEY = 'sembako_admin_session_v1';
+const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+
+function readStorageValue(keys) {
+    for (let i = 0; i < keys.length; i += 1) {
+        const key = keys[i];
+        const sessionValue = String(sessionStorage.getItem(key) || '').trim();
+        if (sessionValue) return sessionValue;
+        const localValue = String(localStorage.getItem(key) || '').trim();
+        if (localValue) return localValue;
+    }
+    return '';
 }
+
+function clearAdminAuthStorage() {
+    const keys = [
+        ADMIN_SESSION_KEY,
+        'admin_logged_in',
+        'sembako_admin_api_token',
+        'sembako_admin_write_token',
+        'sembako_admin_token',
+        'admin_token',
+        'api_token',
+        'sembako_api_token',
+        'gos_admin_token',
+        'gos_api_token',
+        'sembako_admin_role',
+        'admin_role',
+        'sembako_role'
+    ];
+    keys.forEach((key) => {
+        sessionStorage.removeItem(key);
+        localStorage.removeItem(key);
+    });
+}
+
+function readAdminSession() {
+    const raw = String(sessionStorage.getItem(ADMIN_SESSION_KEY) || '').trim();
+    if (!raw) return null;
+    try {
+        const parsed = JSON.parse(raw);
+        const expiresAt = Number(parsed.expires_at || 0);
+        if (!expiresAt || expiresAt <= Date.now()) return null;
+        return parsed;
+    } catch (error) {
+        return null;
+    }
+}
+
+function hasAdminToken() {
+    return Boolean(readStorageValue([
+        'sembako_admin_api_token',
+        'sembako_admin_write_token',
+        'sembako_admin_token',
+        'admin_token',
+        'api_token',
+        'sembako_api_token',
+        'gos_admin_token',
+        'gos_api_token'
+    ]));
+}
+
+function ensureAdminAuthOrRedirect() {
+    const session = readAdminSession();
+    if (!session || !hasAdminToken()) {
+        clearAdminAuthStorage();
+        window.location.href = 'login.html';
+        return null;
+    }
+    if (Number(session.expires_at || 0) - Date.now() > ADMIN_SESSION_TTL_MS) {
+        clearAdminAuthStorage();
+        window.location.href = 'login.html';
+        return null;
+    }
+    return session;
+}
+
 function logout() {
-    localStorage.removeItem('admin_logged_in');
+    clearAdminAuthStorage();
     window.location.href = 'login.html';
 }
+
+ensureAdminAuthOrRedirect();
 
 let API_URL = CONFIG.getAdminApiUrl();
 const CATEGORIES_SHEET = 'categories';
@@ -156,15 +231,15 @@ function toggleStoreStatus() {
 async function updateDashboardStats() {
     try {
         const [prodRes, orderRes, purchaseRes, costRes, referralRes, userPointsRes, ledgerRes, settingsRes, creditInvoiceRes] = await Promise.all([
-            fetch(`${API_URL}?sheet=${PRODUCTS_SHEET}`),
-            fetch(`${API_URL}?sheet=${ORDERS_SHEET}`),
-            fetch(`${API_URL}?sheet=${PURCHASES_SHEET}`),
-            fetch(`${API_URL}?sheet=${MONTHLY_COST_SHEET}`),
-            fetch(`${API_URL}?sheet=referrals`),
-            fetch(`${API_URL}?sheet=user_points`),
-            fetch(`${API_URL}?sheet=point_transactions`),
-            fetch(`${API_URL}?sheet=settings`),
-            fetch(`${API_URL}?sheet=${CREDIT_INVOICES_SHEET}`)
+            fetch(buildAdminGetUrl(PRODUCTS_SHEET)),
+            fetch(buildAdminGetUrl(ORDERS_SHEET)),
+            fetch(buildAdminGetUrl(PURCHASES_SHEET)),
+            fetch(buildAdminGetUrl(MONTHLY_COST_SHEET)),
+            fetch(buildAdminGetUrl('referrals')),
+            fetch(buildAdminGetUrl('user_points')),
+            fetch(buildAdminGetUrl('point_transactions')),
+            fetch(buildAdminGetUrl('settings')),
+            fetch(buildAdminGetUrl(CREDIT_INVOICES_SHEET))
         ]);
         const prods = await prodRes.json();
         const orders = await orderRes.json();
@@ -1911,7 +1986,7 @@ async function fetchSuppliers() {
         tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Memuat data supplier...</td></tr>';
     }
     try {
-        const response = await fetch(`${API_URL}?sheet=${SUPPLIERS_SHEET}`);
+        const response = await fetch(buildAdminGetUrl(SUPPLIERS_SHEET));
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         allSuppliers = Array.isArray(data) ? data : [];
@@ -2031,7 +2106,7 @@ async function fetchMonthlyCosts() {
         tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Memuat data biaya...</td></tr>';
     }
     try {
-        const response = await fetch(`${API_URL}?sheet=${MONTHLY_COST_SHEET}`);
+        const response = await fetch(buildAdminGetUrl(MONTHLY_COST_SHEET));
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         allMonthlyCosts = Array.isArray(data) ? data : [];
@@ -2222,33 +2297,6 @@ function getAdminGetToken() {
         if (tokenFromGASActions) return tokenFromGASActions;
     }
 
-    try {
-        const currentUrl = new URL(window.location.href);
-        const currentUrlToken = String(
-            currentUrl.searchParams.get('token') ||
-            currentUrl.searchParams.get('admin_token') ||
-            currentUrl.searchParams.get('auth_token') ||
-            ''
-        ).trim();
-        if (currentUrlToken) return currentUrlToken;
-    } catch (error) {
-        console.warn('Failed reading token from current page URL:', error);
-    }
-
-    try {
-        const apiUrl = CONFIG.getAdminApiUrl();
-        const parsed = new URL(apiUrl, window.location.origin);
-        const tokenFromUrl = String(
-            parsed.searchParams.get('token') ||
-            parsed.searchParams.get('admin_token') ||
-            parsed.searchParams.get('auth_token') ||
-            ''
-        ).trim();
-        if (tokenFromUrl) return tokenFromUrl;
-    } catch (error) {
-        console.warn('Failed reading token from admin URL:', error);
-    }
-
     const tokenKeys = [
         'sembako_admin_api_token',
         'sembako_admin_write_token',
@@ -2260,7 +2308,7 @@ function getAdminGetToken() {
         'gos_api_token'
     ];
     for (let i = 0; i < tokenKeys.length; i += 1) {
-        const token = String(localStorage.getItem(tokenKeys[i]) || '').trim();
+        const token = String(sessionStorage.getItem(tokenKeys[i]) || localStorage.getItem(tokenKeys[i]) || '').trim();
         if (token) return token;
     }
     return '';
@@ -2482,7 +2530,7 @@ async function updateOrderStatus(id, newStatus, selectElement) {
                     const pointsToAdd = parseFloat(order.poin) || 0;
                     const phone = normalizePhone(order.phone);
                     
-                    const userRes = await fetch(`${API_URL}?sheet=user_points`);
+                    const userRes = await fetch(buildAdminGetUrl('user_points'));
                     const allUsers = await userRes.json();
                     const userData = Array.isArray(allUsers) ? allUsers.filter(u => normalizePhone(u.phone) === phone) : [];
                     
@@ -2539,7 +2587,7 @@ async function updateOrderStatus(id, newStatus, selectElement) {
 // ============ CATEGORY FUNCTIONS ============
 async function fetchCategories() {
     try {
-        const response = await fetch(`${API_URL}?sheet=${CATEGORIES_SHEET}`);
+        const response = await fetch(buildAdminGetUrl(CATEGORIES_SHEET));
         allCategories = await response.json();
         renderCategoryTable();
         updateCategoryDropdown();
@@ -2688,9 +2736,9 @@ async function fetchAdminProducts() {
     tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Memuat data...</td></tr>';
     try {
         const [productsRes, purchasesRes, suppliersRes] = await Promise.all([
-            fetch(`${API_URL}?sheet=${PRODUCTS_SHEET}`),
-            fetch(`${API_URL}?sheet=${PURCHASES_SHEET}`),
-            fetch(`${API_URL}?sheet=${SUPPLIERS_SHEET}`)
+            fetch(buildAdminGetUrl(PRODUCTS_SHEET)),
+            fetch(buildAdminGetUrl(PURCHASES_SHEET)),
+            fetch(buildAdminGetUrl(SUPPLIERS_SHEET))
         ]);
         allProducts = await productsRes.json();
         if (purchasesRes.ok) {
@@ -2885,7 +2933,7 @@ async function fetchPurchases() {
         tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-10 text-center text-gray-500">Memuat data pembelian...</td></tr>';
     }
     try {
-        const response = await fetch(`${API_URL}?sheet=${PURCHASES_SHEET}`);
+        const response = await fetch(buildAdminGetUrl(PURCHASES_SHEET));
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         allPurchases = Array.isArray(data) ? data : [];
@@ -3028,7 +3076,7 @@ async function ensureProductsLoadedForTukarPoinSelector() {
         return allProducts;
     }
     try {
-        const response = await fetch(`${API_URL}?sheet=${PRODUCTS_SHEET}`);
+        const response = await fetch(buildAdminGetUrl(PRODUCTS_SHEET));
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         allProducts = Array.isArray(data) ? data : [];
@@ -3111,7 +3159,7 @@ async function fetchTukarPoin() {
     const tbody = document.getElementById('tukar-poin-list');
     tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Memuat data tukar poin...</td></tr>';
     try {
-        const response = await fetch(`${API_URL}?sheet=${TUKAR_POIN_SHEET}`);
+        const response = await fetch(buildAdminGetUrl(TUKAR_POIN_SHEET));
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         allTukarPoin = await response.json();
         if (!Array.isArray(allTukarPoin)) allTukarPoin = [];
@@ -3311,7 +3359,7 @@ async function fetchUserPoints() {
     const tbody = document.getElementById('user-points-list');
     tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">Memuat data...</td></tr>';
     try {
-        const response = await fetch(`${API_URL}?sheet=user_points`);
+        const response = await fetch(buildAdminGetUrl('user_points'));
         const data = await response.json();
         if (data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">Belum ada data poin pengguna.</td></tr>';
@@ -3340,7 +3388,7 @@ async function editUserPoints(phone, currentPoints) {
     
     try {
         // First, get the user data to find the ID
-        const searchRes = await fetch(`${API_URL}?sheet=user_points`);
+        const searchRes = await fetch(buildAdminGetUrl('user_points'));
         const allUsers = await searchRes.json();
         const user = allUsers.find(u => u.phone === phone);
         
@@ -3428,18 +3476,6 @@ async function loadSettings() {
     const paylaterPostmortemAlertCooldownHoursEl = document.getElementById('paylater-postmortem-alert-cooldown-hours');
     const paylaterPostmortemAlertEmailEl = document.getElementById('paylater-postmortem-alert-email');
     const paylaterPostmortemAlertWebhookEl = document.getElementById('paylater-postmortem-alert-webhook');
-    const paylaterPostmortemAlertEnabledEl = document.getElementById('paylater-postmortem-alert-enabled');
-    const paylaterPostmortemDefaultRateThresholdEl = document.getElementById('paylater-postmortem-default-rate-threshold');
-    const paylaterPostmortemAlertCooldownHoursEl = document.getElementById('paylater-postmortem-alert-cooldown-hours');
-    const paylaterPostmortemAlertEmailEl = document.getElementById('paylater-postmortem-alert-email');
-    const paylaterPostmortemAlertWebhookEl = document.getElementById('paylater-postmortem-alert-webhook');
-    const paylaterDueNotificationEnabledEl = document.getElementById('paylater-due-notification-enabled');
-    const paylaterDueNotificationOverdueEnabledEl = document.getElementById('paylater-due-notification-overdue-enabled');
-    const paylaterDueNotificationDaysBeforeEl = document.getElementById('paylater-due-notification-days-before');
-    const paylaterDueNotificationCooldownHoursEl = document.getElementById('paylater-due-notification-cooldown-hours');
-    const paylaterDueNotificationMaxRowsPerRunEl = document.getElementById('paylater-due-notification-max-rows-per-run');
-    const paylaterDueNotificationEmailEl = document.getElementById('paylater-due-notification-email');
-    const paylaterDueNotificationWebhookEl = document.getElementById('paylater-due-notification-webhook');
 
     if (adminRoleEnforceEl) adminRoleEnforceEl.value = String(getLatestSettingValue(rows, 'admin_role_enforce', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
     if (paylaterEnabledEl) paylaterEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_enabled', 'false')).toLowerCase() === 'true' ? 'true' : 'false';

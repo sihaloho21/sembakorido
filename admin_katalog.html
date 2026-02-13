@@ -320,7 +320,8 @@
         function viewCatalog(id) {
             const catalog = catalogs.find(c => c.id === id);
             if (catalog) {
-                window.open(catalog.pdfUrl, '_blank');
+                const popup = window.open(catalog.pdfUrl, '_blank', 'noopener,noreferrer');
+                if (popup) popup.opener = null;
             }
         }
 
