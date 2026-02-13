@@ -958,12 +958,37 @@ function doPost(e) {
         }
       }
 
-      const response = { success: true, affected: 1 };
+      const response = {
+        success: true,
+        affected: 1,
+        order_updated: true
+      };
+      const paylaterErrors = [];
       if (paylaterSyncResult) {
         response.paylater_limit_sync = paylaterSyncResult;
+        if (isPaylaterSyncResultFailed(paylaterSyncResult)) {
+          paylaterErrors.push({
+            stage: 'paylater_limit_sync',
+            error: String(paylaterSyncResult.error || 'PAYLATER_SYNC_FAILED'),
+            message: String(paylaterSyncResult.message || 'Sinkronisasi limit PayLater gagal')
+          });
+        }
       }
       if (paylaterReversalResult) {
         response.paylater_limit_reversal = paylaterReversalResult;
+        if (isPaylaterReversalResultFailed(paylaterReversalResult)) {
+          paylaterErrors.push({
+            stage: 'paylater_limit_reversal',
+            error: String(paylaterReversalResult.error || 'PAYLATER_REVERSAL_FAILED'),
+            message: String(paylaterReversalResult.message || 'Reversal limit PayLater gagal')
+          });
+        }
+      }
+      if (paylaterErrors.length > 0) {
+        response.success = false;
+        response.error = 'PAYLATER_SIDE_EFFECT_FAILED';
+        response.message = 'Status order berhasil diupdate, tetapi sinkronisasi PayLater gagal';
+        response.paylater_errors = paylaterErrors;
       }
       return jsonOutput(response);
     }
@@ -2775,6 +2800,22 @@ function isRefundOrderStatusForLimit(status) {
     cancelled: true
   };
   return Boolean(refunds[normalized]);
+}
+
+function isPaylaterSyncResultFailed(result) {
+  if (!result) return false;
+  if (result.success === false) return true;
+  const failedCount = parseInt(result.failed || 0, 10) || 0;
+  return failedCount > 0;
+}
+
+function isPaylaterReversalResultFailed(result) {
+  if (!result) return false;
+  if (result.success !== false) return false;
+  const errorCode = String(result.error || '').trim().toUpperCase();
+  // LIMIT_INCREASE_NOT_FOUND berarti tidak ada limit yang perlu direversal.
+  if (errorCode === 'LIMIT_INCREASE_NOT_FOUND') return false;
+  return true;
 }
 
 function processPaylaterLimitFromOrders(data) {
