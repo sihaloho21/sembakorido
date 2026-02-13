@@ -323,7 +323,8 @@ function handlePublicLogin(params) {
     };
   }
 
-  if (foundUser.status && String(foundUser.status).toLowerCase() !== 'aktif') {
+  const accountStatus = String(foundUser.status || '').toLowerCase().trim();
+  if (accountStatus !== 'aktif') {
     return {
       success: false,
       error: 'ACCOUNT_INACTIVE',
@@ -351,6 +352,13 @@ function handlePublicLogin(params) {
   }
 
   const sessionToken = issuePublicSession(phone);
+  if (!sessionToken) {
+    return {
+      success: false,
+      error: 'SESSION_UNAVAILABLE',
+      message: 'Gagal membuat sesi login, coba lagi.'
+    };
+  }
 
   return {
     success: true,
@@ -379,8 +387,15 @@ function issuePublicSession(phone) {
   try {
     const cache = CacheService.getScriptCache();
     cache.put('pub_session:' + token, normalizedPhone, PUBLIC_SESSION_TTL_SECONDS);
+    // Verify session was persisted; avoid returning unusable tokens.
+    const savedPhone = normalizePhone(cache.get('pub_session:' + token) || '');
+    if (savedPhone !== normalizedPhone) {
+      Logger.log('Issue public session verification failed for phone: ' + normalizedPhone);
+      return '';
+    }
   } catch (error) {
     Logger.log('Issue public session cache error: ' + error.toString());
+    return '';
   }
   return token;
 }
