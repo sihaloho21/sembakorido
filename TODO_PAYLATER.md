@@ -212,7 +212,10 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
   - Implementasi: `scripts/test-paylater-gas-integration.js`
 - [x] `P0` Test idempotency (double click / retry request)
   - Implementasi: `scripts/test-paylater-gas-integration.js` (invoice create, payment, limit increase)
-- [ ] `P1` UAT skenario admin manual limit + perubahan setting tenor
+- [x] `P1` UAT skenario admin manual limit + perubahan setting tenor
+  - Implementasi:
+    - test integrasi ditambah pada `scripts/test-paylater-gas-integration.js` (`testAdminManualLimitAndTenorSettingChange`)
+    - checklist manual UAT admin ditambahkan di `docs/PAYLATER_UAT_ADMIN.md`
 
 ---
 

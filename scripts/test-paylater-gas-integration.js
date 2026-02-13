@@ -475,6 +475,63 @@ function testRefundLimitReversal(ctx) {
   assert(revLedgerCount === 1, 'Retry reversal tidak boleh menambah ledger limit_reversal');
 }
 
+function testAdminManualLimitAndTenorSettingChange(ctx) {
+  const phone = '081234567895';
+  addCreditAccount(ctx, {
+    id: 'CAC-6',
+    phone,
+    user_id: 'USR-6',
+    credit_limit: 100000,
+    available_limit: 100000,
+    used_limit: 0,
+    status: 'active',
+    admin_initial_limit: 100000,
+    limit_growth_total: 0,
+    notes: '',
+    created_at: ctx.nowIso(),
+    updated_at: ctx.nowIso()
+  });
+
+  const upsert = ctx.handleCreditAccountUpsert({
+    phone,
+    user_id: 'USR-6',
+    credit_limit: 300000,
+    available_limit: 300000,
+    notes: 'Manual uplift by admin',
+    actor: 'admin_uat',
+    ref_id: 'UAT-ADMIN-LIMIT-1'
+  });
+  assert(upsert && upsert.success, 'Admin upsert manual limit harus success');
+  assert(Number(upsert.credit_limit) === 300000, 'Credit limit harus berubah jadi 300000');
+  assert(Number(upsert.available_limit) === 300000, 'Available limit harus berubah jadi 300000');
+
+  const limitAdjustLedger = getRows(ctx, 'credit_ledger').filter((r) =>
+    String(r.type) === 'limit_adjustment' &&
+    String(ctx.normalizePhone(r.phone || '')) === String(ctx.normalizePhone(phone))
+  );
+  assert(limitAdjustLedger.length >= 1, 'Admin manual limit harus membuat ledger limit_adjustment');
+
+  // Ubah fee tenor minggu ke-2 via settings, lalu pastikan invoice baru mengikuti setting terbaru.
+  const feeUpdate = ctx.handleUpsertSetting({
+    key: 'paylater_fee_week_2',
+    value: '12.5'
+  });
+  assert(feeUpdate && feeUpdate.success, 'Update setting tenor week-2 harus success');
+
+  const created = ctx.handleCreditInvoiceCreate({
+    phone,
+    user_id: 'USR-6',
+    principal: 200000,
+    tenor_weeks: 2,
+    source_order_id: 'ORD-UAT-TENOR-1',
+    invoice_id: 'INV-UAT-TENOR-1',
+    actor: 'admin_uat'
+  });
+  assert(created && created.success, 'Create invoice setelah update tenor harus success');
+  assert(Number(created.fee_amount) === 25000, 'Fee amount tenor week-2 harus mengikuti setting terbaru 12.5%');
+  assert(Number(created.total_due) === 225000, 'Total due harus principal + fee sesuai setting terbaru');
+}
+
 function seedSettings(ctx) {
   addSetting(ctx, 'paylater_enabled', 'true');
   addSetting(ctx, 'paylater_profit_to_limit_percent', '10');
@@ -500,6 +557,7 @@ function run() {
   testOverduePenaltyFreeze(ctx);
   testIdempotency(ctx);
   testRefundLimitReversal(ctx);
+  testAdminManualLimitAndTenorSettingChange(ctx);
   console.log('PayLater GAS integration + idempotency tests passed.');
 }
 
