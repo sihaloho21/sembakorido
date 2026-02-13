@@ -839,6 +839,10 @@ function doPost(e) {
       }));
     }
 
+    if (action === 'get_paylater_postmortem_logs') {
+      return jsonOutput(handleGetPaylaterPostmortemLogs(data));
+    }
+
     const sheet = getSheet(sheetName);
     const values = sheet.getDataRange().getValues();
     if (values.length === 0) {
@@ -3303,6 +3307,21 @@ function runPaylaterPostmortemTwoWeeks(data) {
   };
 }
 
+function handleGetPaylaterPostmortemLogs(data) {
+  data = data || {};
+  const limit = Math.max(1, Math.min(200, parseInt(data.limit || 20, 10) || 20));
+  const logsObj = getRowsAsObjects('paylater_postmortem_logs');
+  const rows = (logsObj.rows || []).slice().sort(function(a, b) {
+    return new Date(b.run_at || 0).getTime() - new Date(a.run_at || 0).getTime();
+  }).slice(0, limit);
+
+  return {
+    success: true,
+    count: rows.length,
+    logs: rows
+  };
+}
+
 function installPaylaterDueNotificationScheduler(data) {
   data = data || {};
   const modeRaw = String(data.mode || data.schedule || 'daily').toLowerCase().trim();
@@ -3631,6 +3650,7 @@ function isSheetValidationRequired(actionKey) {
     remove_paylater_due_notification_scheduler: true,
     get_paylater_due_notification_scheduler: true,
     run_paylater_postmortem_two_weeks: true,
+    get_paylater_postmortem_logs: true,
   };
   return !skip[actionKey];
 }
@@ -3723,6 +3743,7 @@ function getRequiredRoleForAction(actionKey, sheetName) {
   if (key === 'credit_account_get') return 'operator';
   if (key === 'get_paylater_limit_scheduler') return 'operator';
   if (key === 'get_paylater_due_notification_scheduler') return 'operator';
+  if (key === 'get_paylater_postmortem_logs') return 'operator';
 
   if (sheetName && isGetSheetSensitive(sheetName)) return 'manager';
   return 'manager';

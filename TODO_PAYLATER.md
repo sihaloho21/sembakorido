@@ -248,7 +248,11 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
 
 - [x] Tambahan 1: Tambah integration test post-mortem + tuning recommendation
   - Implementasi: `scripts/test-paylater-gas-integration.js` (`testPostmortemTwoWeeksAndTuning`)
-- [ ] Tambahan 2: Snapshot export hasil post-mortem ke CSV dari admin panel
+- [x] Tambahan 2: Snapshot export hasil post-mortem ke CSV dari admin panel
+  - Implementasi:
+    - endpoint `get_paylater_postmortem_logs` untuk ambil snapshot log post-mortem terbaru
+    - tombol `Export CSV` di panel admin (section Credit Accounts -> Post-mortem)
+    - export CSV mencakup metadata run, KPI ringkas, dan tabel rekomendasi tuning
 - [ ] Tambahan 3: Alert otomatis jika default rate > threshold 2 minggu
 
 ---
