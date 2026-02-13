@@ -1748,6 +1748,17 @@ function getPaylaterDueNotificationConfig() {
   };
 }
 
+function getPaylaterPostmortemAlertConfig() {
+  const set = getSettingsMap();
+  return {
+    enabled: String(set.paylater_postmortem_alert_enabled || 'true').toLowerCase() === 'true',
+    defaultRateThreshold: Math.max(0, Math.min(1, parseFloat(set.paylater_postmortem_default_rate_threshold || '0.08') || 0.08)),
+    cooldownHours: Math.max(1, parseInt(set.paylater_postmortem_alert_cooldown_hours || '24', 10) || 24),
+    email: String(set.paylater_postmortem_alert_email || '').trim(),
+    webhook: String(set.paylater_postmortem_alert_webhook || '').trim()
+  };
+}
+
 function parsePaylaterPilotAllowPhones(raw) {
   const txt = String(raw || '');
   if (!txt) return [];
@@ -3199,6 +3210,120 @@ function buildPaylaterRuleTuningSuggestions(metrics, cfg) {
   return suggestions;
 }
 
+function sendPaylaterPostmortemDefaultRateAlert(metrics, tuning) {
+  const cfg = getPaylaterPostmortemAlertConfig();
+  if (!cfg.enabled) {
+    return { enabled: false, alerted: false, throttled: false, reason: 'disabled' };
+  }
+
+  const defaultRate = parseFloat(metrics.default_rate || 0) || 0;
+  if (defaultRate < cfg.defaultRateThreshold) {
+    return {
+      enabled: true,
+      alerted: false,
+      throttled: false,
+      reason: 'below_threshold',
+      threshold: cfg.defaultRateThreshold,
+      default_rate: defaultRate
+    };
+  }
+
+  var email = String(cfg.email || '').trim();
+  var webhook = String(cfg.webhook || '').trim();
+  if (!email && !webhook) {
+    const fallback = getPaylaterDueNotificationConfig();
+    email = String(fallback.email || '').trim();
+    webhook = String(fallback.webhook || '').trim();
+  }
+  if (!email && !webhook) {
+    return {
+      enabled: true,
+      alerted: false,
+      throttled: false,
+      reason: 'no_channel'
+    };
+  }
+
+  const cooldownSeconds = Math.max(3600, (parseInt(cfg.cooldownHours || 24, 10) || 24) * 3600);
+  const cacheKey = [
+    'paylater_postmortem_alert',
+    String(metrics.window_days || 14),
+    String((defaultRate * 100).toFixed(1)),
+    String((cfg.defaultRateThreshold * 100).toFixed(1))
+  ].join(':');
+  if (isAlertCooldownActive(cacheKey)) {
+    return { enabled: true, alerted: false, throttled: true, reason: 'cooldown' };
+  }
+
+  const subject = '[GoSembako] Alert Default Rate PayLater Melebihi Threshold';
+  const lines = [
+    'Post-mortem PayLater mendeteksi default rate melewati ambang.',
+    '- Window: ' + String(metrics.window_days || 14) + ' hari',
+    '- Invoice total: ' + String(metrics.invoice_total || 0),
+    '- Default count: ' + String(metrics.defaulted_count || 0),
+    '- Default rate: ' + (defaultRate * 100).toFixed(2) + '%',
+    '- Threshold: ' + (cfg.defaultRateThreshold * 100).toFixed(2) + '%',
+    '- Overdue rate: ' + ((parseFloat(metrics.overdue_rate || 0) || 0) * 100).toFixed(2) + '%',
+    '- On-time rate: ' + ((parseFloat(metrics.on_time_rate || 0) || 0) * 100).toFixed(2) + '%',
+    '- Outstanding default amount: ' + toMoneyInt(metrics.outstanding_default_amount || 0),
+    '- Rekomendasi tuning: ' + (Array.isArray(tuning) ? tuning.length : 0),
+    '- Run at: ' + String(metrics.run_at || nowIso())
+  ];
+  const body = lines.join('\n');
+
+  const channels = [];
+  const errors = [];
+  if (email) {
+    try {
+      MailApp.sendEmail(email, subject, body);
+      channels.push('email');
+    } catch (error) {
+      errors.push('email: ' + error.toString());
+    }
+  }
+  if (webhook) {
+    try {
+      const resp = UrlFetchApp.fetch(webhook, {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify({
+          subject: subject,
+          message: body,
+          event: 'paylater_postmortem_default_rate_alert',
+          data: {
+            metrics: metrics,
+            threshold: cfg.defaultRateThreshold,
+            tuning_recommendations: tuning || []
+          }
+        }),
+        muteHttpExceptions: true
+      });
+      const code = resp.getResponseCode();
+      if (code >= 200 && code < 300) {
+        channels.push('webhook');
+      } else {
+        errors.push('webhook_http_' + code);
+      }
+    } catch (error) {
+      errors.push('webhook: ' + error.toString());
+    }
+  }
+
+  if (channels.length > 0) {
+    setAlertCooldown(cacheKey, cooldownSeconds);
+  }
+
+  return {
+    enabled: true,
+    alerted: channels.length > 0,
+    throttled: false,
+    threshold: cfg.defaultRateThreshold,
+    default_rate: defaultRate,
+    channels: channels,
+    errors: errors
+  };
+}
+
 function runPaylaterPostmortemTwoWeeks(data) {
   data = data || {};
   ensureSchema(true);
@@ -3279,6 +3404,7 @@ function runPaylaterPostmortemTwoWeeks(data) {
 
   const cfg = getPaylaterConfig();
   const tuning = buildPaylaterRuleTuningSuggestions(metrics, cfg);
+  const defaultRateAlert = sendPaylaterPostmortemDefaultRateAlert(metrics, tuning);
 
   const logObj = getRowsAsObjects('paylater_postmortem_logs');
   if (logObj.headers.length > 0) {
@@ -3295,7 +3421,10 @@ function runPaylaterPostmortemTwoWeeks(data) {
       on_time_rate: onTimeRate,
       overdue_rate: overdueRate,
       default_rate: defaultRate,
-      summary_json: JSON.stringify(metrics),
+      summary_json: JSON.stringify({
+        metrics: metrics,
+        default_rate_alert: defaultRateAlert
+      }),
       tuning_json: JSON.stringify(tuning)
     });
   }
@@ -3303,7 +3432,8 @@ function runPaylaterPostmortemTwoWeeks(data) {
   return {
     success: true,
     metrics: metrics,
-    tuning_recommendations: tuning
+    tuning_recommendations: tuning,
+    default_rate_alert: defaultRateAlert
   };
 }
 

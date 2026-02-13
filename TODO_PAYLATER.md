@@ -253,7 +253,15 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
     - endpoint `get_paylater_postmortem_logs` untuk ambil snapshot log post-mortem terbaru
     - tombol `Export CSV` di panel admin (section Credit Accounts -> Post-mortem)
     - export CSV mencakup metadata run, KPI ringkas, dan tabel rekomendasi tuning
-- [ ] Tambahan 3: Alert otomatis jika default rate > threshold 2 minggu
+- [x] Tambahan 3: Alert otomatis jika default rate > threshold 2 minggu
+  - Implementasi:
+    - auto-alert dieksekusi saat `run_paylater_postmortem_two_weeks`
+    - threshold configurable: `paylater_postmortem_default_rate_threshold` (0..1)
+    - cooldown configurable: `paylater_postmortem_alert_cooldown_hours`
+    - channel email/webhook configurable:
+      - `paylater_postmortem_alert_email`
+      - `paylater_postmortem_alert_webhook`
+    - fallback channel ke pengaturan notifikasi due jika channel post-mortem kosong
 
 ---
 
