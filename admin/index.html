@@ -947,6 +947,17 @@
                             </div>
                             <p id="paylater-due-scheduler-status" class="text-xs text-cyan-700">Scheduler notifikasi belum dicek.</p>
                         </div>
+                        <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex flex-col md:flex-row md:items-center gap-3">
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs font-bold text-emerald-700">Post-mortem</label>
+                                <input type="number" id="paylater-postmortem-window-days" min="7" max="60" step="1" value="14" class="w-24 p-2 border border-emerald-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500 bg-white" placeholder="14">
+                                <span class="text-xs text-emerald-700">hari</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button data-action="run-paylater-postmortem" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">Run Post-mortem</button>
+                            </div>
+                            <p id="paylater-postmortem-status" class="text-xs text-emerald-700">Belum dijalankan.</p>
+                        </div>
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                             <table class="w-full text-left">
                                 <thead class="bg-gray-50 border-b">

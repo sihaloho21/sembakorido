@@ -1082,6 +1082,53 @@ async function runPaylaterDueNotificationsNow() {
     }
 }
 
+function renderPaylaterPostmortemStatus(result) {
+    const statusEl = document.getElementById('paylater-postmortem-status');
+    if (!statusEl) return;
+    if (!result || !result.success) {
+        statusEl.textContent = 'Post-mortem gagal dijalankan.';
+        statusEl.className = 'text-xs text-red-600';
+        return;
+    }
+
+    const metrics = result.metrics || {};
+    const tuning = Array.isArray(result.tuning_recommendations) ? result.tuning_recommendations : [];
+    const invoiceTotal = parseInt(metrics.invoice_total || 0, 10) || 0;
+    const onTimeRate = (parseFloat(metrics.on_time_rate || 0) || 0) * 100;
+    const overdueRate = (parseFloat(metrics.overdue_rate || 0) || 0) * 100;
+    const defaultRate = (parseFloat(metrics.default_rate || 0) || 0) * 100;
+    statusEl.textContent = `Run ${parseInt(metrics.window_days || 14, 10) || 14} hari: invoice=${invoiceTotal}, on-time=${onTimeRate.toFixed(1)}%, overdue=${overdueRate.toFixed(1)}%, default=${defaultRate.toFixed(1)}%, rekomendasi=${tuning.length}`;
+    statusEl.className = 'text-xs text-emerald-700';
+}
+
+async function runPaylaterPostmortem() {
+    const inputEl = document.getElementById('paylater-postmortem-window-days');
+    const windowDays = Math.max(7, Math.min(60, parseInt((inputEl && inputEl.value) || '14', 10) || 14));
+    try {
+        const result = await GASActions.runPaylaterPostmortemTwoWeeks({
+            window_days: windowDays,
+            actor: 'admin'
+        });
+        if (result && result.success) {
+            renderPaylaterPostmortemStatus(result);
+            const tuning = Array.isArray(result.tuning_recommendations) ? result.tuning_recommendations : [];
+            if (tuning.length > 0) {
+                const preview = tuning.slice(0, 2).map((item) => `${item.key} -> ${item.suggested_value}`).join('; ');
+                showAdminToast(`Post-mortem selesai. ${tuning.length} rekomendasi tuning. ${preview}`, 'warning');
+            } else {
+                showAdminToast('Post-mortem selesai. Tidak ada rekomendasi tuning saat ini.', 'success');
+            }
+            return;
+        }
+        renderPaylaterPostmortemStatus(null);
+        showAdminToast((result && (result.message || result.error)) || 'Gagal menjalankan post-mortem PayLater.', 'error');
+    } catch (error) {
+        console.error(error);
+        renderPaylaterPostmortemStatus(null);
+        showAdminToast('Gagal menjalankan post-mortem PayLater.', 'error');
+    }
+}
+
 async function installPaylaterSchedulerFromUI() {
     const modeEl = document.getElementById('paylater-scheduler-mode');
     const hourEl = document.getElementById('paylater-scheduler-hour');
@@ -3913,6 +3960,11 @@ function bindAdminActions() {
 
         if (action === 'refresh-paylater-due-scheduler') {
             refreshPaylaterDueSchedulerStatus();
+            return;
+        }
+
+        if (action === 'run-paylater-postmortem') {
+            runPaylaterPostmortem();
             return;
         }
 

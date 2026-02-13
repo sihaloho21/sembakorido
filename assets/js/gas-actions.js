@@ -444,5 +444,17 @@ const GASActions = {
             action: 'get_paylater_due_notification_scheduler',
             data: {}
         });
+    },
+
+    /**
+     * Run paylater post-mortem (default 14 days) and generate rule tuning recommendations.
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
+    async runPaylaterPostmortemTwoWeeks(data) {
+        return this.post({
+            action: 'run_paylater_postmortem_two_weeks',
+            data: data || {}
+        });
     }
 };
