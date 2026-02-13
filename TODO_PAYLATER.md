@@ -246,9 +246,10 @@ Checklist boleh ditambah/diubah di tengah jalan sesuai kebutuhan teknis.
 
 ## 10. Backlog / Tambahan Saat Implementasi
 
-- [ ] Tambahan 1:
-- [ ] Tambahan 2:
-- [ ] Tambahan 3:
+- [x] Tambahan 1: Tambah integration test post-mortem + tuning recommendation
+  - Implementasi: `scripts/test-paylater-gas-integration.js` (`testPostmortemTwoWeeksAndTuning`)
+- [ ] Tambahan 2: Snapshot export hasil post-mortem ke CSV dari admin panel
+- [ ] Tambahan 3: Alert otomatis jika default rate > threshold 2 minggu
 
 ---
 
