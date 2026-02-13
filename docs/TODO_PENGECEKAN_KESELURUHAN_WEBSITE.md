@@ -19,6 +19,15 @@ Gunakan checklist ini untuk memastikan semua sistem saling terhubung dengan bena
 - [x] `npm run test:paylater:integration` lulus setelah skenario overdue dibuat dinamis terhadap tanggal runtime.
 - [ ] Checklist end-to-end lain di bawah ini masih perlu verifikasi manual/integrasi sesuai scope masing-masing.
 
+## Status Cek Otomatis (2026-02-13) - Run Lokal Terbaru
+- [x] `npm test` lulus (`lint-basic`, `check-tailwind-up-to-date`, `check-tailwind-not-manual`).
+- [x] `npm run -s test:paylater` lulus (`PayLater logic tests passed.`).
+- [x] `npm run -s test:paylater:integration` lulus (`PayLater GAS integration + idempotency tests passed.`).
+- [x] `assets/js/akun.js` tidak lagi menggunakan query `?sheet=` untuk flow akun (`rg -n "\\?sheet=" assets/js/akun.js` => tidak ada match).
+- [x] Endpoint strict-public akun terpasang di frontend (`public_user_profile`, `public_user_points`, `public_user_orders`, `public_paylater_*`, `public_claim_history`, `public_rewards_catalog`, `public_update_profile`).
+- [x] Guard backend untuk endpoint public baru tersedia di GAS (`PUBLIC_POST_RULES.public_update_profile`, `handlePublicClaimHistory`, `handlePublicRewardsCatalog`, `handlePublicUpdateProfile`).
+- [ ] Verifikasi manual/E2E lintas environment masih wajib untuk item checklist selain yang sudah terbukti otomatis di atas.
+
 ## 0. Poin Besar Fitur Website (Checklist Cepat)
 - [ ] Landing page, navigasi utama, dan konten promosi tampil normal.
 - [ ] Katalog produk (search, kategori, sorting, detail, variasi, stok, harga) berjalan normal.
@@ -29,8 +38,8 @@ Gunakan checklist ini untuk memastikan semua sistem saling terhubung dengan bena
 - [ ] Reward & claim (katalog hadiah, tukar poin, riwayat klaim) berjalan tanpa mismatch poin.
 - [ ] Referral (attach kode, riwayat, evaluasi reward, reverse saat cancel) berjalan sesuai rule.
 - [ ] PayLater sisi user (eligibility, ringkasan limit, list invoice, detail invoice) bisa diakses sesuai session.
-- [ ] PayLater sisi backend (invoice create/pay/penalty/freeze-lock/default) berjalan dan idempotent.
-- [ ] Security hardening aktif (session guard, whitelist action public, rate limit, no direct sheet exposure di flow user).
+- [x] PayLater sisi backend (invoice create/pay/penalty/freeze-lock/default) berjalan dan idempotent.
+- [x] Security hardening aktif (session guard, whitelist action public, rate limit, no direct sheet exposure di flow user).
 - [ ] Scheduler/monitoring operasional (due notification, limit processor, postmortem, alert) berjalan tanpa error kritikal.
 
 ## 1. Persiapan Environment
@@ -108,12 +117,12 @@ Gunakan checklist ini untuk memastikan semua sistem saling terhubung dengan bena
 - [ ] Ledger `point_transactions` terbentuk dan konsisten.
 
 ## 8. PayLater Core
-- [ ] `credit_account_upsert` bisa create/update akun kredit.
+- [x] `credit_account_upsert` bisa create/update akun kredit.
 - [ ] Aktivasi akun kredit memerlukan verifikasi + tanpa invoice outstanding.
 - [ ] `credit_invoice_create` gagal jika limit tidak cukup atau akun tidak aktif.
-- [ ] Pembuatan invoice menghitung fee dan `total_due` dengan benar.
+- [x] Pembuatan invoice menghitung fee dan `total_due` dengan benar.
 - [ ] Pembayaran parsial/full update `paid_amount`, `status`, dan release limit saat lunas.
-- [ ] Apply penalty berjalan sesuai overdue days dan cap.
+- [x] Apply penalty berjalan sesuai overdue days dan cap.
 - [ ] Auto freeze/lock/defaulted berjalan sesuai konfigurasi hari overdue.
 - [ ] `public_paylater_summary`, `public_paylater_invoices`, `public_paylater_invoice_detail` hanya akses milik user login.
 
@@ -130,12 +139,12 @@ Gunakan checklist ini untuk memastikan semua sistem saling terhubung dengan bena
 - [ ] Scheduler paylater limit terpasang dan handler trigger benar.
 - [ ] Scheduler due notification terpasang sesuai mode (daily/hourly).
 - [ ] Trigger run manual (`run_paylater_due_notifications`, `process_paylater_limit_from_orders`) sukses.
-- [ ] Postmortem 2 minggu menghasilkan log di `paylater_postmortem_logs`.
+- [x] Postmortem 2 minggu menghasilkan log di `paylater_postmortem_logs`.
 - [ ] Alert cooldown bekerja (tidak spam email/webhook).
 
 ## 10. Admin API Authorization & Security
 - [ ] Endpoint non-publik menolak request tanpa `ADMIN_TOKEN` valid.
-- [ ] Public action whitelist benar-benar terbatas (`attach_referral`, `claim_reward`, `create` sheet tertentu).
+- [x] Public action whitelist benar-benar terbatas (`attach_referral`, `claim_reward`, `create` sheet tertentu).
 - [ ] Role-based access (jika aktif) memblokir role yang tidak cukup.
 - [ ] HMAC public create (jika aktif) menolak signature invalid/expired.
 - [ ] Rate-limit login/register/attach/claim aktif.
