@@ -42,6 +42,7 @@ function refreshApiUrl() {
 
 let cart = JSON.parse(localStorage.getItem('sembako_cart')) || [];
 let allProducts = [];
+let allCategories = [];
 let currentCategory = 'Semua';
 let currentPage = 1;
 const itemsPerPage = 12;
@@ -115,14 +116,171 @@ function findProductById(id) {
     return allProducts.find(p => String(p.productId) === String(id)) || null;
 }
 
+function normalizeCategoryLabel(value) {
+    return String(value || '').trim();
+}
+
+function extractCategoryName(row) {
+    if (!row || typeof row !== 'object') return '';
+    const candidates = ['nama', 'name', 'kategori', 'category', 'judul', 'title'];
+    for (let i = 0; i < candidates.length; i += 1) {
+        const name = normalizeCategoryLabel(row[candidates[i]]);
+        if (name) return name;
+    }
+    return '';
+}
+
+function extractCategorySortOrder(row, index) {
+    if (!row || typeof row !== 'object') return index;
+    const candidates = ['sort_order', 'urutan', 'order', 'sort', 'no', 'id'];
+    for (let i = 0; i < candidates.length; i += 1) {
+        const parsed = parseInt(row[candidates[i]], 10);
+        if (Number.isFinite(parsed)) return parsed;
+    }
+    return index;
+}
+
+function deriveCategoriesFromProducts() {
+    const categoriesSet = new Set();
+    allProducts.forEach((p) => {
+        const category = normalizeCategoryLabel(p.category || p.kategori || '');
+        if (category) categoriesSet.add(category);
+    });
+    return Array.from(categoriesSet).sort((a, b) => a.localeCompare(b, 'id'));
+}
+
+function getDisplayCategories() {
+    const fromProducts = deriveCategoriesFromProducts();
+    if (!Array.isArray(allCategories) || allCategories.length === 0) {
+        return fromProducts;
+    }
+
+    const merged = [];
+    const seen = {};
+    const pushUnique = (name) => {
+        const category = normalizeCategoryLabel(name);
+        if (!category) return;
+        const key = category.toLowerCase();
+        if (seen[key]) return;
+        seen[key] = true;
+        merged.push(category);
+    };
+
+    allCategories.forEach(pushUnique);
+    fromProducts.forEach(pushUnique);
+    return merged;
+}
+
+async function fetchCategories() {
+    try {
+        const rows = await ApiService.get('?sheet=categories', {
+            cacheDuration: 5 * 60 * 1000
+        });
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return [];
+        }
+
+        const parsed = rows
+            .map((row, index) => ({
+                name: extractCategoryName(row),
+                order: extractCategorySortOrder(row, index)
+            }))
+            .filter((item) => item.name !== '')
+            .sort((a, b) => {
+                if (a.order !== b.order) return a.order - b.order;
+                return a.name.localeCompare(b.name, 'id');
+            })
+            .map((item) => item.name);
+
+        const unique = [];
+        const seen = {};
+        parsed.forEach((name) => {
+            const key = name.toLowerCase();
+            if (seen[key]) return;
+            seen[key] = true;
+            unique.push(name);
+        });
+        return unique;
+    } catch (error) {
+        console.warn('Categories endpoint unavailable, fallback ke kategori produk:', error);
+        return [];
+    }
+}
+
+function getItemMaxStock(item) {
+    if (!item) return 0;
+    const source = item.selectedVariation || item;
+    const parsed = parseInt(source.stok, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function getCurrentModalMaxStock() {
+    if (selectedVariation) return getItemMaxStock(selectedVariation);
+    if (currentModalProduct) return getItemMaxStock(currentModalProduct);
+    return 0;
+}
+
+function getLatestStockForCartItem(item) {
+    if (!item) return 0;
+    const targetId = String(item.productId || item.id || '').trim();
+    const product = allProducts.find((p) => String(p.productId || p.id || '').trim() === targetId);
+    if (!product) return getItemMaxStock(item);
+
+    if (item.selectedVariation && item.selectedVariation.sku && Array.isArray(product.variations)) {
+        const targetSku = String(item.selectedVariation.sku || '').trim();
+        const matched = product.variations.find((v) => String(v.sku || '').trim() === targetSku);
+        if (matched) {
+            const variationStock = parseInt(matched.stok, 10);
+            return Number.isFinite(variationStock) && variationStock > 0 ? variationStock : 0;
+        }
+    }
+
+    const productStock = parseInt(product.stok, 10);
+    return Number.isFinite(productStock) && productStock > 0 ? productStock : 0;
+}
+
+function syncCartWithStockLimits() {
+    if (!Array.isArray(cart) || cart.length === 0) return;
+    const nextCart = [];
+    let adjusted = false;
+
+    cart.forEach((item) => {
+        const maxStock = getLatestStockForCartItem(item);
+        if (maxStock <= 0) {
+            adjusted = true;
+            return;
+        }
+
+        const currentQty = Math.max(1, parseInt(item.qty, 10) || 1);
+        const nextQty = Math.min(currentQty, maxStock);
+        const nextItem = { ...item, stok: maxStock, qty: nextQty };
+        if (nextItem.selectedVariation && typeof nextItem.selectedVariation === 'object') {
+            nextItem.selectedVariation = { ...nextItem.selectedVariation, stok: maxStock };
+        }
+        if (nextQty !== currentQty) {
+            adjusted = true;
+        }
+        nextCart.push(nextItem);
+    });
+
+    if (adjusted) {
+        cart = nextCart;
+        saveCart();
+    }
+}
+
 
 async function fetchProducts() {
     try {
         // Use ApiService with caching (5 minutes)
-        const products = await ApiService.get('?sheet=products', {
-            cacheDuration: 5 * 60 * 1000 // 5 minutes cache
-        });
+        const [products, categories] = await Promise.all([
+            ApiService.get('?sheet=products', {
+                cacheDuration: 5 * 60 * 1000 // 5 minutes cache
+            }),
+            fetchCategories()
+        ]);
         console.log('Products received:', products);
+        allCategories = categories;
         
         allProducts = products.map((p, index) => {
             const cashPrice = parseInt(p.harga) || 0;
@@ -165,6 +323,7 @@ async function fetchProducts() {
                 variations: variations
             };
         });
+        syncCartWithStockLimits();
         renderCategoryFilters(); // Render dynamic categories
         filterProducts();
         updateCartUI();
@@ -187,29 +346,31 @@ function renderCategoryFilters() {
     const container = document.getElementById('category-filters');
     if (!container || !allProducts || allProducts.length === 0) return;
     
-    console.log('🏷️ Rendering category filters...');
-    
-    // Get unique categories from products
-    const categoriesSet = new Set();
-    allProducts.forEach(p => {
-        if (p.category && p.category.trim() !== '') {
-            categoriesSet.add(p.category.trim());
-        }
-    });
-    
-    const categories = Array.from(categoriesSet).sort();
-    console.log('📊 Categories found:', categories);
+    console.log('Rendering category filters...');
+
+    const categories = getDisplayCategories();
+    console.log('Categories found:', categories);
+
+    if (currentCategory !== 'Semua' && categories.indexOf(currentCategory) === -1) {
+        currentCategory = 'Semua';
+    }
     
     // Keep "Semua" button and add dynamic categories with carousel styling
-    let html = '<button type="button" data-action="set-category" data-category="Semua" class="filter-btn active snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-green-500 bg-green-50 text-green-700 text-sm font-bold transition hover:border-green-600 hover:bg-green-100">Semua</button>';
+    const allBtnClass = currentCategory === 'Semua'
+        ? 'filter-btn active snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-green-500 bg-green-50 text-green-700 text-sm font-bold transition hover:border-green-600 hover:bg-green-100'
+        : 'filter-btn snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-gray-300 bg-white text-gray-700 text-sm font-bold transition hover:border-green-500 hover:bg-green-50';
+    let html = `<button type="button" data-action="set-category" data-category="Semua" class="${allBtnClass}">Semua</button>`;
     
     categories.forEach(cat => {
         const safeCat = escapeHtml(cat);
-        html += `<button type="button" data-action="set-category" data-category="${safeCat}" class="filter-btn snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-gray-300 bg-white text-gray-700 text-sm font-bold transition hover:border-green-500 hover:bg-green-50">${safeCat}</button>`;
+        const btnClass = currentCategory === cat
+            ? 'filter-btn active snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-green-500 bg-green-50 text-green-700 text-sm font-bold transition hover:border-green-600 hover:bg-green-100'
+            : 'filter-btn snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-gray-300 bg-white text-gray-700 text-sm font-bold transition hover:border-green-500 hover:bg-green-50';
+        html += `<button type="button" data-action="set-category" data-category="${safeCat}" class="${btnClass}">${safeCat}</button>`;
     });
     
     container.innerHTML = html;
-    console.log('✅ Category filters rendered:', categories.length, 'categories');
+    console.log('Category filters rendered:', categories.length, 'categories');
     
     // Add desktop scroll functionality
     initCategoryCarouselScroll();
@@ -491,7 +652,10 @@ function filterProducts() {
     const sortValue = sortSelect ? sortSelect.value : 'default';
     filteredProducts = allProducts.filter(p => {
         const matchesSearch = matchesQuery(p, query);
-        const matchesCategory = currentCategory === 'Semua' || p.category === currentCategory;
+        const selectedCategory = normalizeCategoryLabel(currentCategory);
+        const productCategory = normalizeCategoryLabel(p.category || p.kategori);
+        const matchesCategory = selectedCategory === 'Semua' ||
+            productCategory.toLowerCase() === selectedCategory.toLowerCase();
         return matchesSearch && matchesCategory;
     });
     filteredProducts = sortProducts(filteredProducts, sortValue);
@@ -738,6 +902,13 @@ function proceedAddToCart(p, event, qty = 1) {
         itemToAdd.hargaGajian = gajianInfo.price;
     }
 
+    const maxStock = getItemMaxStock(itemToAdd);
+    if (maxStock <= 0) {
+        showToast('Stok produk habis.');
+        return;
+    }
+    const requestedQty = Math.max(1, parseInt(qty, 10) || 1);
+
     const existing = cart.find(item => {
         const sameId = item.id === itemToAdd.id;
         const sameVariation = (!item.selectedVariation && !itemToAdd.selectedVariation) || 
@@ -746,9 +917,22 @@ function proceedAddToCart(p, event, qty = 1) {
     });
 
     if (existing) {
-        existing.qty += qty;
+        const currentQty = Math.max(0, parseInt(existing.qty, 10) || 0);
+        const nextQty = Math.min(maxStock, currentQty + requestedQty);
+        if (nextQty <= currentQty) {
+            showToast(`Maksimal stok untuk produk ini: ${maxStock}`);
+            return;
+        }
+        existing.qty = nextQty;
+        if (nextQty < currentQty + requestedQty) {
+            showToast(`Qty disesuaikan ke stok maksimal: ${maxStock}`);
+        }
     } else {
-        cart.push({ ...itemToAdd, qty: qty });
+        const initialQty = Math.min(maxStock, requestedQty);
+        cart.push({ ...itemToAdd, qty: initialQty });
+        if (initialQty < requestedQty) {
+            showToast(`Qty disesuaikan ke stok maksimal: ${maxStock}`);
+        }
     }
     
     saveCart();
@@ -1024,8 +1208,20 @@ function updateCartUI() {
 }
 
 function updateQty(index, delta) {
-    cart[index].qty += delta;
-    if (cart[index].qty < 1) {
+    const item = cart[index];
+    if (!item) return;
+
+    const currentQty = parseInt(item.qty, 10) || 0;
+    const maxStock = getItemMaxStock(item);
+    let nextQty = currentQty + delta;
+
+    if (delta > 0 && maxStock > 0 && nextQty > maxStock) {
+        nextQty = maxStock;
+        showToast(`Maksimal stok untuk produk ini: ${maxStock}`);
+    }
+
+    item.qty = nextQty;
+    if (item.qty < 1 || (maxStock <= 0 && delta > 0)) {
         cart.splice(index, 1);
     }
     saveCart();
@@ -1061,6 +1257,11 @@ function updateModalQty(delta) {
     let qty = parseInt(qtyInput.value) || 1;
     qty += delta;
     if (qty < 1) qty = 1;
+    const maxStock = getCurrentModalMaxStock();
+    if (maxStock > 0 && qty > maxStock) {
+        qty = maxStock;
+        showToast(`Maksimal stok untuk produk ini: ${maxStock}`);
+    }
     qtyInput.value = qty;
     
     // Trigger the oninput handler to update UI
@@ -1099,7 +1300,14 @@ function showDetail(p) {
     // qtyInput already declared above
     if (qtyInput) {
         qtyInput.oninput = (e) => {
-            const qty = parseInt(e.target.value) || 1;
+            let qty = parseInt(e.target.value, 10) || 1;
+            if (qty < 1) qty = 1;
+            const maxStock = getCurrentModalMaxStock();
+            if (maxStock > 0 && qty > maxStock) {
+                qty = maxStock;
+                showToast(`Maksimal stok untuk produk ini: ${maxStock}`);
+            }
+            e.target.value = qty;
             
             // If variation is selected, use variation price, otherwise use base product price
             const basePrice = selectedVariation ? selectedVariation.harga : p.harga;
@@ -1289,9 +1497,19 @@ function proceedDirectOrder(p) {
         itemToAdd.hargaGajian = gajianInfo.price;
     }
 
+    const maxStock = getItemMaxStock(itemToAdd);
+    if (maxStock <= 0) {
+        showToast('Stok produk habis.');
+        return;
+    }
+
     // Get quantity from modal input (default to 1 if not found)
     const qtyInput = document.getElementById('modal-qty');
-    const quantity = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+    const requestedQty = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
+    const quantity = Math.min(maxStock, Math.max(1, requestedQty));
+    if (quantity < requestedQty) {
+        showToast(`Qty disesuaikan ke stok maksimal: ${maxStock}`);
+    }
 
     cart = [{ ...itemToAdd, qty: quantity }];
     saveCart();
@@ -2217,9 +2435,13 @@ function generateOrderId() {
  * @returns {Promise<object>} Response from GAS
  */
 async function logOrderToGAS(order) {
+    const normalizedOrderId = String(order.order_id || order.id || '').trim() || generateOrderId();
+    const normalizedId = String(order.id || '').trim() || normalizedOrderId;
+
     // Ensure required fields are present
     const orderData = {
-        id: order.id || generateOrderId(),
+        id: normalizedId,
+        order_id: normalizedOrderId,
         pelanggan: order.pelanggan || '',
         produk: order.produk || '',
         qty: order.qty || 0,
@@ -2426,9 +2648,10 @@ async function sendToWA() {
     const waUrl = `https://wa.me/628993370200?text=${encodeURIComponent(message)}`;
     
     // Log order to spreadsheet before opening WhatsApp
-    // Mapping to spreadsheet columns: id, pelanggan, produk, qty, total, status, tanggal, phone, poin, point_processed
+    // Mapping to spreadsheet columns: id, order_id, pelanggan, produk, qty, total, status, tanggal, phone, poin, point_processed
     const orderData = {
         id: orderId,
+        order_id: orderId,
         pelanggan: name,
         produk: itemsForSheet.slice(0, -3), // Remove trailing ' | '
         qty: totalQty,
@@ -3401,11 +3624,8 @@ function loadSidebarCategories() {
     const categoryList = document.getElementById('sidebar-category-list');
     if (!categoryList) return;
     
-    // Get unique categories from products
-    const categories = [...new Set(allProducts.map(p => p.kategori).filter(k => k))];
-    
-    // Sort alphabetically
-    categories.sort();
+    // Use merged categories (sheet categories + fallback from products)
+    const categories = getDisplayCategories();
     
     // Generate category items HTML
     const categoryItems = categories.map(category => {
@@ -3491,4 +3711,5 @@ updateCartUI = function() {
 document.addEventListener('DOMContentLoaded', function() {
     updateMobileCartCount();
 });
+
 

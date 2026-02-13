@@ -48,7 +48,15 @@ class PromotionalBannerCarousel {
             const now = new Date();
             this.banners = allBanners.filter(banner => {
                 // Cek status
-                if (banner.status !== 'active') {
+                const status = String(banner.status || '').trim().toLowerCase();
+                const activeStatuses = {
+                    active: true,
+                    aktif: true,
+                    true: true,
+                    '1': true,
+                    yes: true
+                };
+                if (status && !activeStatuses[status]) {
                     return false;
                 }
                 
