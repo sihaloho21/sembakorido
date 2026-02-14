@@ -2475,6 +2475,17 @@ async function logOrderToGAS(order) {
     }
 }
 
+function resolveOrderLoggingErrorMessage(error) {
+    const raw = String((error && error.message) || error || '').trim();
+    if (raw.indexOf('INVALID_SIGNATURE') !== -1 || raw.indexOf('SIGNATURE_EXPIRED') !== -1) {
+        return 'Pesanan ditolak oleh konfigurasi keamanan server (HMAC). Hubungi admin untuk menonaktifkan public_create_require_hmac atau aktifkan signer backend.';
+    }
+    if (raw.indexOf('HMAC_NOT_CONFIGURED') !== -1) {
+        return 'Konfigurasi keamanan HMAC di server belum lengkap. Hubungi admin.';
+    }
+    return 'Gagal menyimpan pesanan. Silakan coba lagi atau hubungi admin.';
+}
+
 async function sendToWA() {
     // Get the button element
     const sendButton = event?.target || document.querySelector('[data-action="send-wa"]');
@@ -2691,7 +2702,7 @@ async function sendToWA() {
         
     } catch (err) {
         console.error('❌ Error logging order:', err);
-        alert('Gagal menyimpan pesanan. Silakan coba lagi atau hubungi admin.');
+        alert(resolveOrderLoggingErrorMessage(err));
     } finally {
         // Re-enable button after completion (reset state)
         if (sendButton) {
@@ -3723,5 +3734,4 @@ updateCartUI = function() {
 document.addEventListener('DOMContentLoaded', function() {
     updateMobileCartCount();
 });
-
 
