@@ -2153,10 +2153,14 @@ function renderPaylaterCheckoutState() {
     const simPenaltyDailyEl = document.getElementById('paylater-sim-penalty-daily');
     const simPenaltyCapEl = document.getElementById('paylater-sim-penalty-cap');
     const simTotalDueEl = document.getElementById('paylater-sim-total-due');
-    if (!panel) return;
+    if (!panel) {
+        updateOrderCTAState();
+        return;
+    }
 
     if (!isPaylaterSelected()) {
         panel.classList.add('hidden');
+        updateOrderCTAState();
         return;
     }
     panel.classList.remove('hidden');
@@ -2192,6 +2196,7 @@ function renderPaylaterCheckoutState() {
     if (simPenaltyDailyEl) simPenaltyDailyEl.textContent = `Rp ${((parseInt(sim.dailyPenaltyAmount || 0, 10) || 0)).toLocaleString('id-ID')}`;
     if (simPenaltyCapEl) simPenaltyCapEl.textContent = `Rp ${((parseInt(sim.penaltyCapAmount || 0, 10) || 0)).toLocaleString('id-ID')}`;
     if (simTotalDueEl) simTotalDueEl.textContent = `Rp ${((parseInt(sim.totalBeforePenalty || 0, 10) || 0)).toLocaleString('id-ID')}`;
+    updateOrderCTAState();
 }
 
 async function refreshPaylaterCheckoutState(force) {
