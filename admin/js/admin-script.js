@@ -3476,7 +3476,6 @@ async function loadSettings() {
     const paylaterPostmortemAlertCooldownHoursEl = document.getElementById('paylater-postmortem-alert-cooldown-hours');
     const paylaterPostmortemAlertEmailEl = document.getElementById('paylater-postmortem-alert-email');
     const paylaterPostmortemAlertWebhookEl = document.getElementById('paylater-postmortem-alert-webhook');
-
     if (adminRoleEnforceEl) adminRoleEnforceEl.value = String(getLatestSettingValue(rows, 'admin_role_enforce', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
     if (paylaterEnabledEl) paylaterEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_enabled', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
     if (paylaterPilotEnabledEl) paylaterPilotEnabledEl.value = String(getLatestSettingValue(rows, 'paylater_pilot_enabled', 'false')).toLowerCase() === 'true' ? 'true' : 'false';
@@ -3671,6 +3670,18 @@ async function saveSettings() {
     const paylaterOverdueReduceLimitDaysEl = document.getElementById('paylater-overdue-reduce-limit-days');
     const paylaterOverdueReduceLimitPercentEl = document.getElementById('paylater-overdue-reduce-limit-percent');
     const paylaterOverdueDefaultDaysEl = document.getElementById('paylater-overdue-default-days');
+    const paylaterDueNotificationEnabledEl = document.getElementById('paylater-due-notification-enabled');
+    const paylaterDueNotificationOverdueEnabledEl = document.getElementById('paylater-due-notification-overdue-enabled');
+    const paylaterDueNotificationDaysBeforeEl = document.getElementById('paylater-due-notification-days-before');
+    const paylaterDueNotificationCooldownHoursEl = document.getElementById('paylater-due-notification-cooldown-hours');
+    const paylaterDueNotificationMaxRowsPerRunEl = document.getElementById('paylater-due-notification-max-rows-per-run');
+    const paylaterDueNotificationEmailEl = document.getElementById('paylater-due-notification-email');
+    const paylaterDueNotificationWebhookEl = document.getElementById('paylater-due-notification-webhook');
+    const paylaterPostmortemAlertEnabledEl = document.getElementById('paylater-postmortem-alert-enabled');
+    const paylaterPostmortemDefaultRateThresholdEl = document.getElementById('paylater-postmortem-default-rate-threshold');
+    const paylaterPostmortemAlertCooldownHoursEl = document.getElementById('paylater-postmortem-alert-cooldown-hours');
+    const paylaterPostmortemAlertEmailEl = document.getElementById('paylater-postmortem-alert-email');
+    const paylaterPostmortemAlertWebhookEl = document.getElementById('paylater-postmortem-alert-webhook');
 
     const paylaterEnabled = paylaterEnabledEl ? paylaterEnabledEl.value : 'false';
     const paylaterPilotEnabled = paylaterPilotEnabledEl ? paylaterPilotEnabledEl.value : 'false';
