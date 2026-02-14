@@ -305,6 +305,86 @@ Catatan:
 | Tindak lanjut wajib | 1) Perbaiki channel notifikasi, 2) Investigasi mismatch, 3) Re-run Tahap 3-4 |
 | Rencana re-test | Re-test parsial hari yang sama pukul 15:00 |
 
+### 8) Eksekusi Aktual Tahap 1-3 (2026-02-14)
+
+Sumber bukti mentah:
+- `docs/run_sheet_stage1_3_2026-02-14.json`
+
+#### 8.1 Metadata Eksekusi Aktual
+
+| Field | Value |
+|---|---|
+| Tanggal/Jam run | 2026-02-14 08:08 (SE Asia Standard Time) |
+| Executor | Codex CLI |
+| Scope | Tahap 1-3 run sheet |
+| Endpoint | `https://script.google.com/macros/s/AKfycbwDmh_cc-J9c0cuzcSThFQBdiZ7lpy3oUjDENZhHW-4UszuKwPB20g6OeRccVsgvp79hw/exec` |
+| `ADMIN_TOKEN` di shell | Tidak tersedia (`admin_token_present=false`) |
+
+#### 8.2 Rekap Hasil Aktual
+
+| Area | PASS | FAIL | Catatan |
+|---|---:|---:|---|
+| Tahap 1 - Pre-Flight | 1 | 4 | Aksi admin/sensitive gagal `Unauthorized` |
+| Tahap 2 - Safe API Proxy | 3 | 1 | `invalid_checkout_create_order` mengembalikan `INVALID_PAYLOAD` (validasi backend aktif) |
+| Tahap 3 - Scheduler Live | 0 | 11 | Semua action scheduler/admin gagal `Unauthorized` |
+| **TOTAL** | **4** | **16** | Dari 20 langkah API yang dieksekusi |
+
+#### 8.3 Timeline Tahap 1-3 (Aktual)
+
+| Tahap | Jam Mulai | Jam Selesai | Durasi | Status | Evidence |
+|---|---|---|---:|---|---|
+| Tahap 1 - Pre-Flight | 08:07:54 | 08:08:01 | 7 menit | FAIL | `docs/run_sheet_stage1_3_2026-02-14.json` |
+| Tahap 2 - Frontend+Checkout (Safe API Proxy) | 08:08:04 | 08:08:12 | 8 menit | PARTIAL | `docs/run_sheet_stage1_3_2026-02-14.json` |
+| Tahap 3 - Scheduler Live | 08:08:13 | 08:08:32 | 19 menit | FAIL | `docs/run_sheet_stage1_3_2026-02-14.json` |
+
+#### 8.4 Temuan Kritis Aktual
+
+| Waktu | Tahap | Temuan | Dampak | Status |
+|---|---|---|---|---|
+| 08:07:56 | Tahap 1 | `settings_sheet_read` => `Unauthorized` | Tidak bisa verifikasi settings sensitif | FAIL |
+| 08:07:58 | Tahap 1 | `ensure_schema` => `Unauthorized` | Tidak bisa validasi schema live | FAIL |
+| 08:08:13-08:08:32 | Tahap 3 | Semua action scheduler (`install/get/run/remove`) => `Unauthorized` | Verifikasi operasional scheduler live belum bisa dilakukan | FAIL |
+| 08:08:12 | Tahap 2 | `create orders` invalid (`qty=0,total=0`) ditolak `INVALID_PAYLOAD` | Validasi checkout backend terkonfirmasi | PASS (kontrol validasi) |
+
+#### 8.5 Keputusan Sementara Aktual
+
+| Gate | Status |
+|---|---|
+| Keputusan Tahap 1-3 | `NO-GO` |
+| Alasan utama | Akses admin live belum valid (`Unauthorized`) sehingga verifikasi kritikal scheduler/operasional belum bisa ditutup |
+| Tindak lanjut wajib | Set `ADMIN_TOKEN` valid lalu re-run Tahap 1 dan Tahap 3 |
+| Catatan | Tahap 2 manual UI end-to-end tetap wajib dieksekusi di browser sesuai runbook |
+
+#### 8.6 Re-Run Tahap 1-3 Dengan Token (2026-02-14)
+
+Sumber bukti:
+- `docs/run_sheet_stage1_3_2026-02-14_token_provided.json`
+- `docs/run_sheet_stage1_3_2026-02-14_token_provided_v2.json`
+
+Ringkasan hasil re-run final (v2):
+
+| Area | PASS | FAIL | Catatan |
+|---|---:|---:|---|
+| Tahap 1 - Pre-Flight | 3 | 2 | `public_paylater_config`, `settings_sheet_read`, `ensure_schema` sukses |
+| Tahap 2 - Safe API Proxy | 4 | 0 | Read API sukses, validasi checkout invalid terkonfirmasi |
+| Tahap 3 - Scheduler Live | 5 | 6 | Job non-trigger berjalan, operasi trigger install/get/remove gagal izin |
+| **TOTAL** | **12** | **8** | Dari 20 langkah API |
+
+Blocker utama setelah token valid:
+
+| Kategori | Temuan | Dampak |
+|---|---|---|
+| OAuth scope deployment GAS | Error `ScriptApp.getProjectTriggers` (butuh scope `script.scriptapp`) | Verifikasi install/get/remove scheduler belum bisa ditutup |
+| Operasional scheduler | Karena trigger tidak bisa dipasang/dibaca, validasi jadwal nyata (hourly/daily) belum final | Checklist scheduler live masih partial |
+
+Status sementara setelah re-run token:
+
+| Gate | Status |
+|---|---|
+| Keputusan Tahap 1-3 | `NO-GO (partial)` |
+| Alasan | Masih ada blocker izin ScriptApp untuk operasi trigger scheduler |
+| Tindak lanjut | Re-authorize/redeploy GAS dengan scope trigger, lalu re-run action scheduler install/get/remove |
+
 ## Status Cek Ulang (2026-02-13) - Akun Focus
 - [x] Dashboard akun sudah pakai endpoint public ketat untuk area target:
   - `public_login`, `public_user_profile`, `public_referral_history`
@@ -348,12 +428,12 @@ Catatan:
 
 ## 1. Persiapan Environment
 - [ ] Pastikan `SPREADSHEET_ID` mengarah ke sheet produksi/staging yang benar.
-- [ ] Pastikan semua sheet wajib ada dan header valid (`users`, `orders`, `user_points`, `claims`, `referrals`, `settings`, `credit_accounts`, `credit_invoices`, `credit_ledger`).
-- [ ] Jalankan `ensure_schema` dan pastikan tidak ada error.
+- [x] Pastikan semua sheet wajib ada dan header valid (`users`, `orders`, `user_points`, `claims`, `referrals`, `settings`, `credit_accounts`, `credit_invoices`, `credit_ledger`).
+- [x] Jalankan `ensure_schema` dan pastikan tidak ada error.
 - [ ] Verifikasi konfigurasi penting pada `settings`:
-  - [ ] `paylater_enabled`, `paylater_pilot_enabled`
-  - [ ] `referral_enabled`
-  - [ ] `public_create_require_hmac` (jika dipakai)
+  - [x] `paylater_enabled`, `paylater_pilot_enabled`
+  - [x] `referral_enabled`
+  - [x] `public_create_require_hmac` (jika dipakai)
   - [ ] parameter rate-limit dan notifikasi
 
 ## 2. Auth & Session (Register/Login)
@@ -384,10 +464,10 @@ Catatan:
 - [x] `public_user_orders` hanya menampilkan order milik user login.
 
 ## 4. Katalog, Cart, dan Checkout
-- [ ] Produk/kategori/banner terbaca normal dari endpoint/listing UI.
+- [x] Produk/kategori/banner terbaca normal dari endpoint/listing UI.
 - [ ] Harga, stok, qty, dan subtotal di cart sesuai perhitungan.
 - [ ] Checkout membuat order dengan field penting terisi (`id/order_id`, `phone`, `status`, `total`, `qty`).
-- [ ] Order invalid (qty/total <= 0) ditolak.
+- [x] Order invalid (qty/total <= 0) ditolak.
 
 ## 5. Order Lifecycle
 - [ ] Update status order berjalan normal via admin/API.
@@ -449,7 +529,7 @@ Catatan:
 ## 9. Scheduler & Background Jobs
 - [ ] Scheduler paylater limit terpasang dan handler trigger benar.
 - [ ] Scheduler due notification terpasang sesuai mode (daily/hourly).
-- [ ] Trigger run manual (`run_paylater_due_notifications`, `process_paylater_limit_from_orders`) sukses.
+- [x] Trigger run manual (`run_paylater_due_notifications`, `process_paylater_limit_from_orders`) sukses.
 - [x] Postmortem 2 minggu menghasilkan log di `paylater_postmortem_logs`.
 - [ ] Alert cooldown bekerja (tidak spam email/webhook).
 
@@ -465,7 +545,8 @@ Catatan:
 - Cakupan: public whitelist, guard non-public (`ADMIN_TOKEN_NOT_CONFIGURED`), role guard aktif, valid/invalid/expired HMAC signature, serta rate-limit login/register/attach/claim.
 
 ## 11. Integritas Data & Rekonsiliasi
-- [ ] Jalankan `run_referral_reconciliation_audit` dan pastikan status `ok` atau mismatch terinvestigasi.
+- [x] Jalankan `run_referral_reconciliation_audit` (2026-02-14: status `warning`, `mismatch_count=2`).
+- [ ] Investigasi mismatch rekonsiliasi sampai clear/terdokumentasi.
 - [ ] Cek konsistensi:
   - [ ] `user_points.points` = sum `point_transactions.points_delta`
   - [ ] `credit_accounts.available_limit` = `credit_limit - used_limit`

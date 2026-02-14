@@ -4007,6 +4007,8 @@ function isSheetValidationRequired(actionKey) {
     attach_referral: true,
     claim_reward: true,
     public_update_profile: true,
+    ensure_schema: true,
+    run_referral_reconciliation_audit: true,
     credit_account_get: true,
     credit_account_upsert: true,
     credit_invoice_create: true,
