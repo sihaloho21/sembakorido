@@ -119,7 +119,12 @@ async function verifyAdminToken(token) {
         return { ok: false, message: 'ADMIN_TOKEN tidak valid.' };
     }
     // Expected response for unknown action after auth passes.
-    if (errorCode && errorCode !== 'Invalid action') {
+    // Backend variant can be "Invalid action" or "Invalid action or request format".
+    const normalizedError = errorCode.toLowerCase();
+    if (normalizedError.includes('invalid action')) {
+        return { ok: true };
+    }
+    if (errorCode) {
         return { ok: false, message: String(body.message || errorCode || 'Verifikasi token gagal.') };
     }
     return { ok: true };
