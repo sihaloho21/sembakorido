@@ -12,6 +12,26 @@
         font-size: 14px;
     }
 
+    body.h-screen {
+        height: auto;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+
+    body.overflow-hidden {
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    body > .flex-1.flex.flex-col.overflow-hidden {
+        overflow: visible;
+    }
+
+    main.flex-1.overflow-y-auto {
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+    }
+
     /* Main container */
     .flex {
         flex-wrap: wrap;
