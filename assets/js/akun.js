@@ -802,8 +802,20 @@ function shareReferralWhatsApp() {
 
     const message = buildReferralShareMessage(code, link);
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    const popup = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-    if (popup) popup.opener = null;
+    const userAgent = navigator.userAgent || '';
+    const isMobile = /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(userAgent);
+
+    if (isMobile) {
+        window.location.href = whatsappUrl;
+    } else {
+        const popup = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+        if (popup) {
+            popup.opener = null;
+        } else {
+            window.location.href = whatsappUrl;
+        }
+    }
+
     setReferralStatus('Link referral siap dibagikan ke WhatsApp.', 'success');
 }
 
