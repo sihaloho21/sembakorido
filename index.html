@@ -1219,7 +1219,7 @@
             bindAll('[data-action="lightbox-prev"]', () => lightboxPrev());
             bindAll('[data-action="lightbox-next"]', () => lightboxNext());
             bindAll('[data-action="close-qris"]', () => closeQRISModal());
-            bindAll('[data-action="check-points"]', () => checkUserPoints());
+            bindAll('[data-action="check-points"]', (event) => checkUserPoints(event));
             bindAll('[data-action="close-store-closed"]', () => closeStoreClosedModal());
             bindAll('[data-action="close-store-warning"]', () => closeStoreWarningModal());
             bindAll('[data-action="prev-slide"]', () => prevSlide());
