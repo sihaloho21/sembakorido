@@ -53,14 +53,15 @@
 // KONFIGURASI
 // ========================================
 
-const SPREADSHEET_ID = '174qAwA2hddfQOFUFDx7czOtpRlD9WUiiIaf6Yao8WRc';
+const SPREADSHEET_ID_PROP_KEY = 'SPREADSHEET_ID';
 const ADMIN_TOKEN = ''; // contoh: 'SECRET123'
 
 const SHEET_WHITELIST = [
   'products', 'categories', 'orders', 'users', 'user_points', 'tukar_poin',
   'banners', 'claims', 'settings', 'pembelian', 'suppliers', 'biaya_bulanan',
   'referrals', 'point_transactions', 'referral_audit_logs', 'fraud_risk_logs',
-  'credit_accounts', 'credit_invoices', 'credit_ledger', 'paylater_postmortem_logs'
+  'credit_accounts', 'credit_invoices', 'credit_ledger', 'paylater_postmortem_logs',
+  'runtime_error_logs', 'promo_campaigns', 'promo_targets', 'promo_send_logs'
 ];
 
 const LOCK_TIMEOUT_MS = 30000;
@@ -99,7 +100,11 @@ const SENSITIVE_GET_SHEETS = {
   credit_accounts: true,
   credit_invoices: true,
   credit_ledger: true,
-  paylater_postmortem_logs: true
+  paylater_postmortem_logs: true,
+  runtime_error_logs: true,
+  promo_campaigns: true,
+  promo_targets: true,
+  promo_send_logs: true
 };
 
 const PUBLIC_POST_RULES = {
@@ -170,6 +175,27 @@ const SCHEMA_REQUIREMENTS = {
     'paid_late_count', 'overdue_open_count', 'defaulted_count',
     'outstanding_default_amount', 'on_time_rate', 'overdue_rate', 'default_rate',
     'summary_json', 'tuning_json'
+  ],
+  runtime_error_logs: [
+    'id', 'created_at', 'handler', 'error_code', 'error_message',
+    'action', 'sheet', 'request_id', 'context_json'
+  ],
+  promo_campaigns: [
+    'id', 'code', 'name', 'status', 'segment_code', 'template_text',
+    'channel', 'voucher_prefix', 'discount_text', 'min_order_text',
+    'cta_url', 'start_at', 'end_at', 'cooldown_hours', 'max_send_per_run',
+    'created_at', 'updated_at'
+  ],
+  promo_targets: [
+    'id', 'campaign_id', 'campaign_code', 'segment_code', 'user_id',
+    'customer_name', 'phone', 'voucher_code', 'short_link', 'message_text',
+    'status', 'queued_at', 'sent_at', 'provider_message_id',
+    'error_message', 'attempt_count'
+  ],
+  promo_send_logs: [
+    'id', 'campaign_id', 'campaign_code', 'target_id', 'user_id',
+    'phone', 'status', 'provider_message_id', 'error_message',
+    'sent_at', 'payload_json'
   ]
 };
 
@@ -274,6 +300,13 @@ function doGet(e) {
 
     return jsonOutput(rows);
   } catch (error) {
+    logRuntimeError('doGet', error, {
+      action: action || '',
+      sheet: sheetName || '',
+      request_id: id === undefined ? '' : String(id),
+      phone: phone ? normalizePhone(phone) : '',
+      whatsapp: whatsapp ? normalizePhone(whatsapp) : ''
+    });
     Logger.log('Error in doGet: ' + error.toString());
     return jsonOutput({ error: error.toString() });
   }
@@ -936,6 +969,16 @@ function doPost(e) {
       }));
     }
 
+    if (action === 'process_loyalty_points') {
+      return jsonOutput(withScriptLock(function() {
+        return processLoyaltyPoints();
+      }));
+    }
+
+    if (action === 'get_runtime_error_summary') {
+      return jsonOutput(handleGetRuntimeErrorSummary(data));
+    }
+
     if (action === 'credit_account_get') {
       return jsonOutput(handleCreditAccountGet(data));
     }
@@ -1026,6 +1069,18 @@ function doPost(e) {
 
     if (action === 'get_paylater_postmortem_logs') {
       return jsonOutput(handleGetPaylaterPostmortemLogs(data));
+    }
+
+    if (action === 'broadcast_promo_enqueue') {
+      return jsonOutput(withScriptLock(function() {
+        return handleBroadcastPromoEnqueue(data);
+      }));
+    }
+
+    if (action === 'broadcast_promo_send') {
+      return jsonOutput(withScriptLock(function() {
+        return handleBroadcastPromoSend(data);
+      }));
     }
 
     const sheet = getSheet(sheetName);
@@ -1166,6 +1221,7 @@ function doPost(e) {
 
     return jsonOutput({ error: 'Invalid action or request format' });
   } catch (error) {
+    logRuntimeError('doPost', error, extractPostErrorContext(e));
     Logger.log('Error in doPost: ' + error.toString());
     return jsonOutput({ error: error.toString() });
   }
@@ -3944,6 +4000,714 @@ function handleCreditInvoiceApplyPenalty(data) {
 }
 
 // ========================================
+// BROADCAST PROMO (SEGMENTED WHATSAPP)
+// ========================================
+
+function getBroadcastPromoConfig() {
+  const set = getSettingsMap();
+  const intInRange = function(value, fallback, minVal, maxVal) {
+    const parsed = parseInt(value, 10);
+    const safe = Number.isFinite(parsed) ? parsed : fallback;
+    return Math.max(minVal, Math.min(maxVal, safe));
+  };
+
+  return {
+    enabled: String(set.broadcast_promo_enabled || 'false').toLowerCase() === 'true',
+    whatsappWebhook: String(set.broadcast_promo_whatsapp_webhook || '').trim(),
+    whatsappBearerToken: String(set.broadcast_promo_whatsapp_bearer_token || '').trim(),
+    frequencyCap7d: intInRange(set.broadcast_promo_frequency_cap_7d || 2, 2, 1, 20),
+    quietHourStart: intInRange(set.broadcast_promo_quiet_hour_start || 22, 22, 0, 23),
+    quietHourEnd: intInRange(set.broadcast_promo_quiet_hour_end || 7, 7, 0, 23),
+    defaultCooldownHours: intInRange(set.broadcast_promo_default_cooldown_hours || 72, 72, 1, 24 * 30),
+    defaultMaxSendPerRun: intInRange(set.broadcast_promo_max_send_per_run || 100, 100, 1, 1000),
+    highSpenderThreshold: Math.max(0, toMoneyInt(set.broadcast_promo_high_spender_threshold || 1000000)),
+    defaultCtaUrl: String(set.broadcast_promo_default_cta_url || 'https://paketsembako.com/').trim()
+  };
+}
+
+function getBroadcastPromoCampaign(payload) {
+  const data = payload || {};
+  const campaignId = String(data.campaign_id || data.id || '').trim();
+  const campaignCode = String(data.campaign_code || data.code || '').trim().toUpperCase();
+
+  const campaignObj = getRowsAsObjects('promo_campaigns');
+  if (!campaignObj.headers.length) {
+    return {
+      success: false,
+      error: 'PROMO_CAMPAIGNS_HEADERS_INVALID',
+      message: 'Header promo_campaigns belum valid'
+    };
+  }
+
+  let found = null;
+  let rowNumber = -1;
+  for (var i = 0; i < campaignObj.rows.length; i++) {
+    const row = campaignObj.rows[i];
+    const rowId = String(row.id || '').trim();
+    const rowCode = String(row.code || '').trim().toUpperCase();
+    if (campaignId && rowId === campaignId) {
+      found = row;
+      rowNumber = i + 2;
+      break;
+    }
+    if (!campaignId && campaignCode && rowCode === campaignCode) {
+      found = row;
+      rowNumber = i + 2;
+      break;
+    }
+  }
+
+  if (!found) {
+    return {
+      success: false,
+      error: 'CAMPAIGN_NOT_FOUND',
+      message: 'Campaign promo tidak ditemukan'
+    };
+  }
+
+  return {
+    success: true,
+    campaignObj: campaignObj,
+    campaign: found,
+    rowNumber: rowNumber
+  };
+}
+
+function isBroadcastCampaignActive(campaign, nowDate) {
+  const row = campaign || {};
+  const status = String(row.status || 'draft').toLowerCase().trim();
+  if (status === 'draft' || status === 'stopped' || status === 'paused') return false;
+
+  const nowStart = getUtcDateStart(nowDate || nowIso());
+  const startAt = getUtcDateStart(row.start_at || '');
+  const endAt = getUtcDateStart(row.end_at || '');
+
+  if (startAt && nowStart && nowStart.getTime() < startAt.getTime()) return false;
+  if (endAt && nowStart && nowStart.getTime() > endAt.getTime()) return false;
+
+  return true;
+}
+
+function isBroadcastQuietHour(cfg, dateObj) {
+  const d = dateObj || new Date();
+  const tz = Session.getScriptTimeZone() || 'Asia/Jakarta';
+  const hour = parseInt(Utilities.formatDate(d, tz, 'H'), 10);
+  if (!Number.isFinite(hour)) return false;
+
+  const start = parseInt(cfg.quietHourStart, 10);
+  const end = parseInt(cfg.quietHourEnd, 10);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start === end) return false;
+
+  if (start < end) {
+    return hour >= start && hour < end;
+  }
+  return hour >= start || hour < end;
+}
+
+function isBroadcastUserActive(userRow) {
+  const status = String((userRow && userRow.status) || 'aktif').toLowerCase().trim();
+  return !status || status === 'aktif' || status === 'active';
+}
+
+function isBroadcastOrderSuccessStatus(status) {
+  const s = String(status || '').toLowerCase().trim();
+  return s === 'paid' || s === 'selesai' || s === 'terima' || s === 'diterima';
+}
+
+function getBroadcastOrderDateMs(orderRow) {
+  const row = orderRow || {};
+  const candidates = [
+    row.tanggal_pesanan,
+    row.created_at,
+    row.updated_at,
+    row.tanggal,
+    row.timestamp,
+    row.order_date
+  ];
+  for (var i = 0; i < candidates.length; i++) {
+    const ms = new Date(candidates[i] || 0).getTime();
+    if (!Number.isNaN(ms) && ms > 0) return ms;
+  }
+  return 0;
+}
+
+function getBroadcastUserRegisterMs(userRow) {
+  const row = userRow || {};
+  const candidates = [row.tanggal_daftar, row.created_at];
+  for (var i = 0; i < candidates.length; i++) {
+    const ms = new Date(candidates[i] || 0).getTime();
+    if (!Number.isNaN(ms) && ms > 0) return ms;
+  }
+  return 0;
+}
+
+function buildBroadcastOrderStatsMap(ordersRows, nowMs) {
+  const map = {};
+  const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
+  const rows = ordersRows || [];
+
+  for (var i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const phone = normalizePhone(row.phone || row.whatsapp || '');
+    if (!phone) continue;
+    if (!isBroadcastOrderSuccessStatus(row.status || '')) continue;
+
+    if (!map[phone]) {
+      map[phone] = {
+        success_count: 0,
+        last_success_ms: 0,
+        gmv_90d: 0
+      };
+    }
+
+    const stat = map[phone];
+    const orderMs = getBroadcastOrderDateMs(row);
+    const total = Math.max(0, parseNumber(row.total || row.total_bayar || row.amount || 0));
+
+    stat.success_count += 1;
+    if (orderMs > stat.last_success_ms) stat.last_success_ms = orderMs;
+    if (orderMs > 0 && orderMs >= (nowMs - ninetyDaysMs)) {
+      stat.gmv_90d += total;
+    }
+  }
+
+  return map;
+}
+
+function selectBroadcastSegmentUsers(segmentCode, usersRows, orderStatsMap, cfg, nowMs) {
+  const segment = String(segmentCode || '').toLowerCase().trim();
+  const users = usersRows || [];
+  const statsMap = orderStatsMap || {};
+  const out = [];
+  const seen = {};
+
+  const dormantMs = 30 * 24 * 60 * 60 * 1000;
+  const newUserMs = 7 * 24 * 60 * 60 * 1000;
+  const inactiveHighSpenderMs = 14 * 24 * 60 * 60 * 1000;
+
+  for (var i = 0; i < users.length; i++) {
+    const user = users[i];
+    if (!isBroadcastUserActive(user)) continue;
+
+    const phone = normalizePhone(user.whatsapp || user.phone || '');
+    if (!phone) continue;
+
+    const userId = String(user.id || '').trim() || ('PHONE-' + phone);
+    const key = userId || ('PHONE-' + phone);
+    if (seen[key]) continue;
+    seen[key] = true;
+
+    const stats = statsMap[phone] || { success_count: 0, last_success_ms: 0, gmv_90d: 0 };
+    const registerMs = getBroadcastUserRegisterMs(user);
+    let eligible = false;
+
+    if (segment === 'dormant_30d') {
+      if (stats.success_count > 0) {
+        eligible = !stats.last_success_ms || ((nowMs - stats.last_success_ms) >= dormantMs);
+      }
+    } else if (segment === 'new_user_no_order_7d') {
+      if (registerMs > 0 && (nowMs - registerMs) <= newUserMs && stats.success_count === 0) {
+        eligible = true;
+      }
+    } else if (segment === 'high_spender_inactive_14d') {
+      if (stats.gmv_90d >= cfg.highSpenderThreshold && stats.success_count > 0) {
+        eligible = !stats.last_success_ms || ((nowMs - stats.last_success_ms) >= inactiveHighSpenderMs);
+      }
+    } else {
+      eligible = false;
+    }
+
+    if (!eligible) continue;
+
+    out.push({
+      user_id: userId,
+      customer_name: String(user.nama || '').trim() || 'Pelanggan',
+      phone: phone,
+      segment_code: segment
+    });
+  }
+
+  return out;
+}
+
+function buildBroadcastPromoLink(cfg, campaign, voucherCode, phone) {
+  const row = campaign || {};
+  const campaignCode = String(row.code || row.id || 'promo').trim();
+  const base = String(row.cta_url || cfg.defaultCtaUrl || 'https://paketsembako.com/').trim();
+  const separator = base.indexOf('?') === -1 ? '?' : '&';
+  const params = [
+    'utm_source=whatsapp',
+    'utm_medium=broadcast',
+    'utm_campaign=' + encodeURIComponent(campaignCode)
+  ];
+  if (voucherCode) params.push('voucher=' + encodeURIComponent(String(voucherCode)));
+  if (phone) params.push('phone=' + encodeURIComponent(String(phone)));
+  return base + separator + params.join('&');
+}
+
+function buildBroadcastPromoMessage(campaign, target, link) {
+  const row = campaign || {};
+  const t = target || {};
+  const template = String(row.template_text || '').trim() || (
+    'Halo {{name}}, ada promo spesial untuk kamu.\n' +
+    'Gunakan voucher {{voucher}}.\n' +
+    '{{discount_line}}{{min_order_line}}' +
+    'Klik link ini: {{link}}'
+  );
+
+  const discountText = String(row.discount_text || '').trim();
+  const minOrderText = String(row.min_order_text || '').trim();
+
+  const replaceMap = {
+    '{{name}}': String(t.customer_name || 'Pelanggan'),
+    '{{voucher}}': String(t.voucher_code || ''),
+    '{{segment}}': String(t.segment_code || ''),
+    '{{campaign}}': String(row.name || row.code || ''),
+    '{{link}}': String(link || ''),
+    '{{discount}}': discountText,
+    '{{min_order}}': minOrderText,
+    '{{discount_line}}': discountText ? ('Diskon: ' + discountText + '\n') : '',
+    '{{min_order_line}}': minOrderText ? ('Min. belanja: ' + minOrderText + '\n') : ''
+  };
+
+  let text = template;
+  Object.keys(replaceMap).forEach(function(key) {
+    text = text.split(key).join(replaceMap[key]);
+  });
+
+  if (text.indexOf(link) === -1 && link) {
+    text += '\n' + link;
+  }
+
+  return text.trim();
+}
+
+function generateBroadcastVoucherCode(prefix, userId, phone) {
+  const cleanPrefix = String(prefix || 'PROMO').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) || 'PROMO';
+  const suffixSeed = String(userId || phone || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const tail = suffixSeed ? suffixSeed.slice(-4) : 'USER';
+  const randomPart = Utilities.getUuid().replace(/-/g, '').slice(0, 4).toUpperCase();
+  return [cleanPrefix, tail, randomPart].join('-');
+}
+
+function handleBroadcastPromoEnqueue(data) {
+  const payload = data || {};
+  const cfg = getBroadcastPromoConfig();
+
+  if (!cfg.enabled && !parseBooleanLike(payload.force)) {
+    return {
+      success: false,
+      error: 'BROADCAST_DISABLED',
+      message: 'Broadcast promo nonaktif (broadcast_promo_enabled=false)'
+    };
+  }
+
+  const campaignResult = getBroadcastPromoCampaign(payload);
+  if (!campaignResult.success) return campaignResult;
+
+  const campaignObj = campaignResult.campaignObj;
+  const campaign = campaignResult.campaign;
+  const campaignRowNumber = campaignResult.rowNumber;
+  const nowDate = new Date();
+  const nowMs = nowDate.getTime();
+
+  if (!isBroadcastCampaignActive(campaign, nowDate)) {
+    return {
+      success: false,
+      error: 'CAMPAIGN_NOT_ACTIVE',
+      message: 'Campaign tidak aktif atau di luar window jadwal'
+    };
+  }
+
+  const segmentCode = String(payload.segment_code || campaign.segment_code || '').toLowerCase().trim();
+  if (!segmentCode) {
+    return {
+      success: false,
+      error: 'SEGMENT_REQUIRED',
+      message: 'segment_code wajib diisi (payload/campaign)'
+    };
+  }
+
+  const usersObj = getRowsAsObjects('users');
+  const ordersObj = getRowsAsObjects('orders');
+  const targetObj = getRowsAsObjects('promo_targets');
+  const sendLogObj = getRowsAsObjects('promo_send_logs');
+
+  if (!usersObj.headers.length) return { success: false, error: 'USERS_HEADERS_INVALID', message: 'Header users belum valid' };
+  if (!ordersObj.headers.length) return { success: false, error: 'ORDERS_HEADERS_INVALID', message: 'Header orders belum valid' };
+  if (!targetObj.headers.length) return { success: false, error: 'PROMO_TARGETS_HEADERS_INVALID', message: 'Header promo_targets belum valid' };
+  if (!sendLogObj.headers.length) return { success: false, error: 'PROMO_SEND_LOGS_HEADERS_INVALID', message: 'Header promo_send_logs belum valid' };
+
+  const orderStats = buildBroadcastOrderStatsMap(ordersObj.rows, nowMs);
+  const candidates = selectBroadcastSegmentUsers(segmentCode, usersObj.rows, orderStats, cfg, nowMs);
+
+  const limitRaw = parseInt(payload.limit, 10);
+  const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(2000, limitRaw)) : 500;
+  const dryRun = parseBooleanLike(payload.dry_run);
+  const campaignCode = String(campaign.code || '').trim();
+  const cooldownHours = Math.max(
+    1,
+    parseInt(campaign.cooldown_hours || cfg.defaultCooldownHours || 72, 10) || cfg.defaultCooldownHours || 72
+  );
+  const cooldownMs = cooldownHours * 60 * 60 * 1000;
+
+  const campaignMaxSend = Math.max(
+    1,
+    parseInt(campaign.max_send_per_run || cfg.defaultMaxSendPerRun || 100, 10) || cfg.defaultMaxSendPerRun || 100
+  );
+
+  const sendCountMap7d = {};
+  const lastCampaignSendMs = {};
+  const sentStatus = { sent: true, delivered: true, read: true };
+  const sevenDaysAgo = nowMs - (7 * 24 * 60 * 60 * 1000);
+
+  for (var s = 0; s < sendLogObj.rows.length; s++) {
+    const log = sendLogObj.rows[s];
+    const status = String(log.status || '').toLowerCase().trim();
+    if (!sentStatus[status]) continue;
+    const sentMs = new Date(log.sent_at || 0).getTime();
+    if (Number.isNaN(sentMs) || sentMs < sevenDaysAgo) continue;
+
+    const key = String(log.user_id || '').trim() || ('PHONE-' + normalizePhone(log.phone || ''));
+    if (!key) continue;
+
+    sendCountMap7d[key] = (sendCountMap7d[key] || 0) + 1;
+
+    const logCampaignCode = String(log.campaign_code || '').trim().toUpperCase();
+    if (campaignCode && logCampaignCode === campaignCode.toUpperCase()) {
+      const prev = lastCampaignSendMs[key] || 0;
+      if (sentMs > prev) lastCampaignSendMs[key] = sentMs;
+    }
+  }
+
+  const existingCampaignTarget = {};
+  for (var t = 0; t < targetObj.rows.length; t++) {
+    const row = targetObj.rows[t];
+    const rowCampaignCode = String(row.campaign_code || '').trim().toUpperCase();
+    if (campaignCode && rowCampaignCode !== campaignCode.toUpperCase()) continue;
+    const rowKey = String(row.user_id || '').trim() || ('PHONE-' + normalizePhone(row.phone || ''));
+    if (!rowKey) continue;
+    existingCampaignTarget[rowKey] = true;
+  }
+
+  const prepared = [];
+  const skipped = {
+    cap_7d: 0,
+    cooldown: 0,
+    duplicate_campaign: 0
+  };
+
+  for (var c = 0; c < candidates.length; c++) {
+    if (prepared.length >= Math.min(limit, campaignMaxSend)) break;
+
+    const candidate = candidates[c];
+    const userKey = String(candidate.user_id || '').trim() || ('PHONE-' + candidate.phone);
+    if (!userKey) continue;
+
+    if (existingCampaignTarget[userKey]) {
+      skipped.duplicate_campaign += 1;
+      continue;
+    }
+
+    const sent7d = sendCountMap7d[userKey] || 0;
+    if (sent7d >= cfg.frequencyCap7d) {
+      skipped.cap_7d += 1;
+      continue;
+    }
+
+    const lastSent = lastCampaignSendMs[userKey] || 0;
+    if (lastSent > 0 && (nowMs - lastSent) < cooldownMs) {
+      skipped.cooldown += 1;
+      continue;
+    }
+
+    const voucherCode = generateBroadcastVoucherCode(campaign.voucher_prefix || campaign.code || 'PROMO', candidate.user_id, candidate.phone);
+    const shortLink = buildBroadcastPromoLink(cfg, campaign, voucherCode, candidate.phone);
+    const messageText = buildBroadcastPromoMessage(campaign, {
+      customer_name: candidate.customer_name,
+      voucher_code: voucherCode,
+      segment_code: segmentCode
+    }, shortLink);
+
+    prepared.push({
+      id: genId('PRT'),
+      campaign_id: String(campaign.id || ''),
+      campaign_code: campaignCode,
+      segment_code: segmentCode,
+      user_id: candidate.user_id,
+      customer_name: candidate.customer_name,
+      phone: candidate.phone,
+      voucher_code: voucherCode,
+      short_link: shortLink,
+      message_text: messageText,
+      status: 'queued',
+      queued_at: nowIso(),
+      sent_at: '',
+      provider_message_id: '',
+      error_message: '',
+      attempt_count: 0
+    });
+  }
+
+  if (!dryRun) {
+    for (var p = 0; p < prepared.length; p++) {
+      appendByHeaders(targetObj.sheet, targetObj.headers, prepared[p]);
+    }
+    setCellIfColumnExists(campaignObj.sheet, campaignObj.headers, campaignRowNumber, 'updated_at', nowIso());
+  }
+
+  return {
+    success: true,
+    campaign_code: campaignCode,
+    segment_code: segmentCode,
+    dry_run: dryRun,
+    scanned_candidates: candidates.length,
+    queued: prepared.length,
+    skipped: skipped,
+    sample_targets: prepared.slice(0, 5)
+  };
+}
+
+function sendBroadcastWhatsAppMessage(target, campaign, cfg) {
+  if (!cfg.whatsappWebhook) {
+    return {
+      success: false,
+      error: 'NO_CHANNEL',
+      message: 'Webhook WhatsApp broadcast belum diset'
+    };
+  }
+
+  const payload = {
+    phone: normalizePhone(target.phone || ''),
+    message: String(target.message_text || '').trim(),
+    campaign_code: String(campaign.code || campaign.id || '').trim(),
+    campaign_name: String(campaign.name || '').trim(),
+    target_id: String(target.id || '').trim(),
+    user_id: String(target.user_id || '').trim(),
+    voucher_code: String(target.voucher_code || '').trim(),
+    link: String(target.short_link || '').trim()
+  };
+
+  if (!payload.phone || !payload.message) {
+    return {
+      success: false,
+      error: 'INVALID_TARGET_PAYLOAD',
+      message: 'phone/message kosong pada target'
+    };
+  }
+
+  const headers = {};
+  if (cfg.whatsappBearerToken) {
+    headers.Authorization = 'Bearer ' + cfg.whatsappBearerToken;
+  }
+
+  try {
+    const response = UrlFetchApp.fetch(cfg.whatsappWebhook, {
+      method: 'post',
+      contentType: 'application/json',
+      muteHttpExceptions: true,
+      payload: JSON.stringify(payload),
+      headers: headers
+    });
+
+    const code = response.getResponseCode();
+    const body = response.getContentText() || '';
+    let bodyJson = null;
+    try { bodyJson = JSON.parse(body); } catch (parseError) { bodyJson = null; }
+
+    if (code < 200 || code >= 300) {
+      return {
+        success: false,
+        error: 'HTTP_' + String(code),
+        message: body.slice(0, 300),
+        payload: payload
+      };
+    }
+
+    if (bodyJson && bodyJson.success === false) {
+      return {
+        success: false,
+        error: String(bodyJson.error || bodyJson.error_code || 'PROVIDER_ERROR'),
+        message: String(bodyJson.message || 'Provider menolak request').slice(0, 300),
+        payload: payload
+      };
+    }
+
+    const providerMessageId = String(
+      (bodyJson && (bodyJson.message_id || bodyJson.id || (bodyJson.data && bodyJson.data.id))) || ''
+    ).trim();
+
+    return {
+      success: true,
+      provider_message_id: providerMessageId,
+      payload: payload
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: 'FETCH_ERROR',
+      message: String(error && error.message ? error.message : error).slice(0, 300),
+      payload: payload
+    };
+  }
+}
+
+function handleBroadcastPromoSend(data) {
+  const payload = data || {};
+  const cfg = getBroadcastPromoConfig();
+
+  if (!cfg.enabled && !parseBooleanLike(payload.force)) {
+    return {
+      success: false,
+      error: 'BROADCAST_DISABLED',
+      message: 'Broadcast promo nonaktif (broadcast_promo_enabled=false)'
+    };
+  }
+
+  const campaignResult = getBroadcastPromoCampaign(payload);
+  if (!campaignResult.success) return campaignResult;
+
+  const campaignObj = campaignResult.campaignObj;
+  const campaign = campaignResult.campaign;
+  const campaignRowNumber = campaignResult.rowNumber;
+  const campaignCode = String(campaign.code || '').trim();
+  const nowDate = new Date();
+
+  if (!parseBooleanLike(payload.ignore_quiet_hours) && isBroadcastQuietHour(cfg, nowDate)) {
+    return {
+      success: true,
+      skipped: true,
+      reason: 'quiet_hours',
+      message: 'Sedang quiet hours broadcast, pengiriman dilewati'
+    };
+  }
+
+  if (!isBroadcastCampaignActive(campaign, nowDate)) {
+    return {
+      success: false,
+      error: 'CAMPAIGN_NOT_ACTIVE',
+      message: 'Campaign tidak aktif atau di luar window jadwal'
+    };
+  }
+
+  const targetObj = getRowsAsObjects('promo_targets');
+  const sendLogObj = getRowsAsObjects('promo_send_logs');
+
+  if (!targetObj.headers.length) return { success: false, error: 'PROMO_TARGETS_HEADERS_INVALID', message: 'Header promo_targets belum valid' };
+  if (!sendLogObj.headers.length) return { success: false, error: 'PROMO_SEND_LOGS_HEADERS_INVALID', message: 'Header promo_send_logs belum valid' };
+
+  const maxSendRaw = parseInt(payload.limit, 10);
+  const campaignMaxSend = Math.max(
+    1,
+    parseInt(campaign.max_send_per_run || cfg.defaultMaxSendPerRun || 100, 10) || cfg.defaultMaxSendPerRun || 100
+  );
+  const maxSend = Number.isFinite(maxSendRaw)
+    ? Math.max(1, Math.min(1000, maxSendRaw))
+    : campaignMaxSend;
+
+  const dryRun = parseBooleanLike(payload.dry_run);
+  const queue = [];
+  for (var i = 0; i < targetObj.rows.length; i++) {
+    const row = targetObj.rows[i];
+    const rowCampaignCode = String(row.campaign_code || '').trim().toUpperCase();
+    const status = String(row.status || '').toLowerCase().trim();
+    if (rowCampaignCode !== campaignCode.toUpperCase()) continue;
+    if (status !== 'queued' && status !== 'retry') continue;
+    queue.push({
+      row: row,
+      rowNumber: i + 2
+    });
+  }
+
+  queue.sort(function(a, b) {
+    const aMs = new Date(a.row.queued_at || 0).getTime();
+    const bMs = new Date(b.row.queued_at || 0).getTime();
+    const safeA = Number.isNaN(aMs) ? 0 : aMs;
+    const safeB = Number.isNaN(bMs) ? 0 : bMs;
+    return safeA - safeB;
+  });
+
+  const selected = queue.slice(0, maxSend);
+  const summary = {
+    success: true,
+    campaign_code: campaignCode,
+    dry_run: dryRun,
+    queued_found: queue.length,
+    attempted: selected.length,
+    sent: 0,
+    failed: 0,
+    details: []
+  };
+
+  for (var q = 0; q < selected.length; q++) {
+    const item = selected[q];
+    const row = item.row;
+    const targetId = String(row.id || '').trim() || genId('PRT');
+    const attemptCount = Math.max(0, parseInt(row.attempt_count || 0, 10) || 0) + 1;
+
+    let sendResult = null;
+    if (dryRun) {
+      sendResult = {
+        success: true,
+        provider_message_id: 'DRY_RUN',
+        payload: {
+          phone: normalizePhone(row.phone || ''),
+          message: String(row.message_text || '').trim()
+        }
+      };
+    } else {
+      sendResult = sendBroadcastWhatsAppMessage(row, campaign, cfg);
+    }
+
+    const sendStatus = sendResult.success ? 'sent' : 'failed';
+    const errMsg = sendResult.success ? '' : String(sendResult.message || sendResult.error || 'send_failed');
+    const providerMessageId = String(sendResult.provider_message_id || '').trim();
+
+    if (!dryRun) {
+      setCellIfColumnExists(targetObj.sheet, targetObj.headers, item.rowNumber, 'status', sendStatus);
+      setCellIfColumnExists(targetObj.sheet, targetObj.headers, item.rowNumber, 'attempt_count', attemptCount);
+      setCellIfColumnExists(targetObj.sheet, targetObj.headers, item.rowNumber, 'provider_message_id', providerMessageId);
+      setCellIfColumnExists(targetObj.sheet, targetObj.headers, item.rowNumber, 'error_message', errMsg);
+      if (sendResult.success) {
+        setCellIfColumnExists(targetObj.sheet, targetObj.headers, item.rowNumber, 'sent_at', nowIso());
+      }
+
+      appendByHeaders(sendLogObj.sheet, sendLogObj.headers, {
+        id: genId('PSL'),
+        campaign_id: String(campaign.id || ''),
+        campaign_code: campaignCode,
+        target_id: targetId,
+        user_id: String(row.user_id || '').trim(),
+        phone: normalizePhone(row.phone || ''),
+        status: sendStatus,
+        provider_message_id: providerMessageId,
+        error_message: errMsg,
+        sent_at: nowIso(),
+        payload_json: JSON.stringify(sendResult.payload || {}).slice(0, 2000)
+      });
+    }
+
+    if (sendResult.success) summary.sent += 1;
+    else summary.failed += 1;
+
+    summary.details.push({
+      target_id: targetId,
+      user_id: String(row.user_id || '').trim(),
+      phone: normalizePhone(row.phone || ''),
+      status: sendStatus,
+      provider_message_id: providerMessageId,
+      error_message: errMsg
+    });
+  }
+
+  if (!dryRun) {
+    setCellIfColumnExists(campaignObj.sheet, campaignObj.headers, campaignRowNumber, 'updated_at', nowIso());
+  }
+
+  return summary;
+}
+
+// ========================================
 // UTILS
 // ========================================
 
@@ -4002,13 +4766,139 @@ function resolveRequestAdminRole(e, body) {
   ).trim().toLowerCase();
 }
 
+function extractPostErrorContext(e) {
+  const context = {};
+  try {
+    const params = (e && e.parameter) ? e.parameter : {};
+    if (params.action !== undefined) context.action = String(params.action || '');
+    if (params.sheet !== undefined) context.sheet = String(params.sheet || '');
+    if (params.id !== undefined) context.request_id = String(params.id || '');
+
+    const rawBody = String((e && e.postData && e.postData.contents) || '').trim();
+    if (!rawBody) return context;
+
+    try {
+      const body = JSON.parse(rawBody);
+      const data = body && body.data ? body.data : {};
+      if (!context.action && body.action !== undefined) context.action = String(body.action || '');
+      if (!context.sheet && body.sheet !== undefined) context.sheet = String(body.sheet || '');
+      if (!context.request_id && body.id !== undefined) context.request_id = String(body.id || '');
+      if (data && typeof data === 'object') {
+        if (!context.request_id && data.request_id !== undefined) {
+          context.request_id = String(data.request_id || '');
+        }
+        if (data.order_id !== undefined) context.order_id = String(data.order_id || '');
+        if (data.phone !== undefined || data.whatsapp !== undefined) {
+          context.phone = normalizePhone(data.phone || data.whatsapp || '');
+        }
+      }
+    } catch (error) {
+      context.raw_body_length = rawBody.length;
+    }
+  } catch (error) {
+    Logger.log('extractPostErrorContext failed: ' + error.toString());
+  }
+  return context;
+}
+
+function logRuntimeError(handler, error, contextObj) {
+  try {
+    const logsObj = getRowsAsObjects('runtime_error_logs');
+    if (!logsObj.headers.length) return;
+
+    const context = contextObj || {};
+    const errorCode = String((error && (error.name || error.code)) || '').trim();
+    const errorMessage = String((error && (error.message || error.toString())) || error || '').trim() || 'unknown_error';
+    const compactContext = JSON.stringify(context).slice(0, 2000);
+
+    appendByHeaders(logsObj.sheet, logsObj.headers, {
+      id: genId('ERR'),
+      created_at: nowIso(),
+      handler: String(handler || ''),
+      error_code: errorCode.slice(0, 100),
+      error_message: errorMessage.slice(0, 500),
+      action: String(context.action || ''),
+      sheet: String(context.sheet || ''),
+      request_id: String(context.request_id || ''),
+      context_json: compactContext
+    });
+  } catch (logError) {
+    Logger.log('logRuntimeError failed: ' + logError.toString());
+  }
+}
+
+function handleGetRuntimeErrorSummary(data) {
+  const payload = data || {};
+  const lookbackHours = Math.max(1, Math.min(24 * 30, parseInt(payload.lookback_hours || payload.hours || 24, 10) || 24));
+  const maxRows = Math.max(1, Math.min(500, parseInt(payload.max_rows || payload.limit || 200, 10) || 200));
+  const nowMs = Date.now();
+  const cutoffMs = nowMs - (lookbackHours * 60 * 60 * 1000);
+  const handlerFilter = String(payload.handler || '').trim();
+
+  const logsObj = getRowsAsObjects('runtime_error_logs');
+  const rows = logsObj.rows || [];
+
+  const filtered = rows.filter(function(row) {
+    if (handlerFilter && String(row.handler || '').trim() !== handlerFilter) return false;
+    const createdAt = new Date(row.created_at || 0).getTime();
+    if (Number.isNaN(createdAt)) return false;
+    return createdAt >= cutoffMs;
+  });
+
+  filtered.sort(function(a, b) {
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+  });
+
+  const grouped = {};
+  filtered.forEach(function(row) {
+    const key = [
+      String(row.handler || '').trim(),
+      String(row.error_code || '').trim(),
+      String(row.error_message || '').trim()
+    ].join('|');
+    grouped[key] = (grouped[key] || 0) + 1;
+  });
+
+  const topErrors = Object.keys(grouped).map(function(key) {
+    const parts = key.split('|');
+    return {
+      handler: parts[0] || '',
+      error_code: parts[1] || '',
+      error_message: parts[2] || '',
+      count: grouped[key]
+    };
+  }).sort(function(a, b) {
+    return b.count - a.count;
+  }).slice(0, 20);
+
+  const repeated = topErrors.filter(function(item) {
+    return item.count >= 2;
+  });
+
+  return {
+    success: true,
+    lookback_hours: lookbackHours,
+    handler_filter: handlerFilter,
+    total_errors: filtered.length,
+    repeated_groups: repeated.length,
+    top_errors: topErrors,
+    recent_errors: filtered.slice(0, maxRows)
+  };
+}
+
 function isSheetValidationRequired(actionKey) {
   const skip = {
     attach_referral: true,
+    evaluate_referral: true,
+    sync_referral_order_status: true,
     claim_reward: true,
     public_update_profile: true,
+    notify_referral_alert: true,
+    upsert_setting: true,
     ensure_schema: true,
     run_referral_reconciliation_audit: true,
+    process_loyalty_points: true,
+    get_runtime_error_summary: true,
     credit_account_get: true,
     credit_account_upsert: true,
     credit_invoice_create: true,
@@ -4027,6 +4917,8 @@ function isSheetValidationRequired(actionKey) {
     get_paylater_due_notification_scheduler: true,
     run_paylater_postmortem_two_weeks: true,
     get_paylater_postmortem_logs: true,
+    broadcast_promo_enqueue: true,
+    broadcast_promo_send: true,
   };
   return !skip[actionKey];
 }
@@ -4104,6 +4996,7 @@ function getRequiredRoleForAction(actionKey, sheetName) {
   if (key === 'create' || key === 'update') return 'manager';
   if (key === 'bulk_insert') return 'manager';
   if (key === 'run_referral_reconciliation_audit') return 'manager';
+  if (key === 'process_loyalty_points') return 'manager';
   if (key === 'notify_referral_alert') return 'manager';
   if (key === 'credit_account_upsert') return 'manager';
   if (key === 'credit_invoice_create') return 'manager';
@@ -4115,11 +5008,14 @@ function getRequiredRoleForAction(actionKey, sheetName) {
   if (key === 'credit_account_set_status') return 'manager';
   if (key === 'run_paylater_due_notifications') return 'manager';
   if (key === 'run_paylater_postmortem_two_weeks') return 'manager';
+  if (key === 'broadcast_promo_enqueue') return 'manager';
+  if (key === 'broadcast_promo_send') return 'manager';
 
   if (key === 'credit_account_get') return 'operator';
   if (key === 'get_paylater_limit_scheduler') return 'operator';
   if (key === 'get_paylater_due_notification_scheduler') return 'operator';
   if (key === 'get_paylater_postmortem_logs') return 'operator';
+  if (key === 'get_runtime_error_summary') return 'operator';
 
   if (sheetName && isGetSheetSensitive(sheetName)) return 'manager';
   return 'manager';
@@ -4177,15 +5073,32 @@ function setAlertCooldown(key, ttlSeconds) {
   }
 }
 
+function getSpreadsheetId() {
+  const props = PropertiesService.getScriptProperties();
+  const spreadsheetId = String(props.getProperty(SPREADSHEET_ID_PROP_KEY) || '').trim();
+  if (!spreadsheetId) {
+    throw new Error(
+      'SPREADSHEET_ID belum dikonfigurasi di Script Properties. Set key "' +
+      SPREADSHEET_ID_PROP_KEY +
+      '" terlebih dahulu.'
+    );
+  }
+  return spreadsheetId;
+}
+
+function getSpreadsheet() {
+  return SpreadsheetApp.openById(getSpreadsheetId());
+}
+
 function getSheet(sheetName) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = getSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) throw new Error('Sheet not found: ' + sheetName);
   return sheet;
 }
 
 function getOrCreateSheet(sheetName) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = getSpreadsheet();
   let sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
@@ -5347,7 +6260,9 @@ function processLoyaltyPoints() {
   try {
     const ordersSheet = getSheet('orders');
     const ordersData = ordersSheet.getDataRange().getValues();
-    if (ordersData.length < 2) return;
+    if (ordersData.length < 2) {
+      return { success: true, scanned: 0, processed: 0, failed: 0, message: 'Tidak ada order untuk diproses' };
+    }
 
     const ordersHeaders = ordersData[0];
 
@@ -5356,7 +6271,13 @@ function processLoyaltyPoints() {
     const processedColIdx = ordersHeaders.indexOf('point_processed');
     const orderIdColIdx = ordersHeaders.indexOf('id');
     const orderCodeColIdx = ordersHeaders.indexOf('order_id');
-    if (phoneColIdx === -1 || poinColIdx === -1 || processedColIdx === -1) return;
+    if (phoneColIdx === -1 || poinColIdx === -1 || processedColIdx === -1) {
+      return {
+        success: false,
+        error: 'ORDERS_HEADERS_INVALID',
+        message: 'Kolom orders wajib: phone, poin, point_processed'
+      };
+    }
 
     let processed = 0;
     let failed = 0;
@@ -5387,7 +6308,7 @@ function processLoyaltyPoints() {
       processed++;
     }
 
-    return { success: true, processed: processed, failed: failed };
+    return { success: true, scanned: Math.max(0, ordersData.length - 1), processed: processed, failed: failed };
   } catch (error) {
     Logger.log('Error in processLoyaltyPoints: ' + error.toString());
     return { error: error.toString() };
