@@ -3515,20 +3515,18 @@ document.addEventListener('DOMContentLoaded', () => {
  * @param {string} claimId - The claim ID to display
  */
 function showClaimSuccessModal(claimId) {
-    console.log('showClaimSuccessModal called with claimId:', claimId);
     const modal = document.getElementById('claim-success-modal');
     const claimIdElement = document.getElementById('claim-success-id');
-    
-    console.log('Modal element:', modal);
-    console.log('Claim ID element:', claimIdElement);
-    
-    if (modal && claimIdElement) {
-        claimIdElement.textContent = claimId;
-        modal.classList.remove('hidden');
-        console.log('Modal should now be visible');
-    } else {
-        console.error('Modal or claimIdElement not found!');
+
+    if (!modal || !claimIdElement) {
+        console.error('Claim success modal elements not found.');
+        showToast('Klaim berhasil diproses. ID: ' + claimId);
+        return;
     }
+
+    claimIdElement.textContent = claimId;
+    modal.classList.remove('hidden');
+    document.body.classList.add('modal-active');
 }
 
 /**
@@ -3539,6 +3537,7 @@ function closeClaimSuccessModal() {
     if (modal) {
         modal.classList.add('hidden');
     }
+    document.body.classList.remove('modal-active');
 }
 
 /**
@@ -3552,6 +3551,8 @@ function openClaimWhatsApp() {
         setTimeout(() => {
             closeClaimSuccessModal();
         }, 500);
+    } else {
+        showToast('Link WhatsApp klaim belum tersedia.');
     }
 }
 
