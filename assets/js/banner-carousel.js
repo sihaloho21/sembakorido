@@ -8,6 +8,15 @@ var escapeHtml = (window.FrontendSanitize && window.FrontendSanitize.escapeHtml)
 var sanitizeUrl = (window.FrontendSanitize && window.FrontendSanitize.sanitizeUrl) || ((url) => String(url || ''));
 var ensureImageFallbackHandler = (window.FrontendSanitize && window.FrontendSanitize.ensureImageFallbackHandler) || (() => {});
 
+function normalizeProductsResponse(data) {
+    if (Array.isArray(data)) return data;
+    if (!data || typeof data !== 'object') return [];
+    if (Array.isArray(data.result)) return data.result;
+    if (Array.isArray(data.rows)) return data.rows;
+    if (Array.isArray(data.data)) return data.data;
+    return [];
+}
+
 class BundleCarousel {
     constructor() {
         this.bundles = [];
@@ -29,12 +38,27 @@ class BundleCarousel {
 
     async fetchBundles() {
         try {
-            const response = await fetch(CONFIG.getMainApiUrl());
-            const allProducts = await response.json();
+            let payload = null;
+
+            if (typeof ApiService !== 'undefined' && typeof ApiService.get === 'function') {
+                payload = await ApiService.get('?sheet=products', {
+                    cache: true,
+                    cacheDuration: 120000
+                });
+            } else {
+                const response = await fetch(`${CONFIG.getMainApiUrl()}?sheet=products`);
+                payload = await response.json();
+            }
+
+            if (payload && typeof payload === 'object' && !Array.isArray(payload) && payload.error) {
+                throw new Error(String(payload.error));
+            }
+
+            const allProducts = normalizeProductsResponse(payload);
             
             // Filter dan map produk dengan kategori "Paket"
             this.bundles = allProducts
-                .filter(p => p.kategori && p.kategori.toLowerCase().includes('paket'))
+                .filter(p => String(p.kategori || '').toLowerCase().includes('paket'))
                 .map(p => {
                     const cashPrice = parseInt(p.harga_cash || p.harga || 0);
                     const gajianPrice = parseInt(p.harga_gajian || p.hargaGajian || 0);

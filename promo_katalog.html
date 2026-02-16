@@ -53,7 +53,6 @@
         </div>
     </div>
     <script src="assets/js/sanitize.min.js"></script>
-    <script src="assets/js/script.min.js"></script>
     <script>
         // Catalog data (in real app, this would come from database)
         const catalogs = [
@@ -94,7 +93,7 @@
                 return;
             }
 
-            const fallbackThumb = 'https://via.placeholder.com/400x565/00a651/ffffff?text=Katalog';
+            const fallbackThumb = 'https://placehold.co/400x565?text=Katalog';
             grid.innerHTML = catalogs.map(catalog => {
                 const safeThumb = window.sanitizeUrl ? window.sanitizeUrl(catalog.thumbnail, fallbackThumb) : catalog.thumbnail;
                 const safePdf = window.sanitizeUrl ? window.sanitizeUrl(catalog.pdfUrl, '#') : catalog.pdfUrl;
