@@ -1,0 +1,11 @@
+key,value
+broadcast_promo_enabled,false
+broadcast_promo_whatsapp_webhook,https://your-wa-gateway.example/send
+broadcast_promo_whatsapp_bearer_token,REPLACE_WITH_TOKEN
+broadcast_promo_frequency_cap_7d,2
+broadcast_promo_quiet_hour_start,22
+broadcast_promo_quiet_hour_end,7
+broadcast_promo_default_cooldown_hours,72
+broadcast_promo_max_send_per_run,100
+broadcast_promo_high_spender_threshold,1000000
+broadcast_promo_default_cta_url,https://paketsembako.com/
