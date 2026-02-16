@@ -2844,11 +2844,21 @@ function closeRewardModal() {
     }
 }
 
+function normalizeApiRows(data) {
+    if (Array.isArray(data)) return data;
+    if (!data || typeof data !== 'object') return [];
+    if (Array.isArray(data.result)) return data.result;
+    if (Array.isArray(data.rows)) return data.rows;
+    if (Array.isArray(data.data)) return data.data;
+    if (Array.isArray(data.items)) return data.items;
+    return [];
+}
+
 /**
  * Check user points from SheetDB
  * Fetches points data based on phone number
  */
-function checkUserPoints() {
+function checkUserPoints(triggerEvent) {
     const phoneInput = document.getElementById('reward-phone');
     const phone = phoneInput ? phoneInput.value.trim() : '';
     
@@ -2860,7 +2870,7 @@ function checkUserPoints() {
     const normalizedPhone = normalizePhone(phone);
 
     // Show loading state
-    const checkBtn = event.target;
+    const checkBtn = (triggerEvent && triggerEvent.currentTarget) || document.querySelector('[data-action="check-points"]');
     const originalText = checkBtn ? checkBtn.innerText : 'Cek Poin';
     if (checkBtn && checkBtn.tagName === 'BUTTON') {
         checkBtn.innerText = 'Mencari...';
@@ -2869,7 +2879,15 @@ function checkUserPoints() {
 
     // Use ApiService with no caching (always fresh data)
     ApiService.get('?sheet=user_points', { cache: false })
-        .then(data => {
+        .then(raw => {
+            const data = normalizeApiRows(raw);
+            if (!Array.isArray(data)) {
+                throw new Error('FORMAT_DATA_TIDAK_VALID');
+            }
+            if (data.length === 0 && raw && typeof raw === 'object' && (raw.error || raw.message)) {
+                throw new Error(String(raw.error || raw.message));
+            }
+
             // Find user by normalized phone
             // Fix: API uses 'phone' field, not 'whatsapp'
             const user = data.find(r => normalizePhone(r.phone || r.whatsapp || '') === normalizedPhone);
@@ -2897,6 +2915,11 @@ function checkUserPoints() {
         })
         .catch(error => {
             console.error('Error checking points:', error);
+            const msg = String((error && error.message) || error || '').toLowerCase();
+            if (msg.includes('unauthorized')) {
+                alert('Gagal mengecek poin. Akses data poin dibatasi, silakan login lewat menu Akun terlebih dahulu.');
+                return;
+            }
             alert('Gagal mengecek poin. Silakan coba lagi.');
         })
         .finally(() => {
