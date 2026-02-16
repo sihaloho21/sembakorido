@@ -1835,6 +1835,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Reward "Tukar" button delegation (items rendered dynamically)
+    const rewardItemsList = document.getElementById('reward-items-list');
+    if (rewardItemsList) {
+        rewardItemsList.addEventListener('click', (event) => {
+            const actionEl = event.target.closest('[data-action="show-confirm-tukar"]');
+            if (!actionEl || actionEl.disabled) return;
+
+            const rewardId = actionEl.getAttribute('data-reward-id');
+            if (!rewardId) return;
+
+            showConfirmTukarModal(rewardId);
+        });
+    }
+
     // Cart controls delegation
     const cartItems = document.getElementById('cart-items');
     if (cartItems) {
@@ -3734,4 +3748,3 @@ updateCartUI = function() {
 document.addEventListener('DOMContentLoaded', function() {
     updateMobileCartCount();
 });
-
