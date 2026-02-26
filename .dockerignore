@@ -1,7 +1,0 @@
-.git
-.github
-node_modules
-tmp
-docs
-gas-clasp
-*.log
