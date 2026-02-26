@@ -1,1 +1,1 @@
-web: npx http-server -p $PORT --gzip
+web: node server.js
