@@ -947,18 +947,30 @@ function renderPaylaterSummary(summaryPayload) {
     const limitEl = document.getElementById('paylater-credit-limit');
     const availableEl = document.getElementById('paylater-available-limit');
     const usedEl = document.getElementById('paylater-used-limit');
+    const availableProgressEl = document.getElementById('paylater-available-progress');
+    const availablePercentEl = document.getElementById('paylater-available-percent');
     const totalEl = document.getElementById('paylater-invoice-total');
     const activeEl = document.getElementById('paylater-invoice-active');
     const overdueEl = document.getElementById('paylater-invoice-overdue');
     const remainingEl = document.getElementById('paylater-remaining-open');
 
+    const limitValue = Math.max(0, parseCurrencyValue(account.credit_limit || 0));
+    const usedValue = Math.max(0, parseCurrencyValue(account.used_limit || 0));
+    const fallbackAvailable = Math.max(0, limitValue - usedValue);
+    const availableValue = Math.max(0, parseCurrencyValue(account.available_limit ?? fallbackAvailable));
+    const availablePercent = limitValue > 0
+        ? Math.max(0, Math.min(100, Math.round((availableValue / limitValue) * 100)))
+        : 0;
+
     if (statusEl) {
         statusEl.textContent = status || 'inactive';
         statusEl.className = `text-xs font-bold px-2 py-1 rounded-full ${getPaylaterStatusBadgeClass(status)}`;
     }
-    if (limitEl) limitEl.textContent = formatCurrency(account.credit_limit || 0);
-    if (availableEl) availableEl.textContent = formatCurrency(account.available_limit || 0);
-    if (usedEl) usedEl.textContent = formatCurrency(account.used_limit || 0);
+    if (limitEl) limitEl.textContent = formatCurrency(limitValue);
+    if (availableEl) availableEl.textContent = formatCurrency(availableValue);
+    if (usedEl) usedEl.textContent = formatCurrency(usedValue);
+    if (availableProgressEl) availableProgressEl.style.width = `${availablePercent}%`;
+    if (availablePercentEl) availablePercentEl.textContent = `${availablePercent}%`;
     if (totalEl) totalEl.textContent = String(parseInt(summary.invoice_count_total || 0, 10) || 0);
     if (activeEl) activeEl.textContent = String(parseInt(summary.invoice_count_active || 0, 10) || 0);
     if (overdueEl) overdueEl.textContent = String(parseInt(summary.invoice_count_overdue || 0, 10) || 0);
