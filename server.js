@@ -146,6 +146,7 @@ function writeCommonHeaders(extname, stat, etag) {
         'Last-Modified': stat.mtime.toUTCString(),
         'Referrer-Policy': 'strict-origin-when-cross-origin',
         Server: 'gos-frontend',
+        Vary: 'Accept-Encoding',
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'SAMEORIGIN'
     };
@@ -221,7 +222,6 @@ const server = http.createServer(async (req, res) => {
 
     if (encoding) {
         headers['Content-Encoding'] = encoding;
-        headers.Vary = 'Accept-Encoding';
     } else {
         headers['Content-Length'] = stat.size;
     }
