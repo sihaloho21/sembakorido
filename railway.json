@@ -4,6 +4,6 @@
     "builder": "RAILPACK"
   },
   "deploy": {
-    "startCommand": "npx http-server -p $PORT --gzip --brotli"
+    "startCommand": "node server.js"
   }
 }
