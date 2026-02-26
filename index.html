@@ -23,7 +23,6 @@
     <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
     <link rel="dns-prefetch" href="//ik.imagekit.io">
     <link rel="dns-prefetch" href="//script.google.com">
-    <link rel="preload" as="image" href="assets/images/gift-box.png" fetchpriority="high">
     <link rel="icon" href="assets/img/logo.webp" type="image/webp">
     <title>GoSembako – Paket Sembako Murah</title>
     <link rel="stylesheet" href="assets/css/tailwind-fallback.css">
@@ -112,32 +111,27 @@
             min-height: 320px;
         }
         .promo-banner-fallback {
-            position: relative;
             border-radius: 1rem;
             overflow: hidden;
-            background: linear-gradient(135deg, #065f46, #16a34a);
-            color: #ffffff;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            background: #f3f4f6;
         }
         .promo-banner-fallback-media {
             aspect-ratio: 3 / 1;
+            position: relative;
         }
-        .promo-banner-fallback-media img {
+        .promo-banner-placeholder {
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-        .promo-banner-fallback-caption {
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            padding: 1.25rem;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.2));
-        }
-        .promo-banner-fallback-caption p {
-            margin: 0;
+            background: linear-gradient(
+                90deg,
+                #f0f0f0 0%,
+                #e0e0e0 20%,
+                #f0f0f0 40%,
+                #f0f0f0 100%
+            );
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s ease-in-out infinite;
         }
         .product-grid-skeleton {
             background: #ffffff;
@@ -239,13 +233,9 @@
             
             <!-- Promotional Banner Carousel -->
             <div id="promo-banner-carousel-container" class="mb-8" aria-live="polite">
-                <div class="promo-banner-fallback" data-promo-fallback>
+                <div class="promo-banner-fallback" data-promo-fallback aria-hidden="true">
                     <div class="promo-banner-fallback-media">
-                        <img src="assets/images/gift-box.png" alt="Promo paket sembako hari ini" width="1200" height="400" loading="eager" fetchpriority="high" decoding="async" data-fallback-src="https://placehold.co/1200x400?text=Promo+GoSembako">
-                    </div>
-                    <div class="promo-banner-fallback-caption">
-                        <p class="text-lg font-bold">Promo GoSembako</p>
-                        <p class="text-sm">Harga hemat untuk kebutuhan pokok keluarga</p>
+                        <div class="promo-banner-placeholder"></div>
                     </div>
                 </div>
             </div>
