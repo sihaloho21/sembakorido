@@ -1,1 +1,1 @@
-web: node server.js
+web: npx http-server -p $PORT --gzip --brotli
