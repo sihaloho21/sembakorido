@@ -105,6 +105,20 @@ function createSlug(text) {
         .replace(/[-\s]+/g, '-'); // Replace spaces and multiple hyphens with single hyphen
 }
 
+function optimizeImageUrl(url, width, height) {
+    const safeUrl = sanitizeUrl(url, 'https://placehold.co/300x200?text=Produk');
+    if (!safeUrl || typeof safeUrl !== 'string') return safeUrl;
+
+    if (safeUrl.includes('ik.imagekit.io')) {
+        const transform = `tr=w-${width},h-${height},c-at_max,q-70,f-webp`;
+        return safeUrl.includes('?')
+            ? `${safeUrl}&${transform}`
+            : `${safeUrl}?${transform}`;
+    }
+
+    return safeUrl;
+}
+
 function ensureProductId(p, index) {
     const base = p.id || p.sku || p.slug || createSlug(p.nama) || 'product';
     const needsSuffix = !(p.id || p.sku);
@@ -279,7 +293,6 @@ async function fetchProducts() {
             }),
             fetchCategories()
         ]);
-        console.log('Products received:', products);
         allCategories = categories;
         
         allProducts = products.map((p, index) => {
@@ -509,7 +522,7 @@ function renderProducts(products) {
     const end = start + itemsPerPage;
     const paginatedProducts = products.slice(start, end);
     
-    grid.innerHTML = '';
+    let cardsHtml = '';
     paginatedProducts.forEach(p => {
         let stokLabel = '';
         if (p.stok > 10) {
@@ -525,6 +538,7 @@ function renderProducts(products) {
         const images = p.gambar ? p.gambar.split(',') : [];
         const mainImage = images[0] || 'https://placehold.co/300x200?text=Produk';
         const safeImage = sanitizeUrl(mainImage, 'https://placehold.co/300x200?text=Produk');
+        const optimizedImage = optimizeImageUrl(safeImage, 720, 405);
 
         const rewardPoints = calculateRewardPoints(p.harga, p.nama);
         
@@ -559,7 +573,7 @@ function renderProducts(products) {
             const diskon = Math.round(((p.hargaCoret - p.harga) / p.hargaCoret) * 100);
             hargaCoretHtml = `
                 <div class="flex items-center gap-1 mb-0.5">
-                    <span class="text-[10px] text-gray-400 line-through">Rp ${p.hargaCoret.toLocaleString('id-ID')}</span>
+                    <span class="text-[10px] text-gray-600 line-through">Rp ${p.hargaCoret.toLocaleString('id-ID')}</span>
                     <span class="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded font-bold">-${diskon}%</span>
                 </div>
             `;
@@ -569,18 +583,19 @@ function renderProducts(products) {
 
         const productId = p.productId;
         const isLiked = isProductInWishlist(productId);
+        const wishlistLabel = isLiked ? 'Hapus dari wishlist' : 'Tambah ke wishlist';
         const heartIcon = isLiked 
             ? '<svg class="w-5 h-5 text-red-500 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>'
             : '<svg class="w-5 h-5 text-gray-400 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>';
 
-        grid.innerHTML += `
+        cardsHtml += `
             <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300 relative" data-product-id="${productId}">
                 <!-- Wishlist Heart Button -->
-                <button id="wishlist-btn-${productId}" data-action="toggle-wishlist" data-product-id="${productId}" class="absolute top-3 right-3 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition active:scale-95">
+                <button id="wishlist-btn-${productId}" data-action="toggle-wishlist" data-product-id="${productId}" class="absolute top-3 right-3 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition active:scale-95" aria-label="${wishlistLabel}" title="${wishlistLabel}">
                     ${heartIcon}
                 </button>
                 <div class="absolute top-3 left-3 z-10 flex flex-col gap-2">
-                    <div class="bg-amber-400 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm flex items-center gap-1">
+                    <div class="bg-amber-300 text-amber-900 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm flex items-center gap-1">
                         <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
                         +${rewardPoints} Poin
                     </div>
@@ -593,7 +608,7 @@ function renderProducts(products) {
                 </div>
                 <div class="lazy-image-wrapper">
                     <div class="skeleton skeleton-product-image"></div>
-                    <img src="${safeImage}" alt="${escapeHtml(p.nama)}" data-action="show-detail" data-product-id="${productId}" class="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity ${p.stok === 0 ? 'grayscale opacity-60' : ''}" loading="lazy" data-fallback-src="https://placehold.co/300x200?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" data-action="show-detail" data-product-id="${productId}" class="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity ${p.stok === 0 ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="720" height="405" data-fallback-src="https://placehold.co/300x200?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
                 </div>
                 <div class="p-6">
                     <div class="flex justify-between items-start mb-2">
@@ -617,7 +632,7 @@ function renderProducts(products) {
                         <div class="bg-blue-50 p-3 rounded-lg">
                             <p class="text-[10px] text-blue-600 font-bold uppercase">Bayar Gajian</p>
                             <div class="flex flex-col">
-                                <p class="text-[8px] text-blue-400 mb-0.5">Harga Per Tgl ${new Date().toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'}).replace(/\//g, '-')}</p>
+                                <p class="text-[8px] text-blue-700 mb-0.5">Harga Per Tgl ${new Date().toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'}).replace(/\//g, '-')}</p>
                                 <p class="text-lg font-bold text-blue-700">Rp ${p.hargaGajian.toLocaleString('id-ID')}</p>
                             </div>
                         </div>
@@ -643,6 +658,7 @@ function renderProducts(products) {
             </div>
         `;
     });
+    grid.innerHTML = cardsHtml;
 }
 
 function filterProducts() {
@@ -3326,11 +3342,14 @@ function updateProductWishlistIcon(productId) {
     if (!button) return;
 
     const isLiked = isProductInWishlist(productId);
+    const wishlistLabel = isLiked ? 'Hapus dari wishlist' : 'Tambah ke wishlist';
     const heartIcon = isLiked 
         ? '<svg class="w-5 h-5 text-red-500 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>'
         : '<svg class="w-5 h-5 text-gray-400 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>';
     
     button.innerHTML = heartIcon;
+    button.setAttribute('aria-label', wishlistLabel);
+    button.setAttribute('title', wishlistLabel);
 }
 
 /**

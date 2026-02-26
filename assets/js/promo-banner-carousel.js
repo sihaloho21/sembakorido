@@ -8,11 +8,26 @@ var escapeHtml = (window.FrontendSanitize && window.FrontendSanitize.escapeHtml)
 var sanitizeUrl = (window.FrontendSanitize && window.FrontendSanitize.sanitizeUrl) || ((url) => String(url || ''));
 var ensureImageFallbackHandler = (window.FrontendSanitize && window.FrontendSanitize.ensureImageFallbackHandler) || (() => {});
 
+function optimizePromoImageUrl(url, width, height) {
+    const safeUrl = sanitizeUrl(url, 'https://placehold.co/1200x400?text=Banner+Promosi');
+    if (!safeUrl || typeof safeUrl !== 'string') return safeUrl;
+
+    if (safeUrl.includes('ik.imagekit.io')) {
+        const transform = `tr=w-${width},h-${height},c-at_max,q-70,f-webp`;
+        return safeUrl.includes('?')
+            ? `${safeUrl}&${transform}`
+            : `${safeUrl}?${transform}`;
+    }
+
+    return safeUrl;
+}
+
 class PromotionalBannerCarousel {
     constructor() {
         this.banners = [];
         this.currentIndex = 0;
         this.autoRotateInterval = null;
+        this.autoRotateEnabled = false;
         this.isTransitioning = false;
         this.autoRotateDelay = 5000; // 5 detik per slide
         this.init();
@@ -24,7 +39,6 @@ class PromotionalBannerCarousel {
             ensureImageFallbackHandler();
             this.render();
             this.setupEventListeners();
-            this.startAutoRotate();
         } else {
             this.hideContainer();
         }
@@ -42,7 +56,6 @@ class PromotionalBannerCarousel {
             }
             
             const allBanners = await response.json();
-            console.log('📥 [PROMO-BANNER] Received banners:', allBanners);
             
             // Filter banner yang aktif dan dalam rentang tanggal yang valid
             const now = new Date();
@@ -152,6 +165,9 @@ class PromotionalBannerCarousel {
         const safeCtaText = escapeHtml(banner.cta_text || '');
         const safeLink = sanitizeUrl(banner.cta_url, '#');
         const safeImage = sanitizeUrl(banner.image_url, 'https://placehold.co/1200x400?text=Banner+Promosi');
+        const optimizedImage = optimizePromoImageUrl(safeImage, 1200, 400);
+        const imageLoading = index === 0 ? 'eager' : 'lazy';
+        const fetchPriority = index === 0 ? 'high' : 'low';
         
         // Log deep link detection for debugging
         if (hasLink && typeof banner.cta_url === 'string' && banner.cta_url.startsWith('#produk-')) {
@@ -164,7 +180,7 @@ class PromotionalBannerCarousel {
                     ${hasLink ? `<a href="${safeLink}" class="promo-banner-link">` : ''}
                         <div class="promo-banner-image-container lazy-image-wrapper">
                             <div class="skeleton skeleton-banner"></div>
-                            <img src="${safeImage}" alt="${safeTitle || 'Banner Promosi'}" class="promo-banner-image" loading="${index === 0 ? 'eager' : 'lazy'}" data-fallback-src="https://placehold.co/1200x400?text=Banner+Promosi" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+                            <img src="${optimizedImage}" alt="${safeTitle || 'Banner Promosi'}" class="promo-banner-image" loading="${imageLoading}" fetchpriority="${fetchPriority}" decoding="async" width="1200" height="400" data-fallback-src="https://placehold.co/1200x400?text=Banner+Promosi" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
                         </div>
                         ${hasCaption ? `
                         <div class="promo-banner-caption">
@@ -188,7 +204,7 @@ class PromotionalBannerCarousel {
             prevBtn.addEventListener('click', () => {
                 this.prev();
                 this.stopAutoRotate();
-                this.startAutoRotate();
+                this.enableAutoRotate();
             });
         }
 
@@ -196,7 +212,7 @@ class PromotionalBannerCarousel {
             nextBtn.addEventListener('click', () => {
                 this.next();
                 this.stopAutoRotate();
-                this.startAutoRotate();
+                this.enableAutoRotate();
             });
         }
 
@@ -205,7 +221,7 @@ class PromotionalBannerCarousel {
                 const index = parseInt(e.target.dataset.index);
                 this.goToSlide(index);
                 this.stopAutoRotate();
-                this.startAutoRotate();
+                this.enableAutoRotate();
             });
         });
 
@@ -240,7 +256,7 @@ class PromotionalBannerCarousel {
                     }
                 }
                 
-                this.startAutoRotate();
+                this.enableAutoRotate();
             });
         }
 
@@ -325,12 +341,20 @@ class PromotionalBannerCarousel {
     }
 
     startAutoRotate() {
+        if (!this.autoRotateEnabled) return;
         if (this.banners.length <= 1) return; // Tidak perlu rotasi jika hanya 1 banner
         
         this.stopAutoRotate();
         this.autoRotateInterval = setInterval(() => {
             this.next();
         }, this.autoRotateDelay);
+    }
+
+    enableAutoRotate() {
+        if (!this.autoRotateEnabled) {
+            this.autoRotateEnabled = true;
+        }
+        this.startAutoRotate();
     }
 
     stopAutoRotate() {
@@ -348,7 +372,9 @@ class PromotionalBannerCarousel {
         if (this.banners.length > 0) {
             this.render();
             this.setupEventListeners();
-            this.startAutoRotate();
+            if (this.autoRotateEnabled) {
+                this.startAutoRotate();
+            }
         } else {
             this.hideContainer();
         }

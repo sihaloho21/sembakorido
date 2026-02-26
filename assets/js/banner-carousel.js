@@ -17,11 +17,26 @@ function normalizeProductsResponse(data) {
     return [];
 }
 
+function optimizeCarouselImageUrl(url, width, height) {
+    const safeUrl = sanitizeUrl(url, 'https://placehold.co/300x200?text=Produk');
+    if (!safeUrl || typeof safeUrl !== 'string') return safeUrl;
+
+    if (safeUrl.includes('ik.imagekit.io')) {
+        const transform = `tr=w-${width},h-${height},c-at_max,q-70,f-webp`;
+        return safeUrl.includes('?')
+            ? `${safeUrl}&${transform}`
+            : `${safeUrl}?${transform}`;
+    }
+
+    return safeUrl;
+}
+
 class BundleCarousel {
     constructor() {
         this.bundles = [];
         this.currentIndex = 0;
         this.autoRotateInterval = null;
+        this.autoRotateEnabled = false;
         this.isTransitioning = false;
         this.init();
     }
@@ -32,7 +47,6 @@ class BundleCarousel {
             ensureImageFallbackHandler();
             this.render();
             this.setupEventListeners();
-            this.startAutoRotate();
         }
     }
 
@@ -138,6 +152,8 @@ class BundleCarousel {
         const images = p.gambar ? p.gambar.split(',') : [];
         const mainImage = images[0] || 'https://placehold.co/300x200?text=Produk';
         const safeImage = sanitizeUrl(mainImage, 'https://placehold.co/300x200?text=Produk');
+        const optimizedImage = optimizeCarouselImageUrl(safeImage, 720, 405);
+        const imageLoading = index < 2 ? 'eager' : 'lazy';
 
         const rewardPoints = typeof calculateRewardPoints === 'function' ? calculateRewardPoints(p.harga, p.nama) : 0;
         
@@ -147,7 +163,7 @@ class BundleCarousel {
             const diskon = Math.round(((p.hargaCoret - p.harga) / p.hargaCoret) * 100);
             hargaCoretHtml = `
                 <div class="flex items-center gap-1 mb-0.5">
-                    <span class="text-[10px] text-gray-400 line-through">Rp ${p.hargaCoret.toLocaleString('id-ID')}</span>
+                    <span class="text-[10px] text-gray-600 line-through">Rp ${p.hargaCoret.toLocaleString('id-ID')}</span>
                     <span class="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded font-bold">-${diskon}%</span>
                 </div>
             `;
@@ -159,12 +175,12 @@ class BundleCarousel {
             <div class="carousel-slide" data-index="${index}">
                 <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300 relative h-full">
                     <div class="absolute top-3 left-3 z-10 flex flex-col gap-2">
-                        <div class="bg-amber-400 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm flex items-center gap-1">
+                        <div class="bg-amber-300 text-amber-900 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm flex items-center gap-1">
                             <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
                             +${rewardPoints} Poin
                         </div>
                     </div>
-                    <img src="${safeImage}" alt="${safeName}" data-action="open-detail" data-index="${index}" class="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity ${stokCount === 0 ? 'grayscale opacity-60' : ''}" data-fallback-src="https://placehold.co/300x200?text=Produk">
+                    <img src="${optimizedImage}" alt="${safeName}" data-action="open-detail" data-index="${index}" class="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity ${stokCount === 0 ? 'grayscale opacity-60' : ''}" loading="${imageLoading}" decoding="async" width="720" height="405" data-fallback-src="https://placehold.co/300x200?text=Produk">
                     <div class="p-6">
                         <div class="flex justify-between items-start mb-2">
                             <h4 class="text-lg font-bold text-gray-800">${safeName}</h4>
@@ -187,7 +203,7 @@ class BundleCarousel {
                             <div class="bg-blue-50 p-3 rounded-lg">
                                 <p class="text-[10px] text-blue-600 font-bold uppercase">Bayar Gajian</p>
                                 <div class="flex flex-col">
-                                    <p class="text-[8px] text-blue-400 mb-0.5">Harga Per Tgl ${new Date().toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'}).replace(/\//g, '-')}</p>
+                                    <p class="text-[8px] text-blue-700 mb-0.5">Harga Per Tgl ${new Date().toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'}).replace(/\//g, '-')}</p>
                                     <p class="text-lg font-bold text-blue-700">Rp ${p.hargaGajian.toLocaleString('id-ID')}</p>
                                 </div>
                             </div>
@@ -297,7 +313,7 @@ class BundleCarousel {
                     }
                 }
                 
-                this.startAutoRotate();
+                this.enableAutoRotate();
             });
         }
     }
@@ -388,14 +404,22 @@ class BundleCarousel {
         }, 500);
         
         this.stopAutoRotate();
-        this.startAutoRotate();
+        this.enableAutoRotate();
     }
 
     startAutoRotate() {
+        if (!this.autoRotateEnabled || this.bundles.length <= 1) return;
         this.stopAutoRotate();
         this.autoRotateInterval = setInterval(() => {
             this.next();
         }, 3000);
+    }
+
+    enableAutoRotate() {
+        if (!this.autoRotateEnabled) {
+            this.autoRotateEnabled = true;
+        }
+        this.startAutoRotate();
     }
 
     stopAutoRotate() {
@@ -463,7 +487,9 @@ class BundleCarousel {
         this.currentIndex = 0;
         this.render();
         this.setupEventListeners();
-        this.startAutoRotate();
+        if (this.autoRotateEnabled) {
+            this.startAutoRotate();
+        }
     }
 }
 

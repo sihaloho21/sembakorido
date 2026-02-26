@@ -18,6 +18,12 @@
     <meta name="twitter:title" content="GoSembako – Paket Sembako Murah">
     <meta name="twitter:description" content="Paket sembako murah dan lengkap dengan harga terbaik.">
     <meta name="twitter:image" content="assets/img/logo.webp">
+    <link rel="preconnect" href="https://ik.imagekit.io" crossorigin>
+    <link rel="preconnect" href="https://script.google.com" crossorigin>
+    <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+    <link rel="dns-prefetch" href="//ik.imagekit.io">
+    <link rel="dns-prefetch" href="//script.google.com">
+    <link rel="preload" as="image" href="assets/images/gift-box.png" fetchpriority="high">
     <link rel="icon" href="assets/img/logo.webp" type="image/webp">
     <title>GoSembako – Paket Sembako Murah</title>
     <link rel="stylesheet" href="assets/css/tailwind-fallback.css">
@@ -91,6 +97,67 @@
         .header-fixed-height {
             min-height: 64px;
         }
+        #promo-banner-carousel-container {
+            min-height: 220px;
+        }
+        #bundle-carousel-container {
+            min-height: 320px;
+        }
+        .promo-banner-fallback {
+            position: relative;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: linear-gradient(135deg, #065f46, #16a34a);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+        .promo-banner-fallback-media {
+            aspect-ratio: 3 / 1;
+        }
+        .promo-banner-fallback-media img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .promo-banner-fallback-caption {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 1.25rem;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.2));
+        }
+        .promo-banner-fallback-caption p {
+            margin: 0;
+        }
+        .product-grid-skeleton {
+            background: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .product-grid-skeleton .skeleton-product-image {
+            aspect-ratio: 16 / 9;
+        }
+        .product-grid-skeleton .skeleton-line {
+            height: 12px;
+            border-radius: 6px;
+        }
+        .product-grid-skeleton .skeleton-line.short {
+            width: 60%;
+        }
+        @media (max-width: 768px) {
+            .promo-banner-fallback-media {
+                aspect-ratio: 16 / 9;
+            }
+            #bundle-carousel-container {
+                min-height: 280px;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -106,7 +173,7 @@
     <header class="bg-green-700 text-white py-0 shadow-md fixed z-50 w-full left-0 right-0" id="main-header" style="top: 0;">
         <div class="container mx-auto px-4 flex justify-between items-center header-search-wrap header-fixed-height">
             <button type="button" class="flex items-center gap-3 cursor-pointer header-logo" data-action="logo-click" aria-label="Logo GoSembako">
-                <img src="assets/img/logo.webp" alt="GoSembako Logo" class="h-16 w-auto" data-fallback-src="assets/img/logo.webp">
+                <img src="assets/img/logo.webp" alt="GoSembako Logo" class="h-16 w-auto" data-fallback-src="assets/img/logo.webp" width="2048" height="1365" decoding="async">
                 <h1 class="text-2xl font-bold hidden md:block">GoSembako</h1>
             </button>
             <div class="flex-1 md:hidden px-3 header-search">
@@ -147,8 +214,9 @@
         </div>
     </header>
 
+    <main id="main-content">
     <!-- Hero Section -->
-    <section class="bg-green-600 text-white pb-0" style="padding-top: 68px;">
+    <section class="bg-green-700 text-white pb-0" style="padding-top: 68px;">
         <div class="container mx-auto px-4 text-center">
             <h2 class="text-4xl font-bold mb-4">Paket Sembako Murah & Lengkap</h2>
             <p class="text-xl mb-8 pb-[1rem]">Kebutuhan pokok keluarga Anda, kami sediakan dengan harga terbaik.</p>
@@ -162,10 +230,35 @@
             <h3 class="text-3xl font-bold text-center text-gray-800 mb-8 pt-[10px]">Katalog Produk</h3>
             
             <!-- Promotional Banner Carousel -->
-            <div id="promo-banner-carousel-container" class="mb-8"></div>
+            <div id="promo-banner-carousel-container" class="mb-8" aria-live="polite">
+                <div class="promo-banner-fallback" data-promo-fallback>
+                    <div class="promo-banner-fallback-media">
+                        <img src="assets/images/gift-box.png" alt="Promo paket sembako hari ini" width="1200" height="400" loading="eager" fetchpriority="high" decoding="async" data-fallback-src="https://placehold.co/1200x400?text=Promo+GoSembako">
+                    </div>
+                    <div class="promo-banner-fallback-caption">
+                        <p class="text-lg font-bold">Promo GoSembako</p>
+                        <p class="text-sm">Harga hemat untuk kebutuhan pokok keluarga</p>
+                    </div>
+                </div>
+            </div>
             
             <!-- Bundle Package Carousel -->
-            <div id="bundle-carousel-container" class="mb-8"></div>
+            <div id="bundle-carousel-container" class="mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" aria-hidden="true">
+                    <div class="product-grid-skeleton">
+                        <div class="skeleton skeleton-product-image"></div>
+                        <div class="skeleton skeleton-line"></div>
+                        <div class="skeleton skeleton-line short"></div>
+                        <div class="skeleton skeleton-product-button"></div>
+                    </div>
+                    <div class="product-grid-skeleton hidden md:flex">
+                        <div class="skeleton skeleton-product-image"></div>
+                        <div class="skeleton skeleton-line"></div>
+                        <div class="skeleton skeleton-line short"></div>
+                        <div class="skeleton skeleton-product-button"></div>
+                    </div>
+                </div>
+            </div>
             
             <!-- Search & Filter UI -->
             <div class="max-w-4xl mx-auto mb-12 space-y-6">
@@ -224,11 +317,23 @@
 
             <div id="product-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <!-- Products will be loaded here -->
-                <div class="text-center col-span-full py-10 text-gray-500">
-                    <video class="mx-auto mb-4 max-w-[200px] h-auto" autoplay loop muted playsinline poster="assets/img/logo.webp" aria-label="Loading animation">
-                        <source src="assets/img/logo.webm" type="video/webm">
-                    </video>
-                    <p>Memuat produk...</p>
+                <div class="product-grid-skeleton">
+                    <div class="skeleton skeleton-product-image"></div>
+                    <div class="skeleton skeleton-line"></div>
+                    <div class="skeleton skeleton-line short"></div>
+                    <div class="skeleton skeleton-product-button"></div>
+                </div>
+                <div class="product-grid-skeleton">
+                    <div class="skeleton skeleton-product-image"></div>
+                    <div class="skeleton skeleton-line"></div>
+                    <div class="skeleton skeleton-line short"></div>
+                    <div class="skeleton skeleton-product-button"></div>
+                </div>
+                <div class="product-grid-skeleton hidden lg:flex">
+                    <div class="skeleton skeleton-product-image"></div>
+                    <div class="skeleton skeleton-line"></div>
+                    <div class="skeleton skeleton-line short"></div>
+                    <div class="skeleton skeleton-product-button"></div>
                 </div>
             </div>
 
@@ -238,6 +343,7 @@
             </div>
         </div>
     </section>
+    </main>
 
     <!-- Store Closed Info Modal -->
     <div id="store-closed-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60]" role="dialog" aria-modal="true" aria-labelledby="store-closed-title" tabindex="-1" data-modal>
@@ -1094,6 +1200,8 @@
                             alt="Metode Pembayaran" 
                             class="w-full max-w-[200px] h-auto"
                             loading="lazy"
+                            width="200"
+                            height="80"
                             data-fallback-src="https://placehold.co/200x80?text=Metode"
                         >
                     </div>
@@ -1108,6 +1216,8 @@
                             alt="Kurir Pengiriman" 
                             class="h-[40px] w-auto"
                             loading="lazy"
+                            width="120"
+                            height="40"
                             data-fallback-src="https://placehold.co/120x40?text=Kurir"
                         >
                         <img 
@@ -1115,6 +1225,8 @@
                             alt="Cash On Delivery (COD)" 
                             class="h-[40px] w-auto"
                             loading="lazy"
+                            width="120"
+                            height="40"
                             data-fallback-src="https://placehold.co/120x40?text=COD"
                         >
                     </div>
