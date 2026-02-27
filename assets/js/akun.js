@@ -76,6 +76,7 @@ const SECTION_UI_MAP = {
 };
 
 let lastPaylaterDetailInvoiceId = '';
+let sessionRecoveryTriggered = false;
 
 function createAkunError(message, code) {
     const err = new Error(message || 'Unknown error');
@@ -123,8 +124,23 @@ function setSectionError(section, message, retryAction) {
     if (loginCtaEl) {
         const showLogin = resolvedMessage.indexOf(SESSION_INVALID_MESSAGE) !== -1;
         loginCtaEl.classList.toggle('hidden', !showLogin);
+        if (showLogin) {
+            invalidateLocalSessionAndShowLogin(SESSION_INVALID_MESSAGE);
+        }
     }
     if (errorEl) errorEl.classList.remove('hidden');
+}
+
+function invalidateLocalSessionAndShowLogin(message) {
+    if (sessionRecoveryTriggered) return;
+    sessionRecoveryTriggered = true;
+    try {
+        localStorage.removeItem('gosembako_user');
+    } catch (error) {
+        console.warn('Failed clearing gosembako_user:', error);
+    }
+    showLogin();
+    if (message) showError(message);
 }
 
 function isSessionError(payload) {
@@ -547,6 +563,7 @@ function showLogin() {
  * Show dashboard section
  */
 function showDashboard(user) {
+    sessionRecoveryTriggered = false;
     document.getElementById('login-section').classList.add('hidden');
     document.getElementById('register-section').classList.add('hidden');
     document.getElementById('forgot-pin-section').classList.add('hidden');
