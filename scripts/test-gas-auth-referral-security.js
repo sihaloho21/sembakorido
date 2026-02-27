@@ -54,8 +54,24 @@ function loadGasContext() {
   const sheets = new Map();
   const cache = new Map();
   const props = new Map();
+  props.set('SPREADSHEET_ID', 'TEST_SPREADSHEET_ID');
   let cacheNowMs = Date.now();
   let uuidN = 1;
+  const RealDate = Date;
+  function FakeDate(...args) {
+    if (!(this instanceof FakeDate)) {
+      return new RealDate(cacheNowMs).toString();
+    }
+    if (args.length === 0) {
+      return new RealDate(cacheNowMs);
+    }
+    return new RealDate(...args);
+  }
+  FakeDate.now = () => cacheNowMs;
+  FakeDate.parse = (...args) => RealDate.parse(...args);
+  FakeDate.UTC = (...args) => RealDate.UTC(...args);
+  FakeDate.prototype = RealDate.prototype;
+  Object.setPrototypeOf(FakeDate, RealDate);
   const addSheet = (name, headers) => sheets.set(name, createSheet(name, headers));
 
   addSheet('settings', ['key', 'value']);
@@ -122,7 +138,7 @@ function loadGasContext() {
 
   const context = {
     console,
-    Date,
+    Date: FakeDate,
     Math,
     JSON,
     SpreadsheetApp: { openById: () => spreadsheet },
@@ -370,7 +386,7 @@ function run() {
   ctx.handleUpsertSetting({ key: 'public_create_hmac_secret', value: 'secret-hmac' });
   ctx.handleUpsertSetting({ key: 'public_create_hmac_max_age_seconds', value: '300' });
   const payload = { nama: 'User Hmac', whatsapp: '081399900001', pin: '123456' };
-  const ts = Math.floor(Date.now() / 1000);
+  const ts = Math.floor(ctx.Date.now() / 1000);
   const msg = ['create', 'users', String(ts), ctx.canonicalizeForSignature(payload)].join('|');
   const sig = ctx.hmacSha256Hex('secret-hmac', msg);
   assert(ctx.validatePublicCreateSignature({ parameter: {} }, { ts, signature: sig }, 'create', 'users', payload) === null, 'HMAC valid harus lolos');
