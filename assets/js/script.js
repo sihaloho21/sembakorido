@@ -127,7 +127,36 @@ function ensureProductId(p, index) {
 
 function findProductById(id) {
     if (!id) return null;
-    return allProducts.find(p => String(p.productId) === String(id)) || null;
+    const target = String(id).trim();
+    if (target === '') return null;
+
+    return allProducts.find((p) => {
+        const references = [p.productId, p.id, p.sku, p.slug]
+            .map((value) => String(value || '').trim())
+            .filter((value) => value !== '');
+        return references.includes(target);
+    }) || null;
+}
+
+function resolveProductForModal(product) {
+    if (!product || typeof product !== 'object') return null;
+
+    const references = [product.productId, product.id, product.sku, product.slug];
+    for (let i = 0; i < references.length; i += 1) {
+        const matched = findProductById(references[i]);
+        if (matched) return matched;
+    }
+
+    return product;
+}
+
+function getCurrentModalProduct() {
+    const modal = document.getElementById('detail-modal');
+    const modalRef = modal ? modal.dataset.productId : null;
+    const byModalRef = findProductById(modalRef);
+    if (byModalRef) return byModalRef;
+
+    return resolveProductForModal(currentModalProduct);
 }
 
 function normalizeCategoryLabel(value) {
@@ -1291,12 +1320,17 @@ function updateModalQty(delta) {
 function showDetail(p) {
     // Tutup modal wishlist jika sedang terbuka agar tidak menumpuk
     closeWishlistModal();
+
+    const resolvedProduct = resolveProductForModal(p);
+    if (resolvedProduct) {
+        p = resolvedProduct;
+    }
     
     console.log('showDetail called for product:', p.nama);
     const modal = document.getElementById('detail-modal');
     if (!modal) return;
     currentModalProduct = p;
-    modal.dataset.productId = p.productId || '';
+    modal.dataset.productId = String(p.productId || p.id || p.sku || p.slug || '');
 
     // Reset selected variation and quantity when opening modal
     selectedVariation = null;
@@ -1539,9 +1573,7 @@ function proceedDirectOrder(p) {
 }
 
 function directOrderFromModal() {
-    const modal = document.getElementById('detail-modal');
-    const productId = modal ? modal.dataset.productId : null;
-    const product = findProductById(productId);
+    const product = getCurrentModalProduct();
     if (product) {
         directOrder(product);
         closeDetailModal();
@@ -1786,9 +1818,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalAddCartBtn = document.getElementById('modal-add-cart');
     if (modalAddCartBtn) {
         modalAddCartBtn.addEventListener('click', (event) => {
-            const modal = document.getElementById('detail-modal');
-            const productId = modal ? modal.dataset.productId : null;
-            const product = findProductById(productId);
+            const product = getCurrentModalProduct();
             if (product) {
                 const qtyInput = document.getElementById('modal-qty');
                 const qty = qtyInput ? parseInt(qtyInput.value) : 1;
