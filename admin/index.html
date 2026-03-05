@@ -297,10 +297,70 @@
                     </button>
                 </div>
 
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                    <div class="flex justify-between items-start mobile-stack gap-3">
+                        <div>
+                            <h4 class="text-base font-bold text-gray-800">Bulk CRUD Produk</h4>
+                            <p class="text-sm text-gray-500">Update, hapus, dan tambah banyak produk sekaligus.</p>
+                        </div>
+                        <input type="text" id="product-bulk-search" class="w-full md:w-80 p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100" placeholder="Cari nama / ID / kategori...">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                        <div>
+                            <label for="bulk-product-field" class="block text-sm font-bold text-gray-700 mb-1">Field Update</label>
+                            <select id="bulk-product-field" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                                <option value="">-- Pilih Field --</option>
+                                <option value="kategori">Kategori</option>
+                                <option value="harga">Harga Cash</option>
+                                <option value="stok">Stok</option>
+                                <option value="harga_coret">Harga Coret</option>
+                                <option value="clear_harga_coret">Hapus Harga Coret</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label id="bulk-product-value-label" for="bulk-product-value" class="block text-sm font-bold text-gray-700 mb-1">Nilai Baru</label>
+                            <input type="text" id="bulk-product-value" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100" placeholder="Masukkan nilai baru...">
+                        </div>
+                        <button type="button" id="bulk-update-products-btn" data-action="apply-bulk-product-update" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-bold transition">
+                            Update Terpilih
+                        </button>
+                    </div>
+
+                    <div class="flex items-center flex-wrap gap-2">
+                        <button type="button" id="bulk-select-visible-products-btn" data-action="select-visible-products" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold transition text-sm">
+                            Pilih Semua Terlihat
+                        </button>
+                        <button type="button" id="bulk-clear-selection-products-btn" data-action="clear-product-selection" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold transition text-sm">
+                            Batal Pilih
+                        </button>
+                        <button type="button" id="bulk-delete-products-btn" data-action="bulk-delete-products" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-bold transition text-sm">
+                            Hapus Terpilih
+                        </button>
+                        <span id="product-bulk-selection-info" class="text-sm text-gray-500 font-medium">0 terpilih</span>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-4 space-y-2">
+                        <label for="bulk-create-products-input" class="block text-sm font-bold text-gray-700">Bulk Tambah Produk</label>
+                        <p class="text-xs text-gray-500">Format per baris: <code>nama|harga|stok|kategori|deskripsi|gambar1,gambar2</code></p>
+                        <textarea id="bulk-create-products-input" rows="4" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100" placeholder="Beras Premium 5kg|78000|25|KEPERLUAN DAPUR|Beras pulen pilihan|https://example.com/beras.jpg"></textarea>
+                        <div class="flex justify-end mobile-actions">
+                            <button type="button" id="bulk-create-products-btn" data-action="bulk-create-products" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold transition">
+                                Tambah Produk Secara Bulk
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="bulk-product-status" class="hidden text-sm rounded-xl px-4 py-3"></div>
+                </div>
+
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <table class="w-full text-left">
                         <thead class="bg-gray-50 border-b">
                             <tr>
+                                <th class="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-12">
+                                    <input type="checkbox" id="bulk-select-all-products" data-action="toggle-product-select-all" class="h-4 w-4 accent-green-600" aria-label="Pilih semua produk terlihat">
+                                </th>
                                 <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Produk</th>
                                 <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Kategori</th>
                                 <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Harga</th>

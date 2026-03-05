@@ -120,6 +120,9 @@ let currentOrderPage = 1;
 const ordersPerPage = 10;
 let referralFilterStatus = 'all';
 let referralSearch = '';
+let selectedProductIds = new Set();
+let productBulkSearchQuery = '';
+let productBulkBusy = false;
 
 function showSection(sectionId) {
     stopPaylaterSchedulerAutoRefresh();
@@ -2730,17 +2733,537 @@ function getPurchaseStats(productId) {
     return { avgCost, lastCost, totalQty };
 }
 
+function getProductRecordId(product) {
+    return String((product && product.id) || '').trim();
+}
+
+function getFilteredAdminProducts() {
+    const products = Array.isArray(allProducts) ? allProducts : [];
+    const query = String(productBulkSearchQuery || '').trim().toLowerCase();
+    if (!query) return products;
+    return products.filter((product) => {
+        const fields = [
+            product.id,
+            product.nama,
+            product.kategori,
+            product.deskripsi
+        ];
+        return fields.some((value) => String(value || '').toLowerCase().includes(query));
+    });
+}
+
+function syncSelectedProductsWithData() {
+    const validIds = new Set((Array.isArray(allProducts) ? allProducts : [])
+        .map((product) => getProductRecordId(product))
+        .filter(Boolean));
+    const nextSelected = new Set();
+    selectedProductIds.forEach((id) => {
+        if (validIds.has(id)) nextSelected.add(id);
+    });
+    selectedProductIds = nextSelected;
+}
+
+function updateProductBulkFieldUI() {
+    const fieldEl = document.getElementById('bulk-product-field');
+    const valueEl = document.getElementById('bulk-product-value');
+    const labelEl = document.getElementById('bulk-product-value-label');
+    if (!fieldEl || !valueEl || !labelEl) return;
+
+    const selectedField = String(fieldEl.value || '');
+    let inputType = 'text';
+    let labelText = 'Nilai Baru';
+    let placeholder = 'Masukkan nilai baru...';
+    let isValueDisabled = false;
+
+    if (selectedField === 'kategori') {
+        labelText = 'Kategori Baru';
+        placeholder = 'Contoh: KEPERLUAN DAPUR';
+    } else if (selectedField === 'harga') {
+        labelText = 'Harga Cash Baru';
+        placeholder = 'Contoh: 25000';
+        inputType = 'number';
+    } else if (selectedField === 'stok') {
+        labelText = 'Stok Baru';
+        placeholder = 'Contoh: 15';
+        inputType = 'number';
+    } else if (selectedField === 'harga_coret') {
+        labelText = 'Harga Coret Baru';
+        placeholder = 'Contoh: 29000';
+        inputType = 'number';
+    } else if (selectedField === 'clear_harga_coret') {
+        labelText = 'Nilai Baru';
+        placeholder = 'Tidak perlu diisi untuk aksi ini';
+        isValueDisabled = true;
+        valueEl.value = '';
+    }
+
+    valueEl.type = inputType;
+    valueEl.placeholder = placeholder;
+    valueEl.disabled = isValueDisabled || productBulkBusy;
+    labelEl.textContent = labelText;
+}
+
+function setProductBulkStatus(type, message, details = '') {
+    const statusEl = document.getElementById('bulk-product-status');
+    if (!statusEl) return;
+    const colorClass = {
+        success: 'bg-green-50 border border-green-200 text-green-800',
+        error: 'bg-red-50 border border-red-200 text-red-800',
+        warning: 'bg-amber-50 border border-amber-200 text-amber-800',
+        info: 'bg-blue-50 border border-blue-200 text-blue-800'
+    };
+    statusEl.className = `${colorClass[type] || colorClass.info} text-sm rounded-xl px-4 py-3`;
+    statusEl.textContent = details ? `${message} ${details}` : message;
+}
+
+function clearProductBulkStatus() {
+    const statusEl = document.getElementById('bulk-product-status');
+    if (!statusEl) return;
+    statusEl.className = 'hidden text-sm rounded-xl px-4 py-3';
+    statusEl.textContent = '';
+}
+
+function setProductBulkBusyState(isBusy) {
+    productBulkBusy = Boolean(isBusy);
+    const ids = [
+        'product-bulk-search',
+        'bulk-product-field',
+        'bulk-product-value',
+        'bulk-select-visible-products-btn',
+        'bulk-clear-selection-products-btn',
+        'bulk-update-products-btn',
+        'bulk-delete-products-btn',
+        'bulk-create-products-btn',
+        'bulk-create-products-input'
+    ];
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'BUTTON') {
+            el.disabled = productBulkBusy;
+        }
+    });
+    updateProductBulkFieldUI();
+    updateProductBulkSelectionUI();
+}
+
+function updateProductBulkSelectionUI() {
+    const filteredProducts = getFilteredAdminProducts();
+    const totalProducts = Array.isArray(allProducts) ? allProducts.length : 0;
+    const selectableVisibleIds = filteredProducts
+        .map((product) => getProductRecordId(product))
+        .filter(Boolean);
+
+    const selectedVisibleCount = selectableVisibleIds.reduce((count, id) => (
+        count + (selectedProductIds.has(id) ? 1 : 0)
+    ), 0);
+
+    const infoEl = document.getElementById('product-bulk-selection-info');
+    if (infoEl) {
+        infoEl.textContent = `${selectedProductIds.size} terpilih · ${filteredProducts.length} terlihat · ${totalProducts} total`;
+    }
+
+    const selectAllEl = document.getElementById('bulk-select-all-products');
+    if (selectAllEl) {
+        if (selectableVisibleIds.length === 0) {
+            selectAllEl.checked = false;
+            selectAllEl.indeterminate = false;
+            selectAllEl.disabled = true;
+        } else {
+            selectAllEl.disabled = productBulkBusy;
+            selectAllEl.checked = selectedVisibleCount === selectableVisibleIds.length;
+            selectAllEl.indeterminate = selectedVisibleCount > 0 && selectedVisibleCount < selectableVisibleIds.length;
+        }
+    }
+
+    const updateBtn = document.getElementById('bulk-update-products-btn');
+    const deleteBtn = document.getElementById('bulk-delete-products-btn');
+    const clearBtn = document.getElementById('bulk-clear-selection-products-btn');
+    const selectVisibleBtn = document.getElementById('bulk-select-visible-products-btn');
+    const createBtn = document.getElementById('bulk-create-products-btn');
+
+    if (updateBtn) updateBtn.disabled = productBulkBusy || selectedProductIds.size === 0;
+    if (deleteBtn) deleteBtn.disabled = productBulkBusy || selectedProductIds.size === 0;
+    if (clearBtn) clearBtn.disabled = productBulkBusy || selectedProductIds.size === 0;
+    if (selectVisibleBtn) selectVisibleBtn.disabled = productBulkBusy || selectableVisibleIds.length === 0;
+    if (createBtn) createBtn.disabled = productBulkBusy;
+}
+
+function toggleSelectAllVisibleProducts(shouldSelect) {
+    if (productBulkBusy) return;
+    const visibleIds = getFilteredAdminProducts()
+        .map((product) => getProductRecordId(product))
+        .filter(Boolean);
+    visibleIds.forEach((id) => {
+        if (shouldSelect) selectedProductIds.add(id);
+        else selectedProductIds.delete(id);
+    });
+    renderAdminTable();
+}
+
+function setProductSelectionById(productId, isSelected) {
+    const id = String(productId || '').trim();
+    if (!id || productBulkBusy) return;
+    if (isSelected) selectedProductIds.add(id);
+    else selectedProductIds.delete(id);
+    updateProductBulkSelectionUI();
+}
+
+function clearProductSelection() {
+    if (productBulkBusy) return;
+    selectedProductIds.clear();
+    renderAdminTable();
+}
+
+function buildBulkProductUpdatePayload(field, rawValue) {
+    const selectedField = String(field || '').trim();
+    const value = String(rawValue || '').trim();
+
+    if (!selectedField) throw new Error('Pilih field yang ingin diupdate.');
+
+    if (selectedField === 'kategori') {
+        if (!value) throw new Error('Kategori baru wajib diisi.');
+        return { kategori: value };
+    }
+
+    if (selectedField === 'harga') {
+        const amount = parseCurrencyValue(value);
+        if (!Number.isFinite(amount) || amount <= 0) throw new Error('Harga cash harus lebih dari 0.');
+        return { harga: String(Math.round(amount)) };
+    }
+
+    if (selectedField === 'stok') {
+        const stock = parseInt(value, 10);
+        if (!Number.isFinite(stock) || stock < 0) throw new Error('Stok harus angka 0 atau lebih.');
+        return { stok: String(stock) };
+    }
+
+    if (selectedField === 'harga_coret') {
+        const amount = parseCurrencyValue(value);
+        if (!Number.isFinite(amount) || amount <= 0) throw new Error('Harga coret harus lebih dari 0.');
+        return { harga_coret: String(Math.round(amount)) };
+    }
+
+    if (selectedField === 'clear_harga_coret') {
+        return { harga_coret: '' };
+    }
+
+    throw new Error('Field bulk update tidak dikenali.');
+}
+
+function generateBulkProductId(existingIds, lineIndex) {
+    const timestamp = Date.now();
+    let attempt = 0;
+    while (attempt < 50) {
+        const candidate = `P-${timestamp}-${lineIndex + 1}-${attempt + 1}`;
+        if (!existingIds.has(candidate)) {
+            existingIds.add(candidate);
+            return candidate;
+        }
+        attempt += 1;
+    }
+    const fallback = `P-${timestamp}-${Math.random().toString(36).slice(2, 8)}`;
+    existingIds.add(fallback);
+    return fallback;
+}
+
+function parseBulkCreateProductsInput(rawText) {
+    const rows = [];
+    const errors = [];
+    const lines = String(rawText || '')
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+    if (lines.length === 0) {
+        errors.push('Input bulk masih kosong.');
+        return { rows, errors };
+    }
+
+    const existingIds = new Set((Array.isArray(allProducts) ? allProducts : [])
+        .map((product) => getProductRecordId(product))
+        .filter(Boolean));
+
+    lines.forEach((line, index) => {
+        const lineNo = index + 1;
+        const parts = line.split('|');
+        if (parts.length < 4) {
+            errors.push(`Baris ${lineNo}: format harus nama|harga|stok|kategori|deskripsi|gambar.`);
+            return;
+        }
+
+        const name = String(parts[0] || '').trim();
+        const price = parseCurrencyValue(parts[1]);
+        const stock = parseInt(parts[2], 10);
+        const category = String(parts[3] || '').trim();
+        const description = String(parts[4] || '').trim();
+        const imagePart = String(parts.slice(5).join('|') || '').trim();
+        const images = imagePart
+            .split(',')
+            .map((url) => String(url || '').trim())
+            .filter(Boolean)
+            .join(',');
+
+        if (!name) {
+            errors.push(`Baris ${lineNo}: nama produk wajib diisi.`);
+            return;
+        }
+        if (!Number.isFinite(price) || price <= 0) {
+            errors.push(`Baris ${lineNo}: harga harus lebih dari 0.`);
+            return;
+        }
+        if (!Number.isFinite(stock) || stock < 0) {
+            errors.push(`Baris ${lineNo}: stok harus angka 0 atau lebih.`);
+            return;
+        }
+
+        rows.push({
+            id: generateBulkProductId(existingIds, index),
+            nama: name,
+            harga: String(Math.round(price)),
+            stok: String(stock),
+            kategori: category,
+            deskripsi: description,
+            gambar: images,
+            __rawLine: line
+        });
+    });
+
+    return { rows, errors };
+}
+
+async function applyBulkProductUpdate() {
+    if (productBulkBusy) return;
+    const selectedIds = Array.from(selectedProductIds);
+    if (selectedIds.length === 0) {
+        showAdminToast('Pilih minimal 1 produk untuk diupdate.', 'warning');
+        return;
+    }
+
+    const fieldEl = document.getElementById('bulk-product-field');
+    const valueEl = document.getElementById('bulk-product-value');
+    if (!fieldEl || !valueEl) return;
+
+    let payload;
+    try {
+        payload = buildBulkProductUpdatePayload(fieldEl.value, valueEl.value);
+    } catch (error) {
+        showAdminToast(error.message || 'Data bulk update tidak valid.', 'error');
+        setProductBulkStatus('error', error.message || 'Data bulk update tidak valid.');
+        return;
+    }
+
+    const fieldLabel = {
+        kategori: 'Kategori',
+        harga: 'Harga Cash',
+        stok: 'Stok',
+        harga_coret: 'Harga Coret',
+        clear_harga_coret: 'Hapus Harga Coret'
+    };
+
+    if (!confirm(`Update ${selectedIds.length} produk untuk field ${fieldLabel[fieldEl.value] || 'terpilih'}?`)) {
+        return;
+    }
+
+    setProductBulkBusyState(true);
+    setProductBulkStatus('info', `Memproses update ${selectedIds.length} produk...`);
+
+    let success = 0;
+    let failed = 0;
+    const failedIds = [];
+
+    try {
+        for (let i = 0; i < selectedIds.length; i += 1) {
+            const productId = selectedIds[i];
+            setProductBulkStatus('info', `Memproses update ${i + 1}/${selectedIds.length}...`);
+            try {
+                const result = await GASActions.update(PRODUCTS_SHEET, productId, payload);
+                const affected = Number((result && (result.affected || result.updated || result.success)) || 0);
+                if (affected > 0 || (result && !result.error)) {
+                    success += 1;
+                } else {
+                    failed += 1;
+                    failedIds.push(productId);
+                }
+            } catch (error) {
+                failed += 1;
+                failedIds.push(productId);
+                console.error('Bulk update error:', productId, error);
+            }
+        }
+
+        const detail = failedIds.length > 0
+            ? `ID gagal: ${failedIds.slice(0, 8).join(', ')}${failedIds.length > 8 ? ' ...' : ''}`
+            : '';
+        setProductBulkStatus(
+            failed > 0 ? 'warning' : 'success',
+            `Bulk update selesai. Berhasil ${success}, gagal ${failed}.`,
+            detail
+        );
+        showAdminToast(`Bulk update selesai: ${success} berhasil, ${failed} gagal.`, failed > 0 ? 'warning' : 'success');
+
+        if (success > 0) {
+            await fetchAdminProducts();
+        }
+    } finally {
+        setProductBulkBusyState(false);
+        updateProductBulkSelectionUI();
+    }
+}
+
+async function handleBulkDeleteProducts() {
+    if (productBulkBusy) return;
+    const selectedIds = Array.from(selectedProductIds);
+    if (selectedIds.length === 0) {
+        showAdminToast('Pilih minimal 1 produk untuk dihapus.', 'warning');
+        return;
+    }
+
+    if (!confirm(`Hapus ${selectedIds.length} produk terpilih? Tindakan ini tidak bisa dibatalkan.`)) {
+        return;
+    }
+
+    setProductBulkBusyState(true);
+    setProductBulkStatus('warning', `Memproses hapus ${selectedIds.length} produk...`);
+
+    let success = 0;
+    let failed = 0;
+    const failedIds = [];
+
+    try {
+        for (let i = 0; i < selectedIds.length; i += 1) {
+            const productId = selectedIds[i];
+            setProductBulkStatus('warning', `Memproses hapus ${i + 1}/${selectedIds.length}...`);
+            try {
+                const result = await GASActions.delete(PRODUCTS_SHEET, productId);
+                const deleted = Number((result && (result.deleted || result.affected || result.success)) || 0);
+                if (deleted > 0 || (result && !result.error)) {
+                    success += 1;
+                    selectedProductIds.delete(productId);
+                } else {
+                    failed += 1;
+                    failedIds.push(productId);
+                }
+            } catch (error) {
+                failed += 1;
+                failedIds.push(productId);
+                console.error('Bulk delete error:', productId, error);
+            }
+        }
+
+        const detail = failedIds.length > 0
+            ? `ID gagal: ${failedIds.slice(0, 8).join(', ')}${failedIds.length > 8 ? ' ...' : ''}`
+            : '';
+        setProductBulkStatus(
+            failed > 0 ? 'warning' : 'success',
+            `Bulk hapus selesai. Berhasil ${success}, gagal ${failed}.`,
+            detail
+        );
+        showAdminToast(`Bulk hapus selesai: ${success} berhasil, ${failed} gagal.`, failed > 0 ? 'warning' : 'success');
+
+        if (success > 0) {
+            await fetchAdminProducts();
+        }
+    } finally {
+        setProductBulkBusyState(false);
+        updateProductBulkSelectionUI();
+    }
+}
+
+async function handleBulkCreateProducts() {
+    if (productBulkBusy) return;
+    const inputEl = document.getElementById('bulk-create-products-input');
+    if (!inputEl) return;
+
+    const parsed = parseBulkCreateProductsInput(inputEl.value);
+    if (parsed.rows.length === 0) {
+        const errorMessage = parsed.errors[0] || 'Tidak ada data valid untuk diproses.';
+        setProductBulkStatus('error', errorMessage);
+        showAdminToast(errorMessage, 'error');
+        return;
+    }
+
+    if (parsed.errors.length > 0) {
+        const previewErrors = parsed.errors.slice(0, 5).join(' | ');
+        const continueWithValid = confirm(`Ada ${parsed.errors.length} baris tidak valid. Lanjutkan dengan ${parsed.rows.length} baris valid?\n\n${previewErrors}`);
+        if (!continueWithValid) {
+            setProductBulkStatus('warning', `Dibatalkan. Perbaiki ${parsed.errors.length} baris tidak valid.`);
+            return;
+        }
+    } else if (!confirm(`Tambah ${parsed.rows.length} produk baru secara bulk?`)) {
+        return;
+    }
+
+    setProductBulkBusyState(true);
+    setProductBulkStatus('info', `Memproses tambah ${parsed.rows.length} produk...`);
+
+    let success = 0;
+    let failed = 0;
+    const failedLines = [];
+
+    try {
+        for (let i = 0; i < parsed.rows.length; i += 1) {
+            const row = parsed.rows[i];
+            setProductBulkStatus('info', `Memproses tambah ${i + 1}/${parsed.rows.length}...`);
+            try {
+                const payload = {
+                    id: row.id,
+                    nama: row.nama,
+                    harga: row.harga,
+                    stok: row.stok,
+                    kategori: row.kategori,
+                    deskripsi: row.deskripsi,
+                    gambar: row.gambar
+                };
+                const result = await GASActions.create(PRODUCTS_SHEET, payload);
+                const created = Number((result && (result.created || result.affected || result.success)) || 0);
+                if (created > 0 || (result && !result.error)) {
+                    success += 1;
+                } else {
+                    failed += 1;
+                    failedLines.push(row.__rawLine);
+                }
+            } catch (error) {
+                failed += 1;
+                failedLines.push(row.__rawLine);
+                console.error('Bulk create error:', row, error);
+            }
+        }
+
+        if (failedLines.length > 0) {
+            inputEl.value = failedLines.join('\n');
+        } else {
+            inputEl.value = '';
+        }
+
+        const parseErrorSummary = parsed.errors.length > 0 ? ` Data invalid dilewati: ${parsed.errors.length}.` : '';
+        setProductBulkStatus(
+            failed > 0 ? 'warning' : 'success',
+            `Bulk tambah selesai. Berhasil ${success}, gagal ${failed}.${parseErrorSummary}`
+        );
+        showAdminToast(`Bulk tambah selesai: ${success} berhasil, ${failed} gagal.`, failed > 0 ? 'warning' : 'success');
+
+        if (success > 0) {
+            await fetchAdminProducts();
+        }
+    } finally {
+        setProductBulkBusyState(false);
+        updateProductBulkSelectionUI();
+    }
+}
+
 // ============ PRODUCT FUNCTIONS ============
 async function fetchAdminProducts() {
     const tbody = document.getElementById('admin-product-list');
-    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Memuat data...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Memuat data...</td></tr>';
     try {
         const [productsRes, purchasesRes, suppliersRes] = await Promise.all([
             fetch(buildAdminGetUrl(PRODUCTS_SHEET)),
             fetch(buildAdminGetUrl(PURCHASES_SHEET)),
             fetch(buildAdminGetUrl(SUPPLIERS_SHEET))
         ]);
-        allProducts = await productsRes.json();
+        const productsData = await productsRes.json();
+        allProducts = Array.isArray(productsData) ? productsData : [];
         if (purchasesRes.ok) {
             const purchasesData = await purchasesRes.json();
             allPurchases = Array.isArray(purchasesData) ? purchasesData : [];
@@ -2753,7 +3276,9 @@ async function fetchAdminProducts() {
         } else {
             allSuppliers = [];
         }
+        syncSelectedProductsWithData();
         renderAdminTable();
+        updateProductBulkSelectionUI();
         updatePurchaseProductDropdown();
         updateSupplierDatalist();
         refreshBundleItemOptions();
@@ -2770,17 +3295,31 @@ async function fetchAdminProducts() {
 
 function renderAdminTable() {
     const tbody = document.getElementById('admin-product-list');
-    if (allProducts.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Belum ada produk.</td></tr>';
+    if (!Array.isArray(allProducts) || allProducts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Belum ada produk.</td></tr>';
+        updateProductBulkSelectionUI();
         return;
     }
-    tbody.innerHTML = allProducts.map(p => {
+
+    const filteredProducts = getFilteredAdminProducts();
+    if (filteredProducts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Tidak ada produk yang cocok dengan pencarian.</td></tr>';
+        updateProductBulkSelectionUI();
+        return;
+    }
+
+    tbody.innerHTML = filteredProducts.map(p => {
+        const productId = getProductRecordId(p);
+        const hasValidId = Boolean(productId);
+        const isSelected = hasValidId && selectedProductIds.has(productId);
         const safeName = escapeHtml(p.nama);
+        const safeNameAttr = escapeAttr(p.nama);
         const safeCategory = escapeHtml(p.kategori || '-');
         const safeStock = escapeHtml(p.stok);
         const imageUrl = p.gambar ? p.gambar.split(',')[0] : 'https://via.placeholder.com/50';
         const safeImage = sanitizeUrl(imageUrl, 'https://via.placeholder.com/50');
         const priceValue = parseCurrencyValue(p.harga);
+        const strikePriceValue = parseCurrencyValue(p.harga_coret);
         const costStats = getPurchaseStats(p.id);
         const avgCost = costStats.avgCost;
         const lastCost = costStats.lastCost;
@@ -2788,8 +3327,17 @@ function renderAdminTable() {
         const marginPercent = avgCost > 0 ? (marginValue / avgCost) * 100 : 0;
         const marginThreshold = CONFIG.getMarginAlertThreshold ? CONFIG.getMarginAlertThreshold() : 10;
         const isLowMargin = avgCost > 0 && marginPercent < marginThreshold;
+        const editActionClass = hasValidId
+            ? 'p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition'
+            : 'p-2 text-gray-300 cursor-not-allowed';
+        const deleteActionClass = hasValidId
+            ? 'p-2 text-red-600 hover:bg-red-50 rounded-lg transition'
+            : 'p-2 text-gray-300 cursor-not-allowed';
         return `
         <tr class="hover:bg-gray-50 transition">
+            <td class="px-4 py-4 text-center align-top" data-label="Pilih">
+                ${hasValidId ? `<input type="checkbox" data-action="toggle-product-select" data-id="${escapeAttr(productId)}" class="h-4 w-4 accent-green-600" ${isSelected ? 'checked' : ''} aria-label="Pilih produk ${safeNameAttr}">` : '<span class="text-gray-300">-</span>'}
+            </td>
             <td class="px-6 py-4" data-label="Produk">
                 <div class="flex items-center gap-3">
                     <img src="${safeImage}" class="w-10 h-10 object-cover rounded-lg bg-gray-100" alt="${safeName}">
@@ -2801,8 +3349,8 @@ function renderAdminTable() {
             </td>
             <td class="px-6 py-4" data-label="Harga">
                 <div class="flex flex-col">
-                    ${p.harga_coret ? `<span class="text-[10px] text-gray-400 line-through">Rp ${parseInt(p.harga_coret).toLocaleString('id-ID')}</span>` : ''}
-                    <span class="font-bold text-green-700 text-sm">Rp ${parseInt(p.harga).toLocaleString('id-ID')}</span>
+                    ${strikePriceValue > 0 ? `<span class="text-[10px] text-gray-400 line-through">Rp ${Math.round(strikePriceValue).toLocaleString('id-ID')}</span>` : ''}
+                    <span class="font-bold text-green-700 text-sm">Rp ${Math.round(priceValue || 0).toLocaleString('id-ID')}</span>
                     ${avgCost > 0 ? `<span class="text-[10px] text-gray-500">Modal avg: Rp ${Math.round(avgCost).toLocaleString('id-ID')}</span>` : '<span class="text-[10px] text-gray-400">Modal avg: -</span>'}
                     ${lastCost > 0 ? `<span class="text-[10px] text-gray-500">Modal last: Rp ${Math.round(lastCost).toLocaleString('id-ID')}</span>` : '<span class="text-[10px] text-gray-400">Modal last: -</span>'}
                     ${avgCost > 0 ? `<span class="text-[10px] ${isLowMargin ? 'text-red-600 font-bold' : 'text-green-600'}">Margin: Rp ${Math.round(marginValue).toLocaleString('id-ID')} (${marginPercent.toFixed(1)}%)</span>` : ''}
@@ -2813,16 +3361,17 @@ function renderAdminTable() {
                 <span class="text-sm ${parseInt(p.stok) <= 5 ? 'text-red-600 font-bold' : 'text-gray-600'}">${safeStock}</span>
             </td>
             <td class="px-6 py-4 text-right flex justify-end gap-2" data-label="Aksi">
-                <button data-action="edit-product" data-id="${escapeAttr(p.id)}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                <button data-action="edit-product" data-id="${escapeAttr(productId)}" class="${editActionClass}" ${hasValidId ? '' : 'disabled aria-disabled="true"'}>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 </button>
-                <button data-action="delete-product" data-id="${escapeAttr(p.id)}" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
+                <button data-action="delete-product" data-id="${escapeAttr(productId)}" class="${deleteActionClass}" ${hasValidId ? '' : 'disabled aria-disabled="true"'}>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                 </button>
             </td>
         </tr>
     `;
     }).join('');
+    updateProductBulkSelectionUI();
 }
 
 function openAddModal() {
@@ -3926,6 +4475,41 @@ function bindAdminActions() {
             return;
         }
 
+        if (action === 'toggle-product-select-all') {
+            toggleSelectAllVisibleProducts(Boolean(trigger.checked));
+            return;
+        }
+
+        if (action === 'toggle-product-select') {
+            setProductSelectionById(trigger.dataset.id, Boolean(trigger.checked));
+            return;
+        }
+
+        if (action === 'select-visible-products') {
+            toggleSelectAllVisibleProducts(true);
+            return;
+        }
+
+        if (action === 'clear-product-selection') {
+            clearProductSelection();
+            return;
+        }
+
+        if (action === 'apply-bulk-product-update') {
+            applyBulkProductUpdate();
+            return;
+        }
+
+        if (action === 'bulk-delete-products') {
+            handleBulkDeleteProducts();
+            return;
+        }
+
+        if (action === 'bulk-create-products') {
+            handleBulkCreateProducts();
+            return;
+        }
+
         if (action === 'filter-orders') {
             filterOrders(trigger.dataset.filter || 'semua', trigger);
             return;
@@ -4334,6 +4918,26 @@ document.addEventListener('DOMContentLoaded', () => {
     showSection('dashboard');
     bindAdminActions();
     bindAdminImageFallbackHandler();
+
+    const productBulkSearchEl = document.getElementById('product-bulk-search');
+    if (productBulkSearchEl) {
+        productBulkSearchEl.addEventListener('input', (event) => {
+            productBulkSearchQuery = String(event.target.value || '').trim();
+            renderAdminTable();
+        });
+    }
+
+    const bulkProductFieldEl = document.getElementById('bulk-product-field');
+    if (bulkProductFieldEl) {
+        bulkProductFieldEl.addEventListener('change', () => {
+            updateProductBulkFieldUI();
+        });
+    }
+
+    updateProductBulkFieldUI();
+    updateProductBulkSelectionUI();
+    clearProductBulkStatus();
+
     const tukarExistingProductEl = document.getElementById('form-tukar-existing-product');
     if (tukarExistingProductEl) {
         tukarExistingProductEl.addEventListener('change', (event) => {
