@@ -2511,20 +2511,32 @@ function generateOrderId() {
 async function logOrderToGAS(order) {
     const normalizedOrderId = String(order.order_id || order.id || '').trim() || generateOrderId();
     const normalizedId = String(order.id || '').trim() || normalizedOrderId;
+    const nowIso = new Date().toISOString();
+    const phone = normalizePhone(order.phone || '');
+    const paymentMethod = String(order.payment_method || '').trim().toLowerCase();
 
-    // Ensure required fields are present
+    // Keep orders payload aligned with sheet columns while preserving paylater metadata.
     const orderData = {
         id: normalizedId,
         order_id: normalizedOrderId,
         pelanggan: order.pelanggan || '',
+        phone: phone,
         produk: order.produk || '',
         qty: order.qty || 0,
         total: order.total || 0,
-        status: order.status || 'Pending',
-        tanggal: order.tanggal || new Date().toLocaleString('id-ID'),
-        phone: order.phone || '',
         poin: order.poin || 0,
-        point_processed: order.point_processed || 'No'
+        status: order.status || 'Pending',
+        point_processed: order.point_processed || 'No',
+        tanggal: order.tanggal || new Date().toLocaleString('id-ID'),
+        payment_method: paymentMethod || 'cash',
+        profit_net: order.profit_net !== undefined ? order.profit_net : '',
+        credit_limit_processed: order.credit_limit_processed || 'No',
+        created_at: order.created_at || nowIso,
+        updated_at: order.updated_at || nowIso,
+        paylater_tenor_weeks: order.paylater_tenor_weeks !== undefined ? order.paylater_tenor_weeks : '',
+        paylater_fee_percent: order.paylater_fee_percent !== undefined ? order.paylater_fee_percent : '',
+        paylater_fee_amount: order.paylater_fee_amount !== undefined ? order.paylater_fee_amount : '',
+        paylater_total_due: order.paylater_total_due !== undefined ? order.paylater_total_due : ''
     };
     
     console.log('📝 Logging order to GAS:', orderData);
@@ -2699,9 +2711,7 @@ async function sendToWA() {
             `*PayLater Simulasi:*\n` +
             `- Pokok: Rp ${Number(state.simulation.principal || 0).toLocaleString('id-ID')}\n` +
             `- Tenor: ${Number(state.simulation.tenorWeeks || 1)} minggu\n` +
-            `- Fee (${Number(state.simulation.feePercent || 0)}%): Rp ${Number(state.simulation.feeAmount || 0).toLocaleString('id-ID')}\n` +
-            `- Denda Harian: Rp ${Number(state.simulation.dailyPenaltyAmount || 0).toLocaleString('id-ID')}\n` +
-            `- Cap Denda: Rp ${Number(state.simulation.penaltyCapAmount || 0).toLocaleString('id-ID')}\n` +
+            `- Biaya Layanan (${Number(state.simulation.feePercent || 0)}%): Rp ${Number(state.simulation.feeAmount || 0).toLocaleString('id-ID')}\n` +
             `- Total Jatuh Tempo: Rp ${Number(state.simulation.totalBeforePenalty || 0).toLocaleString('id-ID')}\n\n`;
     }
     

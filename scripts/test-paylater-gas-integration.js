@@ -78,6 +78,7 @@ function loadGasContext() {
   const spreadsheet = createSpreadsheetMock();
   const scriptCache = new Map();
   const scriptProps = new Map();
+  scriptProps.set('SPREADSHEET_ID', 'TEST_SPREADSHEET_ID');
 
   function addSheet(name, headers) {
     spreadsheet._sheets.set(name, createSheet(name, headers));
@@ -99,7 +100,11 @@ function loadGasContext() {
     'id', 'phone', 'user_id', 'invoice_id', 'type', 'amount',
     'balance_before', 'balance_after', 'ref_id', 'note', 'actor', 'created_at'
   ]);
-  addSheet('orders', ['id', 'order_id', 'phone', 'status', 'profit_net', 'credit_limit_processed']);
+  addSheet('orders', [
+    'id', 'pelanggan', 'phone', 'produk', 'qty', 'total', 'poin',
+    'status', 'point_processed', 'tanggal', 'payment_method', 'profit_net',
+    'credit_limit_processed', 'order_id', 'created_at', 'updated_at'
+  ]);
 
   const scriptAppMock = {
     _triggers: [],

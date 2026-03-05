@@ -81,9 +81,9 @@ function loadGasContext() {
     'referral_count', 'referral_points_total', 'updated_at'
   ]);
   addSheet('orders', [
-    'id', 'order_id', 'pelanggan', 'phone', 'qty', 'total', 'status',
-    'poin', 'point_processed', 'payment_method', 'profit_net', 'credit_limit_processed',
-    'created_at', 'updated_at'
+    'id', 'pelanggan', 'phone', 'produk', 'qty', 'total', 'poin',
+    'status', 'point_processed', 'tanggal', 'payment_method', 'profit_net',
+    'credit_limit_processed', 'order_id', 'created_at', 'updated_at'
   ]);
   addSheet('user_points', ['phone', 'points', 'last_updated']);
   addSheet('claims', ['id', 'phone', 'nama', 'hadiah', 'poin', 'status', 'tanggal', 'reward_id', 'request_id']);
