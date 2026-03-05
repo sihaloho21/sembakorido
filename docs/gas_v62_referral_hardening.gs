@@ -120,9 +120,9 @@ const SCHEMA_REQUIREMENTS = {
     'referral_count', 'referral_points_total'
   ],
   orders: [
-    'id', 'order_id', 'pelanggan', 'phone', 'qty', 'total', 'status',
-    'poin', 'point_processed', 'payment_method', 'profit_net',
-    'credit_limit_processed', 'created_at', 'updated_at'
+    'id', 'pelanggan', 'phone', 'produk', 'qty', 'total', 'poin',
+    'status', 'point_processed', 'tanggal', 'payment_method', 'profit_net',
+    'credit_limit_processed', 'order_id', 'created_at', 'updated_at'
   ],
   claims: [
     'id', 'phone', 'nama', 'hadiah', 'poin', 'status', 'tanggal',
@@ -1164,6 +1164,11 @@ function doPost(e) {
     if (action === 'create') {
       if (sheetName === 'users') {
         return jsonOutput(createUserWithAtomicLock(data));
+      }
+      if (sheetName === 'orders') {
+        return jsonOutput(withScriptLock(function() {
+          return createOrderWithPaylaterSync(sheet, headers, data);
+        }));
       }
       const row = headers.map(function(h) {
         return (data && data[h] !== undefined ? data[h] : '');
@@ -4712,6 +4717,97 @@ function createUserWithAtomicLock(payload) {
     users.sheet.appendRow(row);
     return { success: true, created: 1 };
   });
+}
+
+function normalizeOrderCreatePayload(payload) {
+  const data = payload || {};
+  const now = nowIso();
+  const normalizedOrderId = normalizeOrderId(data.order_id || data.id || genId('ORD'));
+  const normalizedId = normalizeOrderId(data.id || normalizedOrderId);
+  const normalizedPhone = normalizePhone(data.phone || data.whatsapp || '');
+  const paymentMethodRaw = String(data.payment_method || '').trim().toLowerCase();
+  const statusText = String(data.status || 'Pending').trim();
+  const inferredPaylater = statusText.toLowerCase().indexOf('paylater') !== -1;
+  const paymentMethod = paymentMethodRaw || (inferredPaylater ? 'paylater' : 'cash');
+
+  return {
+    ...data,
+    id: normalizedId,
+    order_id: normalizedOrderId,
+    pelanggan: String(data.pelanggan || '').trim(),
+    phone: normalizedPhone,
+    produk: data.produk !== undefined ? data.produk : '',
+    qty: parseNumber(data.qty || 0),
+    total: toMoneyInt(data.total || 0),
+    poin: parseNumber(data.poin || 0),
+    status: statusText || 'Pending',
+    point_processed: String(data.point_processed || 'No'),
+    tanggal: String(data.tanggal || new Date().toLocaleString('id-ID')),
+    payment_method: paymentMethod,
+    profit_net: data.profit_net !== undefined ? toMoneyInt(data.profit_net || 0) : '',
+    credit_limit_processed: String(data.credit_limit_processed || 'No'),
+    created_at: String(data.created_at || now),
+    updated_at: String(data.updated_at || now),
+    paylater_tenor_weeks: data.paylater_tenor_weeks,
+    paylater_fee_percent: data.paylater_fee_percent,
+    paylater_fee_amount: data.paylater_fee_amount,
+    paylater_total_due: data.paylater_total_due
+  };
+}
+
+function createOrderWithPaylaterSync(sheet, headers, payload) {
+  const order = normalizeOrderCreatePayload(payload || {});
+  const row = headers.map(function(h) {
+    return (order[h] !== undefined ? order[h] : '');
+  });
+
+  sheet.appendRow(row);
+  const insertedRowNumber = (typeof sheet.getLastRow === 'function') ? sheet.getLastRow() : sheet.getDataRange().getValues().length;
+
+  const paymentMethod = String(order.payment_method || '').toLowerCase();
+  if (paymentMethod !== 'paylater') {
+    return { success: true, created: 1, id: order.id, order_id: order.order_id };
+  }
+
+  const tenorWeeks = Math.max(1, Math.min(4, parseInt(order.paylater_tenor_weeks, 10) || 1));
+  const invoicePayload = {
+    phone: order.phone,
+    principal: toMoneyInt(order.total || 0),
+    tenor_weeks: tenorWeeks,
+    source_order_id: order.order_id,
+    invoice_id: String((payload && payload.invoice_id) || ('INV-' + order.order_id)).trim(),
+    user_id: String((payload && payload.user_id) || '').trim(),
+    actor: 'public_order_create',
+    notes: String((payload && payload.notes) || 'Auto invoice from checkout order').trim()
+  };
+
+  if (payload && payload.paylater_fee_percent !== undefined && String(payload.paylater_fee_percent).trim() !== '') {
+    invoicePayload.fee_percent = parseFloat(payload.paylater_fee_percent) || 0;
+  }
+
+  const invoiceResult = handleCreditInvoiceCreate(invoicePayload);
+  if (!invoiceResult || invoiceResult.success !== true) {
+    sheet.deleteRow(insertedRowNumber);
+    return {
+      success: false,
+      error: 'PAYLATER_INVOICE_CREATE_FAILED',
+      message: 'Order dibatalkan karena gagal membuat invoice PayLater',
+      invoice_error: invoiceResult || {}
+    };
+  }
+
+  return {
+    success: true,
+    created: 1,
+    id: order.id,
+    order_id: order.order_id,
+    paylater_invoice: {
+      invoice_id: invoiceResult.invoice_id || '',
+      total_due: invoiceResult.total_due || 0,
+      account_available_limit: invoiceResult.account_available_limit || 0,
+      dedup: Boolean(invoiceResult.dedup)
+    }
+  };
 }
 
 function validateAttachReferralPayload(payload) {
