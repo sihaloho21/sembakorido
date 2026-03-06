@@ -1383,7 +1383,25 @@
             });
         })();
     </script>
+<!-- Please configure the mentioned Bot id -->
+<!-- Bot id - 56255a11-6dac-4d53-be0d-a97ca5a1b76d -->
 
+  <script>
+    (function (botId) {
+      
+      var s = document.createElement("script");
+      s.async = true;
+      s.type = 'text/javascript';
+      s.src = "https://app.chat360.io/widget/chatbox/common_scripts/script.js";
+      s.onload = function () {
+        window.loadChat360Bot(botId);
+      };
+      s.onerror = function (err) {
+        console.error(err);
+      };
+      document.body.appendChild(s);
+    })("56255a11-6dac-4d53-be0d-a97ca5a1b76d");
+  </script>
     
 </body>
 </html>
