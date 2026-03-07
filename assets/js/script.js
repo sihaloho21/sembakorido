@@ -839,6 +839,86 @@ function levenshtein(a, b) {
     return matrix[aLen][bLen];
 }
 
+let activePaginationScrollFrame = null;
+
+function easeInOutCubic(progress) {
+    if (progress < 0.5) {
+        return 4 * progress * progress * progress;
+    }
+    return 1 - Math.pow(-2 * progress + 2, 3) / 2;
+}
+
+function getPaginationScrollAnchor() {
+    return document.getElementById('product-grid') ||
+        document.getElementById('search-input') ||
+        document.getElementById('katalog');
+}
+
+function getPaginationScrollGap(anchor) {
+    if (!anchor) return 0;
+    if (anchor.id === 'product-grid') return 14;
+    if (anchor.id === 'search-input') return 18;
+    return 28;
+}
+
+function getPaginationScrollTop(anchor) {
+    if (!anchor) return 0;
+
+    const header = document.getElementById('main-header') || document.querySelector('header');
+    const headerHeight = header ? header.offsetHeight : 0;
+    const visualGap = getPaginationScrollGap(anchor);
+    const anchorTop = anchor.getBoundingClientRect().top + window.scrollY;
+
+    return Math.max(0, Math.round(anchorTop - headerHeight - visualGap));
+}
+
+function smoothScrollToPaginationAnchor() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const reducedMotionAnchor = getPaginationScrollAnchor();
+        if (reducedMotionAnchor) {
+            window.scrollTo(0, getPaginationScrollTop(reducedMotionAnchor));
+        }
+        return;
+    }
+
+    const anchor = getPaginationScrollAnchor();
+    if (!anchor) return;
+
+    const startY = window.scrollY || window.pageYOffset || 0;
+    const targetY = getPaginationScrollTop(anchor);
+
+    // Avoid nudging the page down if the user is already near the catalog top area.
+    if (startY <= targetY + 24) return;
+
+    const distance = targetY - startY;
+    if (Math.abs(distance) < 24) return;
+
+    if (activePaginationScrollFrame) {
+        cancelAnimationFrame(activePaginationScrollFrame);
+        activePaginationScrollFrame = null;
+    }
+
+    const duration = Math.min(950, Math.max(650, Math.abs(distance) * 0.45));
+    const startTime = performance.now();
+
+    const animateScroll = (now) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = easeInOutCubic(progress);
+
+        window.scrollTo(0, Math.round(startY + (distance * easedProgress)));
+
+        if (progress < 1) {
+            activePaginationScrollFrame = requestAnimationFrame(animateScroll);
+            return;
+        }
+
+        activePaginationScrollFrame = null;
+    };
+
+    activePaginationScrollFrame = requestAnimationFrame(animateScroll);
+}
+
 function renderPagination(totalItems) {
     const container = document.getElementById('pagination-container');
     if (!container) return;
@@ -895,9 +975,8 @@ function changePage(page) {
     currentPage = page;
     renderProducts(filteredProducts);
     renderPagination(filteredProducts.length);
-    
-    // Scroll to top of catalog
-    document.getElementById('katalog').scrollIntoView({ behavior: 'smooth' });
+
+    smoothScrollToPaginationAnchor();
 }
 
 function setCategory(cat) {
