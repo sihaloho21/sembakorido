@@ -637,7 +637,7 @@ function renderProducts(products) {
                 </div>
                 <div class="lazy-image-wrapper">
                     <div class="skeleton skeleton-product-image"></div>
-                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" data-action="show-detail" data-product-id="${productId}" class="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity ${p.stok === 0 ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="720" height="405" data-fallback-src="https://placehold.co/300x200?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" data-action="show-detail" data-product-id="${productId}" class="w-full h-48 object-contain object-center bg-white cursor-pointer hover:opacity-90 transition-opacity ${p.stok === 0 ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="720" height="405" data-fallback-src="https://placehold.co/300x200?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
                 </div>
                 <div class="p-6">
                     <div class="flex justify-between items-start mb-2">
