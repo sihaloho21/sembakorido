@@ -44,6 +44,8 @@ function initializeSlider(images) {
         imgEl.setAttribute('data-fallback-src', 'https://placehold.co/300x200?text=Produk');
         imgEl.alt = `Slide ${index + 1}`;
         imgEl.className = `absolute inset-0 w-full h-full object-contain object-center bg-white transition-opacity duration-500 ${index === 0 ? 'opacity-100' : 'opacity-0'}`;
+        imgEl.style.padding = '12px';
+        imgEl.style.boxSizing = 'border-box';
         imgEl.onload = function() {
             if (skeletonLoader) {
                 skeletonLoader.classList.add('hidden');
@@ -198,6 +200,7 @@ function initializeSliderFallback() {
                 src="https://placehold.co/300x200?text=Produk" 
                 alt="Produk" 
                 class="w-full h-full object-contain object-center bg-white"
+                style="padding: 12px; box-sizing: border-box;"
                 data-fallback-src="https://placehold.co/300x200?text=Produk"
             >
         `;
