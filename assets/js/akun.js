@@ -2284,6 +2284,33 @@ var ensureImageFallbackHandler = (window.FrontendSanitize && window.FrontendSani
 
 ensureImageFallbackHandler();
 
+function showToast(message) {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        container.setAttribute('role', 'status');
+        container.setAttribute('aria-live', 'polite');
+        container.setAttribute('aria-atomic', 'true');
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.setAttribute('aria-atomic', 'true');
+    toast.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span>${escapeHtml(String(message || ''))}</span>
+    `;
+    
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
 /**
  * Hide all reward loaders (for akun page modal)
  */
