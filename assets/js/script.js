@@ -2214,6 +2214,48 @@ function getSessionQueryFromStoredUser() {
     return '&session_token=' + encodeURIComponent(token);
 }
 
+function getOrCreatePublicClientId() {
+    const key = 'gosembako_public_client_id';
+
+    const storages = [];
+    try { storages.push(localStorage); } catch (error) { /* ignore */ }
+    try { storages.push(sessionStorage); } catch (error) { /* ignore */ }
+
+    for (let i = 0; i < storages.length; i++) {
+        try {
+            const storage = storages[i];
+            const existing = storage.getItem(key);
+            if (existing && String(existing).length >= 16) return String(existing);
+        } catch (error) {
+            // ignore storage read errors
+        }
+    }
+
+    let id = '';
+    try {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            id = crypto.randomUUID();
+        }
+    } catch (error) {
+        // ignore
+    }
+
+    if (!id) {
+        id = 'cid-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+    }
+
+    for (let i = 0; i < storages.length; i++) {
+        try {
+            storages[i].setItem(key, id);
+            break;
+        } catch (error) {
+            // ignore storage write errors
+        }
+    }
+
+    return id;
+}
+
 function getPaylaterEligibilityMessage(reason) {
     const key = String(reason || '').toLowerCase();
     const map = {
@@ -3010,12 +3052,6 @@ function checkUserPoints(triggerEvent) {
         alert('Mohon masukkan nomor WhatsApp.');
         return;
     }
-    
-    // user_points sheet is sensitive; public checks must use session-based endpoint.
-    if (!sessionQuery) {
-        alert('Untuk mengecek poin, silakan login lewat menu Akun terlebih dahulu.');
-        return;
-    }
 
     // Show loading state
     const checkBtn = (triggerEvent && triggerEvent.currentTarget) || document.querySelector('[data-action="check-points"]');
@@ -3026,7 +3062,12 @@ function checkUserPoints(triggerEvent) {
     }
 
     // Use ApiService with no caching (always fresh data)
-    ApiService.get(`?action=public_user_points${sessionQuery}&_t=${Date.now()}`, { cache: false })
+    const clientId = getOrCreatePublicClientId();
+    const url = sessionQuery
+        ? `?action=public_user_points${sessionQuery}&_t=${Date.now()}`
+        : `?action=public_points_check&phone=${encodeURIComponent(normalizedPhone)}${clientId ? `&client_id=${encodeURIComponent(clientId)}` : ''}&_t=${Date.now()}`;
+
+    ApiService.get(url, { cache: false })
         .then(payload => {
             if (!payload || payload.success !== true) {
                 const message = String((payload && (payload.message || payload.error)) || 'Gagal mengecek poin.');
@@ -3054,9 +3095,14 @@ function checkUserPoints(triggerEvent) {
         })
         .catch(error => {
             console.error('Error checking points:', error);
-            const msg = String((error && error.message) || error || '').toLowerCase();
-            if (msg.includes('unauthorized_session') || msg.includes('session login') || msg.includes('session')) {
+            const msg = String((error && error.message) || '').trim();
+            const msgLower = msg.toLowerCase();
+            if (msgLower.includes('unauthorized_session') || msgLower.includes('session login') || msgLower.includes('session')) {
                 alert('Session login tidak valid. Silakan login ulang lewat menu Akun.');
+                return;
+            }
+            if (msg) {
+                alert(msg);
                 return;
             }
             alert('Gagal mengecek poin. Silakan coba lagi.');

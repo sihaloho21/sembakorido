@@ -82,6 +82,9 @@ const CLAIM_REWARD_WINDOW_SECONDS = 60;
 const CLAIM_REWARD_MAX_REQUESTS = 8;
 const PUBLIC_LOGIN_WINDOW_SECONDS = 60;
 const PUBLIC_LOGIN_MAX_REQUESTS = 12;
+const PUBLIC_POINTS_CHECK_WINDOW_SECONDS = 60;
+const PUBLIC_POINTS_CHECK_MAX_REQUESTS = 6;
+const PUBLIC_POINTS_CHECK_CLIENT_MAX_REQUESTS = 25;
 const PUBLIC_SESSION_TTL_SECONDS = 86400;
 const PUBLIC_SESSION_CACHE_TTL_MAX_SECONDS = 21600;
 const PUBLIC_SESSION_PROP_PREFIX = 'pub_session_meta:';
@@ -202,6 +205,9 @@ function doGet(e) {
   }
   if (action === 'public_user_points') {
     return jsonOutput(handlePublicUserPoints(params));
+  }
+  if (action === 'public_points_check') {
+    return jsonOutput(handlePublicPointsCheck(params));
   }
   if (action === 'public_user_orders') {
     return jsonOutput(handlePublicUserOrders(params));
@@ -605,6 +611,41 @@ function handlePublicUserPoints(params) {
       break;
     }
   }
+  return {
+    success: true,
+    phone: phone,
+    points: points,
+    last_updated: updatedAt
+  };
+}
+
+function handlePublicPointsCheck(params) {
+  const phone = normalizePhone(params.phone || params.whatsapp || '');
+  const clientId = String(params.client_id || '').trim();
+
+  if (!phone) {
+    return {
+      success: false,
+      error: 'INVALID_PAYLOAD',
+      message: 'phone wajib diisi'
+    };
+  }
+
+  const rateLimitError = enforcePublicPointsCheckRateLimit(phone, clientId);
+  if (rateLimitError) return rateLimitError;
+
+  const pointsObj = getRowsAsObjects('user_points');
+  var points = 0;
+  var updatedAt = '';
+  for (var i = 0; i < pointsObj.rows.length; i++) {
+    const row = pointsObj.rows[i];
+    if (normalizePhone(row.phone || row.whatsapp || '') === phone) {
+      points = parseNumber(row.points || row.poin || 0);
+      updatedAt = String(row.last_updated || '');
+      break;
+    }
+  }
+
   return {
     success: true,
     phone: phone,
@@ -4964,6 +5005,35 @@ function enforcePublicLoginRateLimit(phone) {
   return null;
 }
 
+function enforcePublicPointsCheckRateLimit(phone, clientId) {
+  const normalizedPhone = normalizePhone(phone || '');
+  const normalizedClientId = String(clientId || '').trim();
+  const cfg = getRateLimitConfig();
+  const phoneKey = 'pub_points_check:phone:' + (normalizedPhone || 'anon');
+  const clientKey = 'pub_points_check:client:' + (normalizedClientId || 'anon');
+
+  try {
+    const cache = CacheService.getScriptCache();
+    const currentPhone = parseInt(cache.get(phoneKey) || '0', 10) || 0;
+    const currentClient = parseInt(cache.get(clientKey) || '0', 10) || 0;
+
+    if (currentPhone >= cfg.publicPointsCheckMaxRequests || currentClient >= cfg.publicPointsCheckClientMaxRequests) {
+      return {
+        success: false,
+        error: 'RATE_LIMITED',
+        message: 'Terlalu banyak request cek poin, coba lagi sebentar.'
+      };
+    }
+
+    cache.put(phoneKey, String(currentPhone + 1), cfg.publicPointsCheckWindowSeconds);
+    cache.put(clientKey, String(currentClient + 1), cfg.publicPointsCheckWindowSeconds);
+  } catch (error) {
+    Logger.log('Public points check rate limit cache error: ' + error.toString());
+  }
+
+  return null;
+}
+
 function normalizeProvidedSignature(signature) {
   const raw = String(signature || '').trim().toLowerCase();
   if (raw.indexOf('sha256=') === 0) return raw.substring(7);
@@ -5179,6 +5249,24 @@ function getRateLimitConfig() {
     publicLoginMaxRequests: parsePositiveIntWithinRange(
       set.public_login_max_requests,
       PUBLIC_LOGIN_MAX_REQUESTS,
+      1,
+      500
+    ),
+    publicPointsCheckWindowSeconds: parsePositiveIntWithinRange(
+      set.public_points_check_window_seconds,
+      PUBLIC_POINTS_CHECK_WINDOW_SECONDS,
+      1,
+      3600
+    ),
+    publicPointsCheckMaxRequests: parsePositiveIntWithinRange(
+      set.public_points_check_max_requests,
+      PUBLIC_POINTS_CHECK_MAX_REQUESTS,
+      1,
+      200
+    ),
+    publicPointsCheckClientMaxRequests: parsePositiveIntWithinRange(
+      set.public_points_check_client_max_requests,
+      PUBLIC_POINTS_CHECK_CLIENT_MAX_REQUESTS,
       1,
       500
     )
