@@ -2225,26 +2225,45 @@ function closeLoyaltyModal() {
 /**
  * Update openRewardModal to load points and open modal
  */
-async function openRewardModal() {
-    const user = getLoggedInUser();
-    if (!user) return;
-    
-    // Load and display user's current points
-    await loadModalPoints();
-    
-    // Set reward context from user data
-    const pointsEl = document.getElementById('loyalty-modal-points');
-    const userPoints = pointsEl ? parseInt(pointsEl.textContent || '0') : 0;
-    setRewardContextFromAkun(user.whatsapp, userPoints, user.nama);
-    
-    // Show modal
-    document.getElementById('loyalty-modal').classList.remove('hidden');
-    
-    // Default to exchange tab
-    switchRewardTab('exchange');
-    
-    // Fetch reward items for the exchange tab
-    fetchRewardItemsForAkun();
+let openRewardModalInProgress = false;
+
+async function openRewardModal(triggerEvent) {
+    const openRewardBtn =
+        (triggerEvent && triggerEvent.currentTarget) ||
+        document.querySelector('[data-action="open-reward"]');
+
+    if (openRewardModalInProgress) return;
+    openRewardModalInProgress = true;
+    setButtonLoadingState(openRewardBtn, true, 'Memuat...');
+
+    try {
+        const user = getLoggedInUser();
+        if (!user) {
+            showToast('Mohon login terlebih dahulu.');
+            if (typeof showLogin === 'function') showLogin();
+            return;
+        }
+
+        // Show modal immediately, then hydrate data.
+        const modal = document.getElementById('loyalty-modal');
+        if (modal) modal.classList.remove('hidden');
+
+        // Default to exchange tab (will trigger rewards loading state).
+        switchRewardTab('exchange');
+
+        // Set reward context with fallback points first to avoid delays.
+        const fallbackPoints = parseInt(user.total_points || user.points || user.poin || 0, 10) || 0;
+        setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
+
+        // Load fresh points and update context again.
+        await loadModalPoints();
+        const pointsEl = document.getElementById('loyalty-modal-points');
+        const latestPoints = pointsEl ? (parseInt(pointsEl.textContent || '0', 10) || fallbackPoints) : fallbackPoints;
+        setRewardContextFromAkun(user.whatsapp, latestPoints, user.nama);
+    } finally {
+        setButtonLoadingState(openRewardBtn, false);
+        openRewardModalInProgress = false;
+    }
 }
 
 /**
@@ -2309,6 +2328,38 @@ function showToast(message) {
     
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
+}
+
+function setButtonLoadingState(button, isLoading, loadingText) {
+    const btn = button && button.tagName === 'BUTTON' ? button : null;
+    if (!btn) return;
+
+    if (isLoading) {
+        if (btn.dataset.loading === '1') return;
+        btn.dataset.loading = '1';
+        btn.dataset.originalHtml = btn.innerHTML;
+        btn.dataset.originalClass = btn.className;
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+        btn.className = `${btn.dataset.originalClass || ''} flex items-center justify-center gap-2 opacity-90 cursor-not-allowed`;
+        btn.innerHTML = `
+            <svg aria-hidden="true" class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>${escapeHtml(String(loadingText || 'Memuat...'))}</span>
+        `;
+        return;
+    }
+
+    if (btn.dataset.loading !== '1') return;
+    btn.disabled = false;
+    btn.removeAttribute('aria-busy');
+    if (btn.dataset.originalHtml !== undefined) btn.innerHTML = btn.dataset.originalHtml;
+    if (btn.dataset.originalClass !== undefined) btn.className = btn.dataset.originalClass;
+    delete btn.dataset.loading;
+    delete btn.dataset.originalHtml;
+    delete btn.dataset.originalClass;
 }
 
 let rewardCatalogCacheAkun = [];
@@ -2496,6 +2547,7 @@ let pendingRewardDataAkun = {
 };
 
 let claimWhatsAppUrlAkun = '';
+let claimRewardInProgressAkun = false;
 
 function parseRewardPointsValue(value) {
     const normalized = String(value || '0').replace(',', '.');
@@ -2677,8 +2729,15 @@ function backToConfirmModal() {
     if (confirmModal) confirmModal.classList.remove('hidden');
 }
 
-async function submitNameAndClaim() {
+async function submitNameAndClaim(triggerEvent) {
+    if (claimRewardInProgressAkun) return;
+
+    const submitBtn =
+        (triggerEvent && triggerEvent.currentTarget) ||
+        document.querySelector('[data-action="submit-name-claim"]');
+    const backBtn = document.querySelector('[data-action="back-to-confirm"]');
     const input = document.getElementById('claim-name-input');
+
     const customerName = String(input && input.value ? input.value : '').trim();
 
     if (!customerName) {
@@ -2691,10 +2750,25 @@ async function submitNameAndClaim() {
         return;
     }
 
-    const nameModal = document.getElementById('name-input-modal');
-    if (nameModal) nameModal.classList.add('hidden');
+    claimRewardInProgressAkun = true;
+    setButtonLoadingState(submitBtn, true, 'Memproses...');
+    if (backBtn) {
+        backBtn.disabled = true;
+        backBtn.classList.add('opacity-70', 'cursor-not-allowed');
+    }
+    if (input) input.disabled = true;
 
-    await processClaimRewardAkun(pendingRewardDataAkun.id, customerName);
+    try {
+        await processClaimRewardAkun(pendingRewardDataAkun.id, customerName);
+    } finally {
+        claimRewardInProgressAkun = false;
+        setButtonLoadingState(submitBtn, false);
+        if (backBtn) {
+            backBtn.disabled = false;
+            backBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+        }
+        if (input) input.disabled = false;
+    }
 }
 
 async function processClaimRewardAkun(rewardId, customerName) {
