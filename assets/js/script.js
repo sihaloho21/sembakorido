@@ -3072,7 +3072,18 @@ function checkUserPoints(triggerEvent) {
 /**
  * Claim reward
  */
+function ensureLoggedInForRewardExchange() {
+    const sessionQuery = (typeof getSessionQueryFromStoredUser === 'function') ? getSessionQueryFromStoredUser() : '';
+    if (sessionQuery) return true;
+    showToast('Tukar poin harus login dulu. Mengarahkan ke halaman Akun...');
+    setTimeout(() => {
+        window.location.href = '/akun.html';
+    }, 1200);
+    return false;
+}
+
 async function claimReward(rewardId) {
+    if (!ensureLoggedInForRewardExchange()) return;
     const phone = sessionStorage.getItem('reward_phone');
     
     if (!phone) {
@@ -3174,6 +3185,7 @@ let pendingRewardData = {
  * @param {string} rewardId - ID reward dari database
  */
 async function showConfirmTukarModal(rewardId) {
+    if (!ensureLoggedInForRewardExchange()) return;
     const userPoints = parseFloat(sessionStorage.getItem('user_points')) || 0;
     
     if (!sessionStorage.getItem('reward_phone')) {
@@ -3293,7 +3305,12 @@ async function submitNameAndClaim() {
  * @param {string} customerName - Nama pelanggan
  */
 async function processClaimReward(rewardId, customerName) {
+    if (!ensureLoggedInForRewardExchange()) return;
     const phone = sessionStorage.getItem('reward_phone');
+    if (!phone) {
+        showToast('Mohon cek poin Anda terlebih dahulu.');
+        return;
+    }
     
     try {
         // 1. Get reward details
