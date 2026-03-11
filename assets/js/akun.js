@@ -2311,6 +2311,8 @@ function showToast(message) {
     setTimeout(() => toast.remove(), 3000);
 }
 
+let rewardCatalogCacheAkun = [];
+
 /**
  * Hide all reward loaders (for akun page modal)
  */
@@ -2348,6 +2350,7 @@ async function fetchRewardItemsForAkun() {
             'Gagal memuat daftar hadiah.'
         );
         const items = Array.isArray(payload.rewards) ? payload.rewards : [];
+        rewardCatalogCacheAkun = items;
         
         // Render items
         renderRewardItemsListAkun(items);
@@ -2456,13 +2459,19 @@ function setRewardContextFromAkun(userPhone, userPoints, userName) {
 function handleTukarSekarangAkun(rewardId) {
     const user = getLoggedInUser();
     if (!user) {
-        showToast('Mohon login terlebih dahulu.');
+        showToast('Tukar poin harus login dulu. Silakan login terlebih dahulu.');
+        if (typeof showLogin === 'function') showLogin();
+        setTimeout(() => {
+            const phoneInput = document.getElementById('login-whatsapp');
+            if (phoneInput) phoneInput.focus();
+        }, 50);
         return;
     }
     
     // Get user's current points from the akun page display
-    const pointsEl = document.getElementById('loyalty-points');
-    const userPoints = pointsEl ? parseInt(pointsEl.textContent || '0') : 0;
+    const modalPointsEl = document.getElementById('loyalty-modal-points');
+    const pointsEl = modalPointsEl || document.getElementById('loyalty-points');
+    const userPoints = pointsEl ? (parseInt(pointsEl.textContent || '0', 10) || 0) : 0;
     
     // Set reward context automatically with phone, points, and name
     setRewardContextFromAkun(user.whatsapp, userPoints, user.nama);
@@ -2476,6 +2485,317 @@ function handleTukarSekarangAkun(rewardId) {
     } else {
         showToast('Fitur tukar poin akan segera hadir!');
     }
+}
+
+let pendingRewardDataAkun = {
+    id: null,
+    nama: null,
+    poin: null,
+    gambar: null,
+    deskripsi: null
+};
+
+let claimWhatsAppUrlAkun = '';
+
+function parseRewardPointsValue(value) {
+    const normalized = String(value || '0').replace(',', '.');
+    const num = parseFloat(normalized);
+    return Number.isFinite(num) ? num : 0;
+}
+
+function getCurrentUserPointsAkun() {
+    const modalPointsEl = document.getElementById('loyalty-modal-points');
+    const dashboardPointsEl = document.getElementById('loyalty-points');
+    const raw =
+        (modalPointsEl && modalPointsEl.textContent) ||
+        (dashboardPointsEl && dashboardPointsEl.textContent) ||
+        sessionStorage.getItem('user_points') ||
+        '0';
+    return parseRewardPointsValue(raw);
+}
+
+function ensureLoggedInForRewardExchangeAkun() {
+    const user = getLoggedInUser();
+    if (user) return user;
+
+    showToast('Tukar poin harus login dulu. Silakan login terlebih dahulu.');
+    const modalIdsToClose = ['confirm-tukar-modal', 'name-input-modal', 'claim-success-modal', 'loyalty-modal'];
+    modalIdsToClose.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
+
+    if (typeof showLogin === 'function') showLogin();
+    setTimeout(() => {
+        const phoneInput = document.getElementById('login-whatsapp');
+        if (phoneInput) phoneInput.focus();
+    }, 50);
+
+    return null;
+}
+
+function findRewardByIdInCatalogAkun(rewardId) {
+    const rid = String(rewardId || '').trim();
+    if (!rid) return null;
+    if (!Array.isArray(rewardCatalogCacheAkun) || rewardCatalogCacheAkun.length === 0) return null;
+
+    return rewardCatalogCacheAkun.find((item) => {
+        return String(item && (item.id || item.reward_id || '')).trim() === rid;
+    }) || null;
+}
+
+async function resolveRewardDetailAkun(rewardId) {
+    const cached = findRewardByIdInCatalogAkun(rewardId);
+    if (cached) return cached;
+
+    // Best-effort refresh catalog using strict-public endpoint (requires session)
+    const user = getLoggedInUser();
+    const sessionQuery = buildSessionQuery(user);
+    if (sessionQuery) {
+        try {
+            const payload = parsePublicSuccess(
+                await akunApiGet(`?action=public_rewards_catalog${sessionQuery}`),
+                'Gagal memuat daftar hadiah.'
+            );
+            const items = Array.isArray(payload.rewards) ? payload.rewards : [];
+            rewardCatalogCacheAkun = items;
+            const refreshed = findRewardByIdInCatalogAkun(rewardId);
+            if (refreshed) return refreshed;
+        } catch (error) {
+            console.warn('Failed refreshing rewards catalog:', error);
+        }
+    }
+
+    // Fallback: direct sheet lookup (public)
+    try {
+        const rows = await ApiService.get(`?sheet=tukar_poin&action=search&id=${encodeURIComponent(String(rewardId || ''))}`, { cache: false });
+        if (Array.isArray(rows) && rows.length > 0) return rows[0];
+    } catch (error) {
+        console.warn('Failed fetching reward by id:', error);
+    }
+
+    return null;
+}
+
+function buildClaimRewardErrorMessageAkun(error) {
+    const raw = String((error && error.message) || error || '');
+    const normalized = raw.toLowerCase();
+    if (normalized.includes('reward_stock_empty')) return 'Stok reward sedang habis.';
+    if (normalized.includes('reward_daily_quota_reached')) return 'Quota harian reward sudah habis.';
+    if (normalized.includes('points_insufficient')) return 'Poin Anda tidak cukup untuk reward ini.';
+    if (normalized.includes('user_not_found')) return 'Data poin pengguna tidak ditemukan.';
+    if (normalized.includes('rate_limited')) return 'Terlalu banyak percobaan klaim, coba lagi sebentar.';
+    return 'Gagal memproses penukaran. Silakan coba lagi.';
+}
+
+/**
+ * Show confirm modal for reward exchange (akun page)
+ */
+async function showConfirmTukarModal(rewardId) {
+    const user = ensureLoggedInForRewardExchangeAkun();
+    if (!user) return;
+
+    // Ensure context is up to date
+    const userPoints = getCurrentUserPointsAkun();
+    setRewardContextFromAkun(user.whatsapp, userPoints, user.nama);
+
+    if (!sessionStorage.getItem('reward_phone')) {
+        showToast('Mohon cek poin Anda terlebih dahulu.');
+        return;
+    }
+
+    const reward = await resolveRewardDetailAkun(rewardId);
+    if (!reward) {
+        showToast('Data hadiah tidak ditemukan.');
+        return;
+    }
+
+    const rewardName = String(reward.nama || reward.judul || reward.reward || 'Hadiah');
+    const requiredPoints = parseRewardPointsValue(reward.poin || reward.Poin || reward.points || 0);
+    const currentPoints = getCurrentUserPointsAkun();
+
+    if (requiredPoints <= 0) {
+        showToast('Poin reward tidak valid.');
+        return;
+    }
+
+    if (currentPoints < requiredPoints) {
+        showToast(`Poin Anda tidak cukup. Dibutuhkan ${requiredPoints} poin, saldo Anda ${currentPoints.toFixed(1)} poin.`);
+        return;
+    }
+
+    pendingRewardDataAkun = {
+        id: String(rewardId || ''),
+        nama: rewardName,
+        poin: requiredPoints,
+        gambar: String(reward.gambar || ''),
+        deskripsi: String(reward.deskripsi || '')
+    };
+
+    const nameEl = document.getElementById('confirm-reward-name');
+    const pointsEl = document.getElementById('confirm-reward-points');
+    const remainingEl = document.getElementById('confirm-remaining-points');
+    if (nameEl) nameEl.textContent = rewardName;
+    if (pointsEl) pointsEl.textContent = String(requiredPoints);
+    if (remainingEl) remainingEl.textContent = (currentPoints - requiredPoints).toFixed(1);
+
+    const modal = document.getElementById('confirm-tukar-modal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function cancelTukarModal() {
+    const modal = document.getElementById('confirm-tukar-modal');
+    if (modal) modal.classList.add('hidden');
+    pendingRewardDataAkun = { id: null, nama: null, poin: null, gambar: null, deskripsi: null };
+}
+
+function proceedToNameInput() {
+    const confirmModal = document.getElementById('confirm-tukar-modal');
+    if (confirmModal) confirmModal.classList.add('hidden');
+
+    const nameModal = document.getElementById('name-input-modal');
+    if (nameModal) nameModal.classList.remove('hidden');
+
+    const input = document.getElementById('claim-name-input');
+    if (input && !String(input.value || '').trim()) {
+        input.value = String(sessionStorage.getItem('reward_customer_name') || '').trim();
+    }
+    setTimeout(() => {
+        const el = document.getElementById('claim-name-input');
+        if (el) el.focus();
+    }, 50);
+}
+
+function backToConfirmModal() {
+    const nameModal = document.getElementById('name-input-modal');
+    if (nameModal) nameModal.classList.add('hidden');
+
+    const input = document.getElementById('claim-name-input');
+    if (input) input.value = '';
+
+    const confirmModal = document.getElementById('confirm-tukar-modal');
+    if (confirmModal) confirmModal.classList.remove('hidden');
+}
+
+async function submitNameAndClaim() {
+    const input = document.getElementById('claim-name-input');
+    const customerName = String(input && input.value ? input.value : '').trim();
+
+    if (!customerName) {
+        showToast('Mohon masukkan nama Anda terlebih dahulu.');
+        return;
+    }
+
+    if (customerName.length < 3) {
+        showToast('Nama harus minimal 3 karakter.');
+        return;
+    }
+
+    const nameModal = document.getElementById('name-input-modal');
+    if (nameModal) nameModal.classList.add('hidden');
+
+    await processClaimRewardAkun(pendingRewardDataAkun.id, customerName);
+}
+
+async function processClaimRewardAkun(rewardId, customerName) {
+    const user = ensureLoggedInForRewardExchangeAkun();
+    if (!user) return;
+
+    const phone = String(sessionStorage.getItem('reward_phone') || user.whatsapp || '').trim();
+    if (!phone) {
+        showToast('Mohon cek poin Anda terlebih dahulu.');
+        return;
+    }
+
+    if (!rewardId) {
+        showToast('Data hadiah tidak ditemukan.');
+        return;
+    }
+
+    try {
+        showToast('Sedang memproses penukaran...');
+
+        const requestId = `RW-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+        const claimResult = await GASActions.post({
+            action: 'claim_reward',
+            sheet: 'tukar_poin',
+            data: {
+                reward_id: rewardId,
+                phone: phone,
+                customer_name: customerName,
+                request_id: requestId
+            }
+        });
+
+        const claimId = claimResult.claim_id || ('CLM-' + Date.now().toString().slice(-6));
+        const requiredPoints = parseRewardPointsValue(pendingRewardDataAkun.poin || 0);
+        const pointsUsed = parseRewardPointsValue(claimResult.points_used || requiredPoints);
+        const balanceAfter = parseRewardPointsValue(claimResult.balance_after);
+        const currentPoints = getCurrentUserPointsAkun();
+        const finalPoints = balanceAfter > 0 ? balanceAfter : Math.max(0, currentPoints - pointsUsed);
+
+        // Update local state and UI
+        sessionStorage.setItem('user_points', String(finalPoints));
+        const dashboardPointsEl = document.getElementById('loyalty-points');
+        const modalPointsEl = document.getElementById('loyalty-modal-points');
+        if (dashboardPointsEl) dashboardPointsEl.textContent = String(parseInt(finalPoints, 10) || 0);
+        if (modalPointsEl) modalPointsEl.textContent = String(parseInt(finalPoints, 10) || 0);
+
+        // Prepare WhatsApp message
+        const rewardName = String(pendingRewardDataAkun.nama || 'Reward');
+        const waMessage =
+            `*KLAIM REWARD POIN BERHASIL*\n\n` +
+            `ID Klaim: ${claimId}\n` +
+            `Pelanggan: ${customerName}\n` +
+            `Nomor WhatsApp: ${phone}\n` +
+            `Reward: ${rewardName}\n` +
+            `Poin Ditukar: ${pointsUsed}\n` +
+            `Sisa Poin: ${finalPoints.toFixed(1)}\n\n` +
+            `Mohon segera diproses. Terima kasih!`;
+        claimWhatsAppUrlAkun = `https://wa.me/628993370200?text=${encodeURIComponent(waMessage)}`;
+
+        // Reset pending data & close other modals
+        pendingRewardDataAkun = { id: null, nama: null, poin: null, gambar: null, deskripsi: null };
+        const confirmModal = document.getElementById('confirm-tukar-modal');
+        const nameModal = document.getElementById('name-input-modal');
+        if (confirmModal) confirmModal.classList.add('hidden');
+        if (nameModal) nameModal.classList.add('hidden');
+
+        // Show success modal
+        showClaimSuccessModal(claimId);
+
+        // Refresh claim history if tab is open
+        const historyContent = document.getElementById('history-content');
+        if (historyContent && !historyContent.classList.contains('hidden')) {
+            loadClaimsHistory();
+        }
+
+    } catch (error) {
+        console.error('Error processing claim:', error);
+        showToast(buildClaimRewardErrorMessageAkun(error));
+    }
+}
+
+function showClaimSuccessModal(claimId) {
+    const modal = document.getElementById('claim-success-modal');
+    const idEl = document.getElementById('claim-success-id');
+    if (idEl) idEl.textContent = String(claimId || '');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeClaimSuccessModal() {
+    const modal = document.getElementById('claim-success-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function openClaimWhatsApp() {
+    if (!claimWhatsAppUrlAkun) {
+        showToast('Link WhatsApp klaim belum tersedia.');
+        return;
+    }
+    const popup = window.open(claimWhatsAppUrlAkun, '_blank', 'noopener,noreferrer');
+    if (popup) popup.opener = null;
+    setTimeout(() => closeClaimSuccessModal(), 500);
 }
 
 
