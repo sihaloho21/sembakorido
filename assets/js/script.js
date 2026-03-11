@@ -3001,12 +3001,21 @@ function checkUserPoints(triggerEvent) {
     const phoneInput = document.getElementById('reward-phone');
     const phone = phoneInput ? phoneInput.value.trim() : '';
     
-    if (!phone) {
+    const storedUser = (typeof getStoredLoggedInUser === 'function') ? getStoredLoggedInUser() : null;
+    const sessionQuery = (typeof getSessionQueryFromStoredUser === 'function') ? getSessionQueryFromStoredUser() : '';
+    const storedPhone = storedUser ? normalizePhone(storedUser.phone || storedUser.whatsapp || '') : '';
+    const normalizedPhone = normalizePhone(phone || storedPhone);
+    
+    if (!normalizedPhone) {
         alert('Mohon masukkan nomor WhatsApp.');
         return;
     }
-
-    const normalizedPhone = normalizePhone(phone);
+    
+    // user_points sheet is sensitive; public checks must use session-based endpoint.
+    if (!sessionQuery) {
+        alert('Untuk mengecek poin, silakan login lewat menu Akun terlebih dahulu.');
+        return;
+    }
 
     // Show loading state
     const checkBtn = (triggerEvent && triggerEvent.currentTarget) || document.querySelector('[data-action="check-points"]');
@@ -3017,46 +3026,37 @@ function checkUserPoints(triggerEvent) {
     }
 
     // Use ApiService with no caching (always fresh data)
-    ApiService.get('?sheet=user_points', { cache: false })
-        .then(raw => {
-            const data = normalizeApiRows(raw);
-            if (!Array.isArray(data)) {
-                throw new Error('FORMAT_DATA_TIDAK_VALID');
+    ApiService.get(`?action=public_user_points${sessionQuery}&_t=${Date.now()}`, { cache: false })
+        .then(payload => {
+            if (!payload || payload.success !== true) {
+                const message = String((payload && (payload.message || payload.error)) || 'Gagal mengecek poin.');
+                throw new Error(message);
             }
-            if (data.length === 0 && raw && typeof raw === 'object' && (raw.error || raw.message)) {
-                throw new Error(String(raw.error || raw.message));
-            }
-
-            // Find user by normalized phone
-            // Fix: API uses 'phone' field, not 'whatsapp'
-            const user = data.find(r => normalizePhone(r.phone || r.whatsapp || '') === normalizedPhone);
 
             const display = document.getElementById('points-display');
             const value = document.querySelector('#points-display h4');
+            if (!display || !value) return;
 
-            if (user) {
-                // Fix: Handle comma as decimal separator from spreadsheet
-                const rawPoints = (user.points || user.poin || '0').toString().replace(',', '.');
-                const pts = parseFloat(rawPoints) || 0;
-                value.innerHTML = `${escapeHtml(pts.toFixed(1))} <span class="text-sm font-bold">Poin</span>`;
-                sessionStorage.setItem('user_points', pts);
-                sessionStorage.setItem('reward_phone', normalizedPhone);
-                sessionStorage.setItem('reward_customer_name', user.nama || user.pelanggan || normalizedPhone);
-                showToast(`Ditemukan ${pts.toFixed(1)} poin untuk nomor ini!`);
-            } else {
-                value.innerHTML = `${escapeHtml('0.0')} <span class="text-sm font-bold">Poin</span>`;
-                sessionStorage.setItem('user_points', 0);
-                sessionStorage.setItem('reward_phone', normalizedPhone);
-                sessionStorage.setItem('reward_customer_name', normalizedPhone);
-                showToast('Nomor tidak ditemukan atau belum memiliki poin.');
-            }
+            // Fix: Handle comma as decimal separator from spreadsheet
+            const rawPoints = String(payload.points || 0).replace(',', '.');
+            const pts = parseFloat(rawPoints) || 0;
+            value.innerHTML = `${escapeHtml(pts.toFixed(1))} <span class="text-sm font-bold">Poin</span>`;
+
+            // Prefer stored phone from session to avoid mismatch
+            const resolvedPhone = storedPhone || normalizedPhone;
+            sessionStorage.setItem('user_points', pts);
+            sessionStorage.setItem('reward_phone', resolvedPhone);
+            sessionStorage.setItem('reward_customer_name', (storedUser && (storedUser.nama || storedUser.pelanggan)) || resolvedPhone);
+            if (phoneInput && resolvedPhone) phoneInput.value = resolvedPhone;
+
+            showToast(pts > 0 ? `Saldo poin Anda: ${pts.toFixed(1)} poin.` : 'Poin Anda saat ini 0.0.');
             display.classList.remove('hidden');
         })
         .catch(error => {
             console.error('Error checking points:', error);
             const msg = String((error && error.message) || error || '').toLowerCase();
-            if (msg.includes('unauthorized')) {
-                alert('Gagal mengecek poin. Akses data poin dibatasi, silakan login lewat menu Akun terlebih dahulu.');
+            if (msg.includes('unauthorized_session') || msg.includes('session login') || msg.includes('session')) {
+                alert('Session login tidak valid. Silakan login ulang lewat menu Akun.');
                 return;
             }
             alert('Gagal mengecek poin. Silakan coba lagi.');
