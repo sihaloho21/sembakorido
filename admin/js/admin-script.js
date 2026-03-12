@@ -1969,6 +1969,262 @@ function parseOrderItems(itemsText) {
         });
 }
 
+function getCurrentAdminRole() {
+    const session = readAdminSession();
+    const roleFromSession = session && session.role ? String(session.role) : '';
+    const roleFromStorage = readStorageValue(['sembako_admin_role', 'admin_role', 'sembako_role']);
+    return String(roleFromSession || roleFromStorage || '').trim().toLowerCase();
+}
+
+function canAdminPrintReceipts() {
+    return getCurrentAdminRole() === 'superadmin';
+}
+
+function formatReceiptIdr(amount) {
+    const num = parseCurrencyValue(amount);
+    if (!Number.isFinite(num)) return '0';
+    return Math.round(num).toLocaleString('id-ID');
+}
+
+function receiptCenterText(text, width) {
+    const raw = String(text || '').trim();
+    if (!raw) return '';
+    if (raw.length >= width) return raw.slice(0, width);
+    const padLeft = Math.floor((width - raw.length) / 2);
+    const padRight = width - raw.length - padLeft;
+    return `${' '.repeat(padLeft)}${raw}${' '.repeat(padRight)}`;
+}
+
+function receiptWrapText(text, width) {
+    const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!normalized) return [];
+
+    const words = normalized.split(' ');
+    const lines = [];
+    let current = '';
+
+    function pushChunked(word) {
+        for (let i = 0; i < word.length; i += width) {
+            lines.push(word.slice(i, i + width));
+        }
+    }
+
+    for (let i = 0; i < words.length; i += 1) {
+        const word = words[i];
+        if (!current) {
+            if (word.length <= width) {
+                current = word;
+            } else {
+                pushChunked(word);
+                current = '';
+            }
+            continue;
+        }
+
+        if ((current.length + 1 + word.length) <= width) {
+            current += ` ${word}`;
+            continue;
+        }
+
+        lines.push(current);
+        if (word.length <= width) {
+            current = word;
+        } else {
+            pushChunked(word);
+            current = '';
+        }
+    }
+
+    if (current) lines.push(current);
+    return lines;
+}
+
+function receiptLineLeftRight(left, right, width) {
+    const l = String(left || '');
+    const r = String(right || '');
+
+    if (l.length + r.length <= width) {
+        return `${l}${' '.repeat(Math.max(0, width - l.length - r.length))}${r}`;
+    }
+
+    const leftLines = receiptWrapText(l, width);
+    const out = leftLines.length ? leftLines.slice() : [''];
+    const lastIndex = out.length - 1;
+    const last = out[lastIndex] || '';
+
+    if (last.length + r.length <= width) {
+        out[lastIndex] = `${last}${' '.repeat(Math.max(0, width - last.length - r.length))}${r}`;
+    } else {
+        out.push(`${' '.repeat(Math.max(0, width - r.length))}${r}`);
+    }
+
+    return out.join('\n');
+}
+
+function formatPaymentMethodLabel(value) {
+    const v = String(value || '').trim().toLowerCase();
+    const map = {
+        cash: 'Tunai',
+        tunai: 'Tunai',
+        qris: 'QRIS',
+        gajian: 'Bayar Gajian',
+        paylater: 'PayLater'
+    };
+    return map[v] || String(value || '').trim();
+}
+
+function buildAdminOrderReceiptText(order, options) {
+    const opts = options || {};
+    const width = parseInt(opts.width, 10);
+    const lineWidth = Number.isFinite(width) && width > 10 ? width : 32;
+    const dash = '-'.repeat(lineWidth);
+
+    const storeName = 'GoSembako';
+    const storeUrl = 'paketsembako.com';
+
+    const orderId = String(order && (order.id || order.order_id) || '').trim();
+    const dateText = String(order && (order.tanggal || order.tanggal_pesanan || order.timestamp || order.date) || '').trim();
+    const customerName = String(order && (order.pelanggan || order.customer || order.nama) || '').trim();
+    const customerPhone = normalizePhone(order && (order.phone || order.wa) || '');
+    const paymentMethod = String(order && (order.payment_method || order.payment) || '').trim();
+    const status = String(order && order.status || '').trim();
+
+    const items = parseOrderItems(order && (order.produk || order.items) || '');
+    const total = parseCurrencyValue(order && (order.total || order.total_bayar || order.totalBayar) || 0);
+
+    const lines = [];
+    lines.push(receiptCenterText(storeName.toUpperCase(), lineWidth));
+    lines.push(receiptCenterText(storeUrl, lineWidth));
+    lines.push(dash);
+
+    if (orderId) lines.push(...receiptWrapText(`Order ID: ${orderId}`, lineWidth));
+    if (dateText) lines.push(...receiptWrapText(`Tanggal: ${dateText}`, lineWidth));
+    if (customerName) lines.push(...receiptWrapText(`Nama: ${customerName}`, lineWidth));
+    if (customerPhone) lines.push(...receiptWrapText(`WA: ${customerPhone}`, lineWidth));
+    lines.push(dash);
+
+    if (items.length > 0) {
+        items.forEach((item, idx) => {
+            const name = String((item && item.name) || '').trim() || 'Item';
+            const qty = parseInt(item && item.qty, 10) || 1;
+            lines.push(...receiptWrapText(`${idx + 1}. ${name}`, lineWidth));
+            receiptLineLeftRight('Qty', String(qty), lineWidth)
+                .split('\n')
+                .forEach((line) => lines.push(line));
+        });
+    } else {
+        lines.push(...receiptWrapText('Tidak ada item.', lineWidth));
+    }
+
+    lines.push(dash);
+    receiptLineLeftRight('TOTAL', formatReceiptIdr(total), lineWidth)
+        .split('\n')
+        .forEach((line) => lines.push(line));
+
+    if (paymentMethod) lines.push(...receiptWrapText(`Bayar: ${formatPaymentMethodLabel(paymentMethod)}`, lineWidth));
+    if (status) lines.push(...receiptWrapText(`Status: ${status}`, lineWidth));
+
+    lines.push(dash);
+    lines.push(receiptCenterText('Owner Copy', lineWidth));
+    return lines.join('\n');
+}
+
+function buildReceiptPrintHtml(receiptText, title) {
+    const safeTitle = escapeHtml(title || 'Struk');
+    const safeText = escapeHtml(receiptText || '');
+
+    return `<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${safeTitle}</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #fff; }
+    body {
+      width: 58mm;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      line-height: 1.2;
+      color: #000;
+    }
+    .receipt { padding: 2mm; }
+    pre { margin: 0; white-space: pre; }
+    @media print {
+      @page { margin: 0; }
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="receipt"><pre>${safeText}</pre></div>
+  <script>
+    (function () {
+      function doPrint() {
+        try {
+          window.focus();
+          window.print();
+        } catch (e) {}
+      }
+
+      window.addEventListener('load', function () {
+        setTimeout(doPrint, 200);
+      });
+
+      window.onafterprint = function () {
+        setTimeout(function () {
+          try { window.close(); } catch (e) {}
+        }, 200);
+      };
+
+      setTimeout(function () {
+        try { window.close(); } catch (e) {}
+      }, 20000);
+    })();
+  </script>
+</body>
+</html>`;
+}
+
+function printAdminReceipt58mm(receiptText, title) {
+    const html = buildReceiptPrintHtml(receiptText, title || 'Struk');
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=420,height=650');
+    if (!printWindow) {
+        showAdminToast('Popup diblokir oleh browser. Izinkan popup untuk mencetak struk.', 'warning');
+        return;
+    }
+
+    try {
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
+    } catch (error) {
+        console.error('Failed to open print window:', error);
+        showAdminToast('Gagal membuka jendela cetak.', 'error');
+        try {
+            printWindow.close();
+        } catch (e) {}
+    }
+}
+
+function printOrderReceiptById(orderId) {
+    if (!canAdminPrintReceipts()) {
+        showAdminToast('Cetak struk hanya untuk owner (superadmin).', 'warning');
+        return;
+    }
+
+    const id = String(orderId || '').trim();
+    const order = allOrders.find((o) => String(o.id || o.order_id || '').trim() === id);
+    if (!order) {
+        showAdminToast('Pesanan tidak ditemukan untuk dicetak.', 'error');
+        return;
+    }
+
+    const receiptText = buildAdminOrderReceiptText(order, { width: 32 });
+    const title = id ? `Struk ${id}` : 'Struk';
+    printAdminReceipt58mm(receiptText, title);
+}
+
 function calculateOrderHpp(order) {
     const items = parseOrderItems(order.produk || '');
     if (items.length === 0) return 0;
@@ -2409,6 +2665,7 @@ function renderOrderTable() {
     const startIndex = (currentOrderPage - 1) * ordersPerPage;
     const endIndex = Math.min(startIndex + ordersPerPage, filtered.length);
     const visibleOrders = filtered.slice(startIndex, endIndex);
+    const canPrintReceipts = canAdminPrintReceipts();
 
     tbody.innerHTML = visibleOrders.map(o => {
         const safeId = escapeHtml(o.id);
@@ -2418,6 +2675,9 @@ function renderOrderTable() {
         const safeStatusText = escapeHtml(o.status);
         const safeStatusClass = String(o.status || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
         const safeDate = escapeHtml(o.tanggal || '');
+        const printButton = canPrintReceipts
+            ? `<button type="button" data-action="print-order-receipt" data-id="${escapeAttr(o.id)}" class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold transition">Cetak</button>`
+            : '';
         return `
         <tr class="hover:bg-gray-50 transition">
             <td class="px-6 py-4 font-bold text-blue-600 text-xs" data-label="ID Pesanan">${safeId}</td>
@@ -2430,14 +2690,17 @@ function renderOrderTable() {
             </td>
             <td class="px-6 py-4 text-xs text-gray-500" data-label="Tanggal">${safeDate}</td>
             <td class="px-6 py-4 text-right" data-label="Aksi">
-                <select data-action="update-order-status" data-id="${escapeAttr(o.id)}" class="text-xs border rounded-lg p-1 outline-none focus:ring-1 focus:ring-green-500">
-                    <option value="">Ubah Status</option>
-                    <option value="Menunggu">Menunggu</option>
-                    <option value="Diproses">Diproses</option>
-                    <option value="Dikirim">Dikirim</option>
-                    <option value="Terima">Terima</option>
-                    <option value="Dibatalkan">Dibatalkan</option>
-                </select>
+                <div class="flex flex-col items-end gap-2">
+                    ${printButton}
+                    <select data-action="update-order-status" data-id="${escapeAttr(o.id)}" class="text-xs border rounded-lg p-1 outline-none focus:ring-1 focus:ring-green-500">
+                        <option value="">Ubah Status</option>
+                        <option value="Menunggu">Menunggu</option>
+                        <option value="Diproses">Diproses</option>
+                        <option value="Dikirim">Dikirim</option>
+                        <option value="Terima">Terima</option>
+                        <option value="Dibatalkan">Dibatalkan</option>
+                    </select>
+                </div>
             </td>
         </tr>
     `;
@@ -4875,6 +5138,11 @@ function bindAdminActions() {
 
         if (action === 'bulk-create-products') {
             handleBulkCreateProducts();
+            return;
+        }
+
+        if (action === 'print-order-receipt') {
+            printOrderReceiptById(trigger.dataset.id);
             return;
         }
 
