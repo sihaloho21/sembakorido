@@ -2099,7 +2099,7 @@ function buildAdminOrderReceiptText(order, options) {
 
     const storeName = 'GoSembako';
     const storeUrl = 'paketsembako.com';
-    const storeAddress = 'Jalan Nambo, Kaserangan, Ciruas, Kab. Serang, Banten';
+    const storeAddressLines = ['Jalan Nambo, Kaserangan, Ciruas,', 'Kab. Serang, Banten'];
     const storeWhatsapp = '085312846180';
 
     const orderId = String(order && (order.id || order.order_id) || '').trim();
@@ -2116,12 +2116,15 @@ function buildAdminOrderReceiptText(order, options) {
         return sum + (Number.isFinite(qty) ? qty : 0);
     }, 0);
 
+    const pushCenteredWrapped = (text) => {
+        receiptWrapText(text, lineWidth).forEach((line) => lines.push(receiptCenterText(line, lineWidth)));
+    };
+
     const lines = [];
     lines.push(receiptCenterText(storeName.toUpperCase(), lineWidth));
     lines.push(receiptCenterText(storeUrl, lineWidth));
-    lines.push(...receiptWrapText('alamat :', lineWidth));
-    lines.push(...receiptWrapText(storeAddress, lineWidth));
-    lines.push(...receiptWrapText(`No. WA : ${storeWhatsapp}`, lineWidth));
+    storeAddressLines.forEach((addrLine) => pushCenteredWrapped(addrLine));
+    pushCenteredWrapped(`No. WA : ${storeWhatsapp}`);
     lines.push(dash);
 
     lines.push(...receiptWrapText(`Order ID:${orderId ? ` ${orderId}` : ''}`, lineWidth));

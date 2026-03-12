@@ -1267,7 +1267,11 @@ function buildReceiptText(receipt, options) {
     const storeName = String((receipt && receipt.storeName) || getReceiptStoreName() || 'GoSembako').trim();
     const storeUrlRaw = String((receipt && receipt.storeUrl) || 'https://paketsembako.com').trim();
     const storeUrl = storeUrlRaw.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-    const storeAddress = String((receipt && receipt.storeAddress) || 'Jalan Nambo, Kaserangan, Ciruas, Kab. Serang, Banten').trim();
+    const storeAddressRaw = String((receipt && receipt.storeAddress) || 'Jalan Nambo, Kaserangan, Ciruas,\nKab. Serang, Banten').trim();
+    const storeAddressLines = storeAddressRaw
+        .split(/\r?\n/)
+        .map((line) => String(line || '').trim())
+        .filter(Boolean);
     const storeWhatsapp = String((receipt && receipt.storeWhatsapp) || '085312846180').trim();
 
     const orderId = String((receipt && (receipt.orderId || receipt.id)) || '').trim();
@@ -1284,12 +1288,15 @@ function buildReceiptText(receipt, options) {
         return sum + (Number.isFinite(qty) ? qty : 0);
     }, 0);
 
+    const pushCenteredWrapped = (text) => {
+        receiptWrapText(text, lineWidth).forEach((line) => lines.push(receiptCenterText(line, lineWidth)));
+    };
+
     const lines = [];
     if (storeName) lines.push(receiptCenterText(storeName.toUpperCase(), lineWidth));
     if (storeUrl) lines.push(receiptCenterText(storeUrl, lineWidth));
-    lines.push(...receiptWrapText('alamat :', lineWidth));
-    if (storeAddress) lines.push(...receiptWrapText(storeAddress, lineWidth));
-    lines.push(...receiptWrapText(`No. WA : ${storeWhatsapp}`, lineWidth));
+    storeAddressLines.forEach((addrLine) => pushCenteredWrapped(addrLine));
+    if (storeWhatsapp) pushCenteredWrapped(`No. WA : ${storeWhatsapp}`);
     lines.push(dash);
 
     lines.push(...receiptWrapText(`Order ID:${orderId ? ` ${orderId}` : ''}`, lineWidth));
