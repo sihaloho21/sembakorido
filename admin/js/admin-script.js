@@ -2099,6 +2099,8 @@ function buildAdminOrderReceiptText(order, options) {
 
     const storeName = 'GoSembako';
     const storeUrl = 'paketsembako.com';
+    const storeAddress = 'Jalan Nambo, Kaserangan, Ciruas, Kab. Serang, Banten';
+    const storeWhatsapp = '085312846180';
 
     const orderId = String(order && (order.id || order.order_id) || '').trim();
     const dateText = String(order && (order.tanggal || order.tanggal_pesanan || order.timestamp || order.date) || '').trim();
@@ -2109,16 +2111,23 @@ function buildAdminOrderReceiptText(order, options) {
 
     const items = parseOrderItems(order && (order.produk || order.items) || '');
     const total = parseCurrencyValue(order && (order.total || order.total_bayar || order.totalBayar) || 0);
+    const totalQty = items.reduce((sum, item) => {
+        const qty = parseInt(item && item.qty, 10);
+        return sum + (Number.isFinite(qty) ? qty : 0);
+    }, 0);
 
     const lines = [];
     lines.push(receiptCenterText(storeName.toUpperCase(), lineWidth));
     lines.push(receiptCenterText(storeUrl, lineWidth));
+    lines.push(...receiptWrapText('alamat :', lineWidth));
+    lines.push(...receiptWrapText(storeAddress, lineWidth));
+    lines.push(...receiptWrapText(`No. WA : ${storeWhatsapp}`, lineWidth));
     lines.push(dash);
 
-    if (orderId) lines.push(...receiptWrapText(`Order ID: ${orderId}`, lineWidth));
-    if (dateText) lines.push(...receiptWrapText(`Tanggal: ${dateText}`, lineWidth));
-    if (customerName) lines.push(...receiptWrapText(`Nama: ${customerName}`, lineWidth));
-    if (customerPhone) lines.push(...receiptWrapText(`WA: ${customerPhone}`, lineWidth));
+    lines.push(...receiptWrapText(`Order ID:${orderId ? ` ${orderId}` : ''}`, lineWidth));
+    lines.push(...receiptWrapText(`Tanggal:${dateText ? ` ${dateText}` : ''}`, lineWidth));
+    lines.push(...receiptWrapText(`Nama:${customerName ? ` ${customerName}` : ''}`, lineWidth));
+    lines.push(...receiptWrapText(`WA:${customerPhone ? ` ${customerPhone}` : ''}`, lineWidth));
     lines.push(dash);
 
     if (items.length > 0) {
@@ -2126,37 +2135,38 @@ function buildAdminOrderReceiptText(order, options) {
             const name = String((item && item.name) || '').trim() || 'Item';
             const qty = parseInt(item && item.qty, 10) || 1;
             lines.push(...receiptWrapText(`${idx + 1}. ${name}`, lineWidth));
-            receiptLineLeftRight('Qty', String(qty), lineWidth)
-                .split('\n')
-                .forEach((line) => lines.push(line));
+            lines.push(...receiptWrapText(`Qty : ${qty}`, lineWidth));
         });
     } else {
         lines.push(...receiptWrapText('Tidak ada item.', lineWidth));
     }
 
     lines.push(dash);
-    receiptLineLeftRight('TOTAL', formatReceiptIdr(total), lineWidth)
-        .split('\n')
-        .forEach((line) => lines.push(line));
+    lines.push(...receiptWrapText(`Total QTY : ${totalQty}`, lineWidth));
+    lines.push('');
 
-    if (paymentMethod) lines.push(...receiptWrapText(`Bayar: ${formatPaymentMethodLabel(paymentMethod)}`, lineWidth));
-    if (status) lines.push(...receiptWrapText(`Status: ${status}`, lineWidth));
-
-    const printedAt = formatReceiptPrintTimestamp(new Date());
+    lines.push(...receiptWrapText(`TOTAL Rp ${formatReceiptIdr(total)}`, lineWidth));
+    lines.push(...receiptWrapText(`Bayar:${paymentMethod ? ` ${formatPaymentMethodLabel(paymentMethod)}` : ''}`, lineWidth));
+    lines.push(...receiptWrapText(`Status:${status ? ` ${status}` : ''}`, lineWidth));
 
     lines.push(dash);
-    lines.push(receiptCenterText('Terima Kasih telah berbelanja di', lineWidth));
+    lines.push(receiptCenterText('Terima Kasih telah berbelanja', lineWidth));
     lines.push(dash);
-    lines.push(receiptDotFill('*Tukarkan Poin Reward ', lineWidth, '.'));
-    lines.push(...receiptWrapText('Tukar poin untuk klaim produk reward di menu Akun > Reward.', lineWidth));
-    lines.push(dash);
-    lines.push(...receiptWrapText(`JAM CETAK : ${printedAt.date} Jam : ${printedAt.time}`, lineWidth));
+    lines.push(...receiptWrapText('*Tukar poin untuk klaim produk', lineWidth));
+    lines.push(...receiptWrapText('reward di menu Akun > Reward *', lineWidth));
     return lines.join('\n');
 }
 
 function buildReceiptPrintHtml(receiptText, title) {
     const safeTitle = escapeHtml(title || 'Struk');
     const safeText = escapeHtml(receiptText || '');
+    let origin = '';
+    try {
+        origin = typeof location !== 'undefined' && location.origin ? location.origin : '';
+    } catch (e) {
+        origin = '';
+    }
+    const logoSrc = escapeHtml(`${origin}/assets/img/logo.webp`);
 
     return `<!doctype html>
 <html lang="id">
@@ -2166,27 +2176,35 @@ function buildReceiptPrintHtml(receiptText, title) {
   <title>${safeTitle}</title>
   <style>
     html, body { margin: 0; padding: 0; background: #fff; }
-    body {
-      width: 58mm;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 11px;
-      line-height: 1.2;
-      color: #000;
-    }
-    .receipt { padding: 2mm; }
-    pre { margin: 0; white-space: pre; }
-    @media print {
-      @page { margin: 0; }
-      body { margin: 0; }
-    }
-  </style>
+	    body {
+	      width: 58mm;
+	      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	      font-size: 11px;
+	      line-height: 1.2;
+	      color: #000;
+	    }
+	    .receipt { padding: 2mm; }
+	    .receipt-logo {
+	      display: block;
+	      margin: 0 auto 1.5mm;
+	      width: 28mm;
+	      max-width: 100%;
+	      height: auto;
+	      filter: grayscale(100%) contrast(160%);
+	    }
+	    pre { margin: 0; white-space: pre; }
+	    @media print {
+	      @page { margin: 0; }
+	      body { margin: 0; }
+	    }
+	  </style>
 </head>
 <body>
-  <div class="receipt"><pre>${safeText}</pre></div>
-  <script>
-    (function () {
-      function doPrint() {
-        try {
+	  <div class="receipt"><img class="receipt-logo" src="${logoSrc}" alt="GOSEMBAKO" /><pre>${safeText}</pre></div>
+	  <script>
+	    (function () {
+	      function doPrint() {
+	        try {
           window.focus();
           window.print();
         } catch (e) {}
