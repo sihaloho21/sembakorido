@@ -1147,7 +1147,337 @@ function showToast(message) {
     setTimeout(() => toast.remove(), 3000);
 }
 
-function showSuccessNotification(orderId, waUrl) {
+function getReceiptStoreName() {
+    const title = String(document.title || '').trim();
+    if (!title) return 'GoSembako';
+
+    // e.g. "GoSembako – Paket Sembako Murah" -> "GoSembako"
+    const parts = title.split('–');
+    const primary = String(parts[0] || title).trim();
+    return primary || 'GoSembako';
+}
+
+function formatReceiptIdr(amount) {
+    const num = Number(amount);
+    if (!Number.isFinite(num)) return '0';
+    return Math.round(num).toLocaleString('id-ID');
+}
+
+function receiptCenterText(text, width) {
+    const raw = String(text || '').trim();
+    if (!raw) return '';
+    if (raw.length >= width) return raw.slice(0, width);
+    const padLeft = Math.floor((width - raw.length) / 2);
+    const padRight = width - raw.length - padLeft;
+    return `${' '.repeat(padLeft)}${raw}${' '.repeat(padRight)}`;
+}
+
+function receiptWrapText(text, width) {
+    const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!normalized) return [];
+
+    const words = normalized.split(' ');
+    const lines = [];
+    let current = '';
+
+    function pushChunked(word) {
+        for (let i = 0; i < word.length; i += width) {
+            lines.push(word.slice(i, i + width));
+        }
+    }
+
+    for (let i = 0; i < words.length; i += 1) {
+        const word = words[i];
+        if (!current) {
+            if (word.length <= width) {
+                current = word;
+            } else {
+                pushChunked(word);
+                current = '';
+            }
+            continue;
+        }
+
+        if ((current.length + 1 + word.length) <= width) {
+            current += ` ${word}`;
+            continue;
+        }
+
+        lines.push(current);
+        if (word.length <= width) {
+            current = word;
+        } else {
+            pushChunked(word);
+            current = '';
+        }
+    }
+
+    if (current) lines.push(current);
+    return lines;
+}
+
+function receiptLineLeftRight(left, right, width) {
+    const l = String(left || '');
+    const r = String(right || '');
+
+    // Normal case: both fit in one line
+    if (l.length + r.length <= width) {
+        return `${l}${' '.repeat(Math.max(0, width - l.length - r.length))}${r}`;
+    }
+
+    // Fallback: wrap left and place right on the last line if possible
+    const leftLines = receiptWrapText(l, width);
+    const out = leftLines.length ? leftLines.slice() : [''];
+    const lastIndex = out.length - 1;
+    const last = out[lastIndex] || '';
+
+    if (last.length + r.length <= width) {
+        out[lastIndex] = `${last}${' '.repeat(Math.max(0, width - last.length - r.length))}${r}`;
+    } else {
+        out.push(`${' '.repeat(Math.max(0, width - r.length))}${r}`);
+    }
+
+    return out.join('\n');
+}
+
+function buildReceiptText(receipt, options) {
+    const opts = options || {};
+    const width = parseInt(opts.width, 10);
+    const lineWidth = Number.isFinite(width) && width > 10 ? width : 32;
+    const dash = '-'.repeat(lineWidth);
+
+    const storeName = String((receipt && receipt.storeName) || getReceiptStoreName() || 'GoSembako').trim();
+    const storeUrlRaw = String((receipt && receipt.storeUrl) || 'https://paketsembako.com').trim();
+    const storeUrl = storeUrlRaw.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+
+    const orderId = String((receipt && (receipt.orderId || receipt.id)) || '').trim();
+    const dateText = String((receipt && receipt.dateText) || '').trim();
+    const customerName = String((receipt && receipt.customerName) || '').trim();
+    const customerPhone = String((receipt && receipt.customerPhone) || '').trim();
+    const paymentMethod = String((receipt && receipt.paymentMethod) || '').trim();
+    const shippingMethod = String((receipt && receipt.shippingMethod) || '').trim();
+    const location = String((receipt && receipt.location) || '').trim();
+    const locationLink = String((receipt && receipt.locationLink) || '').trim();
+
+    const subtotal = receipt && receipt.subtotal !== undefined ? Number(receipt.subtotal) : null;
+    const shippingFee = receipt && receipt.shippingFee !== undefined ? Number(receipt.shippingFee) : null;
+    const total = receipt && receipt.total !== undefined ? Number(receipt.total) : null;
+    const pointsEarned = receipt && receipt.pointsEarned !== undefined ? receipt.pointsEarned : null;
+    const items = receipt && Array.isArray(receipt.items) ? receipt.items : [];
+    const paylaterSimulation = receipt && receipt.paylaterSimulation ? receipt.paylaterSimulation : null;
+
+    const lines = [];
+    if (storeName) lines.push(receiptCenterText(storeName.toUpperCase(), lineWidth));
+    if (storeUrl) lines.push(receiptCenterText(storeUrl, lineWidth));
+    lines.push(dash);
+
+    if (orderId) lines.push(...receiptWrapText(`Order ID: ${orderId}`, lineWidth));
+    if (dateText) lines.push(...receiptWrapText(`Tanggal: ${dateText}`, lineWidth));
+    if (customerName) lines.push(...receiptWrapText(`Nama: ${customerName}`, lineWidth));
+    if (customerPhone) lines.push(...receiptWrapText(`WA: ${customerPhone}`, lineWidth));
+    lines.push(dash);
+
+    if (items.length > 0) {
+        items.forEach((item, idx) => {
+            const itemName = String((item && item.name) || '').trim() || 'Item';
+            const variation = String((item && item.variation) || '').trim();
+            const qty = parseInt(item && item.qty, 10) || 0;
+            const unitPrice = Number(item && item.unitPrice);
+            const itemTotal = Number(item && item.total);
+            const isGrosir = !!(item && item.isGrosir);
+
+            let title = `${idx + 1}. ${itemName}`;
+            if (variation) title += ` (${variation})`;
+            if (isGrosir) title += ' [Grosir]';
+            lines.push(...receiptWrapText(title, lineWidth));
+
+            const left = `${qty} x ${formatReceiptIdr(unitPrice)}`;
+            const right = formatReceiptIdr(Number.isFinite(itemTotal) ? itemTotal : (qty * unitPrice));
+            const detail = receiptLineLeftRight(left, right, lineWidth);
+            detail.split('\n').forEach((line) => lines.push(line));
+        });
+    } else {
+        lines.push(...receiptWrapText('Tidak ada item.', lineWidth));
+    }
+
+    lines.push(dash);
+
+    if (subtotal !== null && Number.isFinite(subtotal)) {
+        receiptLineLeftRight('Subtotal', formatReceiptIdr(subtotal), lineWidth)
+            .split('\n')
+            .forEach((line) => lines.push(line));
+    }
+    if (shippingFee !== null && Number.isFinite(shippingFee)) {
+        receiptLineLeftRight('Ongkir', formatReceiptIdr(shippingFee), lineWidth)
+            .split('\n')
+            .forEach((line) => lines.push(line));
+    }
+    if (total !== null && Number.isFinite(total)) {
+        receiptLineLeftRight('TOTAL', formatReceiptIdr(total), lineWidth)
+            .split('\n')
+            .forEach((line) => lines.push(line));
+    }
+
+    lines.push(dash);
+
+    if (paymentMethod) lines.push(...receiptWrapText(`Bayar: ${paymentMethod}`, lineWidth));
+    if (shippingMethod) lines.push(...receiptWrapText(`Kirim: ${shippingMethod}`, lineWidth));
+    if (location) lines.push(...receiptWrapText(`Lokasi: ${location}`, lineWidth));
+    if (locationLink) lines.push(...receiptWrapText(`Maps: ${locationLink}`, lineWidth));
+    if (pointsEarned !== null && pointsEarned !== undefined && pointsEarned !== '') {
+        lines.push(...receiptWrapText(`Poin: +${pointsEarned}`, lineWidth));
+    }
+
+    if (paylaterSimulation) {
+        const tenorWeeks = paylaterSimulation.tenorWeeks !== undefined ? Number(paylaterSimulation.tenorWeeks) : null;
+        const feePercent = paylaterSimulation.feePercent !== undefined ? Number(paylaterSimulation.feePercent) : null;
+        const feeAmount = paylaterSimulation.feeAmount !== undefined ? Number(paylaterSimulation.feeAmount) : null;
+        const totalDue = paylaterSimulation.totalBeforePenalty !== undefined ? Number(paylaterSimulation.totalBeforePenalty) : null;
+
+        lines.push(dash);
+        lines.push(...receiptWrapText('PayLater:', lineWidth));
+        if (Number.isFinite(tenorWeeks)) lines.push(...receiptWrapText(`Tenor: ${tenorWeeks} minggu`, lineWidth));
+        if (Number.isFinite(feePercent)) lines.push(...receiptWrapText(`Fee: ${feePercent}%`, lineWidth));
+        if (Number.isFinite(feeAmount)) {
+            receiptLineLeftRight('Fee', formatReceiptIdr(feeAmount), lineWidth)
+                .split('\n')
+                .forEach((line) => lines.push(line));
+        }
+        if (Number.isFinite(totalDue)) {
+            receiptLineLeftRight('Total due', formatReceiptIdr(totalDue), lineWidth)
+                .split('\n')
+                .forEach((line) => lines.push(line));
+        }
+    }
+
+    lines.push(dash);
+    lines.push(receiptCenterText('Terima kasih!', lineWidth));
+
+    return lines.join('\n');
+}
+
+function buildReceiptPrintHtml(receiptText, title) {
+    const safeTitle = escapeHtml(title || 'Struk');
+    const safeText = escapeHtml(receiptText || '');
+
+    return `<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${safeTitle}</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #fff; }
+    body {
+      width: 58mm;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      line-height: 1.2;
+      color: #000;
+    }
+    .receipt { padding: 2mm; }
+    pre { margin: 0; white-space: pre; }
+    @media print {
+      @page { margin: 0; }
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="receipt"><pre>${safeText}</pre></div>
+  <script>
+    (function () {
+      function doPrint() {
+        try {
+          window.focus();
+          window.print();
+        } catch (e) {}
+      }
+
+      window.addEventListener('load', function () {
+        setTimeout(doPrint, 200);
+      });
+
+      window.onafterprint = function () {
+        setTimeout(function () {
+          try { window.close(); } catch (e) {}
+        }, 200);
+      };
+
+      // Fallback close if onafterprint doesn't fire
+      setTimeout(function () {
+        try { window.close(); } catch (e) {}
+      }, 20000);
+    })();
+  </script>
+</body>
+</html>`;
+}
+
+function printReceipt58mm(receiptData) {
+    const text = buildReceiptText(receiptData, { width: 32 });
+    const orderId = receiptData && receiptData.orderId ? String(receiptData.orderId) : '';
+    const title = orderId ? `Struk ${orderId}` : 'Struk';
+    const html = buildReceiptPrintHtml(text, title);
+
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=420,height=650');
+    if (!printWindow) {
+        alert('Popup diblokir oleh browser. Izinkan popup untuk mencetak struk.');
+        return;
+    }
+
+    try {
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
+    } catch (error) {
+        console.error('Failed to open print window:', error);
+        alert('Gagal membuka jendela cetak. Silakan coba lagi.');
+        try {
+            printWindow.close();
+        } catch (e) {}
+    }
+}
+
+function canCurrentUserPrintReceipt() {
+    const sessionKey = 'sembako_admin_session_v1';
+    let session = null;
+    try {
+        const raw = String(sessionStorage.getItem(sessionKey) || '').trim();
+        if (raw) session = JSON.parse(raw);
+    } catch (error) {
+        session = null;
+    }
+
+    const expiresAt = Number(session && session.expires_at);
+    if (!expiresAt || expiresAt <= Date.now()) return false;
+
+    const role = String((session && session.role) || sessionStorage.getItem('sembako_admin_role') || localStorage.getItem('sembako_admin_role') || '')
+        .trim()
+        .toLowerCase();
+    if (role !== 'superadmin') return false;
+
+    const tokenKeys = [
+        'sembako_admin_api_token',
+        'sembako_admin_write_token',
+        'sembako_admin_token',
+        'admin_token',
+        'api_token',
+        'sembako_api_token',
+        'gos_admin_token',
+        'gos_api_token'
+    ];
+
+    for (let i = 0; i < tokenKeys.length; i += 1) {
+        const key = tokenKeys[i];
+        const token = String(sessionStorage.getItem(key) || localStorage.getItem(key) || '').trim();
+        if (token) return true;
+    }
+
+    return false;
+}
+
+function showSuccessNotification(orderId, waUrl, receiptData) {
     // Create modal overlay
     const overlay = document.createElement('div');
     overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] animate-fade-in';
@@ -1158,6 +1488,18 @@ function showSuccessNotification(orderId, waUrl) {
     notification.className = 'bg-white rounded-2xl shadow-2xl p-8 max-w-sm mx-4 text-center transform scale-95 relative';
     notification.style.animation = 'scaleIn 0.3s ease-out forwards';
     const safeImage = sanitizeUrl('assets/images/success-shield.gif', 'assets/images/success-shield.gif');
+    const canPrintReceipt = Boolean(receiptData) && canCurrentUserPrintReceipt();
+    const printSectionHtml = canPrintReceipt
+        ? `
+        <button type="button" data-action="print-receipt" class="block w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 px-6 rounded-xl transition shadow flex items-center justify-center gap-2 mt-3">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/>
+            </svg>
+            <span>Cetak Struk (58mm)</span>
+        </button>
+        <p class="text-xs text-gray-500 mt-2">Pastikan printer thermal 58mm sudah terpasang, lalu pilih di dialog cetak.</p>
+        `
+        : '';
     
     notification.innerHTML = `
         <button type="button" data-action="dismiss-notification" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition p-1 rounded-full hover:bg-gray-100">
@@ -1177,6 +1519,7 @@ function showSuccessNotification(orderId, waUrl) {
             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.631 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             <span>Lanjut ke WhatsApp</span>
         </a>
+        ${printSectionHtml}
     `;
     
     overlay.appendChild(notification);
@@ -1185,6 +1528,21 @@ function showSuccessNotification(orderId, waUrl) {
     const dismissBtn = notification.querySelector('[data-action="dismiss-notification"]');
     if (dismissBtn) {
         dismissBtn.addEventListener('click', () => overlay.remove());
+    }
+
+    if (canPrintReceipt) {
+        const printBtn = notification.querySelector('[data-action="print-receipt"]');
+        if (printBtn) {
+            window.__lastReceipt = receiptData;
+            printBtn.addEventListener('click', () => {
+                try {
+                    printReceipt58mm(receiptData);
+                } catch (error) {
+                    console.error('Failed printing receipt:', error);
+                    alert('Gagal mencetak struk. Silakan coba lagi.');
+                }
+            });
+        }
     }
     
     // Add CSS animations if not exist
@@ -2795,6 +3153,7 @@ async function sendToWA() {
     let totalQty = 0;
     let itemsText = '';
     let itemsForSheet = '';
+    let receiptItems = [];
     
     cart.forEach((item, idx) => {
         const price = isGajian ? item.hargaGajian : item.harga;
@@ -2808,43 +3167,73 @@ async function sendToWA() {
         const grosirText = isGrosir ? ` (Harga Grosir: Rp ${effectivePrice.toLocaleString('id-ID')}/unit)` : '';
         itemsText += `${idx + 1}. ${item.nama}${variationText} x${item.qty}${grosirText} = Rp ${itemTotal.toLocaleString('id-ID')}\n`;
         itemsForSheet += `${item.nama}${variationText} (x${item.qty}) | `;
+        receiptItems.push({
+            name: item.nama || '',
+            variation: item.selectedVariation ? item.selectedVariation.nama : '',
+            qty: item.qty || 0,
+            unitPrice: effectivePrice,
+            total: itemTotal,
+            isGrosir: isGrosir
+        });
     });
     
+    const subtotal = total;
     const shippingFee = shipMethod === 'Antar Nikomas' ? 2000 : 0;
     total += shippingFee;
 
     let paylaterDetailText = '';
     let paylaterOrderMeta = {};
+    let paylaterState = null;
     if (isPaylater) {
-        const state = await refreshPaylaterCheckoutState(true);
-        if (!state || !state.eligible || !state.simulation) {
-            alert((state && state.message) || 'PayLater belum memenuhi syarat untuk pesanan ini.');
+        paylaterState = await refreshPaylaterCheckoutState(true);
+        if (!paylaterState || !paylaterState.eligible || !paylaterState.simulation) {
+            alert((paylaterState && paylaterState.message) || 'PayLater belum memenuhi syarat untuk pesanan ini.');
             return;
         }
         paylaterOrderMeta = {
-            paylater_tenor_weeks: state.simulation.tenorWeeks,
-            paylater_fee_percent: state.simulation.feePercent,
-            paylater_fee_amount: state.simulation.feeAmount,
-            paylater_total_due: state.simulation.totalBeforePenalty,
+            paylater_tenor_weeks: paylaterState.simulation.tenorWeeks,
+            paylater_fee_percent: paylaterState.simulation.feePercent,
+            paylater_fee_amount: paylaterState.simulation.feeAmount,
+            paylater_total_due: paylaterState.simulation.totalBeforePenalty,
             payment_method: 'paylater'
         };
         paylaterDetailText =
             `*PayLater Simulasi:*\n` +
-            `- Pokok: Rp ${Number(state.simulation.principal || 0).toLocaleString('id-ID')}\n` +
-            `- Tenor: ${Number(state.simulation.tenorWeeks || 1)} minggu\n` +
-            `- Biaya Layanan (${Number(state.simulation.feePercent || 0)}%): Rp ${Number(state.simulation.feeAmount || 0).toLocaleString('id-ID')}\n` +
-            `- Total Jatuh Tempo: Rp ${Number(state.simulation.totalBeforePenalty || 0).toLocaleString('id-ID')}\n\n`;
+            `- Pokok: Rp ${Number(paylaterState.simulation.principal || 0).toLocaleString('id-ID')}\n` +
+            `- Tenor: ${Number(paylaterState.simulation.tenorWeeks || 1)} minggu\n` +
+            `- Biaya Layanan (${Number(paylaterState.simulation.feePercent || 0)}%): Rp ${Number(paylaterState.simulation.feeAmount || 0).toLocaleString('id-ID')}\n` +
+            `- Total Jatuh Tempo: Rp ${Number(paylaterState.simulation.totalBeforePenalty || 0).toLocaleString('id-ID')}\n\n`;
     }
     
     // Calculate reward points (1 point per 10,000 IDR)
     const rewardConfig = CONFIG.getRewardConfig();
     const pointValue = rewardConfig.pointValue || 10000;
     const pointsEarned = Math.floor(total / pointValue);
+    const orderDateText = new Date().toLocaleString('id-ID');
     
     const orderId = generateOrderId();
     
     const locationLink = document.getElementById('location-link')?.value || '';
     const locationText = locationLink ? `\n*Lokasi Maps:* ${locationLink}` : '';
+
+    const receiptData = {
+        storeName: getReceiptStoreName(),
+        storeUrl: 'https://paketsembako.com',
+        orderId: orderId,
+        dateText: orderDateText,
+        customerName: name,
+        customerPhone: normalizePhone(phone),
+        paymentMethod: payMethod,
+        shippingMethod: shipMethod,
+        location: location,
+        locationLink: locationLink,
+        items: receiptItems,
+        subtotal: subtotal,
+        shippingFee: shippingFee,
+        total: total,
+        pointsEarned: pointsEarned,
+        paylaterSimulation: paylaterState && paylaterState.simulation ? paylaterState.simulation : null
+    };
 
     const message = `*PESANAN BARU - GOSEMBAKO*\n\n` +
         `*Order ID: ${orderId}*\n` +
@@ -2873,7 +3262,7 @@ async function sendToWA() {
         qty: totalQty,
         total: total,
         status: isPaylater ? 'Pending PayLater' : 'Pending',
-        tanggal: new Date().toLocaleString('id-ID'),
+        tanggal: orderDateText,
         phone: normalizePhone(phone),
         poin: pointsEarned,
         point_processed: 'No',
@@ -2893,7 +3282,7 @@ async function sendToWA() {
         closeOrderModal();
         
         // Show success notification with WhatsApp button
-        showSuccessNotification(orderId, waUrl);
+        showSuccessNotification(orderId, waUrl, receiptData);
         
     } catch (err) {
         console.error('❌ Error logging order:', err);
