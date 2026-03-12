@@ -2061,6 +2061,24 @@ function receiptLineLeftRight(left, right, width) {
     return out.join('\n');
 }
 
+function receiptDotFill(text, width, dotChar = '.') {
+    const raw = String(text || '');
+    const w = parseInt(width, 10);
+    const maxWidth = Number.isFinite(w) && w > 0 ? w : raw.length;
+    if (raw.length >= maxWidth) return raw.slice(0, maxWidth);
+    return raw + String(dotChar || '.').repeat(Math.max(0, maxWidth - raw.length));
+}
+
+function formatReceiptPrintTimestamp(dateObj) {
+    const d = dateObj instanceof Date ? dateObj : new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return { date: `${dd}/${mm}/${yy}`, time: `${hh}:${min}` };
+}
+
 function formatPaymentMethodLabel(value) {
     const v = String(value || '').trim().toLowerCase();
     const map = {
@@ -2124,8 +2142,15 @@ function buildAdminOrderReceiptText(order, options) {
     if (paymentMethod) lines.push(...receiptWrapText(`Bayar: ${formatPaymentMethodLabel(paymentMethod)}`, lineWidth));
     if (status) lines.push(...receiptWrapText(`Status: ${status}`, lineWidth));
 
+    const printedAt = formatReceiptPrintTimestamp(new Date());
+
     lines.push(dash);
-    lines.push(receiptCenterText('Owner Copy', lineWidth));
+    lines.push(receiptCenterText('Terima Kasih telah berbelanja di', lineWidth));
+    lines.push(dash);
+    lines.push(receiptDotFill('*Tukarkan Poin Reward ', lineWidth, '.'));
+    lines.push(...receiptWrapText('Tukar poin untuk klaim produk reward di menu Akun > Reward.', lineWidth));
+    lines.push(dash);
+    lines.push(...receiptWrapText(`JAM CETAK : ${printedAt.date} Jam : ${printedAt.time}`, lineWidth));
     return lines.join('\n');
 }
 
