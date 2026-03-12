@@ -1420,9 +1420,31 @@ function printReceipt58mm(receiptData) {
     const title = orderId ? `Struk ${orderId}` : 'Struk';
     const html = buildReceiptPrintHtml(text, title);
 
-    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=420,height=650');
+    let blobUrl = '';
+    try {
+        const blob = new Blob([html], { type: 'text/html' });
+        blobUrl = URL.createObjectURL(blob);
+    } catch (error) {
+        blobUrl = '';
+    }
+
+    const printWindow = window.open(blobUrl || '', '_blank', 'width=420,height=650');
     if (!printWindow) {
+        if (blobUrl) {
+            try {
+                URL.revokeObjectURL(blobUrl);
+            } catch (e) {}
+        }
         alert('Popup diblokir oleh browser. Izinkan popup untuk mencetak struk.');
+        return;
+    }
+
+    if (blobUrl) {
+        setTimeout(() => {
+            try {
+                URL.revokeObjectURL(blobUrl);
+            } catch (e) {}
+        }, 60000);
         return;
     }
 
