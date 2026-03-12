@@ -1267,32 +1267,35 @@ function buildReceiptText(receipt, options) {
     const storeName = String((receipt && receipt.storeName) || getReceiptStoreName() || 'GoSembako').trim();
     const storeUrlRaw = String((receipt && receipt.storeUrl) || 'https://paketsembako.com').trim();
     const storeUrl = storeUrlRaw.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+    const storeAddress = String((receipt && receipt.storeAddress) || 'Jalan Nambo, Kaserangan, Ciruas, Kab. Serang, Banten').trim();
+    const storeWhatsapp = String((receipt && receipt.storeWhatsapp) || '085312846180').trim();
 
     const orderId = String((receipt && (receipt.orderId || receipt.id)) || '').trim();
     const dateText = String((receipt && receipt.dateText) || '').trim();
     const customerName = String((receipt && receipt.customerName) || '').trim();
     const customerPhone = String((receipt && receipt.customerPhone) || '').trim();
     const paymentMethod = String((receipt && receipt.paymentMethod) || '').trim();
-    const shippingMethod = String((receipt && receipt.shippingMethod) || '').trim();
-    const location = String((receipt && receipt.location) || '').trim();
-    const locationLink = String((receipt && receipt.locationLink) || '').trim();
+    const status = String((receipt && receipt.status) || '').trim();
 
-    const subtotal = receipt && receipt.subtotal !== undefined ? Number(receipt.subtotal) : null;
-    const shippingFee = receipt && receipt.shippingFee !== undefined ? Number(receipt.shippingFee) : null;
     const total = receipt && receipt.total !== undefined ? Number(receipt.total) : null;
-    const pointsEarned = receipt && receipt.pointsEarned !== undefined ? receipt.pointsEarned : null;
     const items = receipt && Array.isArray(receipt.items) ? receipt.items : [];
-    const paylaterSimulation = receipt && receipt.paylaterSimulation ? receipt.paylaterSimulation : null;
+    const totalQty = items.reduce((sum, item) => {
+        const qty = parseInt(item && item.qty, 10);
+        return sum + (Number.isFinite(qty) ? qty : 0);
+    }, 0);
 
     const lines = [];
     if (storeName) lines.push(receiptCenterText(storeName.toUpperCase(), lineWidth));
     if (storeUrl) lines.push(receiptCenterText(storeUrl, lineWidth));
+    lines.push(...receiptWrapText('alamat :', lineWidth));
+    if (storeAddress) lines.push(...receiptWrapText(storeAddress, lineWidth));
+    lines.push(...receiptWrapText(`No. WA : ${storeWhatsapp}`, lineWidth));
     lines.push(dash);
 
-    if (orderId) lines.push(...receiptWrapText(`Order ID: ${orderId}`, lineWidth));
-    if (dateText) lines.push(...receiptWrapText(`Tanggal: ${dateText}`, lineWidth));
-    if (customerName) lines.push(...receiptWrapText(`Nama: ${customerName}`, lineWidth));
-    if (customerPhone) lines.push(...receiptWrapText(`WA: ${customerPhone}`, lineWidth));
+    lines.push(...receiptWrapText(`Order ID:${orderId ? ` ${orderId}` : ''}`, lineWidth));
+    lines.push(...receiptWrapText(`Tanggal:${dateText ? ` ${dateText}` : ''}`, lineWidth));
+    lines.push(...receiptWrapText(`Nama:${customerName ? ` ${customerName}` : ''}`, lineWidth));
+    lines.push(...receiptWrapText(`WA:${customerPhone ? ` ${customerPhone}` : ''}`, lineWidth));
     lines.push(dash);
 
     if (items.length > 0) {
@@ -1300,83 +1303,29 @@ function buildReceiptText(receipt, options) {
             const itemName = String((item && item.name) || '').trim() || 'Item';
             const variation = String((item && item.variation) || '').trim();
             const qty = parseInt(item && item.qty, 10) || 0;
-            const unitPrice = Number(item && item.unitPrice);
-            const itemTotal = Number(item && item.total);
-            const isGrosir = !!(item && item.isGrosir);
 
             let title = `${idx + 1}. ${itemName}`;
             if (variation) title += ` (${variation})`;
-            if (isGrosir) title += ' [Grosir]';
             lines.push(...receiptWrapText(title, lineWidth));
-
-            const left = `${qty} x ${formatReceiptIdr(unitPrice)}`;
-            const right = formatReceiptIdr(Number.isFinite(itemTotal) ? itemTotal : (qty * unitPrice));
-            const detail = receiptLineLeftRight(left, right, lineWidth);
-            detail.split('\n').forEach((line) => lines.push(line));
+            lines.push(...receiptWrapText(`Qty : ${qty}`, lineWidth));
         });
     } else {
         lines.push(...receiptWrapText('Tidak ada item.', lineWidth));
     }
 
     lines.push(dash);
+    lines.push(...receiptWrapText(`Total QTY : ${totalQty}`, lineWidth));
+    lines.push('');
 
-    if (subtotal !== null && Number.isFinite(subtotal)) {
-        receiptLineLeftRight('Subtotal', formatReceiptIdr(subtotal), lineWidth)
-            .split('\n')
-            .forEach((line) => lines.push(line));
-    }
-    if (shippingFee !== null && Number.isFinite(shippingFee)) {
-        receiptLineLeftRight('Ongkir', formatReceiptIdr(shippingFee), lineWidth)
-            .split('\n')
-            .forEach((line) => lines.push(line));
-    }
-    if (total !== null && Number.isFinite(total)) {
-        receiptLineLeftRight('TOTAL', formatReceiptIdr(total), lineWidth)
-            .split('\n')
-            .forEach((line) => lines.push(line));
-    }
+    lines.push(...receiptWrapText(`TOTAL Rp ${formatReceiptIdr(total)}`, lineWidth));
+    lines.push(...receiptWrapText(`Bayar:${paymentMethod ? ` ${paymentMethod}` : ''}`, lineWidth));
+    lines.push(...receiptWrapText(`Status:${status ? ` ${status}` : ''}`, lineWidth));
 
     lines.push(dash);
-
-    if (paymentMethod) lines.push(...receiptWrapText(`Bayar: ${paymentMethod}`, lineWidth));
-    if (shippingMethod) lines.push(...receiptWrapText(`Kirim: ${shippingMethod}`, lineWidth));
-    if (location) lines.push(...receiptWrapText(`Lokasi: ${location}`, lineWidth));
-    if (locationLink) lines.push(...receiptWrapText(`Maps: ${locationLink}`, lineWidth));
-    if (pointsEarned !== null && pointsEarned !== undefined && pointsEarned !== '') {
-        lines.push(...receiptWrapText(`Poin: +${pointsEarned}`, lineWidth));
-    }
-
-    if (paylaterSimulation) {
-        const tenorWeeks = paylaterSimulation.tenorWeeks !== undefined ? Number(paylaterSimulation.tenorWeeks) : null;
-        const feePercent = paylaterSimulation.feePercent !== undefined ? Number(paylaterSimulation.feePercent) : null;
-        const feeAmount = paylaterSimulation.feeAmount !== undefined ? Number(paylaterSimulation.feeAmount) : null;
-        const totalDue = paylaterSimulation.totalBeforePenalty !== undefined ? Number(paylaterSimulation.totalBeforePenalty) : null;
-
-        lines.push(dash);
-        lines.push(...receiptWrapText('PayLater:', lineWidth));
-        if (Number.isFinite(tenorWeeks)) lines.push(...receiptWrapText(`Tenor: ${tenorWeeks} minggu`, lineWidth));
-        if (Number.isFinite(feePercent)) lines.push(...receiptWrapText(`Fee: ${feePercent}%`, lineWidth));
-        if (Number.isFinite(feeAmount)) {
-            receiptLineLeftRight('Fee', formatReceiptIdr(feeAmount), lineWidth)
-                .split('\n')
-                .forEach((line) => lines.push(line));
-        }
-        if (Number.isFinite(totalDue)) {
-            receiptLineLeftRight('Total due', formatReceiptIdr(totalDue), lineWidth)
-                .split('\n')
-                .forEach((line) => lines.push(line));
-        }
-    }
-
-    const printedAt = formatReceiptPrintTimestamp(new Date());
-
+    lines.push(receiptCenterText('Terima Kasih telah berbelanja', lineWidth));
     lines.push(dash);
-    lines.push(receiptCenterText('Terima Kasih telah berbelanja di', lineWidth));
-    lines.push(dash);
-    lines.push(receiptDotFill('*Tukarkan Poin Reward ', lineWidth, '.'));
-    lines.push(...receiptWrapText('Tukar poin untuk klaim produk reward di menu Akun > Reward.', lineWidth));
-    lines.push(dash);
-    lines.push(...receiptWrapText(`JAM CETAK : ${printedAt.date} Jam : ${printedAt.time}`, lineWidth));
+    lines.push(...receiptWrapText('*Tukar poin untuk klaim produk', lineWidth));
+    lines.push(...receiptWrapText('reward di menu Akun > Reward *', lineWidth));
 
     return lines.join('\n');
 }
@@ -1384,6 +1333,13 @@ function buildReceiptText(receipt, options) {
 function buildReceiptPrintHtml(receiptText, title) {
     const safeTitle = escapeHtml(title || 'Struk');
     const safeText = escapeHtml(receiptText || '');
+    let origin = '';
+    try {
+        origin = typeof location !== 'undefined' && location.origin ? location.origin : '';
+    } catch (e) {
+        origin = '';
+    }
+    const logoSrc = escapeHtml(`${origin}/assets/img/logo.webp`);
 
     return `<!doctype html>
 <html lang="id">
@@ -1393,27 +1349,35 @@ function buildReceiptPrintHtml(receiptText, title) {
   <title>${safeTitle}</title>
   <style>
     html, body { margin: 0; padding: 0; background: #fff; }
-    body {
-      width: 58mm;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 11px;
-      line-height: 1.2;
-      color: #000;
-    }
-    .receipt { padding: 2mm; }
-    pre { margin: 0; white-space: pre; }
-    @media print {
-      @page { margin: 0; }
-      body { margin: 0; }
-    }
-  </style>
+	    body {
+	      width: 58mm;
+	      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	      font-size: 11px;
+	      line-height: 1.2;
+	      color: #000;
+	    }
+	    .receipt { padding: 2mm; }
+	    .receipt-logo {
+	      display: block;
+	      margin: 0 auto 1.5mm;
+	      width: 28mm;
+	      max-width: 100%;
+	      height: auto;
+	      filter: grayscale(100%) contrast(160%);
+	    }
+	    pre { margin: 0; white-space: pre; }
+	    @media print {
+	      @page { margin: 0; }
+	      body { margin: 0; }
+	    }
+	  </style>
 </head>
 <body>
-  <div class="receipt"><pre>${safeText}</pre></div>
-  <script>
-    (function () {
-      function doPrint() {
-        try {
+	  <div class="receipt"><img class="receipt-logo" src="${logoSrc}" alt="GOSEMBAKO" /><pre>${safeText}</pre></div>
+	  <script>
+	    (function () {
+	      function doPrint() {
+	        try {
           window.focus();
           window.print();
         } catch (e) {}
@@ -3271,6 +3235,7 @@ async function sendToWA() {
         customerName: name,
         customerPhone: normalizePhone(phone),
         paymentMethod: payMethod,
+        status: isPaylater ? 'Pending PayLater' : 'Pending',
         shippingMethod: shipMethod,
         location: location,
         locationLink: locationLink,
