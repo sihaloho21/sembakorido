@@ -603,8 +603,8 @@
                 </div>
 
                 <!-- Section 2: Informasi Pelanggan -->
-                <div class="space-y-4">
-                    <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+                <div class="order-form-section order-form-section--customer space-y-4">
+                    <h4 class="order-form-section__title text-sm font-bold text-gray-700 flex items-center gap-2">
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                         Informasi Pelanggan
                     </h4>
@@ -625,8 +625,8 @@
                 </div>
 
                 <!-- Section 3: Metode Pengiriman -->
-                <div class="space-y-4">
-                    <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+                <div class="order-form-section order-form-section--shipping space-y-4">
+                    <h4 class="order-form-section__title text-sm font-bold text-gray-700 flex items-center gap-2">
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Metode Pengiriman
                     </h4>
@@ -667,11 +667,10 @@
                         </label>
                     </fieldset>
                     <p id="shipping-method-error" class="hidden text-[10px] font-semibold text-red-600" aria-live="polite"></p>
-                </div>
 
-                <!-- Location Field (Conditional) -->
-                <div id="location-field" class="hidden space-y-3 bg-blue-50 p-4 rounded-xl border border-blue-100">
-                    <label class="block text-xs font-bold text-blue-700 uppercase">Lokasi Pengiriman / Pengambilan</label>
+                    <!-- Location Field (Conditional) -->
+                    <div id="location-field" class="hidden order-form-section__subpanel space-y-3">
+                        <label class="block text-xs font-bold text-blue-700 uppercase">Lokasi Pengiriman / Pengambilan</label>
                     
                     <!-- UI for Delivery -->
                     <div id="delivery-location-ui" class="hidden space-y-3">
@@ -695,12 +694,13 @@
                         </a>
                     </div>
 
-                    <input type="hidden" id="location-link">
+                        <input type="hidden" id="location-link">
+                    </div>
                 </div>
 
                 <!-- Section 4: Metode Pembayaran -->
-                <div class="space-y-4">
-                    <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+                <div class="order-form-section order-form-section--payment space-y-4">
+                    <h4 class="order-form-section__title text-sm font-bold text-gray-700 flex items-center gap-2">
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                         Metode Pembayaran
                     </h4>

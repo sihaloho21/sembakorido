@@ -28,6 +28,167 @@ body.modal-active {
     --tw-gradient-to: #0288b5 var(--tw-gradient-to-position);
 }
 
+#order-modal .order-form-section {
+    border: 1px solid transparent;
+    border-radius: 1.25rem;
+    box-shadow: 0 22px 38px -32px rgba(15, 23, 42, 0.35);
+    padding: 1rem;
+}
+
+#order-modal .order-form-section__title {
+    align-items: center;
+    display: flex;
+    font-size: 0.95rem;
+    font-weight: 800;
+    gap: 0.5rem;
+    letter-spacing: 0.01em;
+}
+
+#order-modal .order-form-section__title svg {
+    flex-shrink: 0;
+}
+
+#order-modal .order-form-section__subpanel {
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid transparent;
+    border-radius: 1rem;
+    padding: 0.9rem;
+}
+
+#order-modal .order-form-section--customer {
+    background: linear-gradient(180deg, #fff8f1 0%, #ffffff 100%);
+    border-color: #f6d6bb;
+}
+
+#order-modal .order-form-section--customer .order-form-section__title,
+#order-modal .order-form-section--customer label {
+    color: #9a3412;
+}
+
+#order-modal .order-form-section--customer .order-form-section__title svg {
+    color: #c2410c;
+}
+
+#order-modal .order-form-section--customer input {
+    background: #fffdf9;
+    border-color: #f2d1b4;
+}
+
+#order-modal .order-form-section--customer input::placeholder {
+    color: #c89a77;
+}
+
+#order-modal .order-form-section--customer input:focus {
+    background: #ffffff;
+    border-color: #c2410c;
+    box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.12);
+}
+
+#order-modal .order-form-section--customer [id$="-help"] {
+    color: #b45309;
+    opacity: 0.8;
+}
+
+#order-modal .order-form-section--shipping {
+    background: linear-gradient(180deg, #f2fcf7 0%, #ffffff 100%);
+    border-color: #b8ead3;
+}
+
+#order-modal .order-form-section--shipping .order-form-section__title {
+    color: #047857;
+}
+
+#order-modal .order-form-section--shipping .order-form-section__title svg {
+    color: #10b981;
+}
+
+#order-modal .order-form-section--shipping .radio-label {
+    background: rgba(255, 255, 255, 0.86);
+    border-color: #d5efe2;
+}
+
+#order-modal .order-form-section--shipping .radio-card input:checked + .radio-label {
+    background: #ffffff;
+    border-color: #10b981;
+    box-shadow: 0 16px 28px -24px rgba(16, 185, 129, 0.95);
+    color: #065f46;
+}
+
+#order-modal .order-form-section--shipping .radio-card input:checked + .radio-label .radio-dot {
+    background-color: #10b981;
+    border-color: #10b981;
+}
+
+#order-modal .order-form-section--shipping #location-field {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: #b8ead3;
+}
+
+#order-modal .order-form-section--shipping #location-field .text-blue-700,
+#order-modal .order-form-section--shipping #location-field label {
+    color: #047857;
+}
+
+#order-modal .order-form-section--shipping #location-field .text-blue-800 {
+    color: #065f46;
+}
+
+#order-modal .order-form-section--shipping #location-field .border-blue-200,
+#order-modal .order-form-section--shipping #location-field .border-blue-100 {
+    border-color: #a7f3d0;
+}
+
+#order-modal .order-form-section--shipping #location-field #get-location-btn {
+    color: #0f766e;
+}
+
+#order-modal .order-form-section--shipping #location-field #get-location-btn:hover {
+    background: #ecfdf5;
+}
+
+#order-modal .order-form-section--shipping #location-field #pickup-location-ui a {
+    background: #0f766e;
+}
+
+#order-modal .order-form-section--shipping #location-field #pickup-location-ui a:hover {
+    background: #115e59;
+}
+
+#order-modal .order-form-section--shipping #location-field textarea:focus {
+    border-color: #0f766e;
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+#order-modal .order-form-section--payment {
+    background: linear-gradient(180deg, #f3f8ff 0%, #ffffff 100%);
+    border-color: #cfe0ff;
+}
+
+#order-modal .order-form-section--payment .order-form-section__title {
+    color: #1d4ed8;
+}
+
+#order-modal .order-form-section--payment .order-form-section__title svg {
+    color: #2563eb;
+}
+
+#order-modal .order-form-section--payment .radio-label {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: #dbe7ff;
+}
+
+#order-modal .order-form-section--payment .radio-card input:checked + .radio-label {
+    background: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 16px 28px -24px rgba(37, 99, 235, 0.95);
+    color: #1e40af;
+}
+
+#order-modal .order-form-section--payment #payment-method-error,
+#order-modal .order-form-section--shipping #shipping-method-error {
+    margin-top: -0.25rem;
+}
+
 .hidden { display: none; }
 
 /* Custom Radio Styling */
