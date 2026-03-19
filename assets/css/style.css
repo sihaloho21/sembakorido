@@ -1,6 +1,17 @@
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
 .modal { transition: opacity 0.25s ease; }
-body.modal-active { overflow-x: hidden; overflow-y: visible !important; }
+body.modal-active {
+    overflow: hidden;
+}
+
+#order-modal {
+    overflow: hidden;
+}
+
+#order-modal > div {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
 .hidden { display: none; }
 
 /* Custom Radio Styling */
