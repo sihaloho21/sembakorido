@@ -2084,6 +2084,7 @@ function openOrderModal() {
     
     closeCartModal();
     resetOrderValidationState();
+    syncPaylaterAvailability();
 
     prefillCustomerInfo();
     updateDeliveryLocationHint();
@@ -2778,6 +2779,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isPaylaterSelected()) refreshPaylaterCheckoutState(true);
             });
         }
+        syncPaylaterAvailability();
         updateOrderCTAState();
     }
 
@@ -3062,6 +3064,56 @@ function getSessionQueryFromStoredUser() {
     const token = String(user.session_token || user.sessionToken || user.st || '').trim();
     if (!token) return '';
     return '&session_token=' + encodeURIComponent(token);
+}
+
+function hasCheckoutLoginSession() {
+    return Boolean(getSessionQueryFromStoredUser());
+}
+
+function syncPaylaterAvailability() {
+    const paylaterInput = document.getElementById('paylater-method');
+    const paylaterCard = document.getElementById('paylater-method-card');
+    const paylaterSubtitle = document.getElementById('paylater-method-subtitle');
+    const paymentInfo = document.getElementById('payment-method-info');
+    const qrisDisplay = document.getElementById('qris-display');
+    const paylaterPanel = document.getElementById('paylater-checkout-panel');
+    const isLoggedIn = hasCheckoutLoginSession();
+
+    if (!paylaterInput || !paylaterCard || !paylaterSubtitle) {
+        return isLoggedIn;
+    }
+
+    paylaterInput.disabled = !isLoggedIn;
+    paylaterInput.setAttribute('aria-disabled', String(!isLoggedIn));
+
+    paylaterCard.classList.toggle('opacity-60', !isLoggedIn);
+    paylaterCard.classList.toggle('cursor-not-allowed', !isLoggedIn);
+    paylaterCard.classList.toggle('border-dashed', !isLoggedIn);
+    paylaterCard.classList.toggle('border-amber-200', !isLoggedIn);
+
+    const cardLabel = paylaterInput.closest('label');
+    if (cardLabel) {
+        cardLabel.classList.toggle('cursor-pointer', isLoggedIn);
+        cardLabel.classList.toggle('cursor-not-allowed', !isLoggedIn);
+        cardLabel.title = isLoggedIn ? 'PayLater' : 'Login akun dulu untuk mengaktifkan PayLater';
+    }
+
+    paylaterSubtitle.textContent = isLoggedIn ? 'Bayar bertahap' : 'Login dulu untuk aktifkan';
+
+    if (!isLoggedIn && paylaterInput.checked) {
+        paylaterInput.checked = false;
+        if (paymentInfo) {
+            paymentInfo.classList.add('hidden', 'opacity-0', 'scale-95');
+        }
+        if (qrisDisplay) {
+            qrisDisplay.classList.add('hidden', 'opacity-0', 'scale-95');
+        }
+        if (paylaterPanel) {
+            paylaterPanel.classList.add('hidden');
+        }
+    }
+
+    return isLoggedIn;
 }
 
 function getOrCreatePublicClientId() {
