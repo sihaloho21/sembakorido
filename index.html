@@ -611,13 +611,15 @@
                     <div class="grid grid-cols-1 gap-4">
                         <div class="space-y-1.5">
                             <label for="customer-name" class="block text-xs font-bold text-gray-500 uppercase">Nama Lengkap <span class="text-red-500">*</span></label>
-                            <input type="text" id="customer-name" placeholder="Masukkan nama Anda" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:bg-white outline-none transition text-sm" required data-autofocus aria-describedby="customer-name-help">
+                            <input type="text" id="customer-name" placeholder="Masukkan nama Anda" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:bg-white outline-none transition text-sm" required data-autofocus aria-describedby="customer-name-help customer-name-error">
                             <p id="customer-name-help" class="text-[10px] text-gray-400">Wajib diisi.</p>
+                            <p id="customer-name-error" class="hidden text-[10px] font-semibold text-red-600" aria-live="polite"></p>
                         </div>
                         <div class="space-y-1.5">
                             <label for="customer-phone" class="block text-xs font-bold text-gray-500 uppercase">No. WhatsApp <span class="text-red-500">*</span></label>
-                            <input type="tel" id="customer-phone" placeholder="Contoh: 08123456789" onblur="this.value = normalizePhone(this.value)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:bg-white outline-none transition text-sm" required aria-describedby="customer-phone-help" inputmode="numeric" autocomplete="tel">
+                            <input type="tel" id="customer-phone" placeholder="Contoh: 08123456789" onblur="this.value = normalizePhone(this.value)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:bg-white outline-none transition text-sm" required aria-describedby="customer-phone-help customer-phone-error" inputmode="numeric" autocomplete="tel">
                             <p id="customer-phone-help" class="text-[10px] text-gray-400">Wajib diisi.</p>
+                            <p id="customer-phone-error" class="hidden text-[10px] font-semibold text-red-600" aria-live="polite"></p>
                         </div>
                     </div>
                 </div>
@@ -647,7 +649,7 @@
                                 <div class="radio-dot w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
                                 <div>
                                     <p class="font-bold text-gray-800 text-xs">Diantar Kerumah</p>
-                                    <p class="text-[10px] text-gray-500">Area Serang & sekitarnya • Ongkir sesuai area</p>
+                                    <p class="text-[10px] text-gray-500">Area Serang & sekitarnya • Ongkir Rp 2.000</p>
                                     <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                                 </div>
                             </div>
@@ -657,13 +659,14 @@
                             <div class="radio-label p-3 border-2 border-gray-100 rounded-xl flex items-center gap-3 transition">
                                 <div class="radio-dot w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
                                 <div>
-                                    <p class="font-bold text-gray-800 text-xs">Ambil Ditempat</p>
+                                    <p class="font-bold text-gray-800 text-xs">Ambil di Tempat</p>
                                     <p class="text-[10px] text-gray-500">Ambil langsung di toko kami • Gratis</p>
                                     <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                                 </div>
                             </div>
                         </label>
                     </fieldset>
+                    <p id="shipping-method-error" class="hidden text-[10px] font-semibold text-red-600" aria-live="polite"></p>
                 </div>
 
                 <!-- Location Field (Conditional) -->
@@ -671,11 +674,17 @@
                     <label class="block text-xs font-bold text-blue-700 uppercase">Lokasi Pengiriman / Pengambilan</label>
                     
                     <!-- UI for Delivery -->
-                    <div id="delivery-location-ui" class="hidden">
+                    <div id="delivery-location-ui" class="hidden space-y-3">
                         <button type="button" id="get-location-btn" data-action="get-location" class="w-full p-3 bg-white border-2 border-blue-200 text-blue-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition text-sm">
                             <span>📍 Bagikan Lokasi Saya</span>
                         </button>
-                        <p class="text-[10px] text-blue-600 mt-2 italic text-center">Klik tombol di atas agar kami mudah menemukan rumah Anda</p>
+                        <p id="location-share-status" class="text-[10px] text-blue-700 italic text-center">Bagikan lokasi Maps. Jika tidak bisa, isi alamat manual di bawah.</p>
+                        <div class="space-y-1.5">
+                            <label for="manual-address" class="block text-[10px] font-bold text-blue-700 uppercase">Alamat Manual</label>
+                            <textarea id="manual-address" rows="3" class="w-full p-3 bg-white border border-blue-200 rounded-xl outline-none transition text-sm focus:border-blue-500" placeholder="Contoh: Perumahan..., Blok..., dekat mushola..., rumah warna..."></textarea>
+                            <p id="manual-address-help" class="text-[10px] text-blue-700">Isi jika titik Maps belum dibagikan. Salah satu wajib: lokasi Maps atau alamat manual yang jelas.</p>
+                            <p id="manual-address-error" class="hidden text-[10px] font-semibold text-red-600" aria-live="polite"></p>
+                        </div>
                     </div>
 
                     <!-- UI for Pickup -->
@@ -700,7 +709,7 @@
                         <label class="radio-card relative cursor-pointer">
                             <input type="radio" name="pay-method" value="Cash / Transfer" onchange="updatePaymentMethodInfo('tunai'); updateOrderTotal()" class="absolute opacity-0">
                             <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
-                                <p class="font-bold text-gray-800 text-[10px]">TUNAI/COD</p>
+                                <p class="font-bold text-gray-800 text-[10px]">Tunai/COD</p>
                                 <p class="text-[9px] text-gray-500">Bayar saat terima</p>
                                 <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                             </div>
@@ -716,7 +725,7 @@
                         <label class="radio-card relative cursor-pointer">
                             <input type="radio" name="pay-method" value="Bayar Gajian" onchange="updatePaymentMethodInfo('gajian'); updateOrderTotal()" class="absolute opacity-0">
                             <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
-                                <p class="font-bold text-gray-800 text-[10px]">GAJIAN</p>
+                                <p class="font-bold text-gray-800 text-[10px]">Bayar Gajian</p>
                                 <p class="text-[9px] text-gray-500">Bayar tgl 6–7</p>
                                 <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                             </div>
@@ -724,12 +733,13 @@
                         <label class="radio-card relative cursor-pointer">
                             <input type="radio" name="pay-method" value="PayLater" onchange="updatePaymentMethodInfo('paylater'); updateOrderTotal()" class="absolute opacity-0">
                             <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
-                                <p class="font-bold text-gray-800 text-[10px]">PAYLATER</p>
+                                <p class="font-bold text-gray-800 text-[10px]">PayLater</p>
                                 <p class="text-[9px] text-gray-500">Bayar bertahap</p>
                                 <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                             </div>
                         </label>
                     </fieldset>
+                    <p id="payment-method-error" class="hidden text-[10px] font-semibold text-red-600" aria-live="polite"></p>
                     
                     <!-- Payment Method Info Text (Dynamic) -->
                     <div id="payment-method-info" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 leading-relaxed transition-all duration-300 ease-in-out transform opacity-0 scale-95">

@@ -2083,56 +2083,10 @@ function openOrderModal() {
     if (cart.length === 0) return;
     
     closeCartModal();
+    resetOrderValidationState();
 
     prefillCustomerInfo();
-    
-    // Update Order Summary
-    const summaryEl = document.getElementById('order-summary');
-    const payEl = document.querySelector('input[name="pay-method"]:checked');
-    const isGajian = payEl && payEl.value === 'Bayar Gajian';
-    
-    if (summaryEl) {
-        let totalPoints = 0;
-        summaryEl.innerHTML = cart.map(item => {
-            const price = isGajian ? item.hargaGajian : item.harga;
-            const effectivePrice = calculateTieredPrice(price, item.qty, item.grosir);
-            const isGrosir = effectivePrice < price;
-            
-            // Points are always calculated based on the base cash price for fairness
-            // Use variation price for points if it's a variant
-            const itemPoints = calculateRewardPoints(item.harga, item.nama) * item.qty;
-            totalPoints += itemPoints;
-            return `
-                <div class="flex justify-between items-center py-1">
-                    <div class="flex flex-col">
-                        <span class="font-medium">${escapeHtml(item.nama)}${item.selectedVariation ? ' (' + escapeHtml(item.selectedVariation.nama) + ')' : ''} (x${item.qty})</span>
-                        <div class="flex items-center gap-2">
-                            <span class="text-[10px] text-amber-600 font-bold flex items-center gap-1">
-                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-                                +${itemPoints.toFixed(1)} Poin
-                            </span>
-                            ${isGrosir ? '<span class="bg-green-100 text-green-700 text-[8px] px-1 rounded font-bold">Harga Grosir</span>' : ''}
-                        </div>
-                    </div>
-                    <div class="flex flex-col items-end">
-                        ${isGrosir ? `<span class="text-[10px] text-gray-400 line-through">Rp ${(price * item.qty).toLocaleString('id-ID')}</span>` : ''}
-                        <span class="font-bold">Rp ${(effectivePrice * item.qty).toLocaleString('id-ID')}</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        
-        // Add total points to summary
-        summaryEl.innerHTML += `
-            <div class="border-t border-dashed border-gray-200 mt-2 pt-2 flex justify-between items-center">
-                <span class="text-xs font-bold text-amber-700">Total Poin Didapat:</span>
-                <span class="text-sm font-black text-amber-700 flex items-center gap-1">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-                    ${escapeHtml(totalPoints.toFixed(1))} Poin
-                </span>
-            </div>
-        `;
-    }
+    updateDeliveryLocationHint();
     
     updateOrderTotal();
     updateOrderCTAState();
@@ -2169,6 +2123,508 @@ function closeOrderModal() {
         modal.classList.add('hidden');
         document.body.classList.remove('modal-active');
     }
+    resetOrderValidationState();
+}
+
+const DEFAULT_PICKUP_ADDRESS = 'Jl. Nambo, Kaserangan, Kec. Ciruas, Kabupaten Serang';
+
+const SHIPPING_METHOD_META = {
+    'Antar Nikomas': {
+        label: 'Diantar Nikomas',
+        areaLabel: 'Area PT Nikomas Gemilang',
+        fee: 0,
+        showLocationField: false,
+        showDeliveryUI: false,
+        showPickupUI: false,
+        includeLocationLink: false,
+        locationLabel: 'Area PT Nikomas Gemilang'
+    },
+    'Antar Kerumah': {
+        label: 'Diantar Kerumah',
+        areaLabel: 'Area Serang & sekitarnya',
+        fee: 2000,
+        showLocationField: true,
+        showDeliveryUI: true,
+        showPickupUI: false,
+        includeLocationLink: true,
+        locationLabel: 'Area Serang & sekitarnya'
+    },
+    'Ambil Ditempat': {
+        label: 'Ambil di Tempat',
+        areaLabel: DEFAULT_PICKUP_ADDRESS,
+        fee: 0,
+        showLocationField: true,
+        showDeliveryUI: false,
+        showPickupUI: true,
+        includeLocationLink: false,
+        locationLabel: DEFAULT_PICKUP_ADDRESS
+    }
+};
+
+const PAYMENT_METHOD_META = {
+    'Cash / Transfer': {
+        label: 'Tunai/COD',
+        sheetCode: 'cash'
+    },
+    'QRIS': {
+        label: 'QRIS',
+        sheetCode: 'qris'
+    },
+    'Bayar Gajian': {
+        label: 'Bayar Gajian',
+        sheetCode: 'gajian'
+    },
+    'PayLater': {
+        label: 'PayLater',
+        sheetCode: 'paylater'
+    }
+};
+
+function formatOrderCurrency(amount) {
+    return `Rp ${Number(amount || 0).toLocaleString('id-ID')}`;
+}
+
+function formatShippingFeeText(amount) {
+    return Number(amount || 0) > 0 ? formatOrderCurrency(amount) : 'Gratis';
+}
+
+function getSelectedShipMethodValue() {
+    const shipEl = document.querySelector('input[name="ship-method"]:checked');
+    return shipEl ? String(shipEl.value || '').trim() : '';
+}
+
+function getShippingMethodMeta(shipMethod) {
+    const key = String(shipMethod || '').trim();
+    if (Object.prototype.hasOwnProperty.call(SHIPPING_METHOD_META, key)) {
+        return SHIPPING_METHOD_META[key];
+    }
+    return {
+        label: key,
+        areaLabel: '',
+        fee: 0,
+        showLocationField: false,
+        showDeliveryUI: false,
+        showPickupUI: false,
+        includeLocationLink: false,
+        locationLabel: ''
+    };
+}
+
+function getPaymentMethodMeta(payMethod) {
+    const key = String(payMethod || '').trim();
+    if (Object.prototype.hasOwnProperty.call(PAYMENT_METHOD_META, key)) {
+        return PAYMENT_METHOD_META[key];
+    }
+    return {
+        label: key,
+        sheetCode: 'cash'
+    };
+}
+
+function resetLocationShareButton() {
+    const btn = document.getElementById('get-location-btn');
+    if (!btn) return;
+    btn.disabled = false;
+    btn.classList.remove('border-red-300', 'bg-red-50');
+    btn.classList.remove('bg-green-600', 'text-white', 'border-green-600');
+    btn.classList.add('bg-white', 'text-blue-700', 'border-blue-200');
+    btn.innerHTML = '<span>📍 Bagikan Lokasi Saya</span>';
+    updateLocationShareStatus('Bagikan lokasi Maps. Jika tidak bisa, isi alamat manual di bawah.', 'info');
+}
+
+function getOrderLocationLinkByShipMethod(shipMethod) {
+    const shipMeta = getShippingMethodMeta(shipMethod);
+    if (!shipMeta.includeLocationLink) return '';
+    const locationInput = document.getElementById('location-link');
+    return locationInput ? String(locationInput.value || '').trim() : '';
+}
+
+function getManualDeliveryAddress() {
+    const manualAddressInput = document.getElementById('manual-address');
+    return manualAddressInput ? String(manualAddressInput.value || '').trim() : '';
+}
+
+function getOrderLocationLabel(shipMethod) {
+    const shipMeta = getShippingMethodMeta(shipMethod);
+    if (String(shipMethod || '').trim() === 'Antar Kerumah') {
+        const manualAddress = getManualDeliveryAddress();
+        if (manualAddress) return manualAddress;
+        if (getOrderLocationLinkByShipMethod(shipMethod)) return 'Titik Maps dibagikan';
+    }
+    return shipMeta.locationLabel || shipMeta.areaLabel || shipMeta.label || '';
+}
+
+let orderValidationTouched = {
+    name: false,
+    phone: false,
+    shipping: false,
+    payment: false,
+    deliveryAddress: false
+};
+
+function updateLocationShareStatus(message, tone) {
+    const statusEl = document.getElementById('location-share-status');
+    if (!statusEl) return;
+
+    const toneMap = {
+        info: 'text-blue-700',
+        success: 'text-green-700',
+        error: 'text-red-600'
+    };
+
+    statusEl.className = `text-[10px] italic text-center ${toneMap[tone] || toneMap.info}`;
+    statusEl.textContent = String(message || '');
+}
+
+function setOrderInputErrorState(inputId, errorId, message) {
+    const inputEl = document.getElementById(inputId);
+    const errorEl = document.getElementById(errorId);
+    const hasError = Boolean(message);
+
+    if (inputEl) {
+        inputEl.classList.toggle('border-red-300', hasError);
+        inputEl.classList.toggle('bg-red-50', hasError);
+        inputEl.setAttribute('aria-invalid', hasError ? 'true' : 'false');
+    }
+    if (errorEl) {
+        errorEl.textContent = hasError ? String(message) : '';
+        errorEl.classList.toggle('hidden', !hasError);
+    }
+}
+
+function setOrderGroupErrorState(errorId, message) {
+    const errorEl = document.getElementById(errorId);
+    if (!errorEl) return;
+    errorEl.textContent = message ? String(message) : '';
+    errorEl.classList.toggle('hidden', !message);
+}
+
+function setDeliveryLocationErrorState(message) {
+    const manualAddressEl = document.getElementById('manual-address');
+    const locationBtn = document.getElementById('get-location-btn');
+    const hasError = Boolean(message);
+    const hasLocationLink = Boolean(getOrderLocationLinkByShipMethod('Antar Kerumah'));
+
+    if (manualAddressEl) {
+        manualAddressEl.classList.toggle('border-red-300', hasError);
+        manualAddressEl.classList.toggle('bg-red-50', hasError);
+        manualAddressEl.setAttribute('aria-invalid', hasError ? 'true' : 'false');
+    }
+    if (locationBtn) {
+        locationBtn.classList.toggle('border-red-300', hasError && !hasLocationLink);
+        locationBtn.classList.toggle('bg-red-50', hasError && !hasLocationLink);
+    }
+
+    setOrderGroupErrorState('manual-address-error', message);
+}
+
+function resetOrderValidationUI() {
+    setOrderInputErrorState('customer-name', 'customer-name-error', '');
+    setOrderInputErrorState('customer-phone', 'customer-phone-error', '');
+    setOrderGroupErrorState('shipping-method-error', '');
+    setOrderGroupErrorState('payment-method-error', '');
+    setDeliveryLocationErrorState('');
+}
+
+function resetOrderValidationState() {
+    orderValidationTouched = {
+        name: false,
+        phone: false,
+        shipping: false,
+        payment: false,
+        deliveryAddress: false
+    };
+    resetOrderValidationUI();
+}
+
+function markOrderFieldTouched(fieldKey) {
+    if (!fieldKey) return;
+    if (Object.prototype.hasOwnProperty.call(orderValidationTouched, fieldKey)) {
+        orderValidationTouched[fieldKey] = true;
+    }
+}
+
+function getOrderNameValidationMessage(name) {
+    const trimmedName = String(name || '').trim();
+    if (!trimmedName) return 'Nama lengkap wajib diisi.';
+
+    const nameWithoutSpaces = trimmedName.replace(/\s/g, '');
+    if (nameWithoutSpaces.length < 4) {
+        return 'Masukkan nama lengkap minimal 4 karakter.';
+    }
+
+    const nameLower = nameWithoutSpaces.toLowerCase();
+    const invalidNamePatterns = [
+        /^(.)\1{3,}$/,
+        /^(.{2})\1{2,}$/,
+        /^(.{3})\1{2,}$/,
+        /^([a-z])([a-z])\1\2{2,}$/
+    ];
+
+    for (const pattern of invalidNamePatterns) {
+        if (pattern.test(nameLower)) {
+            return 'Masukkan nama lengkap yang valid, bukan huruf berulang.';
+        }
+    }
+
+    return '';
+}
+
+function getOrderPhoneValidationMessage(phone) {
+    const rawPhone = String(phone || '').trim();
+    if (!rawPhone) return 'Nomor WhatsApp wajib diisi.';
+
+    const cleanPhone = normalizePhone(rawPhone).replace(/[^0-9]/g, '');
+    if (cleanPhone.length < 10) {
+        return 'Masukkan nomor WhatsApp yang valid.';
+    }
+
+    const invalidPatterns = [
+        /^(\d)\1{9,}$/,
+        /^08(\d)\1{8,}$/,
+        /^(\d{2})\1{4,}$/,
+        /^(\d{3})\1{3,}$/
+    ];
+
+    for (const pattern of invalidPatterns) {
+        if (pattern.test(cleanPhone)) {
+            return 'Masukkan nomor WhatsApp yang valid.';
+        }
+    }
+
+    return '';
+}
+
+function getOrderFormValidationState() {
+    const nameEl = document.getElementById('customer-name');
+    const phoneEl = document.getElementById('customer-phone');
+    const payMethod = getSelectedPayMethodValue();
+    const shipMethod = getSelectedShipMethodValue();
+    const manualAddress = getManualDeliveryAddress();
+    const locationLink = getOrderLocationLinkByShipMethod(shipMethod);
+    const errors = {
+        name: '',
+        phone: '',
+        shipping: '',
+        payment: '',
+        deliveryAddress: ''
+    };
+
+    errors.name = getOrderNameValidationMessage(nameEl ? nameEl.value : '');
+    errors.phone = getOrderPhoneValidationMessage(phoneEl ? phoneEl.value : '');
+
+    if (!shipMethod) {
+        errors.shipping = 'Pilih metode pengiriman terlebih dahulu.';
+    } else if (shipMethod === 'Antar Kerumah') {
+        if (!locationLink && !manualAddress) {
+            errors.deliveryAddress = 'Bagikan lokasi Maps atau isi alamat manual yang jelas.';
+        } else if (!locationLink && manualAddress.replace(/\s/g, '').length < 10) {
+            errors.deliveryAddress = 'Alamat manual terlalu singkat. Tambahkan jalan, kampung, atau patokan.';
+        }
+    }
+
+    if (!payMethod) {
+        errors.payment = 'Pilih metode pembayaran terlebih dahulu.';
+    } else if (payMethod === 'PayLater') {
+        if (paylaterCheckoutState && paylaterCheckoutState.loading) {
+            errors.payment = 'Tunggu pengecekan PayLater selesai.';
+        } else if (!paylaterCheckoutState || !paylaterCheckoutState.eligible) {
+            errors.payment = (paylaterCheckoutState && paylaterCheckoutState.message) || 'PayLater belum memenuhi syarat untuk pesanan ini.';
+        }
+    }
+
+    const order = ['name', 'phone', 'shipping', 'deliveryAddress', 'payment'];
+    const firstInvalidField = order.find((field) => Boolean(errors[field])) || '';
+
+    return {
+        errors: errors,
+        firstInvalidField: firstInvalidField,
+        isValid: !firstInvalidField
+    };
+}
+
+function applyOrderValidationState(validationState, options) {
+    const settings = options || {};
+    const showInlineErrors = Boolean(settings.showInlineErrors || settings.forceShowAllErrors);
+    const forceShowAllErrors = Boolean(settings.forceShowAllErrors);
+    const shouldShow = (fieldKey) => showInlineErrors && (forceShowAllErrors || orderValidationTouched[fieldKey]);
+
+    setOrderInputErrorState(
+        'customer-name',
+        'customer-name-error',
+        shouldShow('name') ? validationState.errors.name : ''
+    );
+    setOrderInputErrorState(
+        'customer-phone',
+        'customer-phone-error',
+        shouldShow('phone') ? validationState.errors.phone : ''
+    );
+    setOrderGroupErrorState(
+        'shipping-method-error',
+        shouldShow('shipping') ? validationState.errors.shipping : ''
+    );
+    setOrderGroupErrorState(
+        'payment-method-error',
+        shouldShow('payment') ? validationState.errors.payment : ''
+    );
+    setDeliveryLocationErrorState(
+        shouldShow('deliveryAddress') ? validationState.errors.deliveryAddress : ''
+    );
+}
+
+function focusOrderField(fieldKey) {
+    let target = null;
+
+    if (fieldKey === 'name') {
+        target = document.getElementById('customer-name');
+    } else if (fieldKey === 'phone') {
+        target = document.getElementById('customer-phone');
+    } else if (fieldKey === 'shipping') {
+        target = document.querySelector('input[name="ship-method"]');
+    } else if (fieldKey === 'payment') {
+        target = document.querySelector('input[name="pay-method"]:checked') || document.querySelector('input[name="pay-method"]');
+    } else if (fieldKey === 'deliveryAddress') {
+        target = document.getElementById('manual-address') || document.getElementById('get-location-btn');
+    }
+
+    if (target && typeof target.focus === 'function') {
+        target.focus();
+    }
+}
+
+function updateDeliveryLocationHint() {
+    const shipMethod = getSelectedShipMethodValue();
+    const locationLink = getOrderLocationLinkByShipMethod(shipMethod);
+    const manualAddress = getManualDeliveryAddress();
+
+    if (shipMethod !== 'Antar Kerumah') {
+        updateLocationShareStatus('', 'info');
+        return;
+    }
+
+    if (locationLink) {
+        updateLocationShareStatus('Lokasi Maps sudah dibagikan. Anda bisa menambah patokan di alamat manual bila perlu.', 'success');
+        return;
+    }
+
+    if (manualAddress) {
+        updateLocationShareStatus('Alamat manual akan dipakai untuk pengiriman. Tambahkan titik Maps bila tersedia.', 'info');
+        return;
+    }
+
+    updateLocationShareStatus('Bagikan lokasi Maps. Jika tidak bisa, isi alamat manual di bawah.', 'info');
+}
+
+function getOrderItemsForPayMethod(payMethod) {
+    const selectedPayMethod = String(payMethod || '').trim();
+    const isGajian = selectedPayMethod === 'Bayar Gajian';
+
+    return cart.map((item) => {
+        const basePrice = isGajian ? item.hargaGajian : item.harga;
+        const effectivePrice = calculateTieredPrice(basePrice, item.qty, item.grosir);
+        const itemTotal = effectivePrice * item.qty;
+        const itemPoints = calculateRewardPoints(item.harga, item.nama) * item.qty;
+
+        return {
+            item: item,
+            qty: item.qty,
+            basePrice: basePrice,
+            effectivePrice: effectivePrice,
+            itemTotal: itemTotal,
+            isGrosir: effectivePrice < basePrice,
+            itemPoints: itemPoints
+        };
+    });
+}
+
+function getOrderSnapshot(payMethod, shipMethod) {
+    const items = getOrderItemsForPayMethod(payMethod);
+    const shipMeta = getShippingMethodMeta(shipMethod);
+    const paymentMeta = getPaymentMethodMeta(payMethod);
+    const subtotal = items.reduce((sum, entry) => sum + entry.itemTotal, 0);
+    const shippingFee = Number(shipMeta.fee || 0);
+    const total = subtotal + shippingFee;
+    const totalQty = items.reduce((sum, entry) => sum + (parseInt(entry.qty, 10) || 0), 0);
+    const totalPoints = items.reduce((sum, entry) => sum + entry.itemPoints, 0);
+
+    return {
+        items: items,
+        shipMeta: shipMeta,
+        paymentMeta: paymentMeta,
+        subtotal: subtotal,
+        shippingFee: shippingFee,
+        total: total,
+        totalQty: totalQty,
+        totalPoints: totalPoints
+    };
+}
+
+function renderOrderSummary() {
+    const summaryEl = document.getElementById('order-summary');
+    if (!summaryEl) return;
+
+    const payMethod = getSelectedPayMethodValue();
+    const shipMethod = getSelectedShipMethodValue();
+    const snapshot = getOrderSnapshot(payMethod, shipMethod);
+
+    if (!snapshot.items.length) {
+        summaryEl.innerHTML = '<p class="text-sm text-gray-500">Keranjang Anda masih kosong.</p>';
+        return;
+    }
+
+    const activeMethodChips = [];
+    if (snapshot.paymentMeta.label) {
+        activeMethodChips.push(`Bayar: ${snapshot.paymentMeta.label}`);
+    }
+    if (snapshot.shipMeta.label) {
+        activeMethodChips.push(`Kirim: ${snapshot.shipMeta.label}`);
+    }
+
+    summaryEl.innerHTML = snapshot.items.map((entry) => {
+        const item = entry.item;
+        return `
+                <div class="flex justify-between items-center py-1">
+                    <div class="flex flex-col">
+                        <span class="font-medium">${escapeHtml(item.nama)}${item.selectedVariation ? ' (' + escapeHtml(item.selectedVariation.nama) + ')' : ''} (x${item.qty})</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] text-amber-600 font-bold flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                                +${entry.itemPoints.toFixed(1)} Poin
+                            </span>
+                            ${entry.isGrosir ? '<span class="bg-green-100 text-green-700 text-[8px] px-1 rounded font-bold">Harga Grosir</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        ${entry.isGrosir ? `<span class="text-[10px] text-gray-400 line-through">${formatOrderCurrency(entry.basePrice * item.qty)}</span>` : ''}
+                        <span class="font-bold">${formatOrderCurrency(entry.itemTotal)}</span>
+                    </div>
+                </div>
+            `;
+    }).join('');
+
+    if (activeMethodChips.length > 0) {
+        const chipsContainer = document.createElement('div');
+        chipsContainer.className = 'flex flex-wrap gap-2 border-t border-dashed border-gray-200 mt-2 pt-2';
+
+        activeMethodChips.forEach((chipLabel) => {
+            const chipEl = document.createElement('span');
+            chipEl.className = 'inline-flex items-center rounded-full bg-white border border-green-100 px-2.5 py-1 text-[10px] font-semibold text-green-700';
+            chipEl.textContent = chipLabel;
+            chipsContainer.appendChild(chipEl);
+        });
+
+        summaryEl.appendChild(chipsContainer);
+    }
+
+    summaryEl.innerHTML += `
+            <div class="border-t border-dashed border-gray-200 mt-2 pt-2 flex justify-between items-center">
+                <span class="text-xs font-bold text-amber-700">Total Poin Didapat:</span>
+                <span class="text-sm font-black text-amber-700 flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                    ${escapeHtml(snapshot.totalPoints.toFixed(1))} Poin
+                </span>
+            </div>
+        `;
 }
 
 function shareProduct(name) {
@@ -2286,11 +2742,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const orderModal = document.getElementById('order-modal');
     if (orderModal) {
         const orderInputs = orderModal.querySelectorAll(
-            'input[name="ship-method"], input[name="pay-method"], #customer-name, #customer-phone'
+            'input[name="ship-method"], input[name="pay-method"], #customer-name, #customer-phone, #manual-address'
         );
         orderInputs.forEach((input) => {
             const eventName = input.type === 'radio' ? 'change' : 'input';
-            input.addEventListener(eventName, updateOrderCTAState);
+            input.addEventListener(eventName, () => {
+                if (input.id === 'customer-name') {
+                    markOrderFieldTouched('name');
+                } else if (input.id === 'customer-phone') {
+                    markOrderFieldTouched('phone');
+                } else if (input.id === 'manual-address') {
+                    markOrderFieldTouched('deliveryAddress');
+                    updateDeliveryLocationHint();
+                } else if (input.name === 'ship-method') {
+                    markOrderFieldTouched('shipping');
+                    if (getSelectedShipMethodValue() === 'Antar Kerumah') {
+                        markOrderFieldTouched('deliveryAddress');
+                    }
+                    updateDeliveryLocationHint();
+                } else if (input.name === 'pay-method') {
+                    markOrderFieldTouched('payment');
+                }
+                updateOrderCTAState({ showInlineErrors: true });
+            });
         });
         const phoneInput = document.getElementById('customer-phone');
         if (phoneInput) {
@@ -2467,29 +2941,31 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function toggleLocationField() {
-    const shipEl = document.querySelector('input[name="ship-method"]:checked');
+    const shipMethod = getSelectedShipMethodValue();
+    const shipMeta = getShippingMethodMeta(shipMethod);
     const locationField = document.getElementById('location-field');
     const deliveryUI = document.getElementById('delivery-location-ui');
     const pickupUI = document.getElementById('pickup-location-ui');
+    const locationInput = document.getElementById('location-link');
     
-    if (shipEl) {
-        if (shipEl.value === 'Antar Nikomas') {
-            // DIANTAR NIKOMAS: Tidak pakai bagikan lokasi
-            locationField.classList.add('hidden');
-            deliveryUI.classList.add('hidden');
-            pickupUI.classList.add('hidden');
-        } else if (shipEl.value === 'Antar Kerumah') {
-            // DIANTAR KERUMAH: Pakai bagikan lokasi
-            locationField.classList.remove('hidden');
-            deliveryUI.classList.remove('hidden');
-            pickupUI.classList.add('hidden');
-        } else if (shipEl.value === 'Ambil Ditempat') {
-            // AMBIL DI TEMPAT: Tampilkan info lokasi toko
-            locationField.classList.remove('hidden');
-            deliveryUI.classList.add('hidden');
-            pickupUI.classList.remove('hidden');
-        }
+    if (locationField) {
+        locationField.classList.toggle('hidden', !shipMeta.showLocationField);
     }
+    if (deliveryUI) {
+        deliveryUI.classList.toggle('hidden', !shipMeta.showDeliveryUI);
+    }
+    if (pickupUI) {
+        pickupUI.classList.toggle('hidden', !shipMeta.showPickupUI);
+    }
+
+    if (!shipMeta.includeLocationLink) {
+        if (locationInput) locationInput.value = '';
+        resetLocationShareButton();
+    } else if (locationInput && !String(locationInput.value || '').trim()) {
+        resetLocationShareButton();
+    }
+
+    updateDeliveryLocationHint();
     updateOrderTotal();
 }
 
@@ -2498,12 +2974,15 @@ function getCurrentLocation() {
     const locationInput = document.getElementById('location-link');
     
     if (!navigator.geolocation) {
-        alert('Geolocation tidak didukung oleh browser Anda');
+        markOrderFieldTouched('deliveryAddress');
+        updateLocationShareStatus('Browser ini tidak mendukung akses lokasi. Silakan isi alamat manual.', 'error');
+        updateOrderCTAState({ showInlineErrors: true });
         return;
     }
 
     btn.disabled = true;
     btn.innerHTML = '<span>⌛ Mengambil Lokasi...</span>';
+    updateLocationShareStatus('Sedang mengambil titik Maps Anda...', 'info');
 
     navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -2511,18 +2990,23 @@ function getCurrentLocation() {
             const lng = position.coords.longitude;
             const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
             locationInput.value = mapsUrl;
+            markOrderFieldTouched('deliveryAddress');
             
+            btn.classList.remove('border-red-300', 'bg-red-50');
             btn.classList.remove('bg-white', 'text-blue-700', 'border-blue-200');
             btn.classList.add('bg-green-600', 'text-white', 'border-green-600');
             btn.innerHTML = '<span>✅ Lokasi Berhasil Dibagikan</span>';
-            alert('Lokasi berhasil diambil!');
+            updateLocationShareStatus('Lokasi Maps berhasil dibagikan. Anda bisa menambah patokan di alamat manual bila perlu.', 'success');
+            updateOrderCTAState({ showInlineErrors: true });
         },
         (error) => {
-            btn.disabled = false;
-            btn.innerHTML = '<span>📍 Bagikan Lokasi Saya</span>';
+            markOrderFieldTouched('deliveryAddress');
+            resetLocationShareButton();
             let msg = 'Gagal mengambil lokasi.';
-            if (error.code === 1) msg = 'Mohon izinkan akses lokasi untuk fitur ini.';
-            alert(msg);
+            if (error.code === 1) msg = 'Mohon izinkan akses lokasi, atau isi alamat manual di bawah.';
+            if (error.code === 3) msg = 'Lokasi belum berhasil diambil. Silakan coba lagi atau isi alamat manual.';
+            updateLocationShareStatus(msg, 'error');
+            updateOrderCTAState({ showInlineErrors: true });
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
     );
@@ -2538,21 +3022,11 @@ function isPaylaterSelected() {
 }
 
 function getOrderSubtotalByPayMethod(payMethod) {
-    const selectedPayMethod = String(payMethod || '');
-    const isGajian = selectedPayMethod === 'Bayar Gajian';
-    let subtotal = 0;
-    cart.forEach((item) => {
-        const basePrice = isGajian ? item.hargaGajian : item.harga;
-        const effectivePrice = calculateTieredPrice(basePrice, item.qty, item.grosir);
-        subtotal += effectivePrice * item.qty;
-    });
-    return subtotal;
+    return getOrderSnapshot(payMethod, getSelectedShipMethodValue()).subtotal;
 }
 
 function getShippingFeeBySelection() {
-    const shipEl = document.querySelector('input[name="ship-method"]:checked');
-    const isDelivery = shipEl && shipEl.value === 'Antar Nikomas';
-    return isDelivery ? 2000 : 0;
+    return getShippingMethodMeta(getSelectedShipMethodValue()).fee;
 }
 
 function getCurrentOrderGrandTotal() {
@@ -2916,25 +3390,27 @@ async function refreshPaylaterCheckoutState(force) {
 
 function updateOrderTotal() {
     const payMethod = getSelectedPayMethodValue();
-    const subtotal = getOrderSubtotalByPayMethod(payMethod);
-    const shippingFee = getShippingFeeBySelection();
-    const total = subtotal + shippingFee;
+    const shipMethod = getSelectedShipMethodValue();
+    const snapshot = getOrderSnapshot(payMethod, shipMethod);
+    const subtotal = snapshot.subtotal;
+    const shippingFee = snapshot.shippingFee;
+    const total = snapshot.total;
     
-    // Update the display elements
+    renderOrderSummary();
+
     const totalEl = document.getElementById('sticky-order-total');
     const summaryTotalEl = document.getElementById('order-summary-total');
     if (totalEl) {
-        totalEl.innerText = `Rp ${total.toLocaleString('id-ID')}`;
+        totalEl.innerText = formatOrderCurrency(total);
     }
     if (summaryTotalEl) {
-        summaryTotalEl.innerText = `Rp ${total.toLocaleString('id-ID')}`;
+        summaryTotalEl.innerText = formatOrderCurrency(total);
     }
     
-    // Also update subtotal and shipping if they exist in the UI
     const subtotalEl = document.getElementById('order-subtotal');
     const shippingEl = document.getElementById('order-shipping');
-    if (subtotalEl) subtotalEl.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
-    if (shippingEl) shippingEl.innerText = `Rp ${shippingFee.toLocaleString('id-ID')}`;
+    if (subtotalEl) subtotalEl.innerText = formatOrderCurrency(subtotal);
+    if (shippingEl) shippingEl.innerText = formatShippingFeeText(shippingFee);
 
     updateOrderCTAState();
     if (isPaylaterSelected()) {
@@ -2945,35 +3421,25 @@ function updateOrderTotal() {
 }
 
 function isOrderFormValid() {
-    const nameEl = document.getElementById('customer-name');
-    const phoneEl = document.getElementById('customer-phone');
-    const payEl = document.querySelector('input[name="pay-method"]:checked');
-    const shipEl = document.querySelector('input[name="ship-method"]:checked');
-
-    if (!nameEl || !phoneEl) return false;
-
-    const name = nameEl.value.trim();
-    const nameWithoutSpaces = name.replace(/\s/g, '');
-    if (!name || nameWithoutSpaces.length < 4) return false;
-
-    const rawPhone = phoneEl.value.trim();
-    if (!rawPhone) return false;
-    const cleanPhone = normalizePhone(rawPhone).replace(/[^0-9]/g, '');
-    if (cleanPhone.length < 10) return false;
-
-    return Boolean(payEl && shipEl);
+    return getOrderFormValidationState().isValid;
 }
 
-function updateOrderCTAState() {
+function updateOrderCTAState(options) {
     const sendButton = document.getElementById('send-order-btn') || document.querySelector('[data-action="send-wa"]');
-    if (!sendButton) return;
+    const validationState = getOrderFormValidationState();
+    const settings = (typeof options === 'boolean') ? { showInlineErrors: options } : { ...(options || {}) };
 
-    let isValid = isOrderFormValid();
-    if (isValid && isPaylaterSelected()) {
-        isValid = Boolean(paylaterCheckoutState && paylaterCheckoutState.eligible && !paylaterCheckoutState.loading);
+    if (!Object.prototype.hasOwnProperty.call(settings, 'showInlineErrors') && !settings.forceShowAllErrors) {
+        settings.showInlineErrors = Object.values(orderValidationTouched).some(Boolean);
     }
-    sendButton.disabled = !isValid;
-    sendButton.setAttribute('aria-disabled', String(!isValid));
+
+    applyOrderValidationState(validationState, settings);
+
+    if (!sendButton) return validationState;
+
+    sendButton.disabled = !validationState.isValid;
+    sendButton.setAttribute('aria-disabled', String(!validationState.isValid));
+    return validationState;
 }
 
 function normalizePhone(phone) {
@@ -3068,80 +3534,24 @@ async function sendToWA() {
         return;
     }
     
-    const name = document.getElementById('customer-name').value;
-    const phone = document.getElementById('customer-phone').value;
-    const payMethod = document.querySelector('input[name="pay-method"]:checked')?.value;
-    const shipMethod = document.querySelector('input[name="ship-method"]:checked')?.value;
-    
-    // Validation 1: Check if name is filled
-    if (!name || name.trim().length === 0) {
-        alert('Masukkan Nama Lengkap');
+    orderValidationTouched = {
+        name: true,
+        phone: true,
+        shipping: true,
+        payment: true,
+        deliveryAddress: true
+    };
+
+    let validationState = updateOrderCTAState({ forceShowAllErrors: true });
+    if (!validationState.isValid) {
+        focusOrderField(validationState.firstInvalidField);
         return;
     }
-    
-    // Validation 2: Name must be at least 4 characters (excluding spaces)
-    const nameWithoutSpaces = name.replace(/\s/g, '');
-    if (nameWithoutSpaces.length < 4) {
-        alert('Masukkan Nama Lengkap');
-        return;
-    }
-    
-    // Validation 3: Check for invalid name patterns (repeated characters)
-    const nameLower = nameWithoutSpaces.toLowerCase();
-    const invalidNamePatterns = [
-        /^(.)\1{3,}$/,              // Same character repeated 4+ times (aaaa, bbbb)
-        /^(.{2})\1{2,}$/,           // Pairs repeated 3+ times (asasas, adadad)
-        /^(.{3})\1{2,}$/,           // Triplets repeated 3+ times (abcabcabc)
-        /^([a-z])([a-z])\1\2{2,}$/, // Alternating pairs (ababab, cdcdcd)
-    ];
-    
-    for (const pattern of invalidNamePatterns) {
-        if (pattern.test(nameLower)) {
-            alert('Masukkan Nama Lengkap');
-            return;
-        }
-    }
-    
-    // Validation 4: Phone number validation
-    if (!phone || phone.trim().length === 0) {
-        alert('Nomor WhatsApp tidak valid');
-        return;
-    }
-    
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    
-    // Check minimum 10 digits
-    if (cleanPhone.length < 10) {
-        alert('Nomor WhatsApp tidak valid');
-        return;
-    }
-    
-    // Check for invalid patterns (repeated digits)
-    const invalidPatterns = [
-        /^(\d)\1{9,}$/,           // Same digit repeated (e.g., 08333333333)
-        /^08(\d)\1{8,}$/,         // 08 followed by repeated digits
-        /^(\d{2})\1{4,}$/,        // Pairs repeated (e.g., 081212121212)
-        /^(\d{3})\1{3,}$/         // Triplets repeated (e.g., 081818181818)
-    ];
-    
-    for (const pattern of invalidPatterns) {
-        if (pattern.test(cleanPhone)) {
-            alert('Nomor WhatsApp tidak valid');
-            return;
-        }
-    }
-    
-    // Validation 5: Payment method must be selected
-    if (!payMethod) {
-        alert('Pilih metode pembayaran terlebih dahulu');
-        return;
-    }
-    
-    // Validation 6: Shipping method must be selected
-    if (!shipMethod) {
-        alert('Pilih metode pengiriman terlebih dahulu');
-        return;
-    }
+
+    const name = document.getElementById('customer-name').value.trim();
+    const phone = normalizePhone(document.getElementById('customer-phone').value);
+    const payMethod = getSelectedPayMethodValue();
+    const shipMethod = getSelectedShipMethodValue();
     
     // Disable button and show loading state
     if (sendButton) {
@@ -3156,56 +3566,54 @@ async function sendToWA() {
         sendButton.classList.add('opacity-75', 'cursor-not-allowed');
     }
     
-    let location = '';
-    if (shipMethod === 'Antar Nikomas') {
-        location = 'Antar Nikomas (Area PT Nikomas Gemilang)';
-    } else if (shipMethod === 'Antar Kerumah') {
-        location = 'Antar Kerumah (Area Serang & sekitarnya)';
-    } else {
-        location = 'Ambil Ditempat (Kp. Baru, Kec. Kibin)';
-    }
-    
-    const isGajian = payMethod === 'Bayar Gajian';
+    const paymentMeta = getPaymentMethodMeta(payMethod);
+    const shipMeta = getShippingMethodMeta(shipMethod);
     const isPaylater = payMethod === 'PayLater';
-    let total = 0;
-    let totalQty = 0;
+    const snapshot = getOrderSnapshot(payMethod, shipMethod);
+    const subtotal = snapshot.subtotal;
+    const shippingFee = snapshot.shippingFee;
+    const total = snapshot.total;
+    const totalQty = snapshot.totalQty;
+    const location = getOrderLocationLabel(shipMethod);
+    const locationLink = getOrderLocationLinkByShipMethod(shipMethod);
+    const shippingFeeText = formatShippingFeeText(shippingFee);
     let itemsText = '';
     let itemsForSheet = '';
     let receiptItems = [];
     
-    cart.forEach((item, idx) => {
-        const price = isGajian ? item.hargaGajian : item.harga;
-        const effectivePrice = calculateTieredPrice(price, item.qty, item.grosir);
-        const isGrosir = effectivePrice < price;
-        const itemTotal = effectivePrice * item.qty;
-        total += itemTotal;
-        totalQty += item.qty;
+    snapshot.items.forEach((entry, idx) => {
+        const item = entry.item;
         
         const variationText = item.selectedVariation ? ` (${item.selectedVariation.nama})` : '';
-        const grosirText = isGrosir ? ` (Harga Grosir: Rp ${effectivePrice.toLocaleString('id-ID')}/unit)` : '';
-        itemsText += `${idx + 1}. ${item.nama}${variationText} x${item.qty}${grosirText} = Rp ${itemTotal.toLocaleString('id-ID')}\n`;
+        const grosirText = entry.isGrosir ? ` (Harga Grosir: ${formatOrderCurrency(entry.effectivePrice)}/unit)` : '';
+        itemsText += `${idx + 1}. ${item.nama}${variationText} x${item.qty}${grosirText} = ${formatOrderCurrency(entry.itemTotal)}\n`;
         itemsForSheet += `${item.nama}${variationText} (x${item.qty}) | `;
         receiptItems.push({
             name: item.nama || '',
             variation: item.selectedVariation ? item.selectedVariation.nama : '',
             qty: item.qty || 0,
-            unitPrice: effectivePrice,
-            total: itemTotal,
-            isGrosir: isGrosir
+            unitPrice: entry.effectivePrice,
+            total: entry.itemTotal,
+            isGrosir: entry.isGrosir
         });
     });
-    
-    const subtotal = total;
-    const shippingFee = shipMethod === 'Antar Nikomas' ? 2000 : 0;
-    total += shippingFee;
 
     let paylaterDetailText = '';
     let paylaterOrderMeta = {};
     let paylaterState = null;
     if (isPaylater) {
         paylaterState = await refreshPaylaterCheckoutState(true);
-        if (!paylaterState || !paylaterState.eligible || !paylaterState.simulation) {
-            alert((paylaterState && paylaterState.message) || 'PayLater belum memenuhi syarat untuk pesanan ini.');
+        validationState = updateOrderCTAState({ forceShowAllErrors: true });
+        if (!validationState.isValid || !paylaterState || !paylaterState.simulation) {
+            focusOrderField(validationState.firstInvalidField || 'payment');
+            if (sendButton) {
+                sendButton.disabled = false;
+                sendButton.innerHTML = `
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.631 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    Kirim Pesanan ke WhatsApp
+                `;
+                sendButton.classList.remove('opacity-75', 'cursor-not-allowed');
+            }
             return;
         }
         paylaterOrderMeta = {
@@ -3217,10 +3625,10 @@ async function sendToWA() {
         };
         paylaterDetailText =
             `*PayLater Simulasi:*\n` +
-            `- Pokok: Rp ${Number(paylaterState.simulation.principal || 0).toLocaleString('id-ID')}\n` +
+            `- Pokok: ${formatOrderCurrency(paylaterState.simulation.principal || 0)}\n` +
             `- Tenor: ${Number(paylaterState.simulation.tenorWeeks || 1)} minggu\n` +
-            `- Biaya Layanan (${Number(paylaterState.simulation.feePercent || 0)}%): Rp ${Number(paylaterState.simulation.feeAmount || 0).toLocaleString('id-ID')}\n` +
-            `- Total Jatuh Tempo: Rp ${Number(paylaterState.simulation.totalBeforePenalty || 0).toLocaleString('id-ID')}\n\n`;
+            `- Biaya Layanan (${Number(paylaterState.simulation.feePercent || 0)}%): ${formatOrderCurrency(paylaterState.simulation.feeAmount || 0)}\n` +
+            `- Total Jatuh Tempo: ${formatOrderCurrency(paylaterState.simulation.totalBeforePenalty || 0)}\n\n`;
     }
     
     // Calculate reward points (1 point per 10,000 IDR)
@@ -3231,7 +3639,6 @@ async function sendToWA() {
     
     const orderId = generateOrderId();
     
-    const locationLink = document.getElementById('location-link')?.value || '';
     const locationText = locationLink ? `\n*Lokasi Maps:* ${locationLink}` : '';
 
     const receiptData = {
@@ -3241,9 +3648,9 @@ async function sendToWA() {
         dateText: orderDateText,
         customerName: name,
         customerPhone: normalizePhone(phone),
-        paymentMethod: payMethod,
+        paymentMethod: paymentMeta.label,
         status: isPaylater ? 'Pending PayLater' : 'Pending',
-        shippingMethod: shipMethod,
+        shippingMethod: shipMeta.label,
         location: location,
         locationLink: locationLink,
         items: receiptItems,
@@ -3260,11 +3667,11 @@ async function sendToWA() {
         `Nama: ${name}\n` +
         `WhatsApp: ${phone}\n\n` +
         `*Detail Pesanan:*\n${itemsText}\n` +
-        `*Metode Pembayaran:* ${payMethod}\n` +
-        `*Metode Pengiriman:* ${shipMethod}\n` +
+        `*Metode Pembayaran:* ${paymentMeta.label}\n` +
+        `*Metode Pengiriman:* ${shipMeta.label}\n` +
         `*Lokasi/Titik:* ${location}${locationText}\n\n` +
-        `*Ongkir:* Rp ${shippingFee.toLocaleString('id-ID')}\n` +
-        `*TOTAL BAYAR: Rp ${total.toLocaleString('id-ID')}*\n` +
+        `*Ongkir:* ${shippingFeeText}\n` +
+        `*TOTAL BAYAR: ${formatOrderCurrency(total)}*\n` +
         `${paylaterDetailText}` +
         `*Estimasi Poin:* +${pointsEarned} Poin\n\n` +
         `Mohon segera diproses ya, terima kasih!`;
@@ -3285,7 +3692,7 @@ async function sendToWA() {
         phone: normalizePhone(phone),
         poin: pointsEarned,
         point_processed: 'No',
-        payment_method: isPaylater ? 'paylater' : (isGajian ? 'gajian' : (payMethod === 'QRIS' ? 'qris' : 'cash')),
+        payment_method: paymentMeta.sheetCode,
         ...paylaterOrderMeta
     };
 
@@ -3305,7 +3712,7 @@ async function sendToWA() {
         
     } catch (err) {
         console.error('❌ Error logging order:', err);
-        alert(resolveOrderLoggingErrorMessage(err));
+        showToast(resolveOrderLoggingErrorMessage(err));
     } finally {
         // Re-enable button after completion (reset state)
         if (sendButton) {
@@ -4182,10 +4589,8 @@ function updatePaymentMethodInfo(method) {
     
     // Payment method information mapping
     const paymentInfo = {
-        'tunai': 'Pembayaran dilakukan secara tunai saat pesanan diterima atau diambil.',
-        'qris': 'Pembayaran dilakukan melalui QRIS menggunakan e-wallet atau mobile banking.',
-        'gajian': 'Pembayaran ditagihkan pada periode gajian berikutnya, jatuh tempo tanggal 6-7.',
-        'paylater': 'PayLater membutuhkan akun login yang valid, limit cukup, dan tanpa tagihan aktif. Simulasi biaya ditampilkan sebelum konfirmasi.'
+        'qris': 'Setelah memilih QRIS, scan kode di bawah lalu lanjutkan kirim pesanan untuk konfirmasi pembayaran.',
+        'paylater': 'Setelah memilih PayLater, kami cek kelayakan akun dan tampilkan simulasi tagihannya di bawah.'
     };
     
     // Hide all first with fade out animation
