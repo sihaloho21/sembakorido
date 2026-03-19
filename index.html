@@ -567,7 +567,7 @@
     </div>
 
     <!-- Modal Order (Pilihan Metode) -->
-    <div id="order-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-labelledby="order-modal-title" tabindex="-1" data-modal>
+    <div id="order-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60]" role="dialog" aria-modal="true" aria-labelledby="order-modal-title" tabindex="-1" data-modal>
         <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[95vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
                 <h3 id="order-modal-title" class="text-2xl font-bold text-gray-800">Lengkapi Pesanan</h3>
@@ -663,14 +663,6 @@
                                 </div>
                             </div>
                         </label>
-                        <label class="radio-card relative cursor-pointer">
-                            <input type="radio" name="pay-method" value="PayLater" onchange="updatePaymentMethodInfo('paylater'); updateOrderTotal()" class="absolute opacity-0">
-                            <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
-                                <p class="font-bold text-gray-800 text-[10px]">PAYLATER</p>
-                                <p class="text-[9px] text-gray-500">Bayar bertahap</p>
-                                <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
-                            </div>
-                        </label>
                     </fieldset>
                 </div>
 
@@ -726,6 +718,14 @@
                             <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
                                 <p class="font-bold text-gray-800 text-[10px]">GAJIAN</p>
                                 <p class="text-[9px] text-gray-500">Bayar tgl 6–7</p>
+                                <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
+                            </div>
+                        </label>
+                        <label class="radio-card relative cursor-pointer">
+                            <input type="radio" name="pay-method" value="PayLater" onchange="updatePaymentMethodInfo('paylater'); updateOrderTotal()" class="absolute opacity-0">
+                            <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
+                                <p class="font-bold text-gray-800 text-[10px]">PAYLATER</p>
+                                <p class="text-[9px] text-gray-500">Bayar bertahap</p>
                                 <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                             </div>
                         </label>
