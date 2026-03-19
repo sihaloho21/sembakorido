@@ -731,10 +731,10 @@
                             </div>
                         </label>
                         <label class="radio-card relative cursor-pointer">
-                            <input type="radio" name="pay-method" value="PayLater" onchange="updatePaymentMethodInfo('paylater'); updateOrderTotal()" class="absolute opacity-0">
-                            <div class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
+                            <input type="radio" id="paylater-method" name="pay-method" value="PayLater" onchange="updatePaymentMethodInfo('paylater'); updateOrderTotal()" class="absolute opacity-0">
+                            <div id="paylater-method-card" class="radio-label p-2 border-2 border-gray-100 rounded-xl text-center transition">
                                 <p class="font-bold text-gray-800 text-[10px]">PayLater</p>
-                                <p class="text-[9px] text-gray-500">Bayar bertahap</p>
+                                <p id="paylater-method-subtitle" class="text-[9px] text-gray-500">Bayar bertahap</p>
                                 <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                             </div>
                         </label>
