@@ -12,6 +12,22 @@ body.modal-active {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
 }
+
+#order-modal .border-green-100 {
+    --tw-border-opacity: 1;
+    border-color: rgb(180 83 26 / var(--tw-border-opacity, 1));
+}
+
+#order-modal .from-green-50 {
+    --tw-gradient-from: #ffffff var(--tw-gradient-from-position);
+    --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+#order-modal .to-emerald-50 {
+    --tw-gradient-to: #0288b5 var(--tw-gradient-to-position);
+}
+
 .hidden { display: none; }
 
 /* Custom Radio Styling */
