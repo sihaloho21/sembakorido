@@ -420,7 +420,7 @@ function renderCategoryFilters() {
 }
 
 function getHeaderCategoryDisplayLabel(category) {
-    if (!category || category === 'Semua') return 'Semua Produk';
+    if (!category || category === 'Semua') return 'Kategori';
     return String(category);
 }
 
@@ -435,6 +435,19 @@ function updateHeaderCategoryLabel(category) {
     if (trigger) {
         trigger.setAttribute('title', `Kategori aktif: ${resolvedLabel}`);
     }
+}
+
+function getHeaderGreetingName() {
+    const user = getStoredLoggedInUser();
+    const rawName = String((user && (user.nama || user.name || user.pelanggan)) || 'Ridho').trim();
+    const firstName = rawName.split(/\s+/).filter(Boolean)[0] || 'Ridho';
+    return firstName.slice(0, 14);
+}
+
+function syncHeaderGreeting() {
+    const greetingEl = document.getElementById('header-greeting-name');
+    if (!greetingEl) return;
+    greetingEl.textContent = getHeaderGreetingName();
 }
 
 function renderHeaderCategoryMenu() {
@@ -2832,6 +2845,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderHeaderCategoryMenu();
+    syncHeaderGreeting();
 
     const headerCategoryTrigger = document.getElementById('header-category-trigger');
     if (headerCategoryTrigger) {
@@ -2849,6 +2863,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const category = actionEl.getAttribute('data-category');
             if (category) {
                 setCategory(category);
+            }
+        });
+    }
+
+    const headerSearchSubmit = document.getElementById('header-search-submit');
+    if (headerSearchSubmit) {
+        headerSearchSubmit.addEventListener('click', () => {
+            filterProducts();
+            closeSearchSuggestions();
+            const target = getPaginationScrollAnchor();
+            if (target) {
+                window.scrollTo({
+                    top: getPaginationScrollTop(target),
+                    behavior: 'smooth'
+                });
             }
         });
     }
