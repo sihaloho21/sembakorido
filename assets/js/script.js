@@ -437,17 +437,113 @@ function updateHeaderCategoryLabel(category) {
     }
 }
 
-function getHeaderGreetingName() {
+function getHeaderUserDisplayName() {
     const user = getStoredLoggedInUser();
-    const rawName = String((user && (user.nama || user.name || user.pelanggan)) || 'Ridho').trim();
-    const firstName = rawName.split(/\s+/).filter(Boolean)[0] || 'Ridho';
+    return String((user && (user.nama || user.name || user.pelanggan)) || 'Ridho').trim() || 'Ridho';
+}
+
+function getHeaderGreetingName() {
+    const firstName = getHeaderUserDisplayName().split(/\s+/).filter(Boolean)[0] || 'Ridho';
     return firstName.slice(0, 14);
+}
+
+function getHeaderAccountSubtitle() {
+    const user = getStoredLoggedInUser();
+    if (!user) return 'Pelanggan GoSembako';
+
+    const email = String(user.email || user.mail || user.email_address || '').trim();
+    if (email) {
+        return email.slice(0, 42);
+    }
+
+    const phone = String(
+        (typeof normalizePhone === 'function'
+            ? normalizePhone(user.whatsapp || user.phone || '')
+            : (user.whatsapp || user.phone || '')) || ''
+    ).trim();
+
+    return phone || 'Pelanggan GoSembako';
 }
 
 function syncHeaderGreeting() {
     const greetingEl = document.getElementById('header-greeting-name');
-    if (!greetingEl) return;
-    greetingEl.textContent = getHeaderGreetingName();
+    const accountNameEl = document.getElementById('header-account-name');
+    const accountSubtitleEl = document.getElementById('header-account-subtitle');
+
+    if (greetingEl) {
+        greetingEl.textContent = getHeaderGreetingName();
+    }
+    if (accountNameEl) {
+        accountNameEl.textContent = getHeaderUserDisplayName();
+    }
+    if (accountSubtitleEl) {
+        accountSubtitleEl.textContent = getHeaderAccountSubtitle();
+    }
+}
+
+function closeHeaderAccountMenu() {
+    const menu = document.getElementById('header-account-menu');
+    const trigger = document.getElementById('header-account-trigger');
+    const chevron = document.getElementById('header-account-chevron');
+
+    if (menu) {
+        menu.classList.remove('is-open');
+        menu.setAttribute('aria-hidden', 'true');
+    }
+    if (trigger) {
+        trigger.setAttribute('aria-expanded', 'false');
+    }
+    if (chevron) {
+        chevron.classList.remove('rotate-180');
+    }
+}
+
+function openHeaderAccountMenu() {
+    const menu = document.getElementById('header-account-menu');
+    const trigger = document.getElementById('header-account-trigger');
+    const chevron = document.getElementById('header-account-chevron');
+
+    if (!menu) return;
+
+    closeSearchSuggestions();
+    closeHeaderCategoryMenu();
+    syncHeaderGreeting();
+    menu.classList.add('is-open');
+    menu.setAttribute('aria-hidden', 'false');
+    if (trigger) {
+        trigger.setAttribute('aria-expanded', 'true');
+    }
+    if (chevron) {
+        chevron.classList.add('rotate-180');
+    }
+}
+
+function toggleHeaderAccountMenu(forceOpen) {
+    const menu = document.getElementById('header-account-menu');
+    if (!menu) return;
+
+    const shouldOpen = typeof forceOpen === 'boolean'
+        ? forceOpen
+        : !menu.classList.contains('is-open');
+
+    if (shouldOpen) {
+        openHeaderAccountMenu();
+    } else {
+        closeHeaderAccountMenu();
+    }
+}
+
+function handleHeaderAccountLogout() {
+    try {
+        localStorage.removeItem('gosembako_user');
+    } catch (error) {
+        console.warn('Failed clearing gosembako_user from header:', error);
+    }
+
+    closeHeaderAccountMenu();
+    syncHeaderAuthState();
+    syncPaylaterAvailability();
+    showToast('Anda berhasil logout.');
 }
 
 function syncHeaderAuthState() {
@@ -465,9 +561,12 @@ function syncHeaderAuthState() {
         authIcons.setAttribute('aria-hidden', String(!isLoggedIn));
     }
 
-    if (isLoggedIn) {
-        syncHeaderGreeting();
+    if (!isLoggedIn) {
+        closeHeaderAccountMenu();
+        return;
     }
+
+    syncHeaderGreeting();
 }
 
 function renderHeaderCategoryMenu() {
@@ -516,6 +615,7 @@ function openHeaderCategoryMenu() {
     if (!menu) return;
 
     closeSearchSuggestions();
+    closeHeaderAccountMenu();
     menu.classList.add('is-open');
     menu.setAttribute('aria-hidden', 'false');
     if (trigger) {
@@ -2875,6 +2975,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const headerAccountTrigger = document.getElementById('header-account-trigger');
+    if (headerAccountTrigger) {
+        headerAccountTrigger.addEventListener('click', (event) => {
+            event.stopPropagation();
+            toggleHeaderAccountMenu();
+        });
+    }
+
+    const headerAccountMenu = document.getElementById('header-account-menu');
+    if (headerAccountMenu) {
+        headerAccountMenu.addEventListener('click', (event) => {
+            const logoutTrigger = event.target.closest('#header-account-logout');
+            if (logoutTrigger) {
+                event.preventDefault();
+                handleHeaderAccountLogout();
+                return;
+            }
+
+            const closeTrigger = event.target.closest('[data-close-account-menu="true"]');
+            if (closeTrigger) {
+                closeHeaderAccountMenu();
+            }
+        });
+    }
+
     const headerCategoryList = document.getElementById('header-category-list');
     if (headerCategoryList) {
         headerCategoryList.addEventListener('click', (event) => {
@@ -3087,6 +3212,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         searchInput.addEventListener('focus', () => {
             closeHeaderCategoryMenu();
+            closeHeaderAccountMenu();
         });
         searchInput.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
@@ -3103,6 +3229,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (headerInput) {
         headerInput.addEventListener('focus', () => {
             closeHeaderCategoryMenu();
+            closeHeaderAccountMenu();
         });
         headerInput.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
@@ -3123,11 +3250,16 @@ document.addEventListener('DOMContentLoaded', () => {
             event.target.closest('#search-suggestions-header');
         const isInsideHeaderCategory = event.target.closest('#header-category-trigger') ||
             event.target.closest('#header-category-menu');
+        const isInsideHeaderAccount = event.target.closest('#header-account-trigger') ||
+            event.target.closest('#header-account-menu');
         if (!isInsideSearch) {
             closeSearchSuggestions();
         }
         if (!isInsideHeaderCategory) {
             closeHeaderCategoryMenu();
+        }
+        if (!isInsideHeaderAccount) {
+            closeHeaderAccountMenu();
         }
     });
 
@@ -3135,6 +3267,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.key !== 'Escape') return;
         closeSearchSuggestions();
         closeHeaderCategoryMenu();
+        closeHeaderAccountMenu();
     });
 
 

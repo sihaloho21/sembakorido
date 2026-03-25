@@ -256,6 +256,53 @@ function getInitialAccountViewMode() {
     return 'login';
 }
 
+const ACCOUNT_SECTION_ID_MAP = {
+    profile: 'profile-section',
+    orders: 'orders-section',
+    points: 'points-section',
+    settings: 'settings-section',
+    payments: 'payments-section',
+    addresses: 'shipping-address-section'
+};
+
+function getRequestedAccountSectionKey() {
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        const sectionFromQuery = String(params.get('section') || '').trim().toLowerCase();
+        const sectionFromHash = String(window.location.hash || '').replace(/^#/, '').trim().toLowerCase();
+        return sectionFromQuery || sectionFromHash || '';
+    } catch (error) {
+        console.warn('Failed parsing requested account section:', error);
+        return '';
+    }
+}
+
+function highlightAccountSection(target) {
+    if (!target) return;
+    target.classList.remove('account-section-highlight');
+    void target.offsetWidth;
+    target.classList.add('account-section-highlight');
+
+    clearTimeout(window.__accountSectionHighlightTimeout);
+    window.__accountSectionHighlightTimeout = setTimeout(() => {
+        target.classList.remove('account-section-highlight');
+    }, 1800);
+}
+
+function focusRequestedAccountSection() {
+    const sectionKey = getRequestedAccountSectionKey();
+    const sectionId = ACCOUNT_SECTION_ID_MAP[sectionKey];
+    if (!sectionId) return;
+
+    const target = document.getElementById(sectionId);
+    if (!target) return;
+
+    setTimeout(() => {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        highlightAccountSection(target);
+    }, 160);
+}
+
 function buildReferralShareUrl(code) {
     const referralCode = toReferralCodeValue(code);
     if (!referralCode || referralCode === '-') return '';
@@ -608,6 +655,7 @@ function showDashboard(user) {
     
     // Load order history
     loadOrderHistory(user);
+    focusRequestedAccountSection();
 }
 
 function retryReferralSection() {
@@ -2918,6 +2966,12 @@ function hideMobileBottomNavOnDashboard() {
 document.addEventListener('DOMContentLoaded', function() {
     // Initial check
     setTimeout(hideMobileBottomNavOnDashboard, 100);
+});
+
+window.addEventListener('hashchange', () => {
+    if (getLoggedInUser()) {
+        focusRequestedAccountSection();
+    }
 });
 
 // Hook into showDashboard to hide bottom nav

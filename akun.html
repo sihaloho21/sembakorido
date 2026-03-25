@@ -35,6 +35,22 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .account-section-highlight {
+            animation: accountSectionPulse 1.8s ease;
+        }
+        @keyframes accountSectionPulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.22), 0 12px 24px rgba(15, 23, 42, 0.08);
+                transform: translateY(-2px);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(22, 163, 74, 0.08), 0 18px 34px rgba(15, 23, 42, 0.12);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(22, 163, 74, 0), 0 10px 22px rgba(15, 23, 42, 0.06);
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -357,7 +373,7 @@
         <!-- Dashboard Section (Hidden by default) -->
         <div id="dashboard-section" class="hidden fade-in">
             <!-- User Info Card -->
-            <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
+            <div id="profile-section" class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
                 <div class="flex flex-col sm:flex-row sm:items-center gap-4">
                     <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <svg aria-hidden="true" class="w-8 h-8 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -388,8 +404,65 @@
                 <p class="text-xs font-semibold text-gray-500">Total Belanja Diterima</p>
                 <p id="total-accepted-spend" class="text-2xl font-bold text-green-700 mt-1">Rp 0</p>
             </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+                <section id="settings-section" class="bg-white rounded-2xl shadow-lg p-5 border border-gray-100">
+                    <div class="flex items-start gap-3 mb-3">
+                        <div class="w-11 h-11 rounded-2xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0">
+                            <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317a1 1 0 011.35-.936l.935.351a1 1 0 00.79 0l.936-.351a1 1 0 011.35.936l.13.995a1 1 0 00.57.78l.873.45a1 1 0 01.456 1.314l-.4.92a1 1 0 000 .8l.4.92a1 1 0 01-.456 1.314l-.874.45a1 1 0 00-.57.78l-.129.995a1 1 0 01-1.35.936l-.936-.351a1 1 0 00-.79 0l-.935.351a1 1 0 01-1.35-.936l-.13-.995a1 1 0 00-.57-.78l-.873-.45a1 1 0 01-.456-1.314l.4-.92a1 1 0 000-.8l-.4-.92a1 1 0 01.456-1.314l.873-.45a1 1 0 00.57-.78l.13-.995z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-gray-800">Pengaturan Akun</h3>
+                            <p class="text-sm text-gray-500 mt-1">Kelola profil dan identitas akun Anda.</p>
+                        </div>
+                    </div>
+                    <button type="button" data-action="open-edit-profile" class="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold transition">
+                        Edit Profil
+                    </button>
+                </section>
+
+                <section id="payments-section" class="bg-white rounded-2xl shadow-lg p-5 border border-gray-100">
+                    <div class="flex items-start gap-3 mb-3">
+                        <div class="w-11 h-11 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+                            <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h5M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-gray-800">Metode Pembayaran</h3>
+                            <p class="text-sm text-gray-500 mt-1">Pilihan pembayaran aktif untuk belanja di GoSembako.</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-bold">Tunai</span>
+                        <span class="px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">QRIS</span>
+                        <span class="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold">Bayar Gajian</span>
+                        <span class="px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold">PayLater</span>
+                    </div>
+                </section>
+
+                <section id="shipping-address-section" class="bg-white rounded-2xl shadow-lg p-5 border border-gray-100">
+                    <div class="flex items-start gap-3 mb-3">
+                        <div class="w-11 h-11 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center shrink-0">
+                            <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-gray-800">Alamat Pengiriman</h3>
+                            <p class="text-sm text-gray-500 mt-1">Alamat ditentukan saat checkout agar fleksibel untuk setiap pesanan.</p>
+                        </div>
+                    </div>
+                    <a href="/" class="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-700 text-sm font-bold transition">
+                        Atur Saat Checkout
+                    </a>
+                </section>
+            </div>
             <!-- Loyalty Program Card -->
-            <div class="bg-white rounded-2xl shadow-lg p-5 border border-gray-100 mb-6">
+            <div id="points-section" class="bg-white rounded-2xl shadow-lg p-5 border border-gray-100 mb-6">
                 <div class="flex items-center justify-between gap-3">
                     <div class="flex items-center gap-3 min-w-0">
                         <div class="w-12 h-12 bg-green-100 text-green-700 rounded-full flex items-center justify-center shrink-0">
@@ -547,7 +620,7 @@
             </div>
 
             <!-- Order History -->
-            <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+            <div id="orders-section" class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
                 <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <svg aria-hidden="true" class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
@@ -1112,7 +1185,7 @@
             bind('[data-action="show-forgot"]', () => showForgotPIN());
             bind('[data-action="show-register"]', () => showRegister());
             bindAll('[data-action="show-login"]', () => showLogin());
-            bind('[data-action="open-edit-profile"]', () => openEditProfile());
+            bindAll('[data-action="open-edit-profile"]', () => openEditProfile());
             bindAll('[data-action="close-edit-profile"]', () => closeEditProfile());
             bind('[data-action="logout"]', () => logout());
             bind('[data-action="open-reward"]', () => openRewardModal());
