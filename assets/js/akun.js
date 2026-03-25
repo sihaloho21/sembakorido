@@ -237,6 +237,25 @@ function getReferralCodeFromUrl() {
     }
 }
 
+function getInitialAccountViewMode() {
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        const mode = String(params.get('mode') || '').trim().toLowerCase();
+        const hash = String(window.location.hash || '').replace(/^#/, '').trim().toLowerCase();
+
+        if (mode === 'register' || hash === 'register' || hash === 'daftar') {
+            return 'register';
+        }
+        if (mode === 'forgot' || hash === 'forgot' || hash === 'lupa-pin') {
+            return 'forgot';
+        }
+    } catch (error) {
+        console.warn('Failed parsing initial account view mode:', error);
+    }
+
+    return 'login';
+}
+
 function buildReferralShareUrl(code) {
     const referralCode = toReferralCodeValue(code);
     if (!referralCode || referralCode === '-') return '';
@@ -501,6 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const loggedInUser = getLoggedInUser();
+    const initialViewMode = getInitialAccountViewMode();
 
     const referralInput = document.getElementById('referral-input');
     if (referralInput) {
@@ -543,6 +563,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loggedInUser) {
         // User already logged in, show dashboard
         showDashboard(loggedInUser);
+    } else if (initialViewMode === 'register') {
+        showRegister();
+    } else if (initialViewMode === 'forgot') {
+        showForgotPIN();
     } else {
         // Show login form
         showLogin();

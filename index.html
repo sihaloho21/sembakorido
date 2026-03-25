@@ -257,6 +257,35 @@
         .header-action-badge:not(.hidden) {
             animation: header-badge-bounce 2.4s ease-in-out infinite;
         }
+        .header-auth-button {
+            align-items: center;
+            border: 1px solid #3b82f6;
+            border-radius: 10px;
+            color: #2563eb;
+            display: inline-flex;
+            font-size: 0.95rem;
+            font-weight: 600;
+            height: 40px;
+            justify-content: center;
+            line-height: 1;
+            padding: 0 1rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+            white-space: nowrap;
+        }
+        .header-auth-button:hover {
+            background: #eff6ff;
+            box-shadow: 0 6px 14px rgba(37, 99, 235, 0.12);
+            transform: translateY(-1px);
+        }
+        .header-auth-button-primary {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: #ffffff;
+        }
+        .header-auth-button-primary:hover {
+            background: #1d4ed8;
+            color: #ffffff;
+        }
         .header-user-link {
             align-items: center;
             color: #4b5563;
@@ -332,6 +361,14 @@
             }
         }
         @media (max-width: 767px) {
+            .header-actions {
+                gap: 0.5rem;
+            }
+            .header-auth-button {
+                font-size: 0.78rem;
+                height: 36px;
+                padding: 0 0.75rem;
+            }
             .header-search-active .header-actions,
             .header-search-active .header-logo,
             .header-search-active .header-mobile-menu {
@@ -488,13 +525,6 @@
                 </div>
 
                 <div class="header-actions ml-auto flex items-center gap-2 md:gap-3">
-                    <button data-action="open-wishlist" class="header-action-icon text-rose-500" title="Daftar Keinginan" aria-label="Daftar keinginan">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                        </svg>
-                        <span id="wishlist-count" class="header-action-badge hidden" role="status" aria-live="polite" aria-atomic="true" aria-label="Jumlah item di wishlist">0</span>
-                    </button>
-
                     <button data-action="open-cart" class="header-action-icon header-cart-desktop text-slate-400" aria-label="Buka keranjang">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -502,29 +532,43 @@
                         <span id="cart-count" class="header-action-badge hidden" role="status" aria-live="polite" aria-atomic="true" aria-label="Jumlah item di keranjang">0</span>
                     </button>
 
-                    <button type="button" class="header-action-icon text-amber-400" aria-label="Notifikasi" title="Notifikasi">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.389 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                        </svg>
-                        <span class="header-action-badge">3</span>
-                    </button>
+                    <div id="header-guest-actions" class="hidden flex items-center gap-2" aria-hidden="true">
+                        <a href="akun.html" class="header-auth-button" aria-label="Masuk ke akun">Masuk</a>
+                        <a href="akun.html?mode=register" class="header-auth-button header-auth-button-primary" aria-label="Daftar akun baru">Daftar</a>
+                    </div>
 
-                    <a href="https://wa.me/628993370200" target="_blank" rel="noopener noreferrer" class="header-action-icon hidden text-slate-400 md:inline-flex" aria-label="Hubungi lewat WhatsApp">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M8 10h8M8 14h5m-8 6l2.4-2.4A2 2 0 004 16.2V7a2 2 0 012-2h12a2 2 0 012 2v9a2 2 0 01-2 2H8z"></path>
-                        </svg>
-                        <span class="header-action-badge">1</span>
-                    </a>
+                    <div id="header-auth-icons" class="hidden flex items-center gap-2 md:gap-3" aria-hidden="true">
+                        <button data-action="open-wishlist" class="header-action-icon text-rose-500" title="Daftar Keinginan" aria-label="Daftar keinginan">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                            <span id="wishlist-count" class="header-action-badge hidden" role="status" aria-live="polite" aria-atomic="true" aria-label="Jumlah item di wishlist">0</span>
+                        </button>
 
-                    <a href="akun.html" class="account-desktop header-user-link" title="Akun Saya" aria-label="Akun saya">
-                        <svg class="header-user-icon h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
-                        <span>Hi, <span id="header-greeting-name" class="header-user-name">Ridho</span></span>
-                        <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </a>
+                        <button type="button" class="header-action-icon text-amber-400" aria-label="Notifikasi" title="Notifikasi">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.389 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                            </svg>
+                            <span class="header-action-badge">3</span>
+                        </button>
+
+                        <a href="https://wa.me/628993370200" target="_blank" rel="noopener noreferrer" class="header-action-icon hidden text-slate-400 md:inline-flex" aria-label="Hubungi lewat WhatsApp">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M8 10h8M8 14h5m-8 6l2.4-2.4A2 2 0 004 16.2V7a2 2 0 012-2h12a2 2 0 012 2v9a2 2 0 01-2 2H8z"></path>
+                            </svg>
+                            <span class="header-action-badge">1</span>
+                        </a>
+
+                        <a href="akun.html" class="account-desktop header-user-link" title="Akun Saya" aria-label="Akun saya">
+                            <svg class="header-user-icon h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <span>Hi, <span id="header-greeting-name" class="header-user-name">Ridho</span></span>
+                            <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
