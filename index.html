@@ -80,7 +80,24 @@
             display: none;
         }
         .header-top-strip {
-            display: none !important;
+            border-bottom: 1px solid #e5e7eb;
+            display: none;
+        }
+        .header-quick-link,
+        .header-link-button {
+            color: #6b7280;
+            transition: color 0.2s ease;
+        }
+        .header-quick-link:hover,
+        .header-link-button:hover {
+            color: #2d7a3e;
+        }
+        .header-link-button {
+            background: transparent;
+            border: 0;
+            cursor: pointer;
+            font: inherit;
+            padding: 0;
         }
         .header-mobile-menu {
             display: inline-flex;
@@ -248,6 +265,9 @@
             .header-user-link {
                 display: inline-flex;
             }
+            .header-top-strip {
+                display: block;
+            }
             .header-desktop-search {
                 display: flex;
             }
@@ -258,7 +278,7 @@
                 display: none;
             }
             .hero-offset {
-                padding-top: 90px;
+                padding-top: 122px;
             }
         }
         @media (max-width: 767px) {
