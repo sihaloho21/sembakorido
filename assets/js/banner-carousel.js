@@ -97,12 +97,24 @@ class BundleCarousel {
         }
     }
 
+    getSlidesPerView() {
+        if (window.innerWidth >= 1024) return 3;
+        if (window.innerWidth >= 768) return 2;
+        return 1;
+    }
+
+    getMaxIndex() {
+        return Math.max(0, this.bundles.length - this.getSlidesPerView());
+    }
+
     render() {
         const container = document.getElementById('bundle-carousel-container');
         if (!container || this.bundles.length === 0) {
             if (container) container.style.display = 'none';
             return;
         }
+
+        const dotCount = Math.max(1, this.bundles.length - this.getSlidesPerView() + 1);
 
         container.style.display = 'block';
         container.innerHTML = `
@@ -127,7 +139,7 @@ class BundleCarousel {
             </div>
             
             <div class="carousel-dots" id="carousel-dots">
-                ${this.bundles.map((_, index) => `
+                ${Array.from({ length: dotCount }, (_, index) => `
                     <button class="carousel-dot ${index === 0 ? 'active' : ''}" data-index="${index}" aria-label="Go to slide ${index + 1}"></button>
                 `).join('')}
             </div>
@@ -153,7 +165,7 @@ class BundleCarousel {
         const mainImage = images[0] || 'https://placehold.co/300x200?text=Produk';
         const safeImage = sanitizeUrl(mainImage, 'https://placehold.co/300x200?text=Produk');
         const optimizedImage = optimizeCarouselImageUrl(safeImage, 720, 405);
-        const imageLoading = index < 2 ? 'eager' : 'lazy';
+        const imageLoading = index < 3 ? 'eager' : 'lazy';
 
         const rewardPoints = typeof calculateRewardPoints === 'function' ? calculateRewardPoints(p.harga, p.nama) : 0;
         
@@ -173,55 +185,57 @@ class BundleCarousel {
 
         return `
             <div class="carousel-slide" data-index="${index}">
-                <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300 relative h-full">
+                <div class="bundle-card bundle-card-compact relative h-full">
                     <div class="absolute top-3 left-3 z-10 flex flex-col gap-2">
                         <div class="bg-amber-300 text-amber-900 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm flex items-center gap-1">
                             <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
                             +${rewardPoints} Poin
                         </div>
                     </div>
-                    <img src="${optimizedImage}" alt="${safeName}" data-action="open-detail" data-index="${index}" class="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity ${stokCount === 0 ? 'grayscale opacity-60' : ''}" loading="${imageLoading}" decoding="async" width="720" height="405" data-fallback-src="https://placehold.co/300x200?text=Produk">
-                    <div class="p-6">
-                        <div class="flex justify-between items-start mb-2">
-                            <h4 class="text-lg font-bold text-gray-800">${safeName}</h4>
+                    <div class="bundle-image-container bundle-image-container-compact">
+                        <img src="${optimizedImage}" alt="${safeName}" data-action="open-detail" data-index="${index}" class="bundle-image bundle-image-compact cursor-pointer hover:opacity-90 transition-opacity ${stokCount === 0 ? 'grayscale opacity-60' : ''}" loading="${imageLoading}" decoding="async" width="720" height="405" data-fallback-src="https://placehold.co/300x200?text=Produk">
+                    </div>
+                    <div class="bundle-info bundle-info-compact">
+                        <div class="flex justify-between items-start gap-2 mb-2">
+                            <h4 class="bundle-title bundle-title-compact">${safeName}</h4>
                             ${stokLabel}
                         </div>
-                        <div class="flex justify-between items-center mb-4">
+                        <div class="flex justify-between items-center mb-3">
                             <button data-action="share-product" data-index="${index}" class="text-green-600 hover:text-green-700 flex items-center gap-1 text-xs font-medium">
                                 <span>Share</span>
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.631 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                             </button>
                         </div>
-                        <div class="grid grid-cols-2 gap-4 mb-6">
-                            <div class="bg-green-50 p-3 rounded-lg">
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div class="bg-green-50 p-2.5 rounded-lg">
                                 <p class="text-[10px] text-green-600 font-bold uppercase">Harga Cash</p>
                                 <div class="flex flex-col">
                                     ${hargaCoretHtml}
-                                    <p class="text-lg font-bold text-green-700">Rp ${p.harga.toLocaleString('id-ID')}</p>
+                                    <p class="text-base font-bold text-green-700">Rp ${p.harga.toLocaleString('id-ID')}</p>
                                 </div>
                             </div>
-                            <div class="bg-blue-50 p-3 rounded-lg">
+                            <div class="bg-blue-50 p-2.5 rounded-lg">
                                 <p class="text-[10px] text-blue-600 font-bold uppercase">Bayar Gajian</p>
                                 <div class="flex flex-col">
-                                    <p class="text-[8px] text-blue-700 mb-0.5">Harga Per Tgl ${new Date().toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'}).replace(/\//g, '-')}</p>
-                                    <p class="text-lg font-bold text-blue-700">Rp ${p.hargaGajian.toLocaleString('id-ID')}</p>
+                                    <p class="text-[8px] text-blue-700 mb-0.5 leading-tight">Harga Per Tgl ${new Date().toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'}).replace(/\//g, '-')}</p>
+                                    <p class="text-base font-bold text-blue-700">Rp ${p.hargaGajian.toLocaleString('id-ID')}</p>
                                 </div>
                             </div>
                         </div>
                         ${hasVariations ? `
-                        <button data-action="open-detail" data-index="${index}" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 mb-3">
+                        <button data-action="open-detail" data-index="${index}" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 mb-3 text-sm">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                             Pilih Variasi
                         </button>
                         ` : `
-                        <button data-action="add-to-cart" data-index="${index}" ${stokCount === 0 ? 'disabled' : ''} class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 mb-3">
+                        <button data-action="add-to-cart" data-index="${index}" ${stokCount === 0 ? 'disabled' : ''} class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 mb-3 text-sm">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                             Tambah ke Keranjang
                         </button>
                         `}
                         <div class="grid grid-cols-2 gap-2">
-                            <button data-action="open-detail" data-index="${index}" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded-lg text-sm transition">Rincian</button>
-                            <button data-action="direct-order" data-index="${index}" ${stokCount === 0 ? 'disabled' : ''} class="bg-green-100 hover:bg-green-200 text-green-700 font-bold py-2 rounded-lg text-sm transition">Beli Sekarang</button>
+                            <button data-action="open-detail" data-index="${index}" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded-lg text-xs transition">Rincian</button>
+                            <button data-action="direct-order" data-index="${index}" ${stokCount === 0 ? 'disabled' : ''} class="bg-green-100 hover:bg-green-200 text-green-700 font-bold py-2 rounded-lg text-xs transition">Beli Sekarang</button>
                         </div>
                     </div>
                 </div>
@@ -326,20 +340,15 @@ class BundleCarousel {
 
         if (!track) return;
 
-        // Determine slides per view based on screen width
-        const isMobile = window.innerWidth < 768;
-        const slidesPerView = isMobile ? 1 : 2;
-        
-        // Calculate slide width based on CSS flex-basis
-        // Mobile: 90% per slide, Desktop: 45% per slide
-        const slideWidth = isMobile ? 90 : 45;
-        const peekAmount = isMobile ? 5 : 5; // 5% peek on each side
+        const slidesPerView = this.getSlidesPerView();
+        const maxIndex = this.getMaxIndex();
+        const slideWidth = 100 / slidesPerView;
 
-        // Calculate offset with peek
-        const baseOffset = -(this.currentIndex * slideWidth);
-        const offset = baseOffset + peekAmount;
+        if (this.currentIndex > maxIndex) {
+            this.currentIndex = maxIndex;
+        }
 
-        track.style.transform = `translateX(${offset}%)`;
+        track.style.transform = `translateX(-${this.currentIndex * slideWidth}%)`;
 
         // Update dots
         dots.forEach((dot, index) => {
@@ -356,9 +365,7 @@ class BundleCarousel {
     next() {
         if (this.isTransitioning) return;
         
-        const isMobile = window.innerWidth < 768;
-        const slidesPerView = isMobile ? 1 : 2;
-        const maxIndex = this.bundles.length - slidesPerView;
+        const maxIndex = this.getMaxIndex();
 
         if (this.currentIndex >= maxIndex) {
             this.currentIndex = 0;
@@ -376,9 +383,7 @@ class BundleCarousel {
     prev() {
         if (this.isTransitioning) return;
         
-        const isMobile = window.innerWidth < 768;
-        const slidesPerView = isMobile ? 1 : 2;
-        const maxIndex = this.bundles.length - slidesPerView;
+        const maxIndex = this.getMaxIndex();
 
         if (this.currentIndex <= 0) {
             this.currentIndex = maxIndex;
@@ -396,7 +401,7 @@ class BundleCarousel {
     goToSlide(index) {
         if (this.isTransitioning) return;
         
-        this.currentIndex = index;
+        this.currentIndex = Math.max(0, Math.min(index, this.getMaxIndex()));
         this.isTransitioning = true;
         this.updateCarousel();
         setTimeout(() => {
