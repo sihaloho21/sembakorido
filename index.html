@@ -75,8 +75,7 @@
             opacity: 1;
         }
         .account-desktop,
-        .header-desktop-search,
-        .header-cart-desktop {
+        .header-desktop-search {
             display: none;
         }
         .header-top-strip {
@@ -139,13 +138,16 @@
             gap: 8px;
             height: 38px;
             padding: 0 14px;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            transform: translateY(0);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
         }
         .header-category-trigger:hover,
         .header-category-trigger:focus-visible {
+            background: #f9fffb;
             border-color: #4a9465;
             box-shadow: 0 0 0 3px rgba(74, 148, 101, 0.12);
             outline: none;
+            transform: translateY(-1px);
         }
         .header-search-shell {
             display: flex;
@@ -190,7 +192,16 @@
             width: 220px;
         }
         .header-category-menu.is-open {
+            animation: header-menu-drop 0.18s ease-out;
             display: block;
+        }
+        .header-category-item {
+            transition: background-color 0.2s ease, color 0.2s ease, padding-left 0.2s ease, border-left-color 0.2s ease;
+        }
+        .header-category-item:hover {
+            background: #f0fdf4;
+            color: #15803d;
+            padding-left: 1.25rem;
         }
         .header-category-item.is-active {
             background: #f0fdf4;
@@ -210,12 +221,21 @@
             justify-content: center;
             padding: 4px 0;
             position: relative;
-            transition: color 0.2s ease;
+            transform: translateY(0);
+            transition: color 0.2s ease, transform 0.2s ease;
             width: auto;
+        }
+        .header-action-icon svg {
+            transform-origin: center;
+            transition: transform 0.22s ease, filter 0.22s ease;
         }
         .header-action-icon:hover {
             color: #2d7a3e;
-            transform: none;
+            transform: translateY(-1px);
+        }
+        .header-action-icon:hover svg {
+            filter: drop-shadow(0 4px 8px rgba(45, 122, 62, 0.16));
+            transform: translateY(-2px) scale(1.08);
         }
         .header-action-badge {
             align-items: center;
@@ -233,6 +253,9 @@
             position: absolute;
             right: -10px;
             top: -8px;
+        }
+        .header-action-badge:not(.hidden) {
+            animation: header-badge-bounce 2.4s ease-in-out infinite;
         }
         .header-user-link {
             align-items: center;
@@ -260,6 +283,24 @@
         .hero-offset {
             padding-top: 80px;
         }
+        @keyframes header-menu-drop {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes header-badge-bounce {
+            0%, 100% {
+                transform: translateY(0) scale(1);
+            }
+            50% {
+                transform: translateY(-1px) scale(1.08);
+            }
+        }
         @media (min-width: 768px) {
             .account-desktop,
             .header-user-link {
@@ -271,14 +312,23 @@
             .header-desktop-search {
                 display: flex;
             }
-            .header-cart-desktop {
-                display: inline-flex;
-            }
             .header-mobile-menu {
                 display: none;
             }
             .hero-offset {
                 padding-top: 122px;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .header-category-menu.is-open,
+            .header-action-badge:not(.hidden) {
+                animation: none;
+            }
+            .header-action-icon,
+            .header-action-icon svg,
+            .header-category-trigger,
+            .header-category-item {
+                transition: none;
             }
         }
         @media (max-width: 767px) {
@@ -444,16 +494,16 @@
                         <span id="wishlist-count" class="header-action-badge hidden" role="status" aria-live="polite" aria-atomic="true" aria-label="Jumlah item di wishlist">0</span>
                     </button>
 
-                    <button data-action="open-cart" class="header-action-icon header-cart-desktop hidden text-slate-400 md:inline-flex" aria-label="Buka keranjang">
+                    <button data-action="open-cart" class="header-action-icon header-cart-desktop text-slate-400" aria-label="Buka keranjang">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
                         <span id="cart-count" class="header-action-badge hidden" role="status" aria-live="polite" aria-atomic="true" aria-label="Jumlah item di keranjang">0</span>
                     </button>
 
-                    <a href="/promo.html" class="header-action-icon hidden text-amber-400 md:inline-flex" aria-label="Promo terbaru">
-                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                            <path d="M10 2a6 6 0 00-6 6v2.382l-.724 1.447A1 1 0 004.17 13h11.66a1 1 0 00.894-1.447L16 10.382V8a6 6 0 00-6-6zm0 16a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0010 18z"></path>
+                    <a href="/promo.html" class="header-action-icon hidden text-amber-400 md:inline-flex" aria-label="Notifikasi">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.389 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                         </svg>
                         <span class="header-action-badge">3</span>
                     </a>
