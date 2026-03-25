@@ -104,18 +104,13 @@
         .header-main-row {
             min-height: 72px;
         }
-        .header-brand-badge {
+        .header-brand-image {
             align-items: center;
-            background: #4a8c60;
-            border-radius: 8px;
-            color: #ffffff;
             display: inline-flex;
-            font-size: 1.65rem;
-            font-weight: 800;
             height: 48px;
             justify-content: center;
-            letter-spacing: -0.04em;
-            width: 48px;
+            object-fit: contain;
+            width: auto;
         }
         .header-brand-name {
             color: #4a9465;
@@ -472,7 +467,7 @@
                 </button>
 
                 <button type="button" class="header-logo flex shrink-0 items-center gap-3 text-left" data-action="logo-click" aria-label="Logo GoSembako">
-                    <span class="header-brand-badge" aria-hidden="true">GS</span>
+                    <img src="assets/img/logo.webp" alt="GoSembako Logo" class="header-brand-image" data-fallback-src="assets/img/logo.webp">
                     <h1 class="header-brand-name hidden sm:block">GoSembako</h1>
                 </button>
 
