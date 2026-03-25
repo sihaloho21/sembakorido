@@ -413,9 +413,108 @@ function renderCategoryFilters() {
     
     container.innerHTML = html;
     console.log('Category filters rendered:', categories.length, 'categories');
+    renderHeaderCategoryMenu();
     
     // Add desktop scroll functionality
     initCategoryCarouselScroll();
+}
+
+function getHeaderCategoryDisplayLabel(category) {
+    if (!category || category === 'Semua') return 'Semua Produk';
+    return String(category);
+}
+
+function updateHeaderCategoryLabel(category) {
+    const labelEl = document.getElementById('header-category-label');
+    const trigger = document.getElementById('header-category-trigger');
+    const resolvedLabel = getHeaderCategoryDisplayLabel(category || currentCategory);
+
+    if (labelEl) {
+        labelEl.textContent = resolvedLabel;
+    }
+    if (trigger) {
+        trigger.setAttribute('title', `Kategori aktif: ${resolvedLabel}`);
+    }
+}
+
+function renderHeaderCategoryMenu() {
+    const list = document.getElementById('header-category-list');
+    if (!list) return;
+
+    const items = [{ value: 'Semua', label: 'Semua Produk' }]
+        .concat(getDisplayCategories().map((category) => ({ value: category, label: category })));
+
+    list.innerHTML = items.map((item) => {
+        const safeValue = escapeHtml(item.value);
+        const safeLabel = escapeHtml(item.label);
+        const isActive = item.value === currentCategory ? ' is-active' : '';
+        return `
+            <button type="button" data-action="set-header-category" data-category="${safeValue}" class="header-category-item${isActive} flex w-full items-center border-l-4 border-transparent px-4 py-3 text-left text-sm font-semibold text-gray-700 transition hover:bg-green-50">
+                ${safeLabel}
+            </button>
+        `;
+    }).join('');
+
+    updateHeaderCategoryLabel(currentCategory);
+}
+
+function closeHeaderCategoryMenu() {
+    const menu = document.getElementById('header-category-menu');
+    const trigger = document.getElementById('header-category-trigger');
+    const chevron = document.getElementById('header-category-chevron');
+
+    if (menu) {
+        menu.classList.remove('is-open');
+        menu.setAttribute('aria-hidden', 'true');
+    }
+    if (trigger) {
+        trigger.setAttribute('aria-expanded', 'false');
+    }
+    if (chevron) {
+        chevron.classList.remove('rotate-180');
+    }
+}
+
+function openHeaderCategoryMenu() {
+    const menu = document.getElementById('header-category-menu');
+    const trigger = document.getElementById('header-category-trigger');
+    const chevron = document.getElementById('header-category-chevron');
+
+    if (!menu) return;
+
+    closeSearchSuggestions();
+    menu.classList.add('is-open');
+    menu.setAttribute('aria-hidden', 'false');
+    if (trigger) {
+        trigger.setAttribute('aria-expanded', 'true');
+    }
+    if (chevron) {
+        chevron.classList.add('rotate-180');
+    }
+}
+
+function toggleHeaderCategoryMenu(forceOpen) {
+    const menu = document.getElementById('header-category-menu');
+    if (!menu) return;
+
+    const shouldOpen = typeof forceOpen === 'boolean'
+        ? forceOpen
+        : !menu.classList.contains('is-open');
+
+    if (shouldOpen) {
+        openHeaderCategoryMenu();
+    } else {
+        closeHeaderCategoryMenu();
+    }
+}
+
+function syncHeaderCategoryMenuState() {
+    document.querySelectorAll('.header-category-item').forEach((item) => {
+        const category = item.getAttribute('data-category');
+        item.classList.toggle('is-active', category === currentCategory);
+    });
+
+    updateHeaderCategoryLabel(currentCategory);
 }
 
 /**
@@ -997,6 +1096,8 @@ function setCategory(cat) {
             btn.classList.add('border-gray-300', 'bg-white', 'text-gray-700');
         }
     });
+    syncHeaderCategoryMenuState();
+    closeHeaderCategoryMenu();
     filterProducts();
 }
 
@@ -1008,6 +1109,11 @@ function addToCart(p, event, qty = 1) {
         return;
     }
     proceedAddToCart(p, event, qty);
+}
+
+function getPrimaryCartButton() {
+    const cartButtons = Array.from(document.querySelectorAll('[data-action="open-cart"]'));
+    return cartButtons.find((button) => button.offsetParent !== null) || cartButtons[0] || null;
 }
 
 function proceedAddToCart(p, event, qty = 1) {
@@ -1074,7 +1180,7 @@ function proceedAddToCart(p, event, qty = 1) {
         const btn = event.currentTarget;
         const card = btn.closest('.bg-white') || document.getElementById('detail-modal');
         const img = card.querySelector('img');
-        const cartBtn = document.querySelector('header button');
+        const cartBtn = getPrimaryCartButton();
         
         if (img && cartBtn) {
             const imgRect = img.getBoundingClientRect();
@@ -1109,7 +1215,7 @@ function proceedAddToCart(p, event, qty = 1) {
         }
     } else {
         // Fallback if no event (e.g. from modal)
-        const cartBtn = document.querySelector('header button');
+        const cartBtn = getPrimaryCartButton();
         if (cartBtn) {
             cartBtn.classList.add('cart-pop');
             setTimeout(() => cartBtn.classList.remove('cart-pop'), 400);
@@ -2715,6 +2821,38 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const sidebarCategoryList = document.getElementById('sidebar-category-list');
+    if (sidebarCategoryList) {
+        sidebarCategoryList.addEventListener('click', (event) => {
+            const actionEl = event.target.closest('[data-action="select-sidebar-category"]');
+            if (!actionEl) return;
+            const category = actionEl.getAttribute('data-category');
+            if (category) selectSidebarCategory(category);
+        });
+    }
+
+    renderHeaderCategoryMenu();
+
+    const headerCategoryTrigger = document.getElementById('header-category-trigger');
+    if (headerCategoryTrigger) {
+        headerCategoryTrigger.addEventListener('click', (event) => {
+            event.stopPropagation();
+            toggleHeaderCategoryMenu();
+        });
+    }
+
+    const headerCategoryList = document.getElementById('header-category-list');
+    if (headerCategoryList) {
+        headerCategoryList.addEventListener('click', (event) => {
+            const actionEl = event.target.closest('[data-action="set-header-category"]');
+            if (!actionEl) return;
+            const category = actionEl.getAttribute('data-category');
+            if (category) {
+                setCategory(category);
+            }
+        });
+    }
+
     // Pagination delegation
     const pagination = document.getElementById('pagination-container');
     if (pagination) {
@@ -2884,6 +3022,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const mobileInput = document.getElementById('search-input-header');
+            if (mobileInput && mobileInput.value !== searchInput.value) {
+                mobileInput.value = searchInput.value;
+            }
+        });
+        searchInput.addEventListener('focus', () => {
+            closeHeaderCategoryMenu();
+        });
         searchInput.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 closeSearchSuggestions();
@@ -2897,6 +3044,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const headerInput = document.getElementById('search-input-header');
     if (headerInput) {
+        headerInput.addEventListener('focus', () => {
+            closeHeaderCategoryMenu();
+        });
         headerInput.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 closeSearchSuggestions();
@@ -2914,9 +3064,20 @@ document.addEventListener('DOMContentLoaded', () => {
             event.target.closest('#search-suggestions') ||
             event.target.closest('#search-input-header') ||
             event.target.closest('#search-suggestions-header');
+        const isInsideHeaderCategory = event.target.closest('#header-category-trigger') ||
+            event.target.closest('#header-category-menu');
         if (!isInsideSearch) {
             closeSearchSuggestions();
         }
+        if (!isInsideHeaderCategory) {
+            closeHeaderCategoryMenu();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        closeSearchSuggestions();
+        closeHeaderCategoryMenu();
     });
 
 
@@ -4756,29 +4917,35 @@ function loadSidebarCategories() {
     if (!categoryList) return;
     
     // Use merged categories (sheet categories + fallback from products)
-    const categories = getDisplayCategories();
-    
-    // Generate category items HTML
-    const categoryItems = categories.map(category => {
-        // Generate a simple icon based on category name
-        const iconSvg = getCategoryIcon(category);
-        
-        const safeCategory = escapeHtml(category);
+    const categories = [{ value: 'Semua', label: 'Semua Produk' }]
+        .concat(getDisplayCategories().map((category) => ({ value: category, label: category })));
+
+    categoryList.innerHTML = categories.map((item) => {
+        const iconSvg = getCategoryIcon(item.label);
+        const safeCategory = escapeHtml(item.value);
+        const safeLabel = escapeHtml(item.label);
+        const isActive = item.value === currentCategory;
+        const buttonClass = isActive
+            ? 'flex items-center gap-3 py-3 px-2 rounded-lg transition group bg-green-50'
+            : 'flex items-center gap-3 py-3 px-2 hover:bg-green-50 rounded-lg transition group';
+        const iconClass = isActive
+            ? 'w-12 h-12 bg-green-200 rounded-lg flex items-center justify-center transition'
+            : 'w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition';
+        const labelClass = isActive
+            ? 'font-semibold text-green-700'
+            : 'font-semibold text-gray-700 group-hover:text-green-700';
+
         return `
             <li class="border-b border-gray-100 last:border-0">
-                <button type="button" data-action="select-sidebar-category" data-category="${safeCategory}" class="flex items-center gap-3 py-3 px-2 hover:bg-green-50 rounded-lg transition group">
-                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition">
+                <button type="button" data-action="select-sidebar-category" data-category="${safeCategory}" class="${buttonClass}">
+                    <div class="${iconClass}">
                         ${iconSvg}
                     </div>
-                    <span class="font-semibold text-gray-700 group-hover:text-green-700">${safeCategory}</span>
+                    <span class="${labelClass}">${safeLabel}</span>
                 </button>
             </li>
         `;
     }).join('');
-    
-    // Keep "Semua Produk" and add dynamic categories
-    const semuaItem = categoryList.querySelector('li');
-    categoryList.innerHTML = semuaItem ? semuaItem.outerHTML + categoryItems : categoryItems;
 }
 
 /**
@@ -4804,9 +4971,12 @@ function selectSidebarCategory(category) {
     closeCategorySidebar();
     
     // Scroll to products section
-    const productsSection = document.getElementById('products');
+    const productsSection = document.getElementById('product-grid') || document.getElementById('katalog');
     if (productsSection) {
-        productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.scrollTo({
+            top: getPaginationScrollTop(productsSection),
+            behavior: 'smooth'
+        });
     }
 }
 
