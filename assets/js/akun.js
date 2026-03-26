@@ -621,16 +621,30 @@ function renderNotificationUI() {
 }
 
 function closeNotificationDropdown() {
+    const bellButton = document.getElementById('notification-bell-button');
     const dropdown = document.getElementById('notification-dropdown');
-    if (dropdown) dropdown.classList.add('hidden');
+    if (dropdown) {
+        dropdown.classList.add('hidden');
+        dropdown.setAttribute('aria-hidden', 'true');
+    }
+    if (bellButton) {
+        bellButton.setAttribute('aria-expanded', 'false');
+    }
 }
 
 function toggleNotificationDropdown() {
+    const bellButton = document.getElementById('notification-bell-button');
     const dropdown = document.getElementById('notification-dropdown');
     if (!dropdown) return;
     const shouldOpen = dropdown.classList.contains('hidden');
     closeNotificationDropdown();
-    if (shouldOpen) dropdown.classList.remove('hidden');
+    if (shouldOpen) {
+        dropdown.classList.remove('hidden');
+        dropdown.setAttribute('aria-hidden', 'false');
+    }
+    if (bellButton) {
+        bellButton.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+    }
 }
 
 function scrollToNotificationSection() {
@@ -1377,13 +1391,30 @@ document.addEventListener('DOMContentLoaded', () => {
             event.stopPropagation();
             toggleNotificationDropdown();
         });
+        notificationBellButton.setAttribute('aria-expanded', 'false');
     }
 
     const notificationDropdown = document.getElementById('notification-dropdown');
     if (notificationDropdown) {
         notificationDropdown.addEventListener('click', (event) => {
             event.stopPropagation();
+            const openNotificationTrigger = event.target.closest('[data-action="open-notification"]');
+            if (openNotificationTrigger) {
+                openNotificationDetailModal(openNotificationTrigger.getAttribute('data-id'));
+                return;
+            }
+            const markAllNotificationTrigger = event.target.closest('[data-action="mark-all-notifications-read"]');
+            if (markAllNotificationTrigger) {
+                markAllNotificationsAsRead();
+                return;
+            }
+            const viewAllNotificationsTrigger = event.target.closest('[data-action="view-all-notifications"]');
+            if (viewAllNotificationsTrigger) {
+                closeNotificationDropdown();
+                scrollToNotificationSection();
+            }
         });
+        notificationDropdown.setAttribute('aria-hidden', notificationDropdown.classList.contains('hidden') ? 'true' : 'false');
     }
 
     document.addEventListener('click', (event) => {
