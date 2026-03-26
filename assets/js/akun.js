@@ -84,11 +84,15 @@ const SECTION_UI_MAP = {
 
 let lastPaylaterDetailInvoiceId = '';
 let sessionRecoveryTriggered = false;
+const NOTIFICATION_REFRESH_INTERVAL_MS = 60000;
+let notificationRefreshTimer = null;
+let notificationRefreshInFlight = false;
 let notificationState = {
     all: [],
     unreadCount: 0,
     lastOpenedId: '',
-    detailAction: null
+    detailAction: null,
+    lastSyncedAt: ''
 };
 
 function createAkunError(message, code) {
@@ -454,16 +458,32 @@ function getNotificationIconHtml(iconKey) {
 }
 
 function updateNotificationUnreadBadges() {
+    const bellButtonEl = document.getElementById('notification-bell-button');
     const badgeEl = document.getElementById('notification-unread-badge');
     const dropdownSubtitleEl = document.getElementById('notification-dropdown-subtitle');
     const summaryEl = document.getElementById('notifications-summary-text');
     const topMarkAllEl = document.getElementById('notification-mark-all-top');
     const sectionMarkAllEl = document.getElementById('notification-mark-all-section');
     const unreadCount = notificationState.unreadCount || 0;
+    const cappedUnreadCount = unreadCount > 99 ? '99+' : String(unreadCount);
 
     if (badgeEl) {
-        badgeEl.textContent = String(unreadCount);
+        badgeEl.textContent = cappedUnreadCount;
         badgeEl.classList.toggle('hidden', unreadCount <= 0);
+        badgeEl.classList.toggle('animate-pulse', unreadCount > 0);
+    }
+    if (bellButtonEl) {
+        bellButtonEl.classList.toggle('bg-amber-50', unreadCount <= 0);
+        bellButtonEl.classList.toggle('text-amber-600', unreadCount <= 0);
+        bellButtonEl.classList.toggle('text-green-700', unreadCount > 0);
+        bellButtonEl.classList.toggle('bg-green-50', unreadCount > 0);
+        bellButtonEl.classList.toggle('ring-2', unreadCount > 0);
+        bellButtonEl.classList.toggle('ring-green-100', unreadCount > 0);
+        const label = unreadCount > 0
+            ? `Lihat notifikasi, ada ${cappedUnreadCount} notifikasi baru`
+            : 'Lihat notifikasi';
+        bellButtonEl.setAttribute('title', label);
+        bellButtonEl.setAttribute('aria-label', label);
     }
     if (dropdownSubtitleEl) {
         dropdownSubtitleEl.textContent = unreadCount > 0
@@ -799,12 +819,25 @@ async function fetchNotificationsFallbackDirect(user) {
     }
 }
 
-async function loadNotifications(user) {
-    clearSectionError('notifications');
-    setSectionLoading('notifications', true);
-    notificationState.all = [];
-    notificationState.unreadCount = 0;
+async function loadNotifications(user, options = {}) {
+    const silent = Boolean(options && options.silent);
     const userPhone = normalizePhoneTo08(user && (user.whatsapp || user.phone) || '');
+    if (!userPhone) {
+        notificationState.all = [];
+        notificationState.unreadCount = 0;
+        notificationState.lastSyncedAt = '';
+        renderNotificationUI();
+        return;
+    }
+    if (notificationRefreshInFlight) return;
+    notificationRefreshInFlight = true;
+
+    clearSectionError('notifications');
+    if (!silent) {
+        setSectionLoading('notifications', true);
+        notificationState.all = [];
+        notificationState.unreadCount = 0;
+    }
 
     const dropdownLoadingEl = document.getElementById('notification-dropdown-loading');
     const dropdownEmptyEl = document.getElementById('notification-dropdown-empty');
@@ -812,17 +845,19 @@ async function loadNotifications(user) {
     const listEl = document.getElementById('notifications-list');
     const emptyEl = document.getElementById('notifications-empty');
 
-    if (dropdownLoadingEl) dropdownLoadingEl.classList.remove('hidden');
-    if (dropdownEmptyEl) dropdownEmptyEl.classList.add('hidden');
-    if (dropdownListEl) {
-        dropdownListEl.classList.add('hidden');
-        dropdownListEl.innerHTML = '';
+    if (!silent) {
+        if (dropdownLoadingEl) dropdownLoadingEl.classList.remove('hidden');
+        if (dropdownEmptyEl) dropdownEmptyEl.classList.add('hidden');
+        if (dropdownListEl) {
+            dropdownListEl.classList.add('hidden');
+            dropdownListEl.innerHTML = '';
+        }
+        if (listEl) {
+            listEl.classList.add('hidden');
+            listEl.innerHTML = '';
+        }
+        if (emptyEl) emptyEl.classList.add('hidden');
     }
-    if (listEl) {
-        listEl.classList.add('hidden');
-        listEl.innerHTML = '';
-    }
-    if (emptyEl) emptyEl.classList.add('hidden');
 
     try {
         const sessionQuery = buildSessionQuery(user);
@@ -852,14 +887,18 @@ async function loadNotifications(user) {
             userPhone
         );
         notificationState.unreadCount = notificationState.all.filter((item) => !item.isRead).length;
+        notificationState.lastSyncedAt = new Date().toISOString();
         renderNotificationUI();
     } catch (error) {
         console.error('Error loading notifications:', error);
         setSectionError('notifications', resolvePublicErrorMessage(error), 'retry-notifications');
         renderNotificationUI();
     } finally {
-        setSectionLoading('notifications', false);
-        if (dropdownLoadingEl) dropdownLoadingEl.classList.add('hidden');
+        if (!silent) {
+            setSectionLoading('notifications', false);
+            if (dropdownLoadingEl) dropdownLoadingEl.classList.add('hidden');
+        }
+        notificationRefreshInFlight = false;
         renderNotificationUI();
     }
 }
@@ -871,6 +910,26 @@ function retryNotificationsSection() {
         return;
     }
     loadNotifications(user);
+}
+
+function stopNotificationAutoRefresh() {
+    if (notificationRefreshTimer) {
+        window.clearInterval(notificationRefreshTimer);
+        notificationRefreshTimer = null;
+    }
+}
+
+function refreshNotificationsSilently() {
+    const user = getLoggedInUser();
+    if (!user || document.hidden) return;
+    loadNotifications(user, { silent: true });
+}
+
+function startNotificationAutoRefresh() {
+    stopNotificationAutoRefresh();
+    notificationRefreshTimer = window.setInterval(() => {
+        refreshNotificationsSilently();
+    }, NOTIFICATION_REFRESH_INTERVAL_MS);
 }
 
 let referralProfileCache = null;
@@ -1311,6 +1370,15 @@ document.addEventListener('DOMContentLoaded', () => {
             closeNotificationDropdown();
         }
     });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) return;
+        refreshNotificationsSilently();
+    });
+
+    window.addEventListener('focus', () => {
+        refreshNotificationsSilently();
+    });
     
     if (loggedInUser) {
         // User already logged in, show dashboard
@@ -1329,6 +1397,7 @@ document.addEventListener('DOMContentLoaded', () => {
  * Show login section
  */
 function showLogin() {
+    stopNotificationAutoRefresh();
     document.getElementById('login-section').classList.remove('hidden');
     document.getElementById('register-section').classList.add('hidden');
     document.getElementById('forgot-pin-section').classList.add('hidden');
@@ -1354,6 +1423,7 @@ function showDashboard(user) {
 
     // Load notification center
     loadNotifications(user);
+    startNotificationAutoRefresh();
 
     // Load referral section
     loadReferralData(user);
@@ -1554,6 +1624,7 @@ function getLoggedInUser() {
  */
 function logout() {
     if (confirm('Apakah Anda yakin ingin keluar?')) {
+        stopNotificationAutoRefresh();
         localStorage.removeItem('gosembako_user');
         window.location.reload();
     }
