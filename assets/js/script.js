@@ -61,6 +61,16 @@ let paylaterCheckoutState = {
     simulation: null
 };
 let paylaterCheckoutRequestSeq = 0;
+const HEADER_NOTIFICATION_REFRESH_INTERVAL_MS = 60000;
+let headerNotificationRefreshTimer = null;
+let headerNotificationRefreshInFlight = false;
+let headerNotificationState = {
+    items: [],
+    unreadCount: 0,
+    lastSyncedAt: '',
+    lastOpenedId: '',
+    detailAction: null
+};
 
 /**
  * Normalize phone number to standard format (08xxxxxxxxxx)
@@ -562,11 +572,551 @@ function syncHeaderAuthState() {
     }
 
     if (!isLoggedIn) {
+        stopHeaderNotificationAutoRefresh();
+        closeHeaderNotificationDropdown();
+        closeHeaderNotificationDetailModal();
+        headerNotificationState = {
+            items: [],
+            unreadCount: 0,
+            lastSyncedAt: '',
+            lastOpenedId: '',
+            detailAction: null
+        };
+        updateHeaderNotificationBadge(0, 0);
+        renderHeaderNotificationDropdown();
         closeHeaderAccountMenu();
         return;
     }
 
     syncHeaderGreeting();
+    syncHeaderNotificationState();
+    startHeaderNotificationAutoRefresh();
+}
+
+function updateHeaderNotificationBadge(unreadCount, totalCount) {
+    const trigger = document.getElementById('header-notification-trigger');
+    const badge = document.getElementById('header-notification-count');
+    if (!trigger || !badge) return;
+
+    const unread = Math.max(0, parseInt(unreadCount, 10) || 0);
+    const total = Math.max(unread, parseInt(totalCount, 10) || 0);
+    const displayCount = unread > 99 ? '99+' : String(unread);
+
+    badge.textContent = displayCount;
+    badge.classList.toggle('hidden', unread <= 0);
+    trigger.classList.toggle('text-amber-400', unread <= 0);
+    trigger.classList.toggle('text-green-600', unread > 0);
+
+    const label = unread > 0
+        ? `Notifikasi, ${displayCount} notifikasi baru`
+        : (total > 0 ? 'Notifikasi, semua sudah dibaca' : 'Notifikasi');
+    trigger.setAttribute('title', label);
+    trigger.setAttribute('aria-label', label);
+}
+
+function parseHeaderNotificationSuccess(payload, fallbackMessage) {
+    if (payload && payload.success === true) {
+        return payload;
+    }
+    const message = String(
+        (payload && (payload.message || payload.error || payload.error_code)) ||
+        fallbackMessage ||
+        'Gagal memuat notifikasi.'
+    ).trim();
+    throw new Error(message);
+}
+
+function parseHeaderNotificationBool(value) {
+    if (value === true) return true;
+    const normalized = String(value === undefined ? '' : value).trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
+
+function parseHeaderNotificationDate(value) {
+    if (!value) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+    if (raw.includes('/')) {
+        const parts = raw.split(',');
+        const dateOnly = parts[0] ? parts[0].trim() : raw;
+        const bits = dateOnly.split('/');
+        if (bits.length === 3) {
+            const day = parseInt(bits[0], 10);
+            const month = parseInt(bits[1], 10);
+            const year = parseInt(bits[2], 10);
+            const fallback = new Date(year, month - 1, day);
+            if (!Number.isNaN(fallback.getTime())) return fallback;
+        }
+    }
+    return null;
+}
+
+function formatHeaderNotificationDateTime(value) {
+    const parsed = parseHeaderNotificationDate(value);
+    if (!parsed || Number.isNaN(parsed.getTime())) return '-';
+    return parsed.toLocaleString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function formatHeaderNotificationRelativeTime(value) {
+    const parsed = parseHeaderNotificationDate(value);
+    if (!parsed) return 'Waktu tidak tersedia';
+    const diffMs = Date.now() - parsed.getTime();
+    const diffMinutes = Math.round(diffMs / 60000);
+    if (diffMinutes <= 1) return 'Baru saja';
+    if (diffMinutes < 60) return `${diffMinutes} menit yang lalu`;
+    const diffHours = Math.round(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} jam yang lalu`;
+    const diffDays = Math.round(diffHours / 24);
+    if (diffDays < 7) return `${diffDays} hari yang lalu`;
+    return parsed.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+    });
+}
+
+function truncateHeaderNotificationText(value, maxLength) {
+    const raw = String(value || '').trim();
+    const limit = parseInt(maxLength, 10) || 120;
+    if (!raw) return '';
+    if (raw.length <= limit) return raw;
+    return `${raw.slice(0, Math.max(0, limit - 3))}...`;
+}
+
+function normalizeHeaderNotificationIcon(iconKey, fallbackType) {
+    const normalized = String(iconKey || fallbackType || '').trim().toLowerCase();
+    const map = {
+        announcement: 'announcement',
+        pengumuman: 'announcement',
+        promo: 'promo',
+        order: 'order',
+        pesanan: 'order',
+        truck: 'truck',
+        shipping: 'truck',
+        pengiriman: 'truck',
+        feature: 'feature',
+        fitur: 'feature',
+        maintenance: 'maintenance',
+        keamanan: 'security',
+        security: 'security'
+    };
+    return map[normalized] || 'announcement';
+}
+
+function getHeaderNotificationIconHtml(iconKey, fallbackType) {
+    const icon = normalizeHeaderNotificationIcon(iconKey, fallbackType);
+    const map = {
+        announcement: {
+            bg: 'bg-green-100 text-green-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19a1 1 0 001.993.117L13 19v-4.382a1 1 0 01.883-.993L14 13.618l4.447-.741A2 2 0 0020 10.903V8.097a2 2 0 00-1.553-1.974L14 5.382a1 1 0 01-.993-.883L13 4.382V3a1 1 0 10-2 0v2.882zM5 10h3m-3 4h4"></path></svg>'
+        },
+        promo: {
+            bg: 'bg-rose-100 text-rose-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>'
+        },
+        order: {
+            bg: 'bg-amber-100 text-amber-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>'
+        },
+        truck: {
+            bg: 'bg-indigo-100 text-indigo-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17h6m-6 0a2 2 0 11-4 0m4 0a2 2 0 104 0m0 0h2a2 2 0 002-2v-3.586a1 1 0 00-.293-.707l-2.414-2.414A1 1 0 0015.586 8H13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v9a2 2 0 002 2h1"></path></svg>'
+        },
+        feature: {
+            bg: 'bg-cyan-100 text-cyan-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"></path></svg>'
+        },
+        maintenance: {
+            bg: 'bg-slate-100 text-slate-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
+        },
+        security: {
+            bg: 'bg-emerald-100 text-emerald-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l7 4v5c0 5-3.438 9.719-7 11-3.562-1.281-7-6-7-11V7l7-4z"></path></svg>'
+        }
+    };
+    const item = map[icon] || map.announcement;
+    return `<div class="w-11 h-11 rounded-2xl ${item.bg} flex items-center justify-center shrink-0">${item.svg}</div>`;
+}
+
+function normalizeHeaderNotificationRecord(row) {
+    const record = row || {};
+    const content = String(record.content || record.message || record.body || '').trim();
+    const summary = String(record.summary || record.preview || '').trim() || truncateHeaderNotificationText(content, 140);
+    return {
+        id: String(record.id || record.notification_id || '').trim(),
+        type: String(record.type || '').trim().toLowerCase(),
+        title: String(record.title || 'Notifikasi').trim(),
+        summary: summary || 'Notifikasi baru tersedia.',
+        content: content || summary || 'Isi notifikasi belum tersedia.',
+        icon: normalizeHeaderNotificationIcon(record.icon || record.category || record.type, record.type),
+        updatedAt: String(record.updated_at || record.updatedAt || '').trim(),
+        createdAt: String(record.created_at || record.createdAt || '').trim(),
+        startAt: String(record.start_at || '').trim(),
+        isPinned: parseHeaderNotificationBool(record.is_pinned || record.pinned),
+        isRead: parseHeaderNotificationBool(record.is_read || record.isRead),
+        referenceType: String(record.reference_type || '').trim().toLowerCase(),
+        referenceId: String(record.reference_id || '').trim(),
+        actionLabel: String(record.action_label || '').trim(),
+        actionUrl: String(record.action_url || '').trim()
+    };
+}
+
+function createHeaderNotificationItemHtml(notification) {
+    const unread = !notification.isRead;
+    const summary = truncateHeaderNotificationText(notification.summary || notification.content, 88);
+    return `
+        <button type="button" data-action="open-header-notification" data-id="${escapeHtml(notification.id)}" class="w-full text-left px-4 py-4 hover:bg-gray-50 transition">
+            <div class="flex items-start gap-3">
+                ${getHeaderNotificationIconHtml(notification.icon, notification.type)}
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold ${unread ? 'text-gray-900' : 'text-gray-700'}">${escapeHtml(notification.title)}</p>
+                            <p class="text-xs ${unread ? 'text-gray-700' : 'text-gray-500'} mt-1 leading-5">${escapeHtml(summary || 'Notifikasi baru tersedia.')}</p>
+                        </div>
+                        ${unread ? '<span class="shrink-0 inline-flex items-center px-2 py-1 rounded-full bg-green-600 text-white text-[10px] font-black uppercase tracking-wide">Baru</span>' : ''}
+                    </div>
+                    <div class="flex items-center justify-between gap-3 mt-3">
+                        <span class="text-[11px] text-gray-500">${escapeHtml(formatHeaderNotificationRelativeTime(notification.updatedAt || notification.createdAt || notification.startAt))}</span>
+                        ${notification.isPinned ? '<span class="inline-flex items-center px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wide">Pinned</span>' : ''}
+                    </div>
+                </div>
+            </div>
+        </button>
+    `;
+}
+
+function renderHeaderNotificationDropdown() {
+    const subtitleEl = document.getElementById('header-notification-subtitle');
+    const markAllEl = document.getElementById('header-notification-mark-all');
+    const loadingEl = document.getElementById('header-notification-loading');
+    const emptyEl = document.getElementById('header-notification-empty');
+    const listEl = document.getElementById('header-notification-list');
+    if (!subtitleEl || !markAllEl || !loadingEl || !emptyEl || !listEl) return;
+
+    const items = Array.isArray(headerNotificationState.items) ? headerNotificationState.items.slice(0, 5) : [];
+    const unreadCount = Math.max(0, parseInt(headerNotificationState.unreadCount, 10) || 0);
+
+    subtitleEl.textContent = unreadCount > 0
+        ? `${unreadCount} notifikasi baru menunggu dibaca.`
+        : (items.length > 0 ? 'Semua notifikasi sudah dibaca.' : 'Belum ada notifikasi baru.');
+    markAllEl.classList.toggle('hidden', unreadCount <= 0);
+    loadingEl.classList.add('hidden');
+
+    if (items.length === 0) {
+        emptyEl.classList.remove('hidden');
+        listEl.classList.add('hidden');
+        listEl.innerHTML = '';
+        return;
+    }
+
+    emptyEl.classList.add('hidden');
+    listEl.classList.remove('hidden');
+    listEl.innerHTML = items.map((item) => createHeaderNotificationItemHtml(item)).join('');
+}
+
+function closeHeaderNotificationDropdown() {
+    const dropdown = document.getElementById('header-notification-dropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+}
+
+function resolveHeaderNotificationDetailAction(notification) {
+    if (!notification) return null;
+
+    const actionUrl = String(notification.actionUrl || '').trim();
+    if (actionUrl) {
+        return {
+            label: notification.actionLabel || 'Buka Tautan',
+            url: actionUrl
+        };
+    }
+
+    if (notification.referenceType === 'order' && notification.referenceId) {
+        const targetUrl = new URL('akun.html', window.location.href);
+        targetUrl.searchParams.set('section', 'orders');
+        targetUrl.searchParams.set('order_id', notification.referenceId);
+        return {
+            label: notification.actionLabel || 'Lihat Pesanan',
+            url: targetUrl.toString()
+        };
+    }
+
+    return null;
+}
+
+function setHeaderNotificationDetailAction(actionConfig) {
+    const footerEl = document.getElementById('header-notification-detail-footer');
+    const actionBtn = document.getElementById('header-notification-detail-action-btn');
+    headerNotificationState.detailAction = actionConfig || null;
+    if (!footerEl || !actionBtn) return;
+
+    if (!actionConfig) {
+        footerEl.classList.add('hidden');
+        actionBtn.textContent = 'Lihat Terkait';
+        return;
+    }
+
+    footerEl.classList.remove('hidden');
+    actionBtn.textContent = actionConfig.label || 'Lihat Terkait';
+}
+
+function closeHeaderNotificationDetailModal() {
+    const modal = document.getElementById('header-notification-detail-modal');
+    if (modal) modal.classList.add('hidden');
+    headerNotificationState.lastOpenedId = '';
+    setHeaderNotificationDetailAction(null);
+}
+
+async function openHeaderNotificationDetailModal(notificationId) {
+    const targetId = String(notificationId || '').trim();
+    const notification = headerNotificationState.items.find((item) => item.id === targetId);
+    if (!notification) return;
+
+    const modal = document.getElementById('header-notification-detail-modal');
+    const iconEl = document.getElementById('header-notification-detail-icon');
+    const metaEl = document.getElementById('header-notification-detail-meta');
+    const titleEl = document.getElementById('header-notification-detail-title');
+    const dateEl = document.getElementById('header-notification-detail-date');
+    const summaryEl = document.getElementById('header-notification-detail-summary');
+    const contentEl = document.getElementById('header-notification-detail-content');
+
+    if (iconEl) iconEl.innerHTML = getHeaderNotificationIconHtml(notification.icon, notification.type);
+    if (metaEl) {
+        const metaLabel = notification.referenceType === 'order'
+            ? 'Status Pesanan'
+            : (notification.icon === 'promo' ? 'Promo Publik' : 'Notifikasi');
+        metaEl.textContent = metaLabel;
+    }
+    if (titleEl) titleEl.textContent = notification.title || 'Detail Notifikasi';
+    if (dateEl) {
+        dateEl.textContent = formatHeaderNotificationDateTime(
+            notification.updatedAt || notification.createdAt || notification.startAt
+        );
+    }
+    if (summaryEl) summaryEl.textContent = notification.summary || 'Notifikasi baru tersedia.';
+    if (contentEl) contentEl.textContent = notification.content || notification.summary || 'Isi notifikasi belum tersedia.';
+    setHeaderNotificationDetailAction(resolveHeaderNotificationDetailAction(notification));
+
+    closeHeaderNotificationDropdown();
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.focus();
+    }
+    headerNotificationState.lastOpenedId = targetId;
+
+    if (!notification.isRead) {
+        await markHeaderNotificationAsRead(targetId);
+    }
+}
+
+function runHeaderNotificationDetailAction() {
+    const actionConfig = headerNotificationState.detailAction;
+    if (!actionConfig || !actionConfig.url) return;
+
+    const url = String(actionConfig.url || '').trim();
+    if (!url) return;
+
+    closeHeaderNotificationDetailModal();
+    if (/^https?:\/\//i.test(url)) {
+        const popup = window.open(url, '_blank', 'noopener,noreferrer');
+        if (popup) popup.opener = null;
+        return;
+    }
+
+    window.location.href = url;
+}
+
+function toggleHeaderNotificationDropdown() {
+    const dropdown = document.getElementById('header-notification-dropdown');
+    if (!dropdown) return;
+    const shouldOpen = dropdown.classList.contains('hidden');
+    closeHeaderNotificationDropdown();
+    if (!shouldOpen) return;
+    dropdown.classList.remove('hidden');
+    if (hasCheckoutLoginSession()) {
+        syncHeaderNotificationState({ force: true, showLoading: !headerNotificationState.items.length });
+    }
+}
+
+function markHeaderNotificationReadLocally(notificationId) {
+    const targetId = String(notificationId || '').trim();
+    if (!targetId) return;
+    headerNotificationState.items = headerNotificationState.items.map((item) => {
+        if (item.id !== targetId) return item;
+        return {
+            ...item,
+            isRead: true
+        };
+    });
+    headerNotificationState.unreadCount = headerNotificationState.items.filter((item) => !item.isRead).length;
+    updateHeaderNotificationBadge(headerNotificationState.unreadCount, headerNotificationState.items.length);
+    renderHeaderNotificationDropdown();
+}
+
+async function markHeaderNotificationAsRead(notificationId) {
+    const targetId = String(notificationId || '').trim();
+    const user = getStoredLoggedInUser();
+    if (!user || !targetId) return;
+    markHeaderNotificationReadLocally(targetId);
+
+    const sessionToken = String(user.session_token || user.sessionToken || user.st || '').trim();
+    if (!sessionToken) return;
+
+    try {
+        const payload = await ApiService.post('', {
+            action: 'public_mark_notification_read',
+            data: {
+                session_token: sessionToken,
+                notification_id: targetId
+            }
+        }, {
+            cache: false,
+            maxRetries: 1
+        });
+        parseHeaderNotificationSuccess(payload, 'Gagal menyimpan status notifikasi.');
+    } catch (error) {
+        console.warn('Failed syncing header notification read state:', error);
+        syncHeaderNotificationState();
+    }
+}
+
+async function markAllHeaderNotificationsAsRead() {
+    const user = getStoredLoggedInUser();
+    if (!user) return;
+    const unreadItems = headerNotificationState.items.filter((item) => !item.isRead);
+    if (!unreadItems.length) return;
+
+    headerNotificationState.items = headerNotificationState.items.map((item) => ({
+        ...item,
+        isRead: true
+    }));
+    headerNotificationState.unreadCount = 0;
+    updateHeaderNotificationBadge(0, headerNotificationState.items.length);
+    renderHeaderNotificationDropdown();
+
+    const sessionToken = String(user.session_token || user.sessionToken || user.st || '').trim();
+    if (!sessionToken) return;
+
+    try {
+        const payload = await ApiService.post('', {
+            action: 'public_mark_all_notifications_read',
+            data: {
+                session_token: sessionToken
+            }
+        }, {
+            cache: false,
+            maxRetries: 1
+        });
+        parseHeaderNotificationSuccess(payload, 'Gagal menandai semua notifikasi sebagai dibaca.');
+    } catch (error) {
+        console.warn('Failed syncing header mark-all notification state:', error);
+        syncHeaderNotificationState();
+    }
+}
+
+async function syncHeaderNotificationState(options = {}) {
+    const trigger = document.getElementById('header-notification-trigger');
+    if (!trigger || headerNotificationRefreshInFlight) return;
+    const showLoading = Boolean(options && options.showLoading);
+    const loadingEl = document.getElementById('header-notification-loading');
+    const emptyEl = document.getElementById('header-notification-empty');
+    const listEl = document.getElementById('header-notification-list');
+
+    const sessionQuery = getSessionQueryFromStoredUser();
+    if (!sessionQuery) {
+        closeHeaderNotificationDetailModal();
+        headerNotificationState = {
+            items: [],
+            unreadCount: 0,
+            lastSyncedAt: '',
+            lastOpenedId: '',
+            detailAction: null
+        };
+        updateHeaderNotificationBadge(0, 0);
+        renderHeaderNotificationDropdown();
+        return;
+    }
+
+    headerNotificationRefreshInFlight = true;
+    if (showLoading && loadingEl) {
+        loadingEl.classList.remove('hidden');
+        if (emptyEl) emptyEl.classList.add('hidden');
+        if (listEl) {
+            listEl.classList.add('hidden');
+            listEl.innerHTML = '';
+        }
+    }
+    try {
+        const payload = parseHeaderNotificationSuccess(
+            await ApiService.get(`?action=public_user_notifications${sessionQuery}&limit=20&_t=${Date.now()}`, {
+                cache: false,
+                maxRetries: 1
+            }),
+            'Gagal memuat notifikasi.'
+        );
+        const notifications = Array.isArray(payload && payload.notifications)
+            ? payload.notifications.map((item) => normalizeHeaderNotificationRecord(item))
+            : [];
+        const unreadCount = Number(payload && payload.unread_count);
+        const computedUnread = Number.isFinite(unreadCount)
+            ? unreadCount
+            : notifications.filter((item) => {
+                return !item.isRead;
+            }).length;
+        headerNotificationState = {
+            items: notifications,
+            unreadCount: computedUnread,
+            lastSyncedAt: new Date().toISOString(),
+            lastOpenedId: headerNotificationState.lastOpenedId,
+            detailAction: headerNotificationState.detailAction
+        };
+        updateHeaderNotificationBadge(computedUnread, notifications.length);
+        renderHeaderNotificationDropdown();
+    } catch (error) {
+        console.warn('Failed syncing header notification badge:', error);
+        renderHeaderNotificationDropdown();
+    } finally {
+        if (loadingEl) loadingEl.classList.add('hidden');
+        headerNotificationRefreshInFlight = false;
+    }
+}
+
+function stopHeaderNotificationAutoRefresh() {
+    if (headerNotificationRefreshTimer) {
+        window.clearInterval(headerNotificationRefreshTimer);
+        headerNotificationRefreshTimer = null;
+    }
+}
+
+function startHeaderNotificationAutoRefresh() {
+    stopHeaderNotificationAutoRefresh();
+    if (!hasCheckoutLoginSession()) return;
+    headerNotificationRefreshTimer = window.setInterval(() => {
+        if (!document.hidden) {
+            syncHeaderNotificationState();
+        }
+    }, HEADER_NOTIFICATION_REFRESH_INTERVAL_MS);
+}
+
+function openHeaderNotifications(notificationId) {
+    const targetUrl = new URL('akun.html', window.location.href);
+    if (hasCheckoutLoginSession()) {
+        targetUrl.searchParams.set('section', 'notifications');
+        const targetId = String(notificationId || '').trim();
+        if (targetId) {
+            targetUrl.searchParams.set('notification_id', targetId);
+        }
+    }
+    window.location.href = targetUrl.toString();
 }
 
 function renderHeaderCategoryMenu() {
@@ -2983,6 +3533,62 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const headerNotificationTrigger = document.getElementById('header-notification-trigger');
+    if (headerNotificationTrigger) {
+        headerNotificationTrigger.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleHeaderNotificationDropdown();
+        });
+    }
+
+    const headerNotificationDropdown = document.getElementById('header-notification-dropdown');
+    if (headerNotificationDropdown) {
+        headerNotificationDropdown.addEventListener('click', (event) => {
+            event.stopPropagation();
+
+            const openTrigger = event.target.closest('[data-action="open-header-notification"]');
+            if (openTrigger) {
+                const notificationId = String(openTrigger.getAttribute('data-id') || '').trim();
+                openHeaderNotificationDetailModal(notificationId);
+                return;
+            }
+
+            const markAllTrigger = event.target.closest('[data-action="mark-all-header-notifications-read"]');
+            if (markAllTrigger) {
+                markAllHeaderNotificationsAsRead();
+                return;
+            }
+
+            const viewAllTrigger = event.target.closest('[data-action="view-all-header-notifications"]');
+            if (viewAllTrigger) {
+                closeHeaderNotificationDropdown();
+                openHeaderNotifications();
+            }
+        });
+    }
+
+    const headerNotificationDetailModal = document.getElementById('header-notification-detail-modal');
+    if (headerNotificationDetailModal) {
+        headerNotificationDetailModal.addEventListener('click', (event) => {
+            if (event.target === headerNotificationDetailModal) {
+                closeHeaderNotificationDetailModal();
+                return;
+            }
+
+            const closeTrigger = event.target.closest('[data-action="close-header-notification-detail"]');
+            if (closeTrigger) {
+                closeHeaderNotificationDetailModal();
+                return;
+            }
+
+            const actionTrigger = event.target.closest('[data-action="header-notification-detail-action"]');
+            if (actionTrigger) {
+                runHeaderNotificationDetailAction();
+            }
+        });
+    }
+
     const headerAccountMenu = document.getElementById('header-account-menu');
     if (headerAccountMenu) {
         headerAccountMenu.addEventListener('click', (event) => {
@@ -3252,6 +3858,7 @@ document.addEventListener('DOMContentLoaded', () => {
             event.target.closest('#header-category-menu');
         const isInsideHeaderAccount = event.target.closest('#header-account-trigger') ||
             event.target.closest('#header-account-menu');
+        const isInsideHeaderNotification = event.target.closest('#header-notification-wrap');
         if (!isInsideSearch) {
             closeSearchSuggestions();
         }
@@ -3261,6 +3868,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isInsideHeaderAccount) {
             closeHeaderAccountMenu();
         }
+        if (!isInsideHeaderNotification) {
+            closeHeaderNotificationDropdown();
+        }
     });
 
     document.addEventListener('keydown', (event) => {
@@ -3268,6 +3878,18 @@ document.addEventListener('DOMContentLoaded', () => {
         closeSearchSuggestions();
         closeHeaderCategoryMenu();
         closeHeaderAccountMenu();
+        closeHeaderNotificationDropdown();
+        closeHeaderNotificationDetailModal();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden || !hasCheckoutLoginSession()) return;
+        syncHeaderNotificationState();
+    });
+
+    window.addEventListener('focus', () => {
+        if (!hasCheckoutLoginSession()) return;
+        syncHeaderNotificationState();
     });
 
 
