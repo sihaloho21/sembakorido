@@ -61,7 +61,7 @@ const SHEET_WHITELIST = [
   'banners', 'claims', 'settings', 'pembelian', 'suppliers', 'biaya_bulanan',
   'referrals', 'point_transactions', 'referral_audit_logs', 'fraud_risk_logs',
   'credit_accounts', 'credit_invoices', 'credit_ledger', 'paylater_postmortem_logs',
-  'runtime_error_logs'
+  'runtime_error_logs', 'notifications', 'notification_reads'
 ];
 
 const LOCK_TIMEOUT_MS = 30000;
@@ -106,13 +106,17 @@ const SENSITIVE_GET_SHEETS = {
   credit_invoices: true,
   credit_ledger: true,
   paylater_postmortem_logs: true,
-  runtime_error_logs: true
+  runtime_error_logs: true,
+  notifications: true,
+  notification_reads: true
 };
 
 const PUBLIC_POST_RULES = {
   attach_referral: { anySheet: true },
   claim_reward: { anySheet: true },
   public_update_profile: { anySheet: true },
+  public_mark_notification_read: { anySheet: true },
+  public_mark_all_notifications_read: { anySheet: true },
   create: { sheets: { orders: true, users: true, claims: true } }
 };
 
@@ -181,6 +185,16 @@ const SCHEMA_REQUIREMENTS = {
   runtime_error_logs: [
     'id', 'created_at', 'handler', 'error_code', 'error_message',
     'action', 'sheet', 'request_id', 'context_json'
+  ],
+  notifications: [
+    'id', 'type', 'audience', 'recipient_phone', 'title', 'summary',
+    'content', 'icon', 'priority', 'status', 'is_pinned',
+    'action_label', 'action_url', 'reference_type', 'reference_id',
+    'created_at', 'updated_at', 'start_at', 'end_at',
+    'created_by', 'source', 'read_at'
+  ],
+  notification_reads: [
+    'id', 'notification_id', 'phone', 'read_at', 'created_at', 'updated_at'
   ]
 };
 
@@ -211,6 +225,9 @@ function doGet(e) {
   }
   if (action === 'public_user_orders') {
     return jsonOutput(handlePublicUserOrders(params));
+  }
+  if (action === 'public_user_notifications') {
+    return jsonOutput(handlePublicUserNotifications(params));
   }
   if (action === 'public_referral_history') {
     return jsonOutput(handlePublicReferralHistory(params));
@@ -666,6 +683,330 @@ function handlePublicUserOrders(params) {
   return { success: true, phone: phone, orders: rows };
 }
 
+function normalizeNotificationStatusKey(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'draft' || normalized === 'archived') return normalized;
+  return 'published';
+}
+
+function normalizeNotificationPriorityKey(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'high' || normalized === 'low') return normalized;
+  return 'normal';
+}
+
+function normalizeNotificationIconKey(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  const map = {
+    pengumuman: 'announcement',
+    promo: 'promo',
+    pesanan: 'order',
+    pengiriman: 'truck',
+    fitur: 'feature',
+    keamanan: 'security'
+  };
+  return map[normalized] || normalized || 'announcement';
+}
+
+function parseNotificationBool(value) {
+  if (value === true) return true;
+  const normalized = String(value === undefined ? '' : value).trim().toLowerCase();
+  return normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
+
+function normalizeNotificationAudienceKey(value, fallbackPhone) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'personal' || normalized === 'private' || normalized === 'order_status') return 'personal';
+  if (normalized === 'public' || normalized === 'broadcast' || normalized === 'all' || normalized === 'public_announcement') return 'public';
+  return fallbackPhone ? 'personal' : 'public';
+}
+
+function parseNotificationDateMs(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return 0;
+  const parsed = new Date(raw);
+  const ms = parsed.getTime();
+  return isNaN(ms) ? 0 : ms;
+}
+
+function sortPublicNotificationRows(rows) {
+  return (rows || []).slice().sort(function(a, b) {
+    const pinnedA = parseNotificationBool(a.is_pinned);
+    const pinnedB = parseNotificationBool(b.is_pinned);
+    if (pinnedA !== pinnedB) return pinnedB ? 1 : -1;
+    const priorityRank = { high: 3, normal: 2, low: 1 };
+    const rankA = priorityRank[normalizeNotificationPriorityKey(a.priority)] || 2;
+    const rankB = priorityRank[normalizeNotificationPriorityKey(b.priority)] || 2;
+    if (rankA !== rankB) return rankB - rankA;
+    const dateA = parseNotificationDateMs(a.updated_at || a.created_at || a.start_at);
+    const dateB = parseNotificationDateMs(b.updated_at || b.created_at || b.start_at);
+    return dateB - dateA;
+  });
+}
+
+function shortenNotificationText(value, maxLength) {
+  const raw = String(value || '').trim();
+  const limit = parseInt(maxLength || 140, 10) || 140;
+  if (!raw) return '';
+  if (raw.length <= limit) return raw;
+  return raw.slice(0, Math.max(0, limit - 3)) + '...';
+}
+
+function isNotificationVisibleForPhone(row, phone) {
+  const normalizedPhone = normalizePhone(phone || '');
+  if (!normalizedPhone) return false;
+  if (normalizeNotificationStatusKey(row.status) !== 'published') return false;
+
+  const startMs = parseNotificationDateMs(row.start_at || row.created_at);
+  const endMs = parseNotificationDateMs(row.end_at);
+  const nowMs = Date.now();
+  if (startMs && startMs > nowMs) return false;
+  if (endMs && endMs < nowMs) return false;
+
+  const recipientPhone = normalizePhone(row.recipient_phone || row.phone || '');
+  const audience = normalizeNotificationAudienceKey(row.audience || row.type, recipientPhone);
+  if (audience === 'personal') {
+    return recipientPhone === normalizedPhone;
+  }
+  return true;
+}
+
+function safeGetRowsAsObjects(sheetName) {
+  try {
+    return getRowsAsObjects(sheetName);
+  } catch (error) {
+    return {
+      sheet: null,
+      headers: [],
+      rows: [],
+      error: error
+    };
+  }
+}
+
+function buildPublicNotificationPayload(row, readAt) {
+  const content = String(row.content || row.summary || '').trim();
+  const summary = String(row.summary || '').trim() || shortenNotificationText(content, 140);
+  const normalizedReadAt = String(readAt || '').trim();
+  return {
+    id: String(row.id || '').trim(),
+    type: String(row.type || '').trim(),
+    audience: normalizeNotificationAudienceKey(row.audience || row.type, row.recipient_phone || row.phone || ''),
+    recipient_phone: normalizePhone(row.recipient_phone || row.phone || ''),
+    title: String(row.title || 'Notifikasi').trim(),
+    summary: summary || 'Notifikasi baru tersedia.',
+    content: content || summary || 'Isi notifikasi belum tersedia.',
+    icon: normalizeNotificationIconKey(row.icon || row.type || ''),
+    priority: normalizeNotificationPriorityKey(row.priority),
+    status: normalizeNotificationStatusKey(row.status),
+    is_pinned: String(parseNotificationBool(row.is_pinned)),
+    action_label: String(row.action_label || '').trim(),
+    action_url: String(row.action_url || '').trim(),
+    reference_type: String(row.reference_type || '').trim(),
+    reference_id: String(row.reference_id || '').trim(),
+    created_at: String(row.created_at || '').trim(),
+    updated_at: String(row.updated_at || '').trim(),
+    start_at: String(row.start_at || '').trim(),
+    end_at: String(row.end_at || '').trim(),
+    source: String(row.source || '').trim(),
+    read_at: normalizedReadAt,
+    is_read: normalizedReadAt !== ''
+  };
+}
+
+function handlePublicUserNotifications(params) {
+  const phone = resolvePublicSessionPhone(params);
+  if (!phone) {
+    return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
+  }
+
+  const limit = Math.max(1, Math.min(100, parseInt(params.limit || 50, 10) || 50));
+  const notificationsObj = safeGetRowsAsObjects('notifications');
+  if (notificationsObj.error || !notificationsObj.headers.length) {
+    return { success: true, phone: phone, unread_count: 0, notifications: [] };
+  }
+
+  const readsObj = safeGetRowsAsObjects('notification_reads');
+  const publicReadMap = {};
+  if (!readsObj.error) {
+    readsObj.rows.forEach(function(row) {
+      if (normalizePhone(row.phone || '') !== phone) return;
+      const notificationId = String(row.notification_id || row.id || '').trim();
+      if (!notificationId) return;
+      publicReadMap[notificationId] = String(row.read_at || row.updated_at || row.created_at || '').trim();
+    });
+  }
+
+  const notifications = sortPublicNotificationRows(notificationsObj.rows)
+    .filter(function(row) {
+      return isNotificationVisibleForPhone(row, phone);
+    })
+    .slice(0, limit)
+    .map(function(row) {
+      const audience = normalizeNotificationAudienceKey(row.audience || row.type, row.recipient_phone || row.phone || '');
+      const readAt = audience === 'public'
+        ? String(publicReadMap[String(row.id || '').trim()] || '').trim()
+        : String(row.read_at || '').trim();
+      return buildPublicNotificationPayload(row, readAt);
+    });
+
+  const unreadCount = notifications.filter(function(row) {
+    return !row.is_read;
+  }).length;
+
+  return {
+    success: true,
+    phone: phone,
+    unread_count: unreadCount,
+    notifications: notifications
+  };
+}
+
+function upsertNotificationReadRecord(notificationId, phone, timestamp) {
+  const readsObj = safeGetRowsAsObjects('notification_reads');
+  if (readsObj.error || !readsObj.headers.length) {
+    return {
+      success: false,
+      error: 'NOTIFICATION_READS_HEADERS_INVALID',
+      message: 'Sheet notification_reads belum tersedia'
+    };
+  }
+
+  const targetId = String(notificationId || '').trim();
+  const normalizedPhone = normalizePhone(phone || '');
+  const ts = String(timestamp || nowIso()).trim() || nowIso();
+  let rowIndex = -1;
+  for (var i = 0; i < readsObj.rows.length; i++) {
+    const row = readsObj.rows[i];
+    if (String(row.notification_id || '').trim() === targetId &&
+        normalizePhone(row.phone || '') === normalizedPhone) {
+      rowIndex = i;
+      break;
+    }
+  }
+
+  if (rowIndex !== -1) {
+    const actualRowIndex = rowIndex + 2;
+    setCellIfColumnExists(readsObj.sheet, readsObj.headers, actualRowIndex, 'read_at', ts);
+    setCellIfColumnExists(readsObj.sheet, readsObj.headers, actualRowIndex, 'updated_at', ts);
+    return { success: true, action: 'updated', read_at: ts };
+  }
+
+  appendByHeaders(readsObj.sheet, readsObj.headers, {
+    id: genId('NREAD'),
+    notification_id: targetId,
+    phone: normalizedPhone,
+    read_at: ts,
+    created_at: ts,
+    updated_at: ts
+  });
+  return { success: true, action: 'created', read_at: ts };
+}
+
+function handlePublicMarkNotificationRead(data) {
+  const payload = data || {};
+  const phone = resolvePublicSessionPhoneFromData(payload);
+  if (!phone) {
+    return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
+  }
+
+  const notificationId = String(payload.notification_id || payload.id || '').trim();
+  if (!notificationId) {
+    return { success: false, error: 'INVALID_PAYLOAD', message: 'notification_id wajib diisi' };
+  }
+
+  const notificationsObj = safeGetRowsAsObjects('notifications');
+  if (notificationsObj.error || !notificationsObj.headers.length) {
+    return { success: false, error: 'NOTIFICATIONS_HEADERS_INVALID', message: 'Sheet notifications belum tersedia' };
+  }
+
+  let rowIndex = -1;
+  for (var i = 0; i < notificationsObj.rows.length; i++) {
+    if (String(notificationsObj.rows[i].id || '').trim() === notificationId) {
+      rowIndex = i;
+      break;
+    }
+  }
+  if (rowIndex === -1) {
+    return { success: false, error: 'NOTIFICATION_NOT_FOUND', message: 'Notifikasi tidak ditemukan' };
+  }
+
+  const row = notificationsObj.rows[rowIndex];
+  if (!isNotificationVisibleForPhone(row, phone)) {
+    return { success: false, error: 'FORBIDDEN', message: 'Notifikasi bukan untuk user ini' };
+  }
+
+  const audience = normalizeNotificationAudienceKey(row.audience || row.type, row.recipient_phone || row.phone || '');
+  const ts = nowIso();
+  if (audience === 'public') {
+    const upsertResult = upsertNotificationReadRecord(notificationId, phone, ts);
+    if (!upsertResult.success) return upsertResult;
+    return {
+      success: true,
+      notification_id: notificationId,
+      read_at: ts,
+      audience: audience,
+      action: upsertResult.action
+    };
+  }
+
+  const actualRowIndex = rowIndex + 2;
+  setCellIfColumnExists(notificationsObj.sheet, notificationsObj.headers, actualRowIndex, 'read_at', ts);
+  return {
+    success: true,
+    notification_id: notificationId,
+    read_at: ts,
+    audience: audience,
+    action: 'updated'
+  };
+}
+
+function handlePublicMarkAllNotificationsRead(data) {
+  const payload = data || {};
+  const phone = resolvePublicSessionPhoneFromData(payload);
+  if (!phone) {
+    return { success: false, error: 'UNAUTHORIZED_SESSION', message: 'Session login tidak valid' };
+  }
+
+  const notificationsObj = safeGetRowsAsObjects('notifications');
+  if (notificationsObj.error || !notificationsObj.headers.length) {
+    return { success: true, phone: phone, marked: 0 };
+  }
+
+  const readsObj = safeGetRowsAsObjects('notification_reads');
+  const publicReadMap = {};
+  if (!readsObj.error) {
+    readsObj.rows.forEach(function(row) {
+      if (normalizePhone(row.phone || '') !== phone) return;
+      const notificationId = String(row.notification_id || '').trim();
+      if (notificationId) publicReadMap[notificationId] = true;
+    });
+  }
+
+  const now = nowIso();
+  let marked = 0;
+  notificationsObj.rows.forEach(function(row, index) {
+    if (!isNotificationVisibleForPhone(row, phone)) return;
+    const notificationId = String(row.id || '').trim();
+    if (!notificationId) return;
+
+    const audience = normalizeNotificationAudienceKey(row.audience || row.type, row.recipient_phone || row.phone || '');
+    if (audience === 'public') {
+      if (publicReadMap[notificationId]) return;
+      const upsertResult = upsertNotificationReadRecord(notificationId, phone, now);
+      if (upsertResult.success) marked++;
+      return;
+    }
+
+    if (String(row.read_at || '').trim()) return;
+    const actualRowIndex = index + 2;
+    setCellIfColumnExists(notificationsObj.sheet, notificationsObj.headers, actualRowIndex, 'read_at', now);
+    marked++;
+  });
+
+  return { success: true, phone: phone, marked: marked };
+}
+
 function handlePublicReferralHistory(params) {
   const phone = resolvePublicSessionPhone(params);
   if (!phone) {
@@ -1061,6 +1402,18 @@ function doPost(e) {
       }));
     }
 
+    if (action === 'public_mark_notification_read') {
+      return jsonOutput(withScriptLock(function() {
+        return handlePublicMarkNotificationRead(data || body);
+      }));
+    }
+
+    if (action === 'public_mark_all_notifications_read') {
+      return jsonOutput(withScriptLock(function() {
+        return handlePublicMarkAllNotificationsRead(data || body);
+      }));
+    }
+
     if (action === 'notify_referral_alert') {
       return jsonOutput(handleNotifyReferralAlert(data));
     }
@@ -1249,9 +1602,11 @@ function doPost(e) {
 
       var paylaterSyncResult = null;
       var paylaterReversalResult = null;
+      var notificationResult = null;
       if (sheetName === 'orders' && data && data.status !== undefined) {
         const updatedStatus = String(data.status || '').trim();
         const rowSnapshot = rows[rowIndex] || [];
+        const orderSnapshot = toObject(headers, rowSnapshot);
         const idCol = headers.indexOf('id');
         const orderCodeCol = headers.indexOf('order_id');
         const phoneCol = headers.indexOf('phone');
@@ -1275,6 +1630,9 @@ function doPost(e) {
             actor: 'order_status_refund'
           });
         }
+
+        orderSnapshot.status = updatedStatus;
+        notificationResult = createOrderStatusNotificationIfNeeded(orderSnapshot);
       }
 
       const response = {
@@ -1302,6 +1660,9 @@ function doPost(e) {
             message: String(paylaterReversalResult.message || 'Reversal limit PayLater gagal')
           });
         }
+      }
+      if (notificationResult) {
+        response.notification = notificationResult;
       }
       if (paylaterErrors.length > 0) {
         response.success = false;
@@ -4288,6 +4649,8 @@ function isSheetValidationRequired(actionKey) {
     sync_referral_order_status: true,
     claim_reward: true,
     public_update_profile: true,
+    public_mark_notification_read: true,
+    public_mark_all_notifications_read: true,
     notify_referral_alert: true,
     upsert_setting: true,
     ensure_schema: true,
@@ -4377,7 +4740,9 @@ function getAdminAuthorizationConfig() {
 
 function getRequiredRoleForAction(actionKey, sheetName) {
   const key = String(actionKey || '').trim();
+  const normalizedSheet = String(sheetName || '').trim();
 
+  if (key === 'delete' && normalizedSheet === 'notifications') return 'manager';
   if (key === 'delete') return 'superadmin';
   if (key === 'upsert_setting') return 'superadmin';
   if (key === 'ensure_schema') return 'superadmin';
@@ -4794,6 +5159,163 @@ function normalizeOrderCreatePayload(payload) {
     paylater_fee_amount: data.paylater_fee_amount,
     paylater_total_due: data.paylater_total_due
   };
+}
+
+function normalizeOrderStatusNotificationMeta(status) {
+  const normalized = String(status || '').trim().toLowerCase();
+  const map = {
+    menunggu: {
+      key: 'menunggu',
+      label: 'Menunggu',
+      title: 'Pesanan sedang menunggu konfirmasi',
+      summary: 'Pesanan Anda sudah masuk dan sedang menunggu konfirmasi admin.',
+      icon: 'order',
+      priority: 'normal'
+    },
+    diproses: {
+      key: 'diproses',
+      label: 'Diproses',
+      title: 'Pesanan sedang diproses',
+      summary: 'Pesanan Anda sedang kami siapkan.',
+      icon: 'order',
+      priority: 'normal'
+    },
+    dikirim: {
+      key: 'dikirim',
+      label: 'Dikirim',
+      title: 'Pesanan sedang dikirim',
+      summary: 'Pesanan Anda sedang dalam perjalanan.',
+      icon: 'truck',
+      priority: 'high'
+    },
+    terima: {
+      key: 'diterima',
+      label: 'Diterima',
+      title: 'Pesanan telah diterima',
+      summary: 'Pesanan Anda telah selesai dan diterima.',
+      icon: 'order',
+      priority: 'normal'
+    },
+    diterima: {
+      key: 'diterima',
+      label: 'Diterima',
+      title: 'Pesanan telah diterima',
+      summary: 'Pesanan Anda telah selesai dan diterima.',
+      icon: 'order',
+      priority: 'normal'
+    },
+    selesai: {
+      key: 'diterima',
+      label: 'Diterima',
+      title: 'Pesanan telah diterima',
+      summary: 'Pesanan Anda telah selesai dan diterima.',
+      icon: 'order',
+      priority: 'normal'
+    },
+    dibatalkan: {
+      key: 'dibatalkan',
+      label: 'Dibatalkan',
+      title: 'Pesanan dibatalkan',
+      summary: 'Pesanan Anda dibatalkan. Hubungi admin jika membutuhkan bantuan.',
+      icon: 'maintenance',
+      priority: 'high'
+    },
+    batal: {
+      key: 'dibatalkan',
+      label: 'Dibatalkan',
+      title: 'Pesanan dibatalkan',
+      summary: 'Pesanan Anda dibatalkan. Hubungi admin jika membutuhkan bantuan.',
+      icon: 'maintenance',
+      priority: 'high'
+    }
+  };
+  return map[normalized] || {
+    key: normalized || 'status',
+    label: String(status || 'Status Baru').trim(),
+    title: 'Status pesanan diperbarui',
+    summary: 'Ada perubahan terbaru pada status pesanan Anda.',
+    icon: 'order',
+    priority: 'normal'
+  };
+}
+
+function sanitizeNotificationIdPart(value) {
+  return String(value || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function buildOrderStatusNotificationRecord(order) {
+  const normalizedPhone = normalizePhone(order.phone || order.whatsapp || '');
+  const orderId = normalizeOrderId(order.order_id || order.id || '');
+  if (!normalizedPhone || !orderId) return null;
+
+  const meta = normalizeOrderStatusNotificationMeta(order.status || '');
+  const total = toMoneyInt(order.total || order.total_bayar || 0);
+  const customerName = String(order.pelanggan || order.customer || order.nama || '').trim();
+  const contentLines = [
+    customerName ? ('Halo ' + customerName + ',') : 'Halo,',
+    meta.title + ' untuk pesanan #' + orderId + '.',
+    'Status terbaru: ' + meta.label + '.'
+  ];
+  if (total > 0) {
+    contentLines.push('Total pesanan: Rp ' + total.toLocaleString('id-ID') + '.');
+  }
+  contentLines.push('Terima kasih sudah berbelanja di GoSembako.');
+
+  const now = nowIso();
+  return {
+    id: 'NTF-ORD-' + sanitizeNotificationIdPart(orderId) + '-' + sanitizeNotificationIdPart(meta.key),
+    type: 'order_status',
+    audience: 'personal',
+    recipient_phone: normalizedPhone,
+    title: meta.title + ' (#' + orderId + ')',
+    summary: meta.summary,
+    content: contentLines.join('\n'),
+    icon: meta.icon,
+    priority: meta.priority,
+    status: 'published',
+    is_pinned: 'false',
+    action_label: 'Lihat Pesanan',
+    action_url: '',
+    reference_type: 'order',
+    reference_id: orderId,
+    created_at: now,
+    updated_at: now,
+    start_at: now,
+    end_at: '',
+    created_by: 'system',
+    source: 'order_status',
+    read_at: ''
+  };
+}
+
+function createOrderStatusNotificationIfNeeded(order) {
+  const payload = buildOrderStatusNotificationRecord(order || {});
+  if (!payload) {
+    return { success: false, skipped: true, reason: 'ORDER_PHONE_OR_ID_MISSING' };
+  }
+
+  const notificationsObj = safeGetRowsAsObjects('notifications');
+  if (notificationsObj.error || !notificationsObj.headers.length) {
+    return {
+      success: false,
+      skipped: true,
+      reason: 'NOTIFICATIONS_HEADERS_INVALID'
+    };
+  }
+
+  const existed = notificationsObj.rows.some(function(row) {
+    return String(row.id || '').trim() === payload.id;
+  });
+  if (existed) {
+    return { success: true, id: payload.id, action: 'exists' };
+  }
+
+  appendByHeaders(notificationsObj.sheet, notificationsObj.headers, payload);
+  return { success: true, id: payload.id, action: 'created' };
 }
 
 function createOrderWithPaylaterSync(sheet, headers, payload) {
