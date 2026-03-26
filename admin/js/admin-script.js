@@ -91,6 +91,7 @@ let API_URL = CONFIG.getAdminApiUrl();
 const CATEGORIES_SHEET = 'categories';
 const PRODUCTS_SHEET = 'products';
 const ORDERS_SHEET = 'orders';
+const NOTIFICATIONS_SHEET = 'notifications';
 const TUKAR_POIN_SHEET = 'tukar_poin';
 const PURCHASES_SHEET = 'pembelian';
 const SUPPLIERS_SHEET = 'suppliers';
@@ -104,6 +105,7 @@ const REFERRAL_ALERT_STATE_KEY = 'gos_referral_alert_state_v1';
 let allProducts = [];
 let allCategories = [];
 let allOrders = [];
+let allNotifications = [];
 let allTukarPoin = [];
 let allPurchases = [];
 let allSuppliers = [];
@@ -118,6 +120,8 @@ let paylaterSchedulerRefreshTimer = null;
 let currentOrderFilter = 'semua';
 let currentOrderPage = 1;
 const ordersPerPage = 10;
+let notificationFilterStatus = 'all';
+let notificationSearch = '';
 let referralFilterStatus = 'all';
 let referralSearch = '';
 let selectedProductIds = new Set();
@@ -144,6 +148,7 @@ function showSection(sectionId) {
         biaya: 'Biaya Operasional',
         kategori: 'Kategori',
         pesanan: 'Pesanan',
+        notifikasi: 'Notifikasi',
         referrals: 'Referral',
         'credit-accounts': 'Credit Accounts',
         'credit-invoices': 'Credit Invoices',
@@ -172,6 +177,7 @@ function showSection(sectionId) {
     if (sectionId === 'suppliers') fetchSuppliers();
     if (sectionId === 'biaya') fetchMonthlyCosts();
     if (sectionId === 'pesanan') fetchOrders();
+    if (sectionId === 'notifikasi') fetchNotifications();
     if (sectionId === 'referrals') fetchReferrals();
     if (sectionId === 'credit-accounts') {
         fetchCreditAccounts();
@@ -2903,6 +2909,15 @@ async function updateOrderStatus(id, newStatus, selectElement) {
                 showAdminToast('Status pesanan diperbarui!', 'success');
             }
 
+            try {
+                await ensureOrderStatusNotification({
+                    ...order,
+                    status: newStatus
+                }, newStatus);
+            } catch (notificationError) {
+                console.warn('Order notification fallback failed:', notificationError);
+            }
+
             const orderIndex = allOrders.findIndex(o => o.id === id);
             if (orderIndex !== -1) {
                 allOrders[orderIndex].status = newStatus;
@@ -2919,6 +2934,610 @@ async function updateOrderStatus(id, newStatus, selectElement) {
     } finally {
         selectElement.disabled = false;
     }
+}
+
+// ============ NOTIFICATION FUNCTIONS ============
+function normalizeNotificationStatusValue(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'draft' || normalized === 'archived') return normalized;
+    return 'published';
+}
+
+function normalizeNotificationPriorityValue(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'high' || normalized === 'low') return normalized;
+    return 'normal';
+}
+
+function normalizeNotificationIconValue(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    const map = {
+        announcement: 'announcement',
+        pengumuman: 'announcement',
+        promo: 'promo',
+        order: 'order',
+        pesanan: 'order',
+        truck: 'truck',
+        shipping: 'truck',
+        pengiriman: 'truck',
+        feature: 'feature',
+        fitur: 'feature',
+        maintenance: 'maintenance',
+        keamanan: 'security',
+        security: 'security'
+    };
+    return map[normalized] || 'announcement';
+}
+
+function normalizeNotificationPinnedValue(value) {
+    const normalized = String(value === undefined ? '' : value).trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
+
+function parseNotificationDateValue(value) {
+    if (!value) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    const direct = new Date(raw);
+    if (!Number.isNaN(direct.getTime())) return direct;
+    return parseOrderDate(raw);
+}
+
+function formatNotificationDateTime(value) {
+    const parsed = parseNotificationDateValue(value);
+    if (!parsed || Number.isNaN(parsed.getTime())) return '-';
+    return parsed.toLocaleString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function toNotificationDatetimeLocalValue(value) {
+    const parsed = parseNotificationDateValue(value);
+    if (!parsed || Number.isNaN(parsed.getTime())) return '';
+    const local = new Date(parsed.getTime() - (parsed.getTimezoneOffset() * 60000));
+    return local.toISOString().slice(0, 16);
+}
+
+function fromNotificationDatetimeLocalValue(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return parsed.toISOString();
+}
+
+function getNotificationPriorityRank(priority) {
+    const normalized = normalizeNotificationPriorityValue(priority);
+    if (normalized === 'high') return 3;
+    if (normalized === 'normal') return 2;
+    return 1;
+}
+
+function isPublicNotificationRow(row) {
+    const audience = String(row && row.audience || '').trim().toLowerCase();
+    const source = String(row && row.source || '').trim().toLowerCase();
+    const recipientPhone = normalizePhone(row && (row.recipient_phone || row.phone) || '');
+    if (audience === 'personal' || source === 'order_status' || recipientPhone) return false;
+    return audience === 'public' || source === 'manual_public' || (!audience && !recipientPhone);
+}
+
+function sortNotifications(rows) {
+    return (Array.isArray(rows) ? rows.slice() : []).sort((a, b) => {
+        const pinnedA = normalizeNotificationPinnedValue(a && a.is_pinned);
+        const pinnedB = normalizeNotificationPinnedValue(b && b.is_pinned);
+        if (pinnedA !== pinnedB) return pinnedB - pinnedA;
+        const priorityDelta = getNotificationPriorityRank(b && b.priority) - getNotificationPriorityRank(a && a.priority);
+        if (priorityDelta !== 0) return priorityDelta;
+        const dateA = parseNotificationDateValue(a && (a.updated_at || a.created_at || a.start_at)) || new Date(0);
+        const dateB = parseNotificationDateValue(b && (b.updated_at || b.created_at || b.start_at)) || new Date(0);
+        return dateB - dateA;
+    });
+}
+
+function getFilteredNotifications() {
+    const statusFilter = String(notificationFilterStatus || 'all').trim().toLowerCase();
+    const query = String(notificationSearch || '').trim().toLowerCase();
+    return sortNotifications(allNotifications.filter((row) => {
+        const status = normalizeNotificationStatusValue(row && row.status);
+        const matchesStatus = statusFilter === 'all' || status === statusFilter;
+        if (!matchesStatus) return false;
+        if (!query) return true;
+        const haystack = [
+            row && row.title,
+            row && row.summary,
+            row && row.content,
+            row && row.action_label
+        ].map((item) => String(item || '').toLowerCase()).join(' ');
+        return haystack.includes(query);
+    }));
+}
+
+function getNotificationStatusBadge(status) {
+    const normalized = normalizeNotificationStatusValue(status);
+    const map = {
+        published: 'bg-green-100 text-green-700',
+        draft: 'bg-amber-100 text-amber-700',
+        archived: 'bg-slate-100 text-slate-700'
+    };
+    const labelMap = {
+        published: 'Published',
+        draft: 'Draft',
+        archived: 'Archived'
+    };
+    return `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${map[normalized]}">${labelMap[normalized]}</span>`;
+}
+
+function getNotificationPriorityBadge(priority) {
+    const normalized = normalizeNotificationPriorityValue(priority);
+    const map = {
+        high: 'bg-red-100 text-red-700',
+        normal: 'bg-blue-100 text-blue-700',
+        low: 'bg-gray-100 text-gray-700'
+    };
+    const labelMap = {
+        high: 'High',
+        normal: 'Normal',
+        low: 'Low'
+    };
+    return `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${map[normalized]}">${labelMap[normalized]}</span>`;
+}
+
+function getNotificationIconMarkup(iconKey) {
+    const icon = normalizeNotificationIconValue(iconKey);
+    const map = {
+        announcement: {
+            bg: 'bg-green-100 text-green-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19a1 1 0 001.993.117L13 19v-4.382a1 1 0 01.883-.993L14 13.618l4.447-.741A2 2 0 0020 10.903V8.097a2 2 0 00-1.553-1.974L14 5.382a1 1 0 01-.993-.883L13 4.382V3a1 1 0 10-2 0v2.882zM5 10h3m-3 4h4"></path></svg>'
+        },
+        promo: {
+            bg: 'bg-rose-100 text-rose-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>'
+        },
+        order: {
+            bg: 'bg-amber-100 text-amber-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>'
+        },
+        truck: {
+            bg: 'bg-indigo-100 text-indigo-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17h6m-6 0a2 2 0 11-4 0m4 0a2 2 0 104 0m0 0h2a2 2 0 002-2v-3.586a1 1 0 00-.293-.707l-2.414-2.414A1 1 0 0015.586 8H13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v9a2 2 0 002 2h1"></path></svg>'
+        },
+        feature: {
+            bg: 'bg-cyan-100 text-cyan-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"></path></svg>'
+        },
+        maintenance: {
+            bg: 'bg-slate-100 text-slate-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l.7 2.153a1 1 0 00.95.69h2.264c.969 0 1.371 1.24.588 1.81l-1.832 1.332a1 1 0 00-.364 1.118l.7 2.153c.3.921-.755 1.688-1.538 1.118l-1.832-1.331a1 1 0 00-1.175 0l-1.832 1.331c-.783.57-1.838-.197-1.539-1.118l.701-2.153a1 1 0 00-.364-1.118L6.547 7.58c-.783-.57-.38-1.81.588-1.81h2.264a1 1 0 00.951-.69l.699-2.153z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 20h14"></path></svg>'
+        },
+        security: {
+            bg: 'bg-emerald-100 text-emerald-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l7 4v5c0 5-3.438 9.719-7 11-3.562-1.281-7-6-7-11V7l7-4z"></path></svg>'
+        }
+    };
+    const item = map[icon] || map.announcement;
+    return `<div class="w-11 h-11 rounded-2xl ${item.bg} flex items-center justify-center shrink-0">${item.svg}</div>`;
+}
+
+function formatNotificationSchedule(startAt, endAt) {
+    const startText = formatNotificationDateTime(startAt);
+    const endText = formatNotificationDateTime(endAt);
+    if (startText === '-' && endText === '-') return 'Langsung tayang';
+    if (startText !== '-' && endText === '-') return `Mulai ${startText}`;
+    if (startText === '-' && endText !== '-') return `Sampai ${endText}`;
+    return `${startText} - ${endText}`;
+}
+
+function updateNotificationStats(rows) {
+    const list = Array.isArray(rows) ? rows : [];
+    const publishedCount = list.filter((row) => normalizeNotificationStatusValue(row && row.status) === 'published').length;
+    const pinnedCount = list.filter((row) => normalizeNotificationPinnedValue(row && row.is_pinned)).length;
+    const inactiveCount = list.length - publishedCount;
+
+    const totalEl = document.getElementById('notification-stat-total');
+    const publishedEl = document.getElementById('notification-stat-published');
+    const pinnedEl = document.getElementById('notification-stat-pinned');
+    const inactiveEl = document.getElementById('notification-stat-inactive');
+    if (totalEl) totalEl.innerText = String(list.length);
+    if (publishedEl) publishedEl.innerText = String(publishedCount);
+    if (pinnedEl) pinnedEl.innerText = String(pinnedCount);
+    if (inactiveEl) inactiveEl.innerText = String(inactiveCount);
+}
+
+function renderNotificationTable() {
+    const tbody = document.getElementById('notification-list-body');
+    const summaryEl = document.getElementById('notification-filter-summary');
+    if (!tbody) return;
+
+    const filtered = getFilteredNotifications();
+    if (summaryEl) summaryEl.textContent = `${filtered.length} data`;
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Belum ada notifikasi publik.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = filtered.map((row) => {
+        const title = escapeHtml(row.title || 'Tanpa judul');
+        const summary = escapeHtml(row.summary || String(row.content || '').slice(0, 120) || '-');
+        const pinnedBadge = normalizeNotificationPinnedValue(row.is_pinned)
+            ? '<span class="inline-flex items-center px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">PINNED</span>'
+            : '';
+        const updatedAt = formatNotificationDateTime(row.updated_at || row.created_at);
+        return `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-6 py-4">
+                    <div class="flex items-start gap-3" style="min-width:260px;">
+                        ${getNotificationIconMarkup(row.icon)}
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <p class="text-sm font-bold text-gray-800">${title}</p>
+                                ${pinnedBadge}
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1 leading-5">${summary}</p>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4">${getNotificationPriorityBadge(row.priority)}</td>
+                <td class="px-6 py-4">${getNotificationStatusBadge(row.status)}</td>
+                <td class="px-6 py-4 text-xs text-gray-600">${escapeHtml(formatNotificationSchedule(row.start_at, row.end_at))}</td>
+                <td class="px-6 py-4 text-xs text-gray-500">${escapeHtml(updatedAt)}</td>
+                <td class="px-6 py-4 text-right">
+                    <div class="inline-flex gap-2">
+                        <button data-action="edit-notification" data-id="${escapeAttr(row.id)}" class="px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition">Edit</button>
+                        <button data-action="delete-notification" data-id="${escapeAttr(row.id)}" class="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition">Hapus</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function fetchNotifications() {
+    const tbody = document.getElementById('notification-list-body');
+    const syncEl = document.getElementById('notification-last-sync');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Memuat notifikasi...</td></tr>';
+    }
+    try {
+        const rows = await fetchSheetRows(NOTIFICATIONS_SHEET);
+        allNotifications = sortNotifications((Array.isArray(rows) ? rows : []).filter((row) => isPublicNotificationRow(row)));
+        updateNotificationStats(allNotifications);
+        renderNotificationTable();
+        if (syncEl) syncEl.textContent = `Sinkron ${formatNotificationDateTime(new Date().toISOString())}`;
+    } catch (error) {
+        console.error('Error loading notifications:', error);
+        allNotifications = [];
+        updateNotificationStats([]);
+        if (tbody) {
+            const message = String(error && error.message || '').toLowerCase().includes('sheet not found')
+                ? 'Sheet notifications belum tersedia. Deploy schema notifikasi terlebih dahulu.'
+                : `Gagal memuat notifikasi: ${escapeHtml(error.message || 'Unknown error')}`;
+            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-red-500">${message}</td></tr>`;
+        }
+        if (syncEl) syncEl.textContent = 'Gagal dimuat';
+    }
+}
+
+function resetNotificationForm() {
+    const form = document.getElementById('notification-form');
+    if (form) form.reset();
+    const idEl = document.getElementById('notification-id');
+    const createdAtEl = document.getElementById('notification-created-at');
+    const statusEl = document.getElementById('form-notification-status');
+    const priorityEl = document.getElementById('form-notification-priority');
+    const iconEl = document.getElementById('form-notification-icon');
+    const pinnedEl = document.getElementById('form-notification-pinned');
+    if (idEl) idEl.value = '';
+    if (createdAtEl) createdAtEl.value = '';
+    if (statusEl) statusEl.value = 'published';
+    if (priorityEl) priorityEl.value = 'normal';
+    if (iconEl) iconEl.value = 'announcement';
+    if (pinnedEl) pinnedEl.value = 'false';
+}
+
+function openAddNotificationModal() {
+    resetNotificationForm();
+    const titleEl = document.getElementById('notification-modal-title');
+    if (titleEl) titleEl.textContent = 'Tambah Notifikasi Publik';
+    document.getElementById('notification-modal').classList.remove('hidden');
+}
+
+function openEditNotificationModal(id) {
+    const row = allNotifications.find((item) => String(item.id || '') === String(id || ''));
+    if (!row) {
+        showAdminToast('Notifikasi tidak ditemukan.', 'error');
+        return;
+    }
+    resetNotificationForm();
+    document.getElementById('notification-modal-title').textContent = 'Edit Notifikasi Publik';
+    document.getElementById('notification-id').value = String(row.id || '');
+    document.getElementById('notification-created-at').value = String(row.created_at || '');
+    document.getElementById('form-notification-title').value = String(row.title || '');
+    document.getElementById('form-notification-icon').value = normalizeNotificationIconValue(row.icon);
+    document.getElementById('form-notification-priority').value = normalizeNotificationPriorityValue(row.priority);
+    document.getElementById('form-notification-status').value = normalizeNotificationStatusValue(row.status);
+    document.getElementById('form-notification-pinned').value = normalizeNotificationPinnedValue(row.is_pinned) ? 'true' : 'false';
+    document.getElementById('form-notification-start-at').value = toNotificationDatetimeLocalValue(row.start_at);
+    document.getElementById('form-notification-end-at').value = toNotificationDatetimeLocalValue(row.end_at);
+    document.getElementById('form-notification-action-label').value = String(row.action_label || '');
+    document.getElementById('form-notification-action-url').value = String(row.action_url || '');
+    document.getElementById('form-notification-summary').value = String(row.summary || '');
+    document.getElementById('form-notification-content').value = String(row.content || '');
+    document.getElementById('notification-modal').classList.remove('hidden');
+}
+
+function closeNotificationModal() {
+    document.getElementById('notification-modal').classList.add('hidden');
+}
+
+function getCurrentAdminActorLabel() {
+    const role = (typeof GASActions !== 'undefined' && typeof GASActions.getAdminRole === 'function')
+        ? String(GASActions.getAdminRole() || '').trim().toLowerCase()
+        : '';
+    return role || 'admin';
+}
+
+function buildNotificationRecordFromForm() {
+    const id = String(document.getElementById('notification-id').value || '').trim() || `NTF-${Date.now()}`;
+    const createdAt = String(document.getElementById('notification-created-at').value || '').trim();
+    const title = String(document.getElementById('form-notification-title').value || '').trim();
+    const icon = normalizeNotificationIconValue(document.getElementById('form-notification-icon').value);
+    const priority = normalizeNotificationPriorityValue(document.getElementById('form-notification-priority').value);
+    const status = normalizeNotificationStatusValue(document.getElementById('form-notification-status').value);
+    const isPinned = normalizeNotificationPinnedValue(document.getElementById('form-notification-pinned').value);
+    const startAt = fromNotificationDatetimeLocalValue(document.getElementById('form-notification-start-at').value);
+    const endAt = fromNotificationDatetimeLocalValue(document.getElementById('form-notification-end-at').value);
+    const actionLabel = String(document.getElementById('form-notification-action-label').value || '').trim();
+    const actionUrl = String(document.getElementById('form-notification-action-url').value || '').trim();
+    const summaryInput = String(document.getElementById('form-notification-summary').value || '').trim();
+    const content = String(document.getElementById('form-notification-content').value || '').trim();
+
+    if (!title) {
+        throw new Error('Judul notifikasi wajib diisi.');
+    }
+    if (!content) {
+        throw new Error('Isi lengkap notifikasi wajib diisi.');
+    }
+    if (startAt && endAt) {
+        const startDate = parseNotificationDateValue(startAt);
+        const endDate = parseNotificationDateValue(endAt);
+        if (startDate && endDate && endDate < startDate) {
+            throw new Error('Waktu berakhir harus setelah waktu mulai.');
+        }
+    }
+
+    const now = new Date().toISOString();
+    return {
+        id,
+        type: 'public_announcement',
+        audience: 'public',
+        recipient_phone: '',
+        title,
+        summary: summaryInput || content.slice(0, 140),
+        content,
+        icon,
+        priority,
+        status,
+        is_pinned: String(isPinned),
+        action_label: actionLabel,
+        action_url: actionUrl,
+        reference_type: '',
+        reference_id: '',
+        created_at: createdAt || now,
+        updated_at: now,
+        start_at: startAt,
+        end_at: endAt,
+        created_by: getCurrentAdminActorLabel(),
+        source: 'manual_public',
+        read_at: ''
+    };
+}
+
+async function submitNotificationForm() {
+    const submitBtn = document.getElementById('notification-submit-btn');
+    const originalText = submitBtn ? submitBtn.textContent : 'Simpan';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Menyimpan...';
+    }
+    try {
+        const payload = buildNotificationRecordFromForm();
+        const isEdit = Boolean(document.getElementById('notification-id').value);
+        const result = isEdit
+            ? await GASActions.update(NOTIFICATIONS_SHEET, payload.id, payload)
+            : await GASActions.create(NOTIFICATIONS_SHEET, payload);
+        if (result && (result.success || result.created > 0 || result.affected > 0)) {
+            showAdminToast(isEdit ? 'Notifikasi publik berhasil diperbarui.' : 'Notifikasi publik berhasil ditambahkan.', 'success');
+            closeNotificationModal();
+            await fetchNotifications();
+            return;
+        }
+        showAdminToast('Gagal menyimpan notifikasi publik.', 'error');
+    } catch (error) {
+        console.error('Notification save error:', error);
+        showAdminToast(error.message || 'Gagal menyimpan notifikasi publik.', 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    }
+}
+
+async function handleDeleteNotification(id) {
+    if (!window.confirm('Hapus notifikasi publik ini?')) return;
+    try {
+        const result = await GASActions.delete(NOTIFICATIONS_SHEET, id);
+        if (result && (result.success || result.deleted > 0)) {
+            showAdminToast('Notifikasi publik berhasil dihapus.', 'success');
+            await fetchNotifications();
+            return;
+        }
+        showAdminToast('Gagal menghapus notifikasi publik.', 'error');
+    } catch (error) {
+        console.error('Delete notification error:', error);
+        showAdminToast(error.message || 'Gagal menghapus notifikasi publik.', 'error');
+    }
+}
+
+function normalizeOrderNotificationMeta(status) {
+    const normalized = String(status || '').trim().toLowerCase();
+    const metaMap = {
+        menunggu: {
+            key: 'menunggu',
+            label: 'Menunggu',
+            title: 'Pesanan sedang menunggu konfirmasi',
+            summary: 'Pesanan Anda sudah masuk dan sedang menunggu konfirmasi admin.',
+            icon: 'order',
+            priority: 'normal'
+        },
+        diproses: {
+            key: 'diproses',
+            label: 'Diproses',
+            title: 'Pesanan sedang diproses',
+            summary: 'Pesanan Anda sedang kami siapkan.',
+            icon: 'order',
+            priority: 'normal'
+        },
+        dikirim: {
+            key: 'dikirim',
+            label: 'Dikirim',
+            title: 'Pesanan sedang dikirim',
+            summary: 'Pesanan Anda sedang dalam perjalanan.',
+            icon: 'truck',
+            priority: 'high'
+        },
+        diterima: {
+            key: 'diterima',
+            label: 'Diterima',
+            title: 'Pesanan telah diterima',
+            summary: 'Pesanan Anda telah selesai dan diterima.',
+            icon: 'order',
+            priority: 'normal'
+        },
+        terima: {
+            key: 'diterima',
+            label: 'Diterima',
+            title: 'Pesanan telah diterima',
+            summary: 'Pesanan Anda telah selesai dan diterima.',
+            icon: 'order',
+            priority: 'normal'
+        },
+        selesai: {
+            key: 'diterima',
+            label: 'Diterima',
+            title: 'Pesanan telah diterima',
+            summary: 'Pesanan Anda telah selesai dan diterima.',
+            icon: 'order',
+            priority: 'normal'
+        },
+        dibatalkan: {
+            key: 'dibatalkan',
+            label: 'Dibatalkan',
+            title: 'Pesanan dibatalkan',
+            summary: 'Pesanan Anda dibatalkan. Hubungi admin jika membutuhkan bantuan.',
+            icon: 'maintenance',
+            priority: 'high'
+        },
+        batal: {
+            key: 'dibatalkan',
+            label: 'Dibatalkan',
+            title: 'Pesanan dibatalkan',
+            summary: 'Pesanan Anda dibatalkan. Hubungi admin jika membutuhkan bantuan.',
+            icon: 'maintenance',
+            priority: 'high'
+        }
+    };
+    return metaMap[normalized] || {
+        key: normalized || 'status',
+        label: String(status || 'Status Baru').trim(),
+        title: 'Status pesanan diperbarui',
+        summary: `Status pesanan Anda berubah menjadi ${String(status || 'status baru').trim()}.`,
+        icon: 'order',
+        priority: 'normal'
+    };
+}
+
+function sanitizeNotificationIdPart(value) {
+    return String(value || '').trim().replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+function buildPersonalOrderNotificationPayload(order, newStatus) {
+    const phone = normalizePhone(order && (order.phone || order.whatsapp) || '');
+    const orderId = String(order && (order.id || order.order_id) || '').trim();
+    if (!phone || !orderId) return null;
+
+    const meta = normalizeOrderNotificationMeta(newStatus);
+    const total = parseCurrencyValue(order && (order.total || order.total_bayar) || 0);
+    const customerName = String(order && (order.pelanggan || order.customer || order.nama) || '').trim();
+    const contentLines = [
+        customerName ? `Halo ${customerName},` : 'Halo,',
+        `${meta.title} untuk pesanan #${orderId}.`,
+        `Status terbaru: ${meta.label}.`
+    ];
+    if (total > 0) {
+        contentLines.push(`Total pesanan: Rp ${total.toLocaleString('id-ID')}.`);
+    }
+    contentLines.push('Terima kasih sudah berbelanja di GoSembako.');
+
+    const now = new Date().toISOString();
+    return {
+        id: `NTF-ORD-${sanitizeNotificationIdPart(orderId)}-${sanitizeNotificationIdPart(meta.key)}`,
+        type: 'order_status',
+        audience: 'personal',
+        recipient_phone: phone,
+        title: `${meta.title} (#${orderId})`,
+        summary: meta.summary,
+        content: contentLines.join('\n'),
+        icon: meta.icon,
+        priority: meta.priority,
+        status: 'published',
+        is_pinned: 'false',
+        action_label: 'Lihat Pesanan',
+        action_url: '',
+        reference_type: 'order',
+        reference_id: orderId,
+        created_at: now,
+        updated_at: now,
+        start_at: now,
+        end_at: '',
+        created_by: 'system',
+        source: 'order_status',
+        read_at: ''
+    };
+}
+
+async function ensureOrderStatusNotification(order, newStatus) {
+    const payload = buildPersonalOrderNotificationPayload(order, newStatus);
+    if (!payload) return null;
+
+    try {
+        const existing = await fetchSheetRows(NOTIFICATIONS_SHEET, { id: payload.id });
+        if (Array.isArray(existing) && existing.length > 0) {
+            return { exists: true, id: payload.id };
+        }
+    } catch (error) {
+        const message = String(error && error.message || '').toLowerCase();
+        if (message.includes('sheet not found') || message.includes('invalid sheet')) {
+            console.warn('Notifications sheet unavailable:', error);
+            return null;
+        }
+    }
+
+    try {
+        const result = await GASActions.create(NOTIFICATIONS_SHEET, payload);
+        if (result && (result.success || result.created > 0)) {
+            return { created: true, id: payload.id };
+        }
+    } catch (error) {
+        console.warn('Failed creating order status notification:', error);
+    }
+
+    return null;
 }
 
 // ============ CATEGORY FUNCTIONS ============
@@ -5219,6 +5838,32 @@ function bindAdminActions() {
             filterOrders(trigger.dataset.filter || 'semua', trigger);
             return;
         }
+
+        if (action === 'refresh-notifications') {
+            fetchNotifications();
+            return;
+        }
+
+        if (action === 'open-add-notification') {
+            openAddNotificationModal();
+            return;
+        }
+
+        if (action === 'close-notification-modal') {
+            closeNotificationModal();
+            return;
+        }
+
+        if (action === 'edit-notification') {
+            openEditNotificationModal(trigger.dataset.id);
+            return;
+        }
+
+        if (action === 'delete-notification') {
+            handleDeleteNotification(trigger.dataset.id);
+            return;
+        }
+
         if (action === 'order-page') {
             const page = parseInt(trigger.dataset.page, 10);
             if (!Number.isNaN(page)) {
@@ -5727,6 +6372,30 @@ document.addEventListener('DOMContentLoaded', () => {
     if (schedulerRefreshSecondsEl) {
         schedulerRefreshSecondsEl.addEventListener('change', () => {
             startPaylaterSchedulerAutoRefresh();
+        });
+    }
+
+    const notificationSearchEl = document.getElementById('notification-search');
+    if (notificationSearchEl) {
+        notificationSearchEl.addEventListener('input', (event) => {
+            notificationSearch = event.target.value || '';
+            renderNotificationTable();
+        });
+    }
+
+    const notificationStatusEl = document.getElementById('notification-filter-status');
+    if (notificationStatusEl) {
+        notificationStatusEl.addEventListener('change', (event) => {
+            notificationFilterStatus = event.target.value || 'all';
+            renderNotificationTable();
+        });
+    }
+
+    const notificationForm = document.getElementById('notification-form');
+    if (notificationForm) {
+        notificationForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            await submitNotificationForm();
         });
     }
 });

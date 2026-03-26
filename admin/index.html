@@ -60,6 +60,10 @@
                 <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                 Pesanan
             </button>
+            <button data-action="show-section" data-section="notifikasi" id="nav-notifikasi" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                Notifikasi
+            </button>
             <button data-action="show-section" data-section="referrals" id="nav-referrals" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
                 <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-4.356-2.737M9 20H4v-2a3 3 0 015.356-2.737M7 10a3 3 0 116 0 3 3 0 01-6 0zm10 2a2 2 0 11-4 0 2 2 0 014 0zM7 12a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                 Referral
@@ -761,6 +765,80 @@
                         </table>
                     </div>
                     <div id="order-pagination-admin" class="px-6 py-4 border-t border-gray-100"></div>
+                </div>
+            </section>
+
+            <section id="section-notifikasi" class="hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Total Notifikasi</p>
+                        <h3 id="notification-stat-total" class="text-3xl font-bold text-gray-800 mt-2">0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-green-100 bg-green-50">
+                        <p class="text-xs text-green-700 font-bold uppercase tracking-wider">Published</p>
+                        <h3 id="notification-stat-published" class="text-3xl font-bold text-green-700 mt-2">0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-amber-100 bg-amber-50">
+                        <p class="text-xs text-amber-700 font-bold uppercase tracking-wider">Pinned</p>
+                        <h3 id="notification-stat-pinned" class="text-3xl font-bold text-amber-700 mt-2">0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 bg-slate-50">
+                        <p class="text-xs text-slate-600 font-bold uppercase tracking-wider">Draft / Arsip</p>
+                        <h3 id="notification-stat-inactive" class="text-3xl font-bold text-slate-700 mt-2">0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Cari Notifikasi</label>
+                            <input id="notification-search" type="text" placeholder="Cari judul atau ringkasan" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Status</label>
+                            <select id="notification-filter-status" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500">
+                                <option value="all">Semua</option>
+                                <option value="published">Published</option>
+                                <option value="draft">Draft</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Ringkasan</label>
+                            <p id="notification-filter-summary" class="text-sm text-gray-600 py-3 px-4 bg-gray-50 rounded-xl border border-gray-200">0 data</p>
+                        </div>
+                        <div class="flex justify-end gap-2 mobile-wrap">
+                            <button data-action="refresh-notifications" class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-5 py-3 rounded-xl font-bold transition text-sm">Refresh</button>
+                            <button data-action="open-add-notification" class="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl font-bold transition text-sm shadow-lg shadow-green-100">Tambah Notifikasi</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-8 py-6 border-b border-gray-100 flex justify-between items-center mobile-stack">
+                        <div>
+                            <h4 class="font-bold text-gray-800">Notifikasi Publik</h4>
+                            <p class="text-xs text-gray-500 mt-1">Notifikasi ini akan muncul ke semua pengguna pada ikon bell di halaman akun.</p>
+                        </div>
+                        <span id="notification-last-sync" class="text-xs text-gray-500">Belum dimuat</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Notifikasi</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Prioritas</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Periode</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Diperbarui</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="notification-list-body" class="divide-y divide-gray-100">
+                                <tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Memuat notifikasi...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
@@ -1814,6 +1892,88 @@
                 <div class="flex gap-3 pt-4">
                     <button type="button" data-action="close-banner-modal" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-3 rounded-xl transition">Batal</button>
                     <button type="submit" id="banner-submit-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="notification-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-labelledby="notification-modal-title" tabindex="-1" data-modal>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 p-8 max-h-[90vh] overflow-y-auto">
+            <h3 id="notification-modal-title" class="text-2xl font-bold text-gray-800 mb-6">Tambah Notifikasi Publik</h3>
+            <form id="notification-form" class="space-y-4">
+                <input type="hidden" id="notification-id">
+                <input type="hidden" id="notification-created-at">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label for="form-notification-title" class="block text-sm font-bold text-gray-700 mb-1">Judul Notifikasi</label>
+                        <input type="text" id="form-notification-title" required data-autofocus class="w-full p-3 border rounded-xl outline-none focus:border-green-500" placeholder="Contoh: Promo Flash Sale Dimulai">
+                    </div>
+                    <div>
+                        <label for="form-notification-icon" class="block text-sm font-bold text-gray-700 mb-1">Icon</label>
+                        <select id="form-notification-icon" class="w-full p-3 border rounded-xl outline-none focus:border-green-500">
+                            <option value="announcement">Pengumuman</option>
+                            <option value="promo">Promo</option>
+                            <option value="order">Order</option>
+                            <option value="truck">Pengiriman</option>
+                            <option value="feature">Fitur</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="security">Keamanan</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="form-notification-priority" class="block text-sm font-bold text-gray-700 mb-1">Prioritas</label>
+                        <select id="form-notification-priority" class="w-full p-3 border rounded-xl outline-none focus:border-green-500">
+                            <option value="normal">Normal</option>
+                            <option value="high">Tinggi</option>
+                            <option value="low">Rendah</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="form-notification-status" class="block text-sm font-bold text-gray-700 mb-1">Status</label>
+                        <select id="form-notification-status" class="w-full p-3 border rounded-xl outline-none focus:border-green-500">
+                            <option value="published">Published</option>
+                            <option value="draft">Draft</option>
+                            <option value="archived">Archived</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="form-notification-pinned" class="block text-sm font-bold text-gray-700 mb-1">Pinned</label>
+                        <select id="form-notification-pinned" class="w-full p-3 border rounded-xl outline-none focus:border-green-500">
+                            <option value="false">Tidak</option>
+                            <option value="true">Ya</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="form-notification-start-at" class="block text-sm font-bold text-gray-700 mb-1">Mulai Tayang</label>
+                        <input type="datetime-local" id="form-notification-start-at" class="w-full p-3 border rounded-xl outline-none focus:border-green-500">
+                    </div>
+                    <div>
+                        <label for="form-notification-end-at" class="block text-sm font-bold text-gray-700 mb-1">Berakhir Tayang</label>
+                        <input type="datetime-local" id="form-notification-end-at" class="w-full p-3 border rounded-xl outline-none focus:border-green-500">
+                    </div>
+                    <div>
+                        <label for="form-notification-action-label" class="block text-sm font-bold text-gray-700 mb-1">Label Tombol CTA</label>
+                        <input type="text" id="form-notification-action-label" class="w-full p-3 border rounded-xl outline-none focus:border-green-500" placeholder="Contoh: Lihat Promo">
+                    </div>
+                    <div>
+                        <label for="form-notification-action-url" class="block text-sm font-bold text-gray-700 mb-1">URL Tombol CTA</label>
+                        <input type="url" id="form-notification-action-url" class="w-full p-3 border rounded-xl outline-none focus:border-green-500" placeholder="https://paketsembako.com/promo.html">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="form-notification-summary" class="block text-sm font-bold text-gray-700 mb-1">Ringkasan Singkat</label>
+                        <textarea id="form-notification-summary" rows="2" class="w-full p-3 border rounded-xl outline-none focus:border-green-500" placeholder="Teks singkat yang tampil di dropdown notifikasi"></textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="form-notification-content" class="block text-sm font-bold text-gray-700 mb-1">Isi Lengkap</label>
+                        <textarea id="form-notification-content" rows="6" required class="w-full p-3 border rounded-xl outline-none focus:border-green-500" placeholder="Tulis isi lengkap notifikasi untuk ditampilkan pada modal user"></textarea>
+                    </div>
+                </div>
+                <div class="rounded-2xl border border-green-100 bg-green-50 px-4 py-3">
+                    <p class="text-xs text-green-800">Notifikasi publik yang berstatus <strong>Published</strong> akan tampil di ikon bell semua user selama masih dalam periode tayang.</p>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" data-action="close-notification-modal" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-3 rounded-xl transition">Batal</button>
+                    <button type="submit" id="notification-submit-btn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition">Simpan</button>
                 </div>
             </form>
         </div>

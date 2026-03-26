@@ -66,6 +66,13 @@ const SECTION_UI_MAP = {
         loginCtaId: 'orders-login-cta',
         retryAction: 'retry-orders'
     },
+    notifications: {
+        loadingId: 'notifications-loading',
+        errorId: 'notifications-error',
+        errorTextId: 'notifications-error-text',
+        loginCtaId: 'notifications-login-cta',
+        retryAction: 'retry-notifications'
+    },
     points: {
         loadingId: 'points-loading',
         errorId: 'points-error',
@@ -77,6 +84,12 @@ const SECTION_UI_MAP = {
 
 let lastPaylaterDetailInvoiceId = '';
 let sessionRecoveryTriggered = false;
+let notificationState = {
+    all: [],
+    unreadCount: 0,
+    lastOpenedId: '',
+    detailAction: null
+};
 
 function createAkunError(message, code) {
     const err = new Error(message || 'Unknown error');
@@ -210,6 +223,656 @@ async function akunApiPost(payload, options = {}) {
     });
 }
 
+function buildNotificationLocalReadKey(phone) {
+    const normalizedPhone = normalizePhoneTo08(phone);
+    return `gos_notifications_read_v1:${normalizedPhone || 'guest'}`;
+}
+
+function getNotificationLocalReadMap(phone) {
+    try {
+        const raw = localStorage.getItem(buildNotificationLocalReadKey(phone));
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+        console.warn('Failed reading notification local read map:', error);
+        return {};
+    }
+}
+
+function setNotificationLocalReadMap(phone, map) {
+    try {
+        localStorage.setItem(buildNotificationLocalReadKey(phone), JSON.stringify(map || {}));
+    } catch (error) {
+        console.warn('Failed persisting notification local read map:', error);
+    }
+}
+
+function parseNotificationBool(value) {
+    if (value === true) return true;
+    const normalized = String(value === undefined ? '' : value).trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
+
+function normalizeNotificationAudience(value, fallbackPhone) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'personal' || normalized === 'private' || normalized === 'order_status') return 'personal';
+    if (normalized === 'public' || normalized === 'broadcast' || normalized === 'all' || normalized === 'public_announcement') return 'public';
+    return fallbackPhone ? 'personal' : 'public';
+}
+
+function normalizeNotificationPriority(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'high' || normalized === 'low') return normalized;
+    return 'normal';
+}
+
+function normalizeNotificationIcon(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    const iconMap = {
+        announcement: 'announcement',
+        pengumuman: 'announcement',
+        promo: 'promo',
+        order: 'order',
+        pesanan: 'order',
+        truck: 'truck',
+        shipping: 'truck',
+        pengiriman: 'truck',
+        feature: 'feature',
+        fitur: 'feature',
+        maintenance: 'maintenance',
+        security: 'security',
+        keamanan: 'security'
+    };
+    return iconMap[normalized] || 'announcement';
+}
+
+function getNotificationPriorityRank(priority) {
+    const normalized = normalizeNotificationPriority(priority);
+    if (normalized === 'high') return 3;
+    if (normalized === 'normal') return 2;
+    return 1;
+}
+
+function parseNotificationDate(value) {
+    if (!value) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    const direct = new Date(raw);
+    if (!Number.isNaN(direct.getTime())) return direct;
+    if (raw.includes('/')) {
+        const parts = raw.split(',');
+        const dateOnly = parts[0] ? parts[0].trim() : raw;
+        const bits = dateOnly.split('/');
+        if (bits.length === 3) {
+            const day = parseInt(bits[0], 10);
+            const month = parseInt(bits[1], 10);
+            const year = parseInt(bits[2], 10);
+            const fallback = new Date(year, month - 1, day);
+            if (!Number.isNaN(fallback.getTime())) return fallback;
+        }
+    }
+    return null;
+}
+
+function formatNotificationDateTime(value) {
+    const parsed = parseNotificationDate(value);
+    if (!parsed || Number.isNaN(parsed.getTime())) return '-';
+    return parsed.toLocaleString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function formatNotificationRelativeTime(value) {
+    const parsed = parseNotificationDate(value);
+    if (!parsed || Number.isNaN(parsed.getTime())) return 'Waktu tidak tersedia';
+    const diffMs = Date.now() - parsed.getTime();
+    const diffMinutes = Math.round(diffMs / 60000);
+    if (diffMinutes <= 1) return 'Baru saja';
+    if (diffMinutes < 60) return `${diffMinutes} menit yang lalu`;
+    const diffHours = Math.round(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} jam yang lalu`;
+    const diffDays = Math.round(diffHours / 24);
+    if (diffDays < 7) return `${diffDays} hari yang lalu`;
+    return parsed.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+    });
+}
+
+function truncateNotificationText(text, maxLength) {
+    const raw = String(text || '').trim();
+    if (!raw) return '';
+    if (raw.length <= maxLength) return raw;
+    return `${raw.slice(0, Math.max(0, maxLength - 3))}...`;
+}
+
+function normalizeNotificationRecord(raw) {
+    const record = raw || {};
+    const recipientPhone = normalizePhoneTo08(record.recipient_phone || record.phone || '');
+    const createdAt = String(record.created_at || record.createdAt || record.tanggal || record.date || '').trim();
+    const updatedAt = String(record.updated_at || record.updatedAt || '').trim();
+    const startAt = String(record.start_at || '').trim();
+    const endAt = String(record.end_at || '').trim();
+    const content = String(record.content || record.message || record.body || '').trim();
+    const summary = String(record.summary || record.preview || '').trim() || truncateNotificationText(content, 140);
+    const readAt = String(record.read_at || record.readAt || '').trim();
+
+    return {
+        id: String(record.id || record.notification_id || '').trim(),
+        type: String(record.type || '').trim().toLowerCase(),
+        audience: normalizeNotificationAudience(record.audience || record.type, recipientPhone),
+        recipientPhone,
+        title: String(record.title || 'Notifikasi').trim(),
+        summary: summary || 'Notifikasi baru tersedia.',
+        content: content || summary || 'Isi notifikasi belum tersedia.',
+        icon: normalizeNotificationIcon(record.icon || record.category || record.type),
+        priority: normalizeNotificationPriority(record.priority),
+        status: String(record.status || 'published').trim().toLowerCase(),
+        isPinned: parseNotificationBool(record.is_pinned || record.pinned),
+        actionLabel: String(record.action_label || '').trim(),
+        actionUrl: String(record.action_url || '').trim(),
+        referenceType: String(record.reference_type || '').trim().toLowerCase(),
+        referenceId: String(record.reference_id || '').trim(),
+        createdAt,
+        updatedAt,
+        startAt,
+        endAt,
+        source: String(record.source || '').trim().toLowerCase(),
+        readAt,
+        isRead: parseNotificationBool(record.is_read) || Boolean(readAt)
+    };
+}
+
+function isNotificationVisibleForUser(notification, userPhone) {
+    const phone = normalizePhoneTo08(userPhone);
+    if (!notification || !notification.id) return false;
+    if (String(notification.status || '').toLowerCase() !== 'published') return false;
+
+    const startDate = parseNotificationDate(notification.startAt || notification.createdAt);
+    const endDate = parseNotificationDate(notification.endAt);
+    const now = new Date();
+    if (startDate && startDate > now) return false;
+    if (endDate && endDate < now) return false;
+
+    if (notification.audience === 'personal') {
+        return normalizePhoneTo08(notification.recipientPhone) === phone;
+    }
+    return true;
+}
+
+function sortNotificationsForUser(rows) {
+    return (Array.isArray(rows) ? rows.slice() : []).sort((a, b) => {
+        if (a.isPinned !== b.isPinned) return Number(b.isPinned) - Number(a.isPinned);
+        const priorityDelta = getNotificationPriorityRank(b.priority) - getNotificationPriorityRank(a.priority);
+        if (priorityDelta !== 0) return priorityDelta;
+        const dateA = parseNotificationDate(a.updatedAt || a.createdAt || a.startAt) || new Date(0);
+        const dateB = parseNotificationDate(b.updatedAt || b.createdAt || b.startAt) || new Date(0);
+        return dateB - dateA;
+    });
+}
+
+function getNotificationIconHtml(iconKey) {
+    const icon = normalizeNotificationIcon(iconKey);
+    const map = {
+        announcement: {
+            bg: 'bg-green-100 text-green-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19a1 1 0 001.993.117L13 19v-4.382a1 1 0 01.883-.993L14 13.618l4.447-.741A2 2 0 0020 10.903V8.097a2 2 0 00-1.553-1.974L14 5.382a1 1 0 01-.993-.883L13 4.382V3a1 1 0 10-2 0v2.882zM5 10h3m-3 4h4"></path></svg>'
+        },
+        promo: {
+            bg: 'bg-rose-100 text-rose-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>'
+        },
+        order: {
+            bg: 'bg-amber-100 text-amber-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>'
+        },
+        truck: {
+            bg: 'bg-indigo-100 text-indigo-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17h6m-6 0a2 2 0 11-4 0m4 0a2 2 0 104 0m0 0h2a2 2 0 002-2v-3.586a1 1 0 00-.293-.707l-2.414-2.414A1 1 0 0015.586 8H13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v9a2 2 0 002 2h1"></path></svg>'
+        },
+        feature: {
+            bg: 'bg-cyan-100 text-cyan-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"></path></svg>'
+        },
+        maintenance: {
+            bg: 'bg-slate-100 text-slate-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
+        },
+        security: {
+            bg: 'bg-emerald-100 text-emerald-700',
+            svg: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l7 4v5c0 5-3.438 9.719-7 11-3.562-1.281-7-6-7-11V7l7-4z"></path></svg>'
+        }
+    };
+    const item = map[icon] || map.announcement;
+    return `<div class="w-11 h-11 rounded-2xl ${item.bg} flex items-center justify-center shrink-0">${item.svg}</div>`;
+}
+
+function updateNotificationUnreadBadges() {
+    const badgeEl = document.getElementById('notification-unread-badge');
+    const dropdownSubtitleEl = document.getElementById('notification-dropdown-subtitle');
+    const summaryEl = document.getElementById('notifications-summary-text');
+    const topMarkAllEl = document.getElementById('notification-mark-all-top');
+    const sectionMarkAllEl = document.getElementById('notification-mark-all-section');
+    const unreadCount = notificationState.unreadCount || 0;
+
+    if (badgeEl) {
+        badgeEl.textContent = String(unreadCount);
+        badgeEl.classList.toggle('hidden', unreadCount <= 0);
+    }
+    if (dropdownSubtitleEl) {
+        dropdownSubtitleEl.textContent = unreadCount > 0
+            ? `${unreadCount} notifikasi baru menunggu dibaca.`
+            : 'Semua notifikasi sudah dibaca.';
+    }
+    if (summaryEl) {
+        const totalCount = Array.isArray(notificationState.all) ? notificationState.all.length : 0;
+        if (totalCount === 0) {
+            summaryEl.textContent = 'Belum ada notifikasi baru.';
+        } else if (unreadCount > 0) {
+            summaryEl.textContent = `${unreadCount} notifikasi baru dari total ${totalCount} notifikasi.`;
+        } else {
+            summaryEl.textContent = `Semua ${totalCount} notifikasi sudah dibaca.`;
+        }
+    }
+    if (topMarkAllEl) topMarkAllEl.classList.toggle('hidden', unreadCount <= 0);
+    if (sectionMarkAllEl) sectionMarkAllEl.classList.toggle('hidden', unreadCount <= 0);
+}
+
+function createNotificationItemHtml(notification, compactMode) {
+    const compact = Boolean(compactMode);
+    const unread = !notification.isRead;
+    const summaryText = compact
+        ? truncateNotificationText(notification.summary || notification.content, 72)
+        : truncateNotificationText(notification.summary || notification.content, 150);
+    const wrapperClass = compact
+        ? 'w-full text-left px-4 py-4 hover:bg-gray-50 transition'
+        : `w-full text-left rounded-2xl border p-4 transition ${unread ? 'border-green-200 bg-green-50 hover:bg-green-50' : 'border-gray-200 bg-white hover:bg-gray-50'}`;
+    return `
+        <button type="button" data-action="open-notification" data-id="${escapeHtml(notification.id)}" class="${wrapperClass}">
+            <div class="flex items-start gap-3">
+                ${getNotificationIconHtml(notification.icon)}
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold ${unread ? 'text-gray-900' : 'text-gray-700'}">${escapeHtml(notification.title)}</p>
+                            <p class="text-xs ${unread ? 'text-gray-700' : 'text-gray-500'} mt-1 leading-5">${escapeHtml(summaryText || 'Notifikasi baru tersedia.')}</p>
+                        </div>
+                        ${unread ? '<span class="shrink-0 inline-flex items-center px-2 py-1 rounded-full bg-green-600 text-white text-[10px] font-black uppercase tracking-wide">Baru</span>' : ''}
+                    </div>
+                    <div class="flex items-center justify-between gap-3 mt-3">
+                        <span class="text-[11px] text-gray-500">${escapeHtml(formatNotificationRelativeTime(notification.updatedAt || notification.createdAt || notification.startAt))}</span>
+                        ${notification.isPinned ? '<span class="inline-flex items-center px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wide">Pinned</span>' : ''}
+                    </div>
+                </div>
+            </div>
+        </button>
+    `;
+}
+
+function renderNotificationDropdown() {
+    const loadingEl = document.getElementById('notification-dropdown-loading');
+    const emptyEl = document.getElementById('notification-dropdown-empty');
+    const listEl = document.getElementById('notification-dropdown-list');
+    if (!loadingEl || !emptyEl || !listEl) return;
+
+    loadingEl.classList.add('hidden');
+    const items = Array.isArray(notificationState.all) ? notificationState.all.slice(0, 5) : [];
+    if (items.length === 0) {
+        emptyEl.classList.remove('hidden');
+        listEl.classList.add('hidden');
+        listEl.innerHTML = '';
+        return;
+    }
+
+    emptyEl.classList.add('hidden');
+    listEl.classList.remove('hidden');
+    listEl.innerHTML = items.map((item) => createNotificationItemHtml(item, true)).join('');
+}
+
+function renderNotificationCenterList() {
+    const emptyEl = document.getElementById('notifications-empty');
+    const listEl = document.getElementById('notifications-list');
+    if (!emptyEl || !listEl) return;
+    const errorEl = document.getElementById('notifications-error');
+    const loadingEl = document.getElementById('notifications-loading');
+    const hasError = errorEl && !errorEl.classList.contains('hidden');
+    const isLoading = loadingEl && !loadingEl.classList.contains('hidden');
+    if (hasError || isLoading) {
+        emptyEl.classList.add('hidden');
+        listEl.classList.add('hidden');
+        listEl.innerHTML = '';
+        return;
+    }
+    const items = Array.isArray(notificationState.all) ? notificationState.all : [];
+    if (items.length === 0) {
+        emptyEl.classList.remove('hidden');
+        listEl.classList.add('hidden');
+        listEl.innerHTML = '';
+        return;
+    }
+    emptyEl.classList.add('hidden');
+    listEl.classList.remove('hidden');
+    listEl.innerHTML = items.map((item) => createNotificationItemHtml(item, false)).join('');
+}
+
+function renderNotificationUI() {
+    updateNotificationUnreadBadges();
+    renderNotificationDropdown();
+    renderNotificationCenterList();
+}
+
+function closeNotificationDropdown() {
+    const dropdown = document.getElementById('notification-dropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+}
+
+function toggleNotificationDropdown() {
+    const dropdown = document.getElementById('notification-dropdown');
+    if (!dropdown) return;
+    const shouldOpen = dropdown.classList.contains('hidden');
+    closeNotificationDropdown();
+    if (shouldOpen) dropdown.classList.remove('hidden');
+}
+
+function scrollToNotificationSection() {
+    const section = document.getElementById('notifications-section');
+    if (!section) return;
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    highlightAccountSection(section);
+}
+
+function getCurrentNotificationUserPhone() {
+    const user = getLoggedInUser();
+    return user ? normalizePhoneTo08(user.whatsapp || user.phone || '') : '';
+}
+
+function markNotificationReadLocally(notificationId) {
+    const targetId = String(notificationId || '').trim();
+    if (!targetId) return;
+    const phone = getCurrentNotificationUserPhone();
+    const localMap = getNotificationLocalReadMap(phone);
+    localMap[targetId] = new Date().toISOString();
+    setNotificationLocalReadMap(phone, localMap);
+    notificationState.all = notificationState.all.map((item) => {
+        if (item.id !== targetId) return item;
+        return {
+            ...item,
+            isRead: true,
+            readAt: localMap[targetId]
+        };
+    });
+    notificationState.unreadCount = notificationState.all.filter((item) => !item.isRead).length;
+    renderNotificationUI();
+}
+
+async function markNotificationAsRead(notificationId) {
+    const targetId = String(notificationId || '').trim();
+    const user = getLoggedInUser();
+    if (!user || !targetId) return;
+    markNotificationReadLocally(targetId);
+
+    const sessionToken = String(user.session_token || '').trim();
+    if (!sessionToken) return;
+
+    try {
+        await parsePublicSuccess(
+            await akunApiPost({
+                action: 'public_mark_notification_read',
+                data: {
+                    session_token: sessionToken,
+                    notification_id: targetId
+                }
+            }),
+            'Gagal memperbarui status baca notifikasi.'
+        );
+    } catch (error) {
+        console.warn('Failed syncing notification read state:', error);
+    }
+}
+
+async function markAllNotificationsAsRead() {
+    const user = getLoggedInUser();
+    if (!user) return;
+    const unreadItems = notificationState.all.filter((item) => !item.isRead);
+    if (unreadItems.length === 0) return;
+
+    unreadItems.forEach((item) => markNotificationReadLocally(item.id));
+
+    const sessionToken = String(user.session_token || '').trim();
+    if (!sessionToken) return;
+    try {
+        await parsePublicSuccess(
+            await akunApiPost({
+                action: 'public_mark_all_notifications_read',
+                data: {
+                    session_token: sessionToken
+                }
+            }),
+            'Gagal menandai semua notifikasi sebagai dibaca.'
+        );
+    } catch (error) {
+        console.warn('Failed syncing mark all notifications:', error);
+    }
+}
+
+function resolveNotificationDetailAction(notification) {
+    if (!notification) return null;
+    if (notification.actionUrl) {
+        return {
+            type: 'url',
+            label: notification.actionLabel || 'Buka Tautan',
+            url: notification.actionUrl
+        };
+    }
+    if (notification.referenceType === 'order' && notification.referenceId) {
+        return {
+            type: 'order',
+            label: notification.actionLabel || 'Lihat Pesanan',
+            orderId: notification.referenceId
+        };
+    }
+    return null;
+}
+
+function setNotificationDetailAction(actionConfig) {
+    const footerEl = document.getElementById('notification-detail-footer');
+    const actionBtn = document.getElementById('notification-detail-action-btn');
+    notificationState.detailAction = actionConfig || null;
+    if (!footerEl || !actionBtn) return;
+    if (!actionConfig) {
+        footerEl.classList.add('hidden');
+        actionBtn.textContent = 'Lihat Terkait';
+        return;
+    }
+    footerEl.classList.remove('hidden');
+    actionBtn.textContent = actionConfig.label || 'Lihat Terkait';
+}
+
+function closeNotificationDetailModal() {
+    const modal = document.getElementById('notification-detail-modal');
+    if (modal) modal.classList.add('hidden');
+    notificationState.lastOpenedId = '';
+    setNotificationDetailAction(null);
+}
+
+async function openNotificationDetailModal(notificationId) {
+    const targetId = String(notificationId || '').trim();
+    const notification = notificationState.all.find((item) => item.id === targetId);
+    if (!notification) return;
+
+    const modal = document.getElementById('notification-detail-modal');
+    const iconEl = document.getElementById('notification-detail-icon');
+    const metaEl = document.getElementById('notification-detail-meta');
+    const titleEl = document.getElementById('notification-detail-title');
+    const dateEl = document.getElementById('notification-detail-date');
+    const summaryEl = document.getElementById('notification-detail-summary');
+    const contentEl = document.getElementById('notification-detail-content');
+
+    if (iconEl) iconEl.innerHTML = getNotificationIconHtml(notification.icon);
+    if (metaEl) {
+        const metaLabel = notification.referenceType === 'order'
+            ? 'Status Pesanan'
+            : (notification.icon === 'promo' ? 'Promo Publik' : 'Notifikasi');
+        metaEl.textContent = metaLabel;
+    }
+    if (titleEl) titleEl.textContent = notification.title;
+    if (dateEl) dateEl.textContent = formatNotificationDateTime(notification.updatedAt || notification.createdAt || notification.startAt);
+    if (summaryEl) summaryEl.textContent = notification.summary || 'Notifikasi baru tersedia.';
+    if (contentEl) contentEl.textContent = notification.content || notification.summary || 'Isi notifikasi belum tersedia.';
+    setNotificationDetailAction(resolveNotificationDetailAction(notification));
+
+    if (modal) modal.classList.remove('hidden');
+    notificationState.lastOpenedId = targetId;
+    closeNotificationDropdown();
+    if (!notification.isRead) {
+        await markNotificationAsRead(targetId);
+    }
+}
+
+function runNotificationDetailAction() {
+    const actionConfig = notificationState.detailAction;
+    if (!actionConfig) return;
+
+    if (actionConfig.type === 'url' && actionConfig.url) {
+        const url = String(actionConfig.url || '').trim();
+        if (/^https?:\/\//i.test(url)) {
+            const popup = window.open(url, '_blank', 'noopener,noreferrer');
+            if (popup) popup.opener = null;
+        } else {
+            window.location.href = url;
+        }
+        return;
+    }
+
+    if (actionConfig.type === 'order') {
+        const orderId = String(actionConfig.orderId || '').trim();
+        closeNotificationDetailModal();
+        const targetOrder = Array.isArray(window.allOrders)
+            ? window.allOrders.find((item) => String(item && (item.id || item.order_id) || '').trim() === orderId)
+            : null;
+        if (targetOrder) {
+            showOrderDetailModal(targetOrder);
+            return;
+        }
+        const ordersSection = document.getElementById('orders-section');
+        if (ordersSection) {
+            ordersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            highlightAccountSection(ordersSection);
+        }
+    }
+}
+
+function mergeNotificationLocalReadState(rows, userPhone) {
+    const phone = normalizePhoneTo08(userPhone);
+    const localMap = getNotificationLocalReadMap(phone);
+    return sortNotificationsForUser((Array.isArray(rows) ? rows : []).map((item) => {
+        const localReadAt = String(localMap[item.id] || '').trim();
+        return {
+            ...item,
+            readAt: item.readAt || localReadAt,
+            isRead: item.isRead || Boolean(localReadAt)
+        };
+    }));
+}
+
+async function fetchNotificationsFallbackDirect(user) {
+    const userPhone = normalizePhoneTo08(user && (user.whatsapp || user.phone) || '');
+    if (!userPhone) return null;
+    try {
+        const rows = await akunApiGet('?sheet=notifications', {
+            cache: false,
+            maxRetries: 1
+        });
+        if (!Array.isArray(rows)) return null;
+        const normalizedRows = rows
+            .map((row) => normalizeNotificationRecord(row))
+            .filter((notification) => isNotificationVisibleForUser(notification, userPhone));
+        return normalizedRows;
+    } catch (error) {
+        return null;
+    }
+}
+
+async function loadNotifications(user) {
+    clearSectionError('notifications');
+    setSectionLoading('notifications', true);
+    notificationState.all = [];
+    notificationState.unreadCount = 0;
+    const userPhone = normalizePhoneTo08(user && (user.whatsapp || user.phone) || '');
+
+    const dropdownLoadingEl = document.getElementById('notification-dropdown-loading');
+    const dropdownEmptyEl = document.getElementById('notification-dropdown-empty');
+    const dropdownListEl = document.getElementById('notification-dropdown-list');
+    const listEl = document.getElementById('notifications-list');
+    const emptyEl = document.getElementById('notifications-empty');
+
+    if (dropdownLoadingEl) dropdownLoadingEl.classList.remove('hidden');
+    if (dropdownEmptyEl) dropdownEmptyEl.classList.add('hidden');
+    if (dropdownListEl) {
+        dropdownListEl.classList.add('hidden');
+        dropdownListEl.innerHTML = '';
+    }
+    if (listEl) {
+        listEl.classList.add('hidden');
+        listEl.innerHTML = '';
+    }
+    if (emptyEl) emptyEl.classList.add('hidden');
+
+    try {
+        const sessionQuery = buildSessionQuery(user);
+        if (!sessionQuery) {
+            throw createAkunError(SESSION_INVALID_MESSAGE, 'UNAUTHORIZED_SESSION');
+        }
+
+        let notifications = [];
+        try {
+            const payload = parsePublicSuccess(
+                await akunApiGet(`?action=public_user_notifications${sessionQuery}`),
+                'Gagal memuat notifikasi.'
+            );
+            notifications = Array.isArray(payload.notifications)
+                ? payload.notifications.map((row) => normalizeNotificationRecord(row))
+                : [];
+        } catch (endpointError) {
+            const fallbackRows = await fetchNotificationsFallbackDirect(user);
+            if (!fallbackRows) {
+                throw endpointError;
+            }
+            notifications = fallbackRows;
+        }
+
+        notificationState.all = mergeNotificationLocalReadState(
+            notifications.filter((notification) => isNotificationVisibleForUser(notification, userPhone)),
+            userPhone
+        );
+        notificationState.unreadCount = notificationState.all.filter((item) => !item.isRead).length;
+        renderNotificationUI();
+    } catch (error) {
+        console.error('Error loading notifications:', error);
+        setSectionError('notifications', resolvePublicErrorMessage(error), 'retry-notifications');
+        renderNotificationUI();
+    } finally {
+        setSectionLoading('notifications', false);
+        if (dropdownLoadingEl) dropdownLoadingEl.classList.add('hidden');
+        renderNotificationUI();
+    }
+}
+
+function retryNotificationsSection() {
+    const user = getLoggedInUser();
+    if (!user) {
+        showLogin();
+        return;
+    }
+    loadNotifications(user);
+}
+
 let referralProfileCache = null;
 let pendingReferralCodeFromUrl = '';
 let referralConfigCache = {
@@ -258,6 +921,7 @@ function getInitialAccountViewMode() {
 
 const ACCOUNT_SECTION_ID_MAP = {
     profile: 'profile-section',
+    notifications: 'notifications-section',
     orders: 'orders-section',
     points: 'points-section',
     settings: 'settings-section',
@@ -580,9 +1244,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('click', (event) => {
+        const bellTrigger = event.target.closest('[data-action="toggle-notification-dropdown"]');
+        if (bellTrigger) {
+            toggleNotificationDropdown();
+            return;
+        }
+        const openNotificationTrigger = event.target.closest('[data-action="open-notification"]');
+        if (openNotificationTrigger) {
+            openNotificationDetailModal(openNotificationTrigger.getAttribute('data-id'));
+            return;
+        }
+        const markAllNotificationTrigger = event.target.closest('[data-action="mark-all-notifications-read"]');
+        if (markAllNotificationTrigger) {
+            markAllNotificationsAsRead();
+            return;
+        }
+        const viewAllNotificationsTrigger = event.target.closest('[data-action="view-all-notifications"]');
+        if (viewAllNotificationsTrigger) {
+            closeNotificationDropdown();
+            scrollToNotificationSection();
+            return;
+        }
+        const closeNotificationDetailTrigger = event.target.closest('[data-action="close-notification-detail"]');
+        if (closeNotificationDetailTrigger) {
+            closeNotificationDetailModal();
+            return;
+        }
+        const notificationDetailActionTrigger = event.target.closest('[data-action="notification-detail-action"]');
+        if (notificationDetailActionTrigger) {
+            runNotificationDetailAction();
+            return;
+        }
         const showLoginTrigger = event.target.closest('[data-action="show-login"]');
         if (showLoginTrigger) {
             showLogin();
+            return;
+        }
+        const retryNotificationsTrigger = event.target.closest('[data-action="retry-notifications"]');
+        if (retryNotificationsTrigger) {
+            retryNotificationsSection();
             return;
         }
         const retryPaylaterDetail = event.target.closest('[data-action="retry-paylater-detail"]');
@@ -604,6 +1304,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const popup = window.open(link, '_blank', 'noopener,noreferrer');
                 if (popup) popup.opener = null;
             }
+            return;
+        }
+
+        if (!event.target.closest('#notification-bell-wrap')) {
+            closeNotificationDropdown();
         }
     });
     
@@ -646,6 +1351,9 @@ function showDashboard(user) {
     
     // Load loyalty points from user_points sheet
     loadLoyaltyPoints(user);
+
+    // Load notification center
+    loadNotifications(user);
 
     // Load referral section
     loadReferralData(user);
