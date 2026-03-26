@@ -71,6 +71,7 @@ let headerNotificationState = {
     lastOpenedId: '',
     detailAction: null
 };
+let headerNotificationOrderCache = Object.create(null);
 
 /**
  * Normalize phone number to standard format (08xxxxxxxxxx)
@@ -575,6 +576,7 @@ function syncHeaderAuthState() {
         stopHeaderNotificationAutoRefresh();
         closeHeaderNotificationDropdown();
         closeHeaderNotificationDetailModal();
+        closeHeaderOrderTrackingModal();
         headerNotificationState = {
             items: [],
             unreadCount: 0,
@@ -582,6 +584,7 @@ function syncHeaderAuthState() {
             lastOpenedId: '',
             detailAction: null
         };
+        headerNotificationOrderCache = Object.create(null);
         updateHeaderNotificationBadge(0, 0);
         renderHeaderNotificationDropdown();
         closeHeaderAccountMenu();
@@ -829,24 +832,245 @@ function closeHeaderNotificationDropdown() {
     if (dropdown) dropdown.classList.add('hidden');
 }
 
+function normalizeHeaderOrderStatus(status) {
+    if (!status) return 'Menunggu';
+
+    const statusLower = String(status).toLowerCase().trim();
+    const statusMapping = {
+        menunggu: 'Menunggu',
+        pending: 'Menunggu',
+        diproses: 'Diproses',
+        proses: 'Diproses',
+        processing: 'Diproses',
+        dikirim: 'Dikirim',
+        kirim: 'Dikirim',
+        shipped: 'Dikirim',
+        diterima: 'Diterima',
+        terima: 'Diterima',
+        selesai: 'Diterima',
+        completed: 'Diterima',
+        dibatalkan: 'Dibatalkan',
+        batal: 'Dibatalkan',
+        cancelled: 'Dibatalkan',
+        canceled: 'Dibatalkan'
+    };
+
+    return statusMapping[statusLower] || String(status).trim() || 'Menunggu';
+}
+
+function getHeaderOrderStatusBadge(status) {
+    const normalizedStatus = normalizeHeaderOrderStatus(status);
+    const statusMap = {
+        Menunggu: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Menunggu' },
+        Diproses: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Diproses' },
+        Dikirim: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Dikirim' },
+        Diterima: { bg: 'bg-green-100', text: 'text-green-700', label: 'Diterima' },
+        Dibatalkan: { bg: 'bg-red-100', text: 'text-red-700', label: 'Dibatalkan' }
+    };
+    const statusInfo = statusMap[normalizedStatus] || statusMap.Menunggu;
+    return `<span class="${statusInfo.bg} ${statusInfo.text} text-xs font-bold px-3 py-1 rounded-full">${statusInfo.label}</span>`;
+}
+
+function formatHeaderOrderDate(dateString) {
+    if (!dateString || dateString === 'N/A') return 'N/A';
+
+    let date;
+    if (typeof dateString === 'number') {
+        date = new Date(dateString);
+    } else {
+        const raw = String(dateString).trim();
+        const dateOnly = raw.split(',')[0].trim();
+        date = new Date(raw);
+
+        if (Number.isNaN(date.getTime()) && dateOnly.includes('/')) {
+            const parts = dateOnly.split('/');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10);
+                const year = parseInt(parts[2], 10);
+                if (day <= 31 && month <= 12 && year > 1900) {
+                    date = new Date(year, month - 1, day);
+                }
+            }
+        }
+    }
+
+    if (!date || Number.isNaN(date.getTime())) return 'N/A';
+    return date.toLocaleDateString('id-ID', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+function parseHeaderOrderCurrencyValue(value) {
+    if (typeof value === 'number') return value;
+    const cleaned = String(value || '')
+        .replace(/[^0-9,-]/g, '')
+        .replace(/\./g, '')
+        .replace(',', '.');
+    const parsed = Number(cleaned);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatHeaderOrderCurrency(amount) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(parseHeaderOrderCurrencyValue(amount));
+}
+
+function createHeaderOrderTimeline(currentStatus) {
+    const statuses = [
+        { name: 'Menunggu', gif: 'wait.gif', key: 'Menunggu' },
+        { name: 'Diproses', gif: 'grocery-basket.gif', key: 'Diproses' },
+        { name: 'Dikirim', gif: 'grocery.gif', key: 'Dikirim' },
+        { name: 'Diterima', gif: 'shipping.gif', key: 'Diterima' }
+    ];
+
+    const normalizedStatus = normalizeHeaderOrderStatus(currentStatus);
+    let currentIndex = statuses.findIndex((item) => item.key === normalizedStatus);
+
+    if (normalizedStatus === 'Dibatalkan') {
+        return `
+            <div class="flex items-center justify-center gap-3 py-4">
+                <div class="bg-red-500 w-12 h-12 rounded-full flex items-center justify-center animate-pulse">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-bold text-red-600">Dibatalkan</p>
+                    <p class="text-xs text-gray-500">Pesanan telah dibatalkan</p>
+                </div>
+            </div>
+        `;
+    }
+
+    if (currentIndex === -1) currentIndex = 0;
+
+    return `
+        <div class="flex items-center justify-between gap-2 py-2">
+            ${statuses.map((item, index) => {
+                const isActive = index <= currentIndex;
+                const isCurrent = index === currentIndex;
+                const isLast = index === statuses.length - 1;
+                const imagePath = `./assets/images/${item.gif}`;
+                const safeImage = sanitizeUrl(imagePath, './assets/images/wait.gif');
+
+                return `
+                    <div class="flex flex-col items-center flex-1">
+                        <div class="${isActive ? 'bg-green-50' : 'bg-gray-100'} w-12 h-12 rounded-full flex items-center justify-center ${isCurrent ? 'ring-2 ring-green-500 ring-offset-2' : ''}">
+                            <img src="${safeImage}" alt="${item.name}" class="w-8 h-8 object-contain ${isActive ? '' : 'opacity-40'}" data-fallback-src="${imagePath}">
+                        </div>
+                        <p class="text-[10px] font-semibold mt-2 text-center ${isActive ? 'text-gray-800' : 'text-gray-400'}">${item.name}</p>
+                        ${isCurrent ? '<p class="text-[8px] text-green-600 font-bold mt-0.5">● Saat ini</p>' : '<p class="text-[8px] text-transparent mt-0.5">●</p>'}
+                    </div>
+                    ${!isLast ? `<div class="flex-shrink-0 w-8 h-0.5 ${isActive && index < currentIndex ? 'bg-green-500' : 'bg-gray-300'} transition-all duration-500 mb-6"></div>` : ''}
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function closeHeaderOrderTrackingModal() {
+    const modal = document.getElementById('order-tracking-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function showHeaderOrderTrackingModal(order) {
+    const orderIdEl = document.getElementById('tracking-order-id');
+    const orderDateEl = document.getElementById('tracking-order-date');
+    const statusBadgeEl = document.getElementById('tracking-status-badge');
+    const productsEl = document.getElementById('tracking-products');
+    const totalEl = document.getElementById('tracking-total');
+    const timelineEl = document.getElementById('tracking-timeline');
+    const modal = document.getElementById('order-tracking-modal');
+
+    if (orderIdEl) orderIdEl.textContent = String(order.id || order.order_id || 'N/A').trim() || 'N/A';
+    if (orderDateEl) {
+        orderDateEl.textContent = formatHeaderOrderDate(
+            order.tanggal || order.tanggal_pesanan || order.timestamp || order.date || order.created_at
+        );
+    }
+    if (statusBadgeEl) {
+        statusBadgeEl.innerHTML = getHeaderOrderStatusBadge(order.status || 'Menunggu');
+    }
+    if (productsEl) productsEl.textContent = order.produk || order.items || order.product_name || 'N/A';
+    if (totalEl) totalEl.textContent = formatHeaderOrderCurrency(order.total || order.total_bayar || 0);
+    if (timelineEl) {
+        timelineEl.innerHTML = createHeaderOrderTimeline(order.status || 'Menunggu');
+    }
+
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.focus();
+    }
+}
+
+async function fetchHeaderOrderById(orderId, options = {}) {
+    const targetId = String(orderId || '').trim();
+    if (!targetId) throw new Error('ID pesanan tidak tersedia.');
+
+    const force = Boolean(options && options.force);
+    if (!force && headerNotificationOrderCache[targetId]) {
+        return headerNotificationOrderCache[targetId];
+    }
+
+    const sessionQuery = getSessionQueryFromStoredUser();
+    if (!sessionQuery) {
+        throw new Error('Session login tidak valid. Silakan login ulang.');
+    }
+
+    const payload = parseHeaderNotificationSuccess(
+        await ApiService.get(`?action=public_user_orders${sessionQuery}&_t=${Date.now()}`, {
+            cache: false,
+            maxRetries: 1
+        }),
+        'Gagal memuat detail pesanan.'
+    );
+
+    const orders = Array.isArray(payload && payload.orders) ? payload.orders : [];
+    const match = orders.find((item) => {
+        const currentId = String(item && (item.id || item.order_id) || '').trim();
+        return currentId === targetId;
+    });
+
+    if (!match) {
+        throw new Error('Detail pesanan tidak ditemukan.');
+    }
+
+    headerNotificationOrderCache[targetId] = match;
+    return match;
+}
+
+async function openHeaderOrderTrackingModal(orderId) {
+    const targetId = String(orderId || '').trim();
+    if (!targetId) return;
+
+    const order = await fetchHeaderOrderById(targetId, { force: true });
+    closeHeaderNotificationDetailModal();
+    showHeaderOrderTrackingModal(order);
+}
+
 function resolveHeaderNotificationDetailAction(notification) {
     if (!notification) return null;
+
+    if (notification.referenceType === 'order' && notification.referenceId) {
+        return {
+            type: 'order',
+            label: notification.actionLabel || 'Lihat Pesanan',
+            orderId: notification.referenceId
+        };
+    }
 
     const actionUrl = String(notification.actionUrl || '').trim();
     if (actionUrl) {
         return {
+            type: 'url',
             label: notification.actionLabel || 'Buka Tautan',
             url: actionUrl
-        };
-    }
-
-    if (notification.referenceType === 'order' && notification.referenceId) {
-        const targetUrl = new URL('akun.html', window.location.href);
-        targetUrl.searchParams.set('section', 'orders');
-        targetUrl.searchParams.set('order_id', notification.referenceId);
-        return {
-            label: notification.actionLabel || 'Lihat Pesanan',
-            url: targetUrl.toString()
         };
     }
 
@@ -920,7 +1144,29 @@ async function openHeaderNotificationDetailModal(notificationId) {
 
 function runHeaderNotificationDetailAction() {
     const actionConfig = headerNotificationState.detailAction;
-    if (!actionConfig || !actionConfig.url) return;
+    if (!actionConfig) return;
+
+    if (actionConfig.type === 'order') {
+        const actionBtn = document.getElementById('header-notification-detail-action-btn');
+        const originalLabel = actionBtn ? actionBtn.textContent : '';
+        if (actionBtn) {
+            actionBtn.disabled = true;
+            actionBtn.textContent = 'Memuat...';
+        }
+
+        openHeaderOrderTrackingModal(actionConfig.orderId)
+            .catch((error) => {
+                console.warn('Failed opening order tracking from header notification:', error);
+                showToast(String((error && error.message) || 'Gagal memuat detail pesanan.'));
+            })
+            .finally(() => {
+                if (actionBtn) {
+                    actionBtn.disabled = false;
+                    actionBtn.textContent = originalLabel || actionConfig.label || 'Lihat Terkait';
+                }
+            });
+        return;
+    }
 
     const url = String(actionConfig.url || '').trim();
     if (!url) return;
@@ -1034,6 +1280,7 @@ async function syncHeaderNotificationState(options = {}) {
     const sessionQuery = getSessionQueryFromStoredUser();
     if (!sessionQuery) {
         closeHeaderNotificationDetailModal();
+        closeHeaderOrderTrackingModal();
         headerNotificationState = {
             items: [],
             unreadCount: 0,
@@ -1041,6 +1288,7 @@ async function syncHeaderNotificationState(options = {}) {
             lastOpenedId: '',
             detailAction: null
         };
+        headerNotificationOrderCache = Object.create(null);
         updateHeaderNotificationBadge(0, 0);
         renderHeaderNotificationDropdown();
         return;
@@ -3589,6 +3837,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const orderTrackingModal = document.getElementById('order-tracking-modal');
+    if (orderTrackingModal) {
+        orderTrackingModal.addEventListener('click', (event) => {
+            if (event.target === orderTrackingModal) {
+                closeHeaderOrderTrackingModal();
+                return;
+            }
+
+            const closeTrigger = event.target.closest('[data-action="close-order-tracking"]');
+            if (closeTrigger) {
+                closeHeaderOrderTrackingModal();
+            }
+        });
+    }
+
     const headerAccountMenu = document.getElementById('header-account-menu');
     if (headerAccountMenu) {
         headerAccountMenu.addEventListener('click', (event) => {
@@ -3880,6 +4143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closeHeaderAccountMenu();
         closeHeaderNotificationDropdown();
         closeHeaderNotificationDetailModal();
+        closeHeaderOrderTrackingModal();
     });
 
     document.addEventListener('visibilitychange', () => {
