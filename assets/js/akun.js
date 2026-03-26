@@ -93,7 +93,8 @@ let notificationState = {
     lastOpenedId: '',
     detailAction: null,
     lastSyncedAt: '',
-    requestedDetailHandled: false
+    requestedDetailHandled: false,
+    sectionExpanded: false
 };
 
 function createAkunError(message, code) {
@@ -579,7 +580,38 @@ function renderNotificationCenterList() {
     }
     emptyEl.classList.add('hidden');
     listEl.classList.remove('hidden');
-    listEl.innerHTML = items.map((item) => createNotificationItemHtml(item, false)).join('');
+    const visibleItems = items.slice(0, 2);
+    const hiddenItems = items.slice(2);
+    const hiddenCount = hiddenItems.length;
+
+    listEl.innerHTML = `
+        <div class="space-y-3">
+            ${visibleItems.map((item) => createNotificationItemHtml(item, false)).join('')}
+        </div>
+        ${hiddenCount > 0 ? `
+            <div id="notifications-extra-list" class="notifications-extra-collapse${notificationState.sectionExpanded ? ' is-expanded' : ''}">
+                <div class="notifications-extra-inner">
+                    <div class="space-y-3">
+                        ${hiddenItems.map((item) => createNotificationItemHtml(item, false)).join('')}
+                    </div>
+                </div>
+            </div>
+            <div class="pt-3">
+                <button
+                    type="button"
+                    data-action="toggle-more-notifications"
+                    class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50 transition"
+                    aria-expanded="${notificationState.sectionExpanded ? 'true' : 'false'}"
+                    aria-controls="notifications-extra-list"
+                >
+                    <span>${notificationState.sectionExpanded ? 'Sembunyikan Notifikasi Lainnya' : `Lihat ${hiddenCount} Notifikasi Lainnya`}</span>
+                    <svg class="w-4 h-4 transition-transform ${notificationState.sectionExpanded ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+            </div>
+        ` : ''}
+    `;
 }
 
 function renderNotificationUI() {
@@ -987,9 +1019,7 @@ const ACCOUNT_SECTION_ID_MAP = {
     notifications: 'notifications-section',
     orders: 'orders-section',
     points: 'points-section',
-    settings: 'settings-section',
-    payments: 'payments-section',
-    addresses: 'shipping-address-section'
+    rewards: 'points-section'
 };
 
 function getRequestedAccountSectionKey() {
@@ -1386,6 +1416,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const notificationDetailActionTrigger = event.target.closest('[data-action="notification-detail-action"]');
         if (notificationDetailActionTrigger) {
             runNotificationDetailAction();
+            return;
+        }
+        const toggleMoreNotificationsTrigger = event.target.closest('[data-action="toggle-more-notifications"]');
+        if (toggleMoreNotificationsTrigger) {
+            notificationState.sectionExpanded = !notificationState.sectionExpanded;
+            renderNotificationCenterList();
             return;
         }
         const showLoginTrigger = event.target.closest('[data-action="show-login"]');
