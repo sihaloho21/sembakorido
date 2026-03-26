@@ -92,7 +92,8 @@ let notificationState = {
     unreadCount: 0,
     lastOpenedId: '',
     detailAction: null,
-    lastSyncedAt: ''
+    lastSyncedAt: '',
+    requestedDetailHandled: false
 };
 
 function createAkunError(message, code) {
@@ -889,6 +890,9 @@ async function loadNotifications(user, options = {}) {
         notificationState.unreadCount = notificationState.all.filter((item) => !item.isRead).length;
         notificationState.lastSyncedAt = new Date().toISOString();
         renderNotificationUI();
+        if (!silent) {
+            maybeOpenRequestedNotification();
+        }
     } catch (error) {
         console.error('Error loading notifications:', error);
         setSectionError('notifications', resolvePublicErrorMessage(error), 'retry-notifications');
@@ -1000,6 +1004,27 @@ function getRequestedAccountSectionKey() {
     }
 }
 
+function getRequestedNotificationId() {
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        return String(params.get('notification_id') || params.get('notification') || '').trim();
+    } catch (error) {
+        console.warn('Failed parsing requested notification id:', error);
+        return '';
+    }
+}
+
+function clearRequestedNotificationId() {
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('notification_id');
+        url.searchParams.delete('notification');
+        window.history.replaceState({}, document.title, url.toString());
+    } catch (error) {
+        console.warn('Failed clearing requested notification id:', error);
+    }
+}
+
 function highlightAccountSection(target) {
     if (!target) return;
     target.classList.remove('account-section-highlight');
@@ -1024,6 +1049,19 @@ function focusRequestedAccountSection() {
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         highlightAccountSection(target);
     }, 160);
+}
+
+function maybeOpenRequestedNotification() {
+    const requestedId = getRequestedNotificationId();
+    if (!requestedId || notificationState.requestedDetailHandled) return;
+    const exists = notificationState.all.some((item) => item.id === requestedId);
+    if (!exists) return;
+
+    notificationState.requestedDetailHandled = true;
+    clearRequestedNotificationId();
+    setTimeout(() => {
+        openNotificationDetailModal(requestedId);
+    }, 220);
 }
 
 function buildReferralShareUrl(code) {
