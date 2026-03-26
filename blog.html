@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Blog GoSembako – Tips hemat belanja sembako, resep masakan, dan informasi seputar kebutuhan pokok keluarga.">
+    <meta name="keywords" content="blog sembako, tips belanja, resep masakan, GoSembako, kebutuhan pokok">
+    <meta name="author" content="GoSembako">
+    <link rel="canonical" href="https://paketsembako.com/blog.html">
+    <meta property="og:title" content="Blog GoSembako – Tips & Inspirasi">
+    <meta property="og:description" content="Tips hemat belanja sembako, resep masakan, dan informasi seputar kebutuhan pokok keluarga.">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:site_name" content="GoSembako">
+    <meta property="og:url" content="https://paketsembako.com/blog.html">
+    <meta property="og:image" content="assets/img/logo.webp">
+    <link rel="icon" href="assets/img/logo.webp" type="image/webp">
+    <title>Blog – GoSembako</title>
+    <link rel="stylesheet" href="assets/css/tailwind-fallback.css">
+    <link rel="stylesheet" href="assets/css/tailwind.min.css">
+    <link rel="stylesheet" href="assets/css/style.min.css?v=20260308b">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+        .blog-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .blog-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.12); }
+        .blog-card-img { transition: transform 0.3s ease; }
+        .blog-card:hover .blog-card-img { transform: scale(1.04); }
+        .tag-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+        .category-filter-btn { transition: all 0.2s ease; }
+        .category-filter-btn.active { background: #16a34a; color: #fff; border-color: #16a34a; }
+        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .hero-offset { padding-top: 80px; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .search-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2); }
+        .header-main-row { min-height: 72px; }
+        .header-brand-name { color: #4a9465; font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm fixed top-0 left-0 right-0 z-50">
+        <div class="container mx-auto px-4">
+            <div class="header-main-row flex items-center justify-between gap-4 py-3">
+                <!-- Logo -->
+                <a href="/" class="flex items-center gap-2 flex-shrink-0" aria-label="GoSembako - Halaman Utama">
+                    <img src="assets/img/logo.webp" alt="GoSembako" class="h-10 w-auto" width="40" height="40">
+                    <span class="header-brand-name">GoSembako</span>
+                </a>
+                <!-- Desktop Nav -->
+                <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
+                    <a href="/" class="hover:text-green-600 transition">Beranda</a>
+                    <a href="/promo.html" class="hover:text-green-600 transition">Promo</a>
+                    <a href="/blog.html" class="text-green-600 font-bold" aria-current="page">Blog</a>
+                    <a href="/akun.html" class="hover:text-green-600 transition">Akun</a>
+                </nav>
+                <!-- Search Bar -->
+                <div class="flex-1 max-w-md hidden md:block">
+                    <div class="relative">
+                        <input type="search" id="blog-search-desktop" placeholder="Cari artikel..." class="search-input w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white transition">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                </div>
+                <!-- CTA -->
+                <a href="/" class="hidden md:inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3z"/></svg>
+                    Belanja
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-offset bg-gradient-to-br from-green-700 to-green-900 text-white py-16">
+        <div class="container mx-auto px-4 text-center">
+            <div class="inline-flex items-center gap-2 bg-white/10 text-white text-sm font-semibold px-4 py-1.5 rounded-full mb-4">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clip-rule="evenodd"/><path d="M15 7h1a2 2 0 012 2v5.5a1.5 1.5 0 01-3 0V7z"/></svg>
+                Blog GoSembako
+            </div>
+            <h1 class="text-3xl md:text-5xl font-extrabold mb-4 leading-tight">Tips & Inspirasi Belanja Sembako</h1>
+            <p class="text-green-100 text-lg max-w-2xl mx-auto mb-8">Temukan tips hemat, resep masakan, dan informasi terkini seputar kebutuhan pokok keluarga Anda.</p>
+            <!-- Mobile Search -->
+            <div class="max-w-lg mx-auto md:hidden">
+                <div class="relative">
+                    <input type="search" id="blog-search-mobile" placeholder="Cari artikel..." class="w-full pl-10 pr-4 py-3 rounded-xl text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-300">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-10 mb-16 md:mb-0">
+        <!-- Category Filter -->
+        <div class="mb-8">
+            <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide" id="category-filter-list">
+                <button class="category-filter-btn active flex-shrink-0 px-5 py-2 rounded-full border-2 border-green-500 text-sm font-semibold transition" data-category="Semua">Semua</button>
+                <!-- Kategori akan dimuat secara dinamis -->
+            </div>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-gray-500" id="article-count-label">Memuat artikel...</p>
+            <div class="flex items-center gap-2 text-sm text-gray-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>
+                <span>Terbaru</span>
+            </div>
+        </div>
+
+        <!-- Featured Post (akan diisi oleh JS) -->
+        <div id="featured-post-container" class="mb-10 hidden">
+            <!-- Featured post akan dirender di sini -->
+        </div>
+
+        <!-- Articles Grid -->
+        <div id="articles-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Skeleton Loading -->
+            <div class="skeleton-card bg-white rounded-2xl overflow-hidden shadow-sm">
+                <div class="skeleton h-48 w-full"></div>
+                <div class="p-5 space-y-3">
+                    <div class="skeleton h-4 w-1/3 rounded"></div>
+                    <div class="skeleton h-6 w-full rounded"></div>
+                    <div class="skeleton h-4 w-full rounded"></div>
+                    <div class="skeleton h-4 w-2/3 rounded"></div>
+                </div>
+            </div>
+            <div class="skeleton-card bg-white rounded-2xl overflow-hidden shadow-sm">
+                <div class="skeleton h-48 w-full"></div>
+                <div class="p-5 space-y-3">
+                    <div class="skeleton h-4 w-1/3 rounded"></div>
+                    <div class="skeleton h-6 w-full rounded"></div>
+                    <div class="skeleton h-4 w-full rounded"></div>
+                    <div class="skeleton h-4 w-2/3 rounded"></div>
+                </div>
+            </div>
+            <div class="skeleton-card bg-white rounded-2xl overflow-hidden shadow-sm hidden sm:block">
+                <div class="skeleton h-48 w-full"></div>
+                <div class="p-5 space-y-3">
+                    <div class="skeleton h-4 w-1/3 rounded"></div>
+                    <div class="skeleton h-6 w-full rounded"></div>
+                    <div class="skeleton h-4 w-full rounded"></div>
+                    <div class="skeleton h-4 w-2/3 rounded"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden text-center py-20">
+            <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <h3 class="text-lg font-bold text-gray-600 mb-2">Belum ada artikel</h3>
+            <p class="text-gray-400 text-sm" id="empty-state-message">Artikel akan segera hadir. Nantikan konten menarik dari kami!</p>
+        </div>
+
+        <!-- Load More Button -->
+        <div class="text-center mt-10" id="load-more-container" style="display:none;">
+            <button id="load-more-btn" class="inline-flex items-center gap-2 bg-white border-2 border-green-500 text-green-600 hover:bg-green-50 font-bold px-8 py-3 rounded-xl transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                Muat Lebih Banyak
+            </button>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-white py-10 mb-16 md:mb-0">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center gap-2 mb-3">
+                        <img src="assets/img/logo.webp" alt="GoSembako" class="h-8 w-auto">
+                        <span class="font-extrabold text-green-400 text-lg">GoSembako</span>
+                    </div>
+                    <p class="text-gray-400 text-sm">Paket sembako murah dan lengkap untuk kebutuhan harian keluarga Anda.</p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-white mb-3 uppercase text-sm">Navigasi</h3>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li><a href="/" class="hover:text-green-400 transition">Beranda</a></li>
+                        <li><a href="/promo.html" class="hover:text-green-400 transition">Promo</a></li>
+                        <li><a href="/blog.html" class="hover:text-green-400 transition text-green-400">Blog</a></li>
+                        <li><a href="/akun.html" class="hover:text-green-400 transition">Akun Saya</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-white mb-3 uppercase text-sm">Hubungi Kami</h3>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li><a href="https://wa.me/628993370200" target="_blank" rel="noopener noreferrer" class="hover:text-green-400 transition flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                            WhatsApp
+                        </a></li>
+                        <li><a href="mailto:online@paketsembako.com" class="hover:text-green-400 transition flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            Email
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-slate-700 pt-6 text-center text-gray-400 text-sm">
+                <p>&copy; 2026 <span class="text-green-400 font-semibold">GoSembako</span> - Paket Sembako. Semua Hak Dilindungi.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Bottom Nav -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+        <div class="flex items-stretch h-16">
+            <a href="/" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600" title="Home" aria-label="Home">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+                <span class="text-xs mt-1 font-medium">Home</span>
+            </a>
+            <a href="/promo.html" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600" title="Promo" aria-label="Promo">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+                <span class="text-xs mt-1 font-medium">Promo</span>
+            </a>
+            <a href="/blog.html" class="flex flex-col items-center justify-center flex-1 text-green-600" title="Blog" aria-label="Blog" aria-current="page">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clip-rule="evenodd"/><path d="M15 7h1a2 2 0 012 2v5.5a1.5 1.5 0 01-3 0V7z"/></svg>
+                <span class="text-xs mt-1 font-medium">Blog</span>
+            </a>
+            <a href="/akun.html" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600" title="Akun" aria-label="Akun">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+                <span class="text-xs mt-1 font-medium">Akun</span>
+            </a>
+        </div>
+    </nav>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/blog.js"></script>
+</body>
+</html>
