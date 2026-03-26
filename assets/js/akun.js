@@ -1302,6 +1302,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const notificationBellButton = document.getElementById('notification-bell-button');
+    if (notificationBellButton) {
+        notificationBellButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleNotificationDropdown();
+        });
+    }
+
+    const notificationDropdown = document.getElementById('notification-dropdown');
+    if (notificationDropdown) {
+        notificationDropdown.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+    }
+
     document.addEventListener('click', (event) => {
         const bellTrigger = event.target.closest('[data-action="toggle-notification-dropdown"]');
         if (bellTrigger) {
