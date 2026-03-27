@@ -578,20 +578,38 @@
             }
         ];
 
+        // ===== HELPERS FETCH =====
+        function normalizeDate(val) {
+            // Normalisasi ISO string (2026-03-27T00:00:00.000Z) ke yyyy-MM-dd
+            if (!val) return '';
+            return String(val).slice(0, 10);
+        }
+        async function fetchPublicSheet(sheetName) {
+            var apiUrl = (typeof CONFIG !== 'undefined' && CONFIG.getMainApiUrl) ? CONFIG.getMainApiUrl() : '';
+            if (!apiUrl) throw new Error('API URL tidak tersedia');
+            var params = new URLSearchParams({ sheet: sheetName });
+            var response = await fetch(apiUrl + '?' + params.toString());
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            var payload = await response.json();
+            if (payload && typeof payload === 'object' && !Array.isArray(payload) && payload.error) {
+                throw new Error(String(payload.message || payload.error));
+            }
+            return Array.isArray(payload) ? payload : [];
+        }
         // ===== LOAD DATA DARI GOOGLE SHEETS =====
         async function loadCatalogs() {
             try {
-                var res = await GASActions.get('katalog_promo');
-                if (res && res.data && res.data.length > 0) {
+                var rows = await fetchPublicSheet('katalog_promo');
+                if (rows && rows.length > 0) {
                     // Normalisasi field dari Sheets (snake_case) ke format yang digunakan halaman
-                    CATALOGS = res.data.map(function(c) {
+                    CATALOGS = rows.map(function(c) {
                         return {
                             id: c.id,
                             title: c.title || '',
                             month: c.month || '',
                             period: c.period || '',
-                            startDate: c.start_date || '',
-                            endDate: c.end_date || '',
+                            startDate: normalizeDate(c.start_date),
+                            endDate: normalizeDate(c.end_date),
                             pdfUrl: c.pdf_url || '',
                             badge: c.badge || 'BARU',
                             badgeClass: getBadgeClassFromBadge(c.badge),

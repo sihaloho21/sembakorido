@@ -757,8 +757,10 @@
         document.getElementById('form-title').value = catalog ? catalog.title || '' : '';
         document.getElementById('form-month').value = catalog ? catalog.month || '' : '';
         document.getElementById('form-period').value = catalog ? catalog.period || '' : '';
-        document.getElementById('form-start-date').value = catalog ? catalog.start_date || '' : '';
-        document.getElementById('form-end-date').value = catalog ? catalog.end_date || '' : '';
+        // Normalisasi ISO string (2026-03-27T00:00:00.000Z) ke yyyy-MM-dd agar input[type=date] tidak error
+        function normDate(v) { return v ? String(v).slice(0, 10) : ''; }
+        document.getElementById('form-start-date').value = catalog ? normDate(catalog.start_date) : '';
+        document.getElementById('form-end-date').value = catalog ? normDate(catalog.end_date) : '';
         document.getElementById('form-pdf-url').value = catalog ? catalog.pdf_url || '' : '';
         document.getElementById('form-badge').value = catalog ? catalog.badge || 'BARU' : 'BARU';
         document.getElementById('form-color').value = catalog ? catalog.color || 'linear-gradient(145deg, #16a34a 0%, #14532d 100%)' : 'linear-gradient(145deg, #16a34a 0%, #14532d 100%)';
