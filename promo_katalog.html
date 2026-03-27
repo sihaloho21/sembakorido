@@ -523,14 +523,17 @@
         </div>
     </div>
 
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/gas-actions.js"></script>
     <script>
     (function () {
         'use strict';
 
-        // ===== DATA KATALOG =====
-        // Untuk menambah katalog baru, tambahkan objek ke array ini.
-        // color: gradient CSS untuk cover kartu (string linear-gradient)
-        var CATALOGS = [
+        // ===== DATA KATALOG (diisi dari Google Sheets via GAS) =====
+        var CATALOGS = [];
+
+        // Data fallback jika GAS belum dikonfigurasi
+        var FALLBACK_CATALOGS = [
             {
                 id: 1,
                 title: 'Katalog Promo Januari 2026',
@@ -574,6 +577,46 @@
                 featured: true
             }
         ];
+
+        // ===== LOAD DATA DARI GOOGLE SHEETS =====
+        async function loadCatalogs() {
+            try {
+                var res = await GASActions.get('katalog_promo');
+                if (res && res.data && res.data.length > 0) {
+                    // Normalisasi field dari Sheets (snake_case) ke format yang digunakan halaman
+                    CATALOGS = res.data.map(function(c) {
+                        return {
+                            id: c.id,
+                            title: c.title || '',
+                            month: c.month || '',
+                            period: c.period || '',
+                            startDate: c.start_date || '',
+                            endDate: c.end_date || '',
+                            pdfUrl: c.pdf_url || '',
+                            badge: c.badge || 'BARU',
+                            badgeClass: getBadgeClassFromBadge(c.badge),
+                            color: c.color || 'linear-gradient(145deg, #16a34a 0%, #14532d 100%)',
+                            description: c.description || '',
+                            featured: c.featured === 'true' || c.featured === true
+                        };
+                    });
+                } else {
+                    // Gunakan fallback jika tidak ada data di Sheets
+                    CATALOGS = FALLBACK_CATALOGS;
+                }
+            } catch (e) {
+                console.warn('Gagal memuat katalog dari GAS, menggunakan data fallback:', e);
+                CATALOGS = FALLBACK_CATALOGS;
+            }
+            updateStats();
+            renderFeatured();
+            applyFilterSort();
+        }
+
+        function getBadgeClassFromBadge(badge) {
+            var map = { 'BARU': 'pk-badge-new', 'HOT': 'pk-badge-hot', 'SPESIAL': 'pk-badge-special' };
+            return map[badge] || 'pk-badge-new';
+        }
 
         // ===== HELPERS =====
         function getStatus(c) {
@@ -782,9 +825,15 @@
         }
 
         // ===== INIT =====
-        updateStats();
-        renderFeatured();
-        applyFilterSort();
+        // Tampilkan loading sementara
+        var grid = document.getElementById('catalog-grid');
+        if (grid) {
+            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;">'  
+                + '<div style="width:40px;height:40px;border:3px solid #e2e8f0;border-top-color:#16a34a;border-radius:50%;animation:pk-spin 0.8s linear infinite;margin:0 auto 1rem;"></div>'
+                + '<p style="color:#94a3b8;font-size:0.875rem;">Memuat katalog...</p>'
+                + '</div>';
+        }
+        loadCatalogs();
 
     })();
     </script>

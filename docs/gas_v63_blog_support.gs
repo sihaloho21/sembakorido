@@ -62,7 +62,8 @@ const SHEET_WHITELIST = [
   'referrals', 'point_transactions', 'referral_audit_logs', 'fraud_risk_logs',
   'credit_accounts', 'credit_invoices', 'credit_ledger', 'paylater_postmortem_logs',
   'runtime_error_logs', 'notifications', 'notification_reads',
-  'blog_posts', 'blog_comments'
+  'blog_posts', 'blog_comments',
+  'katalog_promo'  // Sheet untuk manajemen katalog promo
 ];
 
 const LOCK_TIMEOUT_MS = 30000;
