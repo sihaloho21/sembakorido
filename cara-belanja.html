@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Panduan cara belanja di GoSembako – mudah, cepat, dan aman. Pelajari langkah-langkah pemesanan, metode pembayaran, dan pengiriman sembako ke rumah Anda.">
-    <meta name="keywords" content="cara belanja, panduan belanja, GoSembako, sembako online, pemesanan sembako">
+    <meta name="keywords" content="cara belanja, panduan belanja, GoSembako, sembako online">
     <meta name="author" content="GoSembako">
     <link rel="canonical" href="https://paketsembako.com/cara-belanja.html">
     <meta property="og:title" content="Cara Belanja – GoSembako">
@@ -18,679 +18,496 @@
     <title>Cara Belanja – GoSembako</title>
     <link rel="stylesheet" href="assets/css/tailwind-fallback.css">
     <link rel="stylesheet" href="assets/css/tailwind.min.css">
-    <link rel="stylesheet" href="assets/css/style.min.css?v=20260308b">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f8fafc; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+        }
 
-        /* Header */
-        .page-header {
+        /* ── HEADER ── */
+        .site-header {
             background: #fff;
             border-bottom: 1px solid #e5e7eb;
-            box-shadow: 0 1px 8px rgba(0,0,0,0.06);
-            position: sticky;
-            top: 0;
-            z-index: 50;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+            position: sticky; top: 0; z-index: 50;
         }
         .header-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            height: 64px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            max-width: 1100px; margin: 0 auto;
+            padding: 0 24px; height: 62px;
+            display: flex; align-items: center; justify-content: space-between;
         }
-        .brand-link {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
+        .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+        .brand img { height: 38px; width: auto; object-fit: contain; }
+        .brand-name { color: #16a34a; font-size: 1.05rem; font-weight: 800; }
+        .back-link {
+            display: inline-flex; align-items: center; gap: 6px;
+            color: #6b7280; font-size: 0.82rem; font-weight: 600;
+            text-decoration: none; padding: 7px 14px;
+            border: 1.5px solid #e5e7eb; border-radius: 10px;
+            background: #fff; transition: all 0.2s;
         }
-        .brand-logo { height: 40px; width: auto; object-fit: contain; }
-        .brand-name { color: #4a9465; font-size: 1.1rem; font-weight: 800; letter-spacing: -0.02em; }
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #6b7280;
-            font-size: 0.875rem;
-            font-weight: 600;
+        .back-link:hover { color: #16a34a; border-color: #16a34a; background: #f0fdf4; }
+
+        /* ── HERO ── */
+        .hero {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 60%, #bbf7d0 100%);
+            padding: 56px 24px 64px;
+            text-align: center;
+        }
+        .hero-eyebrow {
+            display: inline-block;
+            background: #16a34a; color: #fff;
+            font-size: 0.72rem; font-weight: 700;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            padding: 4px 14px; border-radius: 999px; margin-bottom: 18px;
+        }
+        .hero h1 {
+            font-size: clamp(1.7rem, 4.5vw, 2.6rem);
+            font-weight: 900; color: #14532d; line-height: 1.2;
+            margin-bottom: 14px;
+        }
+        .hero h1 span { color: #16a34a; }
+        .hero p {
+            font-size: 1rem; color: #4b5563; max-width: 480px;
+            margin: 0 auto 30px; line-height: 1.7;
+        }
+        .hero-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: #16a34a; color: #fff;
+            font-weight: 700; font-size: 0.92rem;
+            padding: 13px 26px; border-radius: 12px;
             text-decoration: none;
-            padding: 8px 14px;
-            border-radius: 10px;
-            border: 1.5px solid #e5e7eb;
-            background: #fff;
+            box-shadow: 0 4px 18px rgba(22,163,74,0.35);
             transition: all 0.2s;
         }
-        .back-btn:hover { color: #16a34a; border-color: #16a34a; background: #f0fdf4; }
+        .hero-btn:hover { background: #15803d; transform: translateY(-2px); }
 
-        /* Hero */
-        .hero-section {
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 40%, #bbf7d0 100%);
-            padding: 60px 20px 80px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-        .hero-section::before {
-            content: '';
-            position: absolute;
-            top: -60px; right: -60px;
-            width: 300px; height: 300px;
-            background: radial-gradient(circle, rgba(22,163,74,0.12) 0%, transparent 70%);
-            border-radius: 50%;
-        }
-        .hero-section::after {
-            content: '';
-            position: absolute;
-            bottom: -80px; left: -40px;
-            width: 250px; height: 250px;
-            background: radial-gradient(circle, rgba(22,163,74,0.08) 0%, transparent 70%);
-            border-radius: 50%;
-        }
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #16a34a;
-            color: #fff;
-            font-size: 0.75rem;
-            font-weight: 700;
-            padding: 5px 14px;
-            border-radius: 999px;
-            margin-bottom: 16px;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-        }
-        .hero-title {
-            font-size: clamp(1.8rem, 5vw, 3rem);
-            font-weight: 900;
-            color: #1a2e1a;
-            line-height: 1.15;
-            margin-bottom: 16px;
-        }
-        .hero-title span { color: #16a34a; }
-        .hero-subtitle {
-            font-size: 1.05rem;
-            color: #4b5563;
-            max-width: 560px;
-            margin: 0 auto 32px;
-            line-height: 1.7;
-        }
-        .hero-cta {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #16a34a;
-            color: #fff;
-            font-weight: 700;
-            font-size: 0.95rem;
-            padding: 14px 28px;
-            border-radius: 14px;
-            text-decoration: none;
-            box-shadow: 0 4px 20px rgba(22,163,74,0.35);
-            transition: all 0.2s;
-        }
-        .hero-cta:hover { background: #15803d; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(22,163,74,0.4); }
+        /* ── WRAPPER ── */
+        .page-wrap { max-width: 1100px; margin: 0 auto; padding: 64px 24px; }
 
-        /* Stats Bar */
-        .stats-bar {
-            background: #fff;
-            border-bottom: 1px solid #e5e7eb;
-            padding: 20px;
-        }
-        .stats-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0;
-        }
-        .stat-item {
-            text-align: center;
-            padding: 8px 16px;
-            border-right: 1px solid #e5e7eb;
-        }
-        .stat-item:last-child { border-right: none; }
-        .stat-number { font-size: 1.5rem; font-weight: 900; color: #16a34a; line-height: 1; }
-        .stat-label { font-size: 0.75rem; color: #6b7280; font-weight: 500; margin-top: 4px; }
+        /* ── SECTION HEADER ── */
+        .sec-head { text-align: center; margin-bottom: 48px; }
+        .sec-head h2 { font-size: 1.55rem; font-weight: 900; color: #14532d; margin-bottom: 8px; }
+        .sec-head p { font-size: 0.9rem; color: #6b7280; max-width: 420px; margin: 0 auto; line-height: 1.6; }
+        .sec-line { width: 44px; height: 4px; background: linear-gradient(90deg,#16a34a,#4ade80); border-radius: 999px; margin: 12px auto 0; }
 
-        /* Main Content */
-        .main-container { max-width: 1200px; margin: 0 auto; padding: 60px 20px; }
-
-        /* Section Title */
-        .section-title {
-            text-align: center;
-            margin-bottom: 48px;
-        }
-        .section-title h2 {
-            font-size: clamp(1.4rem, 3vw, 2rem);
-            font-weight: 900;
-            color: #1a2e1a;
-            margin-bottom: 10px;
-        }
-        .section-title p {
-            color: #6b7280;
-            font-size: 0.95rem;
-            max-width: 500px;
-            margin: 0 auto;
-            line-height: 1.6;
-        }
-        .section-divider {
-            width: 48px;
-            height: 4px;
-            background: linear-gradient(90deg, #16a34a, #4ade80);
-            border-radius: 999px;
-            margin: 12px auto 0;
-        }
-
-        /* Steps */
-        .steps-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 24px;
-            margin-bottom: 80px;
+        /* ── STEPS ── */
+        .steps-section { margin-bottom: 80px; }
+        .steps-row {
+            display: flex; flex-wrap: wrap;
+            justify-content: center; gap: 20px;
         }
         .step-card {
             background: #fff;
-            border-radius: 20px;
-            padding: 32px 24px;
             border: 1.5px solid #e5e7eb;
-            position: relative;
-            transition: all 0.25s;
+            border-radius: 20px;
+            padding: 36px 24px 28px;
+            width: 200px;
+            flex-shrink: 0;
             text-align: center;
+            position: relative;
+            transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
         }
         .step-card:hover {
             border-color: #16a34a;
-            box-shadow: 0 8px 32px rgba(22,163,74,0.12);
+            box-shadow: 0 6px 28px rgba(22,163,74,0.13);
             transform: translateY(-4px);
         }
-        .step-number {
-            position: absolute;
-            top: -14px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #16a34a;
-            color: #fff;
-            font-size: 0.75rem;
-            font-weight: 800;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid #fff;
-            box-shadow: 0 2px 8px rgba(22,163,74,0.3);
+        /* Active / highlighted card (step 4 in reference) */
+        .step-card.active {
+            border-color: #16a34a;
+            box-shadow: 0 6px 28px rgba(22,163,74,0.18);
         }
-        .step-icon {
-            width: 64px;
-            height: 64px;
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px;
+        .step-num {
+            position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+            width: 28px; height: 28px; border-radius: 50%;
+            background: #16a34a; color: #fff;
+            font-size: 0.75rem; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            border: 2.5px solid #fff;
+            box-shadow: 0 2px 8px rgba(22,163,74,0.35);
         }
-        .step-icon svg { width: 32px; height: 32px; }
-        .step-title {
-            font-size: 1rem;
-            font-weight: 800;
-            color: #1a2e1a;
-            margin-bottom: 8px;
+        .step-icon-wrap {
+            width: 72px; height: 72px; border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 18px;
         }
-        .step-desc {
-            font-size: 0.85rem;
-            color: #6b7280;
-            line-height: 1.6;
-        }
-        .step-arrow {
-            display: none;
-        }
-        @media (min-width: 768px) {
-            .step-card { position: relative; }
-        }
+        .step-icon-wrap svg { width: 34px; height: 34px; }
+        .step-title { font-size: 0.92rem; font-weight: 800; color: #1e293b; margin-bottom: 10px; }
+        .step-desc { font-size: 0.8rem; color: #6b7280; line-height: 1.65; }
 
-        /* Payment Methods */
+        /* connector arrow between cards */
+        .step-arrow {
+            display: flex; align-items: center; color: #d1d5db;
+            font-size: 1.4rem; margin-top: 36px; flex-shrink: 0;
+        }
+        @media (max-width: 700px) { .step-arrow { display: none; } }
+
+        /* ── PAYMENT ── */
         .payment-section { margin-bottom: 80px; }
         .payment-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 16px;
         }
-        .payment-card {
+        .pay-card {
             background: #fff;
             border: 1.5px solid #e5e7eb;
             border-radius: 16px;
-            padding: 24px 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.2s;
+            padding: 28px 20px;
             text-align: center;
+            transition: all 0.2s;
         }
-        .payment-card:hover { border-color: #16a34a; box-shadow: 0 4px 20px rgba(22,163,74,0.1); }
-        .payment-icon {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .pay-card:hover { border-color: #16a34a; box-shadow: 0 4px 18px rgba(22,163,74,0.1); }
+        .pay-icon {
+            width: 56px; height: 56px; border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 14px;
         }
-        .payment-icon svg { width: 26px; height: 26px; }
-        .payment-name { font-size: 0.9rem; font-weight: 700; color: #1a2e1a; }
-        .payment-desc { font-size: 0.78rem; color: #6b7280; line-height: 1.5; }
+        .pay-icon svg { width: 28px; height: 28px; }
+        .pay-name { font-size: 0.9rem; font-weight: 800; color: #1e293b; margin-bottom: 6px; }
+        .pay-desc { font-size: 0.78rem; color: #6b7280; line-height: 1.55; }
 
-        /* FAQ */
+        /* ── FAQ ── */
         .faq-section { margin-bottom: 80px; }
-        .faq-list { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+        .faq-wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
         .faq-item {
-            background: #fff;
-            border: 1.5px solid #e5e7eb;
-            border-radius: 14px;
-            overflow: hidden;
-            transition: border-color 0.2s;
+            background: #fff; border: 1.5px solid #e5e7eb;
+            border-radius: 14px; overflow: hidden; transition: border-color 0.2s;
         }
         .faq-item.open { border-color: #16a34a; }
-        .faq-question {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 18px 20px;
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            text-align: left;
-            gap: 12px;
+        .faq-btn {
+            width: 100%; display: flex; align-items: center;
+            justify-content: space-between; gap: 12px;
+            padding: 17px 20px; background: transparent;
+            border: none; cursor: pointer; text-align: left;
         }
-        .faq-question-text { font-size: 0.9rem; font-weight: 700; color: #1a2e1a; }
+        .faq-q { font-size: 0.875rem; font-weight: 700; color: #1e293b; }
         .faq-chevron {
-            width: 20px;
-            height: 20px;
-            color: #16a34a;
-            transition: transform 0.25s;
-            flex-shrink: 0;
+            width: 18px; height: 18px; color: #16a34a;
+            flex-shrink: 0; transition: transform 0.25s;
         }
         .faq-item.open .faq-chevron { transform: rotate(180deg); }
-        .faq-answer {
-            max-height: 0;
-            overflow: hidden;
+        .faq-body {
+            max-height: 0; overflow: hidden;
             transition: max-height 0.3s ease, padding 0.3s ease;
             padding: 0 20px;
         }
-        .faq-item.open .faq-answer { max-height: 300px; padding: 0 20px 18px; }
-        .faq-answer p { font-size: 0.875rem; color: #4b5563; line-height: 1.7; }
+        .faq-item.open .faq-body { max-height: 260px; padding: 0 20px 17px; }
+        .faq-body p { font-size: 0.85rem; color: #4b5563; line-height: 1.7; }
 
-        /* CTA Banner */
-        .cta-banner {
+        /* ── CTA ── */
+        .cta-wrap {
             background: linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%);
-            border-radius: 24px;
-            padding: 48px 40px;
-            text-align: center;
-            margin-bottom: 60px;
-            position: relative;
-            overflow: hidden;
+            border-radius: 22px; padding: 48px 32px;
+            text-align: center; margin-bottom: 60px;
+            position: relative; overflow: hidden;
         }
-        .cta-banner::before {
-            content: '';
-            position: absolute;
-            top: -40px; right: -40px;
+        .cta-wrap::before {
+            content: ''; position: absolute;
+            top: -50px; right: -50px;
             width: 200px; height: 200px;
-            background: rgba(255,255,255,0.06);
-            border-radius: 50%;
+            background: rgba(255,255,255,0.06); border-radius: 50%;
         }
-        .cta-banner::after {
-            content: '';
-            position: absolute;
-            bottom: -60px; left: -30px;
-            width: 180px; height: 180px;
-            background: rgba(255,255,255,0.04);
-            border-radius: 50%;
-        }
-        .cta-banner h2 { font-size: 1.6rem; font-weight: 900; color: #fff; margin-bottom: 10px; }
-        .cta-banner p { color: rgba(255,255,255,0.85); font-size: 0.95rem; margin-bottom: 28px; }
-        .cta-btn-white {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #fff;
-            color: #16a34a;
-            font-weight: 800;
-            font-size: 0.95rem;
-            padding: 14px 28px;
-            border-radius: 14px;
+        .cta-wrap h2 { font-size: 1.5rem; font-weight: 900; color: #fff; margin-bottom: 8px; }
+        .cta-wrap p { color: rgba(255,255,255,0.82); font-size: 0.92rem; margin-bottom: 26px; }
+        .cta-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+        .btn-white {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: #fff; color: #16a34a;
+            font-weight: 800; font-size: 0.9rem;
+            padding: 13px 24px; border-radius: 12px;
             text-decoration: none;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
             transition: all 0.2s;
         }
-        .cta-btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.2); }
-        .cta-btn-wa {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255,255,255,0.15);
-            color: #fff;
-            font-weight: 700;
-            font-size: 0.95rem;
-            padding: 14px 28px;
-            border-radius: 14px;
+        .btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+        .btn-wa {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.15); color: #fff;
+            font-weight: 700; font-size: 0.9rem;
+            padding: 13px 24px; border-radius: 12px;
             text-decoration: none;
             border: 1.5px solid rgba(255,255,255,0.3);
             transition: all 0.2s;
-            margin-left: 12px;
         }
-        .cta-btn-wa:hover { background: rgba(255,255,255,0.25); }
+        .btn-wa:hover { background: rgba(255,255,255,0.25); }
 
-        /* Footer */
-        .page-footer {
-            background: #1e293b;
-            color: #94a3b8;
-            text-align: center;
-            padding: 28px 20px;
-            font-size: 0.85rem;
+        /* ── FOOTER ── */
+        .site-footer {
+            background: #1e293b; color: #94a3b8;
+            text-align: center; padding: 26px 20px;
+            font-size: 0.82rem;
         }
-        .page-footer a { color: #4ade80; text-decoration: none; }
-        .page-footer a:hover { text-decoration: underline; }
+        .site-footer a { color: #4ade80; text-decoration: none; }
+        .site-footer a:hover { text-decoration: underline; }
 
-        /* Responsive */
+        /* ── RESPONSIVE ── */
         @media (max-width: 640px) {
-            .hero-section { padding: 40px 16px 60px; }
-            .stats-inner { grid-template-columns: repeat(3, 1fr); }
-            .stat-number { font-size: 1.2rem; }
-            .cta-banner { padding: 36px 20px; }
-            .cta-btn-wa { margin-left: 0; margin-top: 10px; }
-            .cta-banner .btn-group { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+            .hero { padding: 40px 16px 52px; }
+            .page-wrap { padding: 48px 16px; }
+            .step-card { width: 160px; padding: 30px 16px 22px; }
+            .step-icon-wrap { width: 60px; height: 60px; }
+            .step-icon-wrap svg { width: 28px; height: 28px; }
+            .cta-wrap { padding: 36px 20px; }
         }
     </style>
 </head>
 <body>
 
     <!-- Header -->
-    <header class="page-header">
+    <header class="site-header">
         <div class="header-inner">
-            <a href="index.html" class="brand-link" aria-label="GoSembako - Halaman Utama">
-                <img src="assets/img/logo.webp" alt="GoSembako" class="brand-logo">
-                <span class="brand-name hidden sm:block">GoSembako</span>
+            <a href="index.html" class="brand" aria-label="GoSembako – Halaman Utama">
+                <img src="assets/img/logo.webp" alt="GoSembako Logo">
+                <span class="brand-name">GoSembako</span>
             </a>
-            <a href="index.html" class="back-btn" aria-label="Kembali ke halaman utama">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            <a href="index.html" class="back-link" aria-label="Kembali ke toko">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
                 Kembali Belanja
             </a>
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero-section">
-        <div class="hero-badge">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            Panduan Belanja
-        </div>
-        <h1 class="hero-title">
-            Belanja Sembako<br><span>Mudah & Cepat</span>
-        </h1>
-        <p class="hero-subtitle">
-            Ikuti langkah-langkah sederhana berikut untuk memesan sembako segar berkualitas langsung ke pintu rumah Anda.
-        </p>
-        <a href="index.html" class="hero-cta" aria-label="Mulai belanja sekarang">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <!-- Hero -->
+    <section class="hero">
+        <span class="hero-eyebrow">Panduan Belanja</span>
+        <h1>Belanja Sembako<br><span>Mudah &amp; Cepat</span></h1>
+        <p>Ikuti 5 langkah sederhana untuk memesan sembako segar berkualitas langsung ke pintu rumah Anda.</p>
+        <a href="index.html" class="hero-btn" aria-label="Mulai belanja">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
             </svg>
-            Mulai Belanja Sekarang
+            Mulai Belanja
         </a>
     </section>
 
-    <!-- Stats Bar -->
-    <div class="stats-bar">
-        <div class="stats-inner">
-            <div class="stat-item">
-                <div class="stat-number">5</div>
-                <div class="stat-label">Langkah Mudah</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">4+</div>
-                <div class="stat-label">Metode Bayar</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">1 Hari</div>
-                <div class="stat-label">Estimasi Kirim</div>
-            </div>
-        </div>
-    </div>
+    <main class="page-wrap">
 
-    <!-- Main Content -->
-    <main class="main-container">
-
-        <!-- Langkah-Langkah Belanja -->
-        <section aria-labelledby="steps-heading">
-            <div class="section-title">
-                <h2 id="steps-heading">Langkah-Langkah Pemesanan</h2>
+        <!-- ── LANGKAH BELANJA ── -->
+        <section class="steps-section" aria-labelledby="steps-title">
+            <div class="sec-head">
+                <h2 id="steps-title">Langkah-Langkah Pemesanan</h2>
                 <p>Hanya 5 langkah mudah untuk mendapatkan sembako pilihan Anda</p>
-                <div class="section-divider"></div>
+                <div class="sec-line"></div>
             </div>
 
-            <div class="steps-grid">
+            <div class="steps-row">
 
                 <!-- Step 1 -->
                 <div class="step-card">
-                    <div class="step-number">1</div>
-                    <div class="step-icon" style="background: #f0fdf4;">
+                    <div class="step-num">1</div>
+                    <div class="step-icon-wrap" style="background:#f0fdf4;">
                         <svg fill="none" stroke="#16a34a" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                     </div>
                     <div class="step-title">Pilih Produk</div>
-                    <div class="step-desc">Telusuri katalog produk kami. Gunakan filter kategori atau kolom pencarian untuk menemukan sembako yang Anda butuhkan dengan cepat.</div>
+                    <div class="step-desc">Telusuri katalog dan gunakan filter kategori atau pencarian untuk menemukan sembako yang Anda butuhkan.</div>
                 </div>
+
+                <div class="step-arrow" aria-hidden="true">›</div>
 
                 <!-- Step 2 -->
                 <div class="step-card">
-                    <div class="step-number">2</div>
-                    <div class="step-icon" style="background: #eff6ff;">
+                    <div class="step-num">2</div>
+                    <div class="step-icon-wrap" style="background:#eff6ff;">
                         <svg fill="none" stroke="#2563eb" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
                         </svg>
                     </div>
                     <div class="step-title">Masukkan Keranjang</div>
-                    <div class="step-desc">Klik tombol "Tambah ke Keranjang" pada produk pilihan Anda. Anda dapat menambahkan beberapa produk sekaligus sebelum melanjutkan.</div>
+                    <div class="step-desc">Klik "Tambah ke Keranjang" pada produk pilihan. Tambahkan beberapa produk sekaligus sebelum melanjutkan.</div>
                 </div>
+
+                <div class="step-arrow" aria-hidden="true">›</div>
 
                 <!-- Step 3 -->
                 <div class="step-card">
-                    <div class="step-number">3</div>
-                    <div class="step-icon" style="background: #fefce8;">
+                    <div class="step-num">3</div>
+                    <div class="step-icon-wrap" style="background:#fefce8;">
                         <svg fill="none" stroke="#ca8a04" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
                     </div>
                     <div class="step-title">Isi Data Pesanan</div>
-                    <div class="step-desc">Lengkapi nama, nomor WhatsApp aktif, dan alamat pengiriman Anda dengan lengkap agar pesanan dapat diproses dengan tepat.</div>
+                    <div class="step-desc">Lengkapi nama, nomor WhatsApp aktif, dan alamat pengiriman agar pesanan dapat diproses dengan tepat.</div>
                 </div>
 
+                <div class="step-arrow" aria-hidden="true">›</div>
+
                 <!-- Step 4 -->
-                <div class="step-card">
-                    <div class="step-number">4</div>
-                    <div class="step-icon" style="background: #fdf4ff;">
+                <div class="step-card active">
+                    <div class="step-num">4</div>
+                    <div class="step-icon-wrap" style="background:#fdf4ff;">
                         <svg fill="none" stroke="#9333ea" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                         </svg>
                     </div>
                     <div class="step-title">Pilih Pembayaran</div>
-                    <div class="step-desc">Pilih metode pembayaran yang paling nyaman: Transfer Bank, QRIS, COD (bayar di tempat), atau metode lainnya yang tersedia.</div>
+                    <div class="step-desc">Pilih metode pembayaran yang paling nyaman: Transfer Bank, QRIS, COD, atau e-wallet.</div>
                 </div>
+
+                <div class="step-arrow" aria-hidden="true">›</div>
 
                 <!-- Step 5 -->
                 <div class="step-card">
-                    <div class="step-number">5</div>
-                    <div class="step-icon" style="background: #fff7ed;">
+                    <div class="step-num">5</div>
+                    <div class="step-icon-wrap" style="background:#fff7ed;">
                         <svg fill="none" stroke="#ea580c" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                         </svg>
                     </div>
                     <div class="step-title">Pesanan Dikirim</div>
-                    <div class="step-desc">Setelah pembayaran dikonfirmasi, pesanan Anda akan segera diproses dan dikirim ke alamat yang telah Anda daftarkan.</div>
+                    <div class="step-desc">Setelah pembayaran dikonfirmasi, pesanan segera diproses dan dikirim ke alamat Anda.</div>
                 </div>
 
             </div>
         </section>
 
-        <!-- Metode Pembayaran -->
-        <section class="payment-section" aria-labelledby="payment-heading">
-            <div class="section-title">
-                <h2 id="payment-heading">Metode Pembayaran</h2>
-                <p>Berbagai pilihan pembayaran yang aman dan mudah untuk kenyamanan Anda</p>
-                <div class="section-divider"></div>
+        <!-- ── METODE PEMBAYARAN ── -->
+        <section class="payment-section" aria-labelledby="pay-title">
+            <div class="sec-head">
+                <h2 id="pay-title">Metode Pembayaran</h2>
+                <p>Berbagai pilihan pembayaran yang aman dan mudah</p>
+                <div class="sec-line"></div>
             </div>
 
             <div class="payment-grid">
 
-                <div class="payment-card">
-                    <div class="payment-icon" style="background: #f0fdf4;">
+                <div class="pay-card">
+                    <div class="pay-icon" style="background:#f0fdf4;">
                         <svg fill="none" stroke="#16a34a" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/>
                         </svg>
                     </div>
-                    <div class="payment-name">Transfer Bank</div>
-                    <div class="payment-desc">BCA, BRI, BNI, Mandiri, dan bank lainnya. Konfirmasi otomatis via WhatsApp.</div>
+                    <div class="pay-name">Transfer Bank</div>
+                    <div class="pay-desc">BCA, BRI, BNI, Mandiri, dan bank lainnya.</div>
                 </div>
 
-                <div class="payment-card">
-                    <div class="payment-icon" style="background: #fdf4ff;">
+                <div class="pay-card">
+                    <div class="pay-icon" style="background:#fdf4ff;">
                         <svg fill="none" stroke="#9333ea" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
                         </svg>
                     </div>
-                    <div class="payment-name">QRIS</div>
-                    <div class="payment-desc">Scan QR code menggunakan aplikasi e-wallet atau mobile banking manapun.</div>
+                    <div class="pay-name">QRIS</div>
+                    <div class="pay-desc">Scan QR dengan aplikasi e-wallet atau mobile banking manapun.</div>
                 </div>
 
-                <div class="payment-card">
-                    <div class="payment-icon" style="background: #fff7ed;">
+                <div class="pay-card">
+                    <div class="pay-icon" style="background:#fff7ed;">
                         <svg fill="none" stroke="#ea580c" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
                         </svg>
                     </div>
-                    <div class="payment-name">COD (Bayar di Tempat)</div>
-                    <div class="payment-desc">Bayar tunai saat barang tiba di lokasi Anda. Tersedia untuk area tertentu.</div>
+                    <div class="pay-name">COD</div>
+                    <div class="pay-desc">Bayar tunai saat barang tiba. Tersedia untuk area tertentu.</div>
                 </div>
 
-                <div class="payment-card">
-                    <div class="payment-icon" style="background: #eff6ff;">
+                <div class="pay-card">
+                    <div class="pay-icon" style="background:#eff6ff;">
                         <svg fill="none" stroke="#2563eb" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                         </svg>
                     </div>
-                    <div class="payment-name">E-Wallet</div>
-                    <div class="payment-desc">GoPay, OVO, Dana, ShopeePay, dan dompet digital lainnya yang populer.</div>
+                    <div class="pay-name">E-Wallet</div>
+                    <div class="pay-desc">GoPay, OVO, Dana, ShopeePay, dan lainnya.</div>
                 </div>
 
             </div>
         </section>
 
-        <!-- FAQ -->
-        <section class="faq-section" aria-labelledby="faq-heading">
-            <div class="section-title">
-                <h2 id="faq-heading">Pertanyaan yang Sering Ditanyakan</h2>
-                <p>Temukan jawaban atas pertanyaan umum seputar cara belanja di GoSembako</p>
-                <div class="section-divider"></div>
+        <!-- ── FAQ ── -->
+        <section class="faq-section" aria-labelledby="faq-title">
+            <div class="sec-head">
+                <h2 id="faq-title">Pertanyaan Umum</h2>
+                <p>Jawaban atas pertanyaan yang sering ditanyakan</p>
+                <div class="sec-line"></div>
             </div>
 
-            <div class="faq-list" role="list">
+            <div class="faq-wrap">
 
-                <div class="faq-item" role="listitem">
-                    <button class="faq-question" aria-expanded="false" onclick="toggleFaq(this)">
-                        <span class="faq-question-text">Berapa lama estimasi pengiriman pesanan saya?</span>
+                <div class="faq-item">
+                    <button class="faq-btn" aria-expanded="false" onclick="toggleFaq(this)">
+                        <span class="faq-q">Berapa lama estimasi pengiriman?</span>
                         <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </button>
-                    <div class="faq-answer">
-                        <p>Estimasi pengiriman adalah <strong>1–2 hari kerja</strong> setelah pembayaran dikonfirmasi. Untuk area tertentu yang mendukung pengiriman same-day, pesanan yang masuk sebelum pukul 12.00 WIB dapat tiba di hari yang sama.</p>
+                    <div class="faq-body">
+                        <p><strong>1–2 hari kerja</strong> setelah pembayaran dikonfirmasi. Untuk area tertentu, pesanan sebelum pukul 12.00 WIB dapat tiba di hari yang sama.</p>
                     </div>
                 </div>
 
-                <div class="faq-item" role="listitem">
-                    <button class="faq-question" aria-expanded="false" onclick="toggleFaq(this)">
-                        <span class="faq-question-text">Apakah saya bisa mengubah atau membatalkan pesanan?</span>
+                <div class="faq-item">
+                    <button class="faq-btn" aria-expanded="false" onclick="toggleFaq(this)">
+                        <span class="faq-q">Bisakah saya mengubah atau membatalkan pesanan?</span>
                         <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </button>
-                    <div class="faq-answer">
-                        <p>Perubahan atau pembatalan pesanan dapat dilakukan <strong>sebelum pesanan diproses</strong> (biasanya dalam 1 jam setelah pemesanan). Hubungi kami segera melalui WhatsApp di nomor <strong>0899-3370-200</strong> untuk bantuan lebih lanjut.</p>
+                    <div class="faq-body">
+                        <p>Bisa, selama pesanan <strong>belum diproses</strong> (biasanya dalam 1 jam setelah pemesanan). Hubungi kami via WhatsApp <strong>0899-3370-200</strong> segera.</p>
                     </div>
                 </div>
 
-                <div class="faq-item" role="listitem">
-                    <button class="faq-question" aria-expanded="false" onclick="toggleFaq(this)">
-                        <span class="faq-question-text">Bagaimana cara melacak status pesanan saya?</span>
+                <div class="faq-item">
+                    <button class="faq-btn" aria-expanded="false" onclick="toggleFaq(this)">
+                        <span class="faq-q">Bagaimana cara melacak status pesanan?</span>
                         <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </button>
-                    <div class="faq-answer">
-                        <p>Anda akan menerima notifikasi status pesanan melalui <strong>WhatsApp</strong> secara otomatis. Selain itu, Anda dapat masuk ke halaman <strong>Akun</strong> dan melihat riwayat serta status pesanan Anda secara real-time.</p>
+                    <div class="faq-body">
+                        <p>Notifikasi status pesanan dikirim otomatis via <strong>WhatsApp</strong>. Anda juga dapat melihat riwayat pesanan di halaman <strong>Akun</strong>.</p>
                     </div>
                 </div>
 
-                <div class="faq-item" role="listitem">
-                    <button class="faq-question" aria-expanded="false" onclick="toggleFaq(this)">
-                        <span class="faq-question-text">Apakah ada minimum pembelian?</span>
+                <div class="faq-item">
+                    <button class="faq-btn" aria-expanded="false" onclick="toggleFaq(this)">
+                        <span class="faq-q">Apakah ada minimum pembelian?</span>
                         <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </button>
-                    <div class="faq-answer">
-                        <p>Tidak ada minimum pembelian untuk produk eceran. Namun untuk mendapatkan <strong>harga grosir</strong> dan diskon khusus, terdapat ketentuan jumlah minimum per produk yang tertera langsung di halaman produk.</p>
+                    <div class="faq-body">
+                        <p>Tidak ada minimum untuk produk eceran. Untuk <strong>harga grosir</strong>, ketentuan jumlah minimum tertera langsung di halaman produk.</p>
                     </div>
                 </div>
 
-                <div class="faq-item" role="listitem">
-                    <button class="faq-question" aria-expanded="false" onclick="toggleFaq(this)">
-                        <span class="faq-question-text">Bagaimana jika produk yang diterima tidak sesuai atau rusak?</span>
+                <div class="faq-item">
+                    <button class="faq-btn" aria-expanded="false" onclick="toggleFaq(this)">
+                        <span class="faq-q">Bagaimana jika produk yang diterima rusak atau tidak sesuai?</span>
                         <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </button>
-                    <div class="faq-answer">
-                        <p>Kami menjamin kualitas setiap produk yang dikirimkan. Jika Anda menerima produk yang tidak sesuai atau rusak, segera hubungi kami melalui WhatsApp dalam <strong>24 jam setelah penerimaan</strong> dengan menyertakan foto produk. Kami akan mengganti atau mengembalikan dana Anda sepenuhnya.</p>
-                    </div>
-                </div>
-
-                <div class="faq-item" role="listitem">
-                    <button class="faq-question" aria-expanded="false" onclick="toggleFaq(this)">
-                        <span class="faq-question-text">Apakah saya bisa mendapatkan poin reward dari setiap pembelian?</span>
-                        <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="faq-answer">
-                        <p>Ya! Setiap pembelian akan memberikan <strong>poin reward</strong> yang dapat ditukarkan dengan diskon atau hadiah menarik. Daftarkan akun Anda dan mulai kumpulkan poin dari setiap transaksi. Semakin sering belanja, semakin banyak keuntungan yang Anda dapatkan.</p>
+                    <div class="faq-body">
+                        <p>Hubungi kami via WhatsApp dalam <strong>24 jam setelah penerimaan</strong> dengan foto produk. Kami akan mengganti atau mengembalikan dana Anda sepenuhnya.</p>
                     </div>
                 </div>
 
             </div>
         </section>
 
-        <!-- CTA Banner -->
-        <div class="cta-banner" role="complementary" aria-label="Ajakan belanja">
+        <!-- ── CTA ── -->
+        <div class="cta-wrap" role="complementary">
             <h2>Siap Mulai Belanja?</h2>
-            <p>Dapatkan sembako segar berkualitas dengan harga terbaik, langsung dikirim ke rumah Anda.</p>
-            <div class="btn-group">
-                <a href="index.html" class="cta-btn-white" aria-label="Mulai belanja di GoSembako">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <p>Dapatkan sembako segar berkualitas, langsung dikirim ke rumah Anda.</p>
+            <div class="cta-btns">
+                <a href="index.html" class="btn-white" aria-label="Belanja sekarang">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
                     </svg>
                     Belanja Sekarang
                 </a>
-                <a href="https://wa.me/628993370200" target="_blank" rel="noopener noreferrer" class="cta-btn-wa" aria-label="Hubungi kami via WhatsApp">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <a href="https://wa.me/628993370200" target="_blank" rel="noopener noreferrer" class="btn-wa" aria-label="Tanya via WhatsApp">
+                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                     </svg>
                     Tanya via WhatsApp
@@ -701,9 +518,9 @@
     </main>
 
     <!-- Footer -->
-    <footer class="page-footer">
+    <footer class="site-footer">
         <p>&copy; 2026 <a href="index.html">GoSembako</a> – Paket Sembako Murah. Semua Hak Dilindungi.</p>
-        <p style="margin-top: 6px;">
+        <p style="margin-top:6px;">
             <a href="index.html">Beranda</a> &nbsp;·&nbsp;
             <a href="blog.html">Blog</a> &nbsp;·&nbsp;
             <a href="https://wa.me/628993370200" target="_blank" rel="noopener noreferrer">Hubungi Kami</a>
@@ -714,14 +531,10 @@
         function toggleFaq(btn) {
             const item = btn.closest('.faq-item');
             const isOpen = item.classList.contains('open');
-
-            // Tutup semua FAQ yang terbuka
             document.querySelectorAll('.faq-item.open').forEach(el => {
                 el.classList.remove('open');
-                el.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+                el.querySelector('.faq-btn').setAttribute('aria-expanded', 'false');
             });
-
-            // Buka yang diklik jika sebelumnya tertutup
             if (!isOpen) {
                 item.classList.add('open');
                 btn.setAttribute('aria-expanded', 'true');
