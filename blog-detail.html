@@ -43,7 +43,7 @@
         .comment-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-        .progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, #16a34a, #4ade80); z-index: 9999; transition: width 0.1s ease; }
+        .progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, #16a34a, #1d4ed8); z-index: 9999; transition: width 0.1s ease; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -65,9 +65,9 @@
                     <a href="/blog.html" class="text-green-600 font-bold">Blog</a>
                     <a href="/akun.html" class="hover:text-green-600 transition">Akun</a>
                 </nav>
-                <a href="/" class="hidden md:inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition">
+                <a href="/" class="hidden md:inline-flex items-center gap-2 text-white text-sm font-bold px-4 py-2 rounded-xl transition" style="background:linear-gradient(135deg,#16a34a,#1d4ed8);">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3z"/></svg>
-                    Belanja
+                    Belanja Sekarang
                 </a>
             </div>
         </div>
@@ -195,7 +195,7 @@
                         </div>
                         <div id="comment-form-error" class="hidden mb-3 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl"></div>
                         <div id="comment-form-success" class="hidden mb-3 p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl"></div>
-                        <button type="submit" id="comment-submit-btn" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-2.5 rounded-xl transition text-sm">
+                        <button type="submit" id="comment-submit-btn" class="inline-flex items-center gap-2 text-white font-bold px-6 py-2.5 rounded-xl transition text-sm" style="background:linear-gradient(135deg,#16a34a,#1d4ed8);">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                             Kirim Komentar
                         </button>
@@ -228,7 +228,7 @@
             <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <h2 class="text-2xl font-bold text-gray-700 mb-2">Artikel Tidak Ditemukan</h2>
             <p class="text-gray-400 mb-6">Artikel yang Anda cari tidak tersedia atau telah dihapus.</p>
-            <a href="/blog.html" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-xl transition">
+            <a href="/blog.html" class="inline-flex items-center gap-2 text-white font-bold px-6 py-3 rounded-xl transition" style="background:linear-gradient(135deg,#16a34a,#1d4ed8);">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Kembali ke Blog
             </a>
