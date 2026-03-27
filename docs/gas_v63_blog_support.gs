@@ -268,6 +268,10 @@ function doGet(e) {
     return jsonOutput({ error: 'Invalid sheet' });
   }
 
+  if ((sheetName === 'blog_posts' || sheetName === 'blog_comments') && ADMIN_TOKEN && token && token !== ADMIN_TOKEN) {
+    return jsonOutput({ error: 'Unauthorized', message: 'Token tidak valid' });
+  }
+
   if (isGetSheetSensitive(sheetName) && ADMIN_TOKEN && token !== ADMIN_TOKEN) {
     return jsonOutput({ error: 'Unauthorized' });
   }
@@ -279,6 +283,15 @@ function doGet(e) {
 
     const headers = data[0];
     const rows = data.slice(1).map(function(r) { return toObject(headers, r); });
+    const isAdminRequest = Boolean(ADMIN_TOKEN) && token === ADMIN_TOKEN;
+
+    if (sheetName === 'blog_posts') {
+      return jsonOutput(filterBlogPostsForResponse(rows, params, isAdminRequest));
+    }
+
+    if (sheetName === 'blog_comments') {
+      return jsonOutput(filterBlogCommentsForResponse(rows, params, isAdminRequest));
+    }
 
     if (id !== undefined) {
       return jsonOutput(rows.filter(function(r) {
@@ -325,6 +338,90 @@ function doGet(e) {
     Logger.log('Error in doGet: ' + error.toString());
     return jsonOutput({ error: error.toString() });
   }
+}
+
+function normalizeBlogPostStatus(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'draft') return 'draft';
+  return 'published';
+}
+
+function normalizeBlogCommentStatus(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'pending' || normalized === 'rejected') return normalized;
+  return 'approved';
+}
+
+function filterBlogPostsForResponse(rows, params, isAdminRequest) {
+  const requestedId = String(params.id || '').trim();
+  const requestedSlug = String(params.slug || '').trim();
+  const requestedStatusRaw = String(params.status || '').trim();
+  const requestedStatus = requestedStatusRaw ? normalizeBlogPostStatus(requestedStatusRaw) : '';
+
+  let filtered = (rows || []).slice();
+  if (!isAdminRequest) {
+    filtered = filtered.filter(function(row) {
+      return normalizeBlogPostStatus(row.status || '') === 'published';
+    });
+  } else if (requestedStatus) {
+    filtered = filtered.filter(function(row) {
+      return normalizeBlogPostStatus(row.status || '') === requestedStatus;
+    });
+  }
+
+  if (requestedId) {
+    filtered = filtered.filter(function(row) {
+      return String(row.id || '').trim() === requestedId || String(row.slug || '').trim() === requestedId;
+    });
+  }
+
+  if (requestedSlug) {
+    filtered = filtered.filter(function(row) {
+      return String(row.slug || '').trim() === requestedSlug;
+    });
+  }
+
+  return filtered.sort(function(a, b) {
+    const timeA = new Date(a.published_at || a.created_at || 0).getTime();
+    const timeB = new Date(b.published_at || b.created_at || 0).getTime();
+    return timeB - timeA;
+  });
+}
+
+function filterBlogCommentsForResponse(rows, params, isAdminRequest) {
+  const requestedId = String(params.id || '').trim();
+  const requestedPostId = String(params.post_id || '').trim();
+  const requestedStatusRaw = String(params.status || '').trim();
+  const requestedStatus = requestedStatusRaw ? normalizeBlogCommentStatus(requestedStatusRaw) : '';
+
+  let filtered = (rows || []).slice();
+  if (!isAdminRequest) {
+    filtered = filtered.filter(function(row) {
+      return normalizeBlogCommentStatus(row.status || '') === 'approved';
+    });
+  } else if (requestedStatus) {
+    filtered = filtered.filter(function(row) {
+      return normalizeBlogCommentStatus(row.status || '') === requestedStatus;
+    });
+  }
+
+  if (requestedId) {
+    filtered = filtered.filter(function(row) {
+      return String(row.id || '').trim() === requestedId;
+    });
+  }
+
+  if (requestedPostId) {
+    filtered = filtered.filter(function(row) {
+      return String(row.post_id || '').trim() === requestedPostId;
+    });
+  }
+
+  return filtered.sort(function(a, b) {
+    const timeA = new Date(a.created_at || 0).getTime();
+    const timeB = new Date(b.created_at || 0).getTime();
+    return timeB - timeA;
+  });
 }
 
 function handlePublicLogin(params) {

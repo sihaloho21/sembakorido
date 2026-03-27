@@ -193,7 +193,7 @@ const BlogListPage = {
 
     async loadPosts() {
         try {
-            const data = await apiGet({ sheet: 'blog_posts' });
+            const data = await apiGet({ sheet: 'blog_posts', status: 'published' });
             if (data && Array.isArray(data.data)) {
                 this.allPosts = data.data.filter(p => p.status === 'published' || !p.status);
             } else if (Array.isArray(data)) {
@@ -665,7 +665,7 @@ const BlogDetailPage = {
 
     async loadComments(postId) {
         try {
-            const data = await apiGet({ sheet: 'blog_comments' });
+            const data = await apiGet({ sheet: 'blog_comments', post_id: postId, status: 'approved' });
             let comments = [];
             if (data && Array.isArray(data.data)) {
                 comments = data.data.filter(c => c.post_id === postId && c.status === 'approved');
@@ -794,7 +794,7 @@ const BlogDetailPage = {
 
     async loadRelatedPosts(currentPost) {
         try {
-            const data = await apiGet({ sheet: 'blog_posts' });
+            const data = await apiGet({ sheet: 'blog_posts', status: 'published' });
             let allPosts = [];
             if (data && Array.isArray(data.data)) allPosts = data.data;
             else if (Array.isArray(data)) allPosts = data;

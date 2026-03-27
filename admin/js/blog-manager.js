@@ -12,6 +12,48 @@ const BLOG_POSTS_SHEET = 'blog_posts';
 const BLOG_COMMENTS_SHEET = 'blog_comments';
 let ADMIN_API_URL = '';
 
+function isUnauthorizedError(err) {
+    const message = String((err && err.message) || err || '').toLowerCase();
+    return message.includes('unauthorized') || message.includes('admin_token_not_configured');
+}
+
+function isRoleError(err) {
+    return String((err && err.message) || err || '').toLowerCase().includes('forbidden_role');
+}
+
+function resolveAdminErrorMessage(err) {
+    const message = String((err && err.message) || err || '').trim();
+    const normalized = message.toLowerCase();
+    if (normalized.includes('admin_token_not_configured')) {
+        return 'ADMIN_TOKEN di Google Apps Script belum dikonfigurasi.';
+    }
+    if (normalized.includes('unauthorized')) {
+        return 'Sesi admin tidak valid atau token berubah. Silakan login ulang.';
+    }
+    if (normalized.includes('forbidden_role')) {
+        return 'Role admin Anda tidak cukup untuk aksi ini.';
+    }
+    return message || 'Terjadi kesalahan saat menghubungi API admin.';
+}
+
+function handleAdminRequestError(err, errorEl) {
+    const message = resolveAdminErrorMessage(err);
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.classList.remove('hidden');
+    }
+    showToast(message, 'error');
+
+    if (isUnauthorizedError(err)) {
+        if (window.AdminAuth && typeof window.AdminAuth.clear === 'function') {
+            window.AdminAuth.clear();
+        }
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 1200);
+    }
+}
+
 // ============================================================
 // STATE
 // ============================================================
@@ -77,6 +119,10 @@ async function fetchPosts() {
         if (Array.isArray(data)) return data;
         return [];
     } catch (err) {
+        if (isUnauthorizedError(err) || isRoleError(err)) {
+            handleAdminRequestError(err);
+            return [];
+        }
         console.warn('BlogManager: Gagal memuat artikel.', err);
         return getSamplePosts();
     }
@@ -90,6 +136,10 @@ async function fetchComments() {
         if (Array.isArray(data)) return data;
         return [];
     } catch (err) {
+        if (isUnauthorizedError(err) || isRoleError(err)) {
+            handleAdminRequestError(err);
+            return [];
+        }
         console.warn('BlogManager: Gagal memuat komentar.', err);
         return [];
     }
@@ -106,27 +156,15 @@ async function savePost(postData) {
 }
 
 async function deletePost(postId) {
-    try {
-        await GASActions.delete(BLOG_POSTS_SHEET, postId);
-    } catch (err) {
-        console.warn('BlogManager: Gagal menghapus artikel.', err);
-    }
+    return GASActions.delete(BLOG_POSTS_SHEET, postId);
 }
 
 async function updateCommentStatus(commentId, status) {
-    try {
-        await GASActions.update(BLOG_COMMENTS_SHEET, commentId, { status });
-    } catch (err) {
-        console.warn('BlogManager: Gagal mengubah status komentar.', err);
-    }
+    return GASActions.update(BLOG_COMMENTS_SHEET, commentId, { status });
 }
 
 async function deleteComment(commentId) {
-    try {
-        await GASActions.delete(BLOG_COMMENTS_SHEET, commentId);
-    } catch (err) {
-        console.warn('BlogManager: Gagal menghapus komentar.', err);
-    }
+    return GASActions.delete(BLOG_COMMENTS_SHEET, commentId);
 }
 
 // ============================================================
@@ -134,11 +172,28 @@ async function deleteComment(commentId) {
 // ============================================================
 
 async function apiGet(url, params = {}) {
-    const queryString = new URLSearchParams(params).toString();
+    const fullParams = { ...params };
+    if (typeof GASActions !== 'undefined') {
+        const token = typeof GASActions.getAdminToken === 'function' ? GASActions.getAdminToken() : '';
+        const role = typeof GASActions.getAdminRole === 'function' ? GASActions.getAdminRole() : '';
+        if (token) {
+            fullParams.token = token;
+            fullParams.admin_token = token;
+        }
+        if (role) {
+            fullParams.role = role;
+            fullParams.admin_role = role;
+        }
+    }
+    const queryString = new URLSearchParams(fullParams).toString();
     const fullUrl = queryString ? `${url}?${queryString}` : url;
     const response = await fetch(fullUrl);
     if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-    return response.json();
+    const result = await response.json();
+    if (result && result.error) {
+        throw new Error(result.message || result.error);
+    }
+    return result;
 }
 
 async function apiPost(url, payload) {
@@ -536,6 +591,10 @@ async function handlePostFormSubmit(e) {
         showToast(isEdit ? 'Artikel berhasil diperbarui!' : 'Artikel berhasil ditambahkan!', 'success');
     } catch (err) {
         console.error('BlogManager savePost error:', err);
+        if (isUnauthorizedError(err) || isRoleError(err)) {
+            handleAdminRequestError(err, errorEl);
+            return;
+        }
         if (errorEl) { errorEl.textContent = 'Gagal menyimpan artikel: ' + (err.message || 'Periksa koneksi dan konfigurasi API.'); errorEl.classList.remove('hidden'); }
     } finally {
         if (submitBtn) {
@@ -572,23 +631,32 @@ function bindTableEvents() {
         const action = btn.dataset.action;
         const id = btn.dataset.id;
 
-        if (action === 'approve-comment') {
-            btn.disabled = true;
-            await updateCommentStatus(id, 'approved');
-            const idx = State.comments.findIndex(c => c.id === id);
-            if (idx !== -1) State.comments[idx].status = 'approved';
-            applyCommentsFilter();
-            showToast('Komentar disetujui!', 'success');
-        } else if (action === 'reject-comment') {
-            btn.disabled = true;
-            await updateCommentStatus(id, 'rejected');
-            const idx = State.comments.findIndex(c => c.id === id);
-            if (idx !== -1) State.comments[idx].status = 'rejected';
-            applyCommentsFilter();
-            showToast('Komentar ditolak.', 'success');
-        } else if (action === 'delete-comment') {
+        if (action === 'delete-comment') {
             const comment = State.comments.find(c => c.id === id);
             openDeleteModal('comment', id, comment?.user_name || id);
+            return;
+        }
+
+        btn.disabled = true;
+        try {
+            if (action === 'approve-comment') {
+                await updateCommentStatus(id, 'approved');
+                const idx = State.comments.findIndex(c => c.id === id);
+                if (idx !== -1) State.comments[idx].status = 'approved';
+                applyCommentsFilter();
+                showToast('Komentar disetujui!', 'success');
+            } else if (action === 'reject-comment') {
+                await updateCommentStatus(id, 'rejected');
+                const idx = State.comments.findIndex(c => c.id === id);
+                if (idx !== -1) State.comments[idx].status = 'rejected';
+                applyCommentsFilter();
+                showToast('Komentar ditolak.', 'success');
+            }
+        } catch (err) {
+            console.error('BlogManager comment action error:', err);
+            handleAdminRequestError(err);
+        } finally {
+            btn.disabled = false;
         }
     });
 }
@@ -598,6 +666,11 @@ function bindTableEvents() {
 // ============================================================
 
 async function init() {
+    if (window.AdminAuth && typeof window.AdminAuth.ensureOrRedirect === 'function') {
+        const session = window.AdminAuth.ensureOrRedirect();
+        if (!session) return;
+    }
+
     // Get API URL from config
     ADMIN_API_URL = (typeof CONFIG !== 'undefined') ? CONFIG.getAdminApiUrl() : '';
 
@@ -635,20 +708,25 @@ async function init() {
         const btn = document.getElementById('delete-confirm-btn');
         if (btn) btn.disabled = true;
 
-        if (item.type === 'post') {
-            await deletePost(item.id);
-            State.posts = State.posts.filter(p => p.id !== item.id);
-            applyPostsFilter();
-            showToast('Artikel berhasil dihapus.', 'success');
-        } else if (item.type === 'comment') {
-            await deleteComment(item.id);
-            State.comments = State.comments.filter(c => c.id !== item.id);
-            applyCommentsFilter();
-            showToast('Komentar berhasil dihapus.', 'success');
+        try {
+            if (item.type === 'post') {
+                await deletePost(item.id);
+                State.posts = State.posts.filter(p => p.id !== item.id);
+                applyPostsFilter();
+                showToast('Artikel berhasil dihapus.', 'success');
+            } else if (item.type === 'comment') {
+                await deleteComment(item.id);
+                State.comments = State.comments.filter(c => c.id !== item.id);
+                applyCommentsFilter();
+                showToast('Komentar berhasil dihapus.', 'success');
+            }
+            closeDeleteModal();
+        } catch (err) {
+            console.error('BlogManager delete error:', err);
+            handleAdminRequestError(err);
+        } finally {
+            if (btn) btn.disabled = false;
         }
-
-        closeDeleteModal();
-        if (btn) btn.disabled = false;
     });
     document.getElementById('delete-modal')?.addEventListener('click', (e) => {
         if (e.target === document.getElementById('delete-modal')) closeDeleteModal();
