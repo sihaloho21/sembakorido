@@ -784,9 +784,26 @@
         // Membangun URL viewer: jika pdfUrl adalah URL absolut (http/https), gunakan Google Docs Viewer.
         // Jika file lokal (relatif), bangun URL absolut terlebih dahulu lalu kirim ke Google Docs Viewer.
         function buildViewerUrl(pdfUrl) {
+            if (!pdfUrl) return '';
+            // Google Drive: ubah berbagai format URL ke format /preview
+            // Format 1: https://drive.google.com/file/d/FILE_ID/view?...
+            // Format 2: https://drive.google.com/open?id=FILE_ID
+            // Format 3: https://docs.google.com/...
+            var driveMatch = pdfUrl.match(/drive\.google\.com\/file\/d\/([^/\?]+)/);
+            if (driveMatch) {
+                return 'https://drive.google.com/file/d/' + driveMatch[1] + '/preview';
+            }
+            var driveOpen = pdfUrl.match(/[?&]id=([^&]+)/);
+            if (pdfUrl.indexOf('drive.google.com/open') !== -1 && driveOpen) {
+                return 'https://drive.google.com/file/d/' + driveOpen[1] + '/preview';
+            }
+            // Jika sudah format /preview, gunakan langsung
+            if (pdfUrl.indexOf('/preview') !== -1) {
+                return pdfUrl;
+            }
+            // Fallback: Google Docs Viewer untuk URL non-Drive
             var absUrl = pdfUrl;
             if (!/^https?:\/\//i.test(pdfUrl)) {
-                // Jadikan URL absolut berdasarkan lokasi halaman saat ini
                 var base = window.location.href.replace(/\/[^\/]*$/, '/');
                 absUrl = base + pdfUrl;
             }
