@@ -2158,6 +2158,48 @@
             });
         })();
     </script>
+
+    <!-- Auto-scroll ke katalog produk saat Enter di search -->
+    <script>
+        (function () {
+            function scrollToKatalog() {
+                const katalog = document.getElementById('katalog');
+                if (!katalog) return;
+                const headerEl = document.getElementById('main-header');
+                const headerHeight = headerEl ? headerEl.offsetHeight : 72;
+                const top = katalog.getBoundingClientRect().top + window.pageYOffset - headerHeight - 12;
+                window.scrollTo({ top: top, behavior: 'smooth' });
+            }
+
+            // Search input di hero section
+            const searchHero = document.getElementById('search-input');
+            if (searchHero) {
+                searchHero.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        searchHero.blur();
+                        if (typeof filterProducts === 'function') filterProducts();
+                        scrollToKatalog();
+                    }
+                });
+            }
+
+            // Search input di sticky header
+            const searchHeader = document.getElementById('search-input-header');
+            if (searchHeader) {
+                searchHeader.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        searchHeader.blur();
+                        // Sinkronkan nilai ke search-input utama
+                        if (searchHero) searchHero.value = searchHeader.value;
+                        if (typeof filterProducts === 'function') filterProducts();
+                        scrollToKatalog();
+                    }
+                });
+            }
+        })();
+    </script>
     
 </body>
 </html>
