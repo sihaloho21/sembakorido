@@ -43,6 +43,8 @@ const hasPublicSession = (user) => {
 
 const SESSION_INVALID_MESSAGE = 'Session login tidak valid. Silakan login ulang.';
 const NETWORK_ERROR_MESSAGE = 'Gagal memuat data. Periksa koneksi lalu coba lagi.';
+const NOTIFICATION_DROPDOWN_VISIBLE_COUNT = 5;
+const NOTIFICATION_DROPDOWN_FALLBACK_MAX_HEIGHT = 'min(28rem, calc(100vh - 14rem))';
 
 const SECTION_UI_MAP = {
     referral: {
@@ -414,12 +416,39 @@ function isNotificationVisibleForUser(notification, userPhone) {
 
 function sortNotificationsForUser(rows) {
     return (Array.isArray(rows) ? rows.slice() : []).sort((a, b) => {
+        const dateA = parseNotificationDate(a.updatedAt || a.createdAt || a.startAt) || new Date(0);
+        const dateB = parseNotificationDate(b.updatedAt || b.createdAt || b.startAt) || new Date(0);
+        const dateDelta = dateB - dateA;
+        if (dateDelta !== 0) return dateDelta;
         if (a.isPinned !== b.isPinned) return Number(b.isPinned) - Number(a.isPinned);
         const priorityDelta = getNotificationPriorityRank(b.priority) - getNotificationPriorityRank(a.priority);
         if (priorityDelta !== 0) return priorityDelta;
-        const dateA = parseNotificationDate(a.updatedAt || a.createdAt || a.startAt) || new Date(0);
-        const dateB = parseNotificationDate(b.updatedAt || b.createdAt || b.startAt) || new Date(0);
-        return dateB - dateA;
+        return String(b.id || '').localeCompare(String(a.id || ''));
+    });
+}
+
+function applyNotificationDropdownViewportLimit() {
+    const listEl = document.getElementById('notification-dropdown-list');
+    const dropdownEl = document.getElementById('notification-dropdown');
+    if (!listEl) return;
+
+    const buttons = Array.from(listEl.querySelectorAll('[data-action="open-notification"]'));
+    listEl.style.maxHeight = NOTIFICATION_DROPDOWN_FALLBACK_MAX_HEIGHT;
+
+    if (!dropdownEl || dropdownEl.classList.contains('hidden') || buttons.length <= NOTIFICATION_DROPDOWN_VISIBLE_COUNT) {
+        return;
+    }
+
+    window.requestAnimationFrame(() => {
+        const visibleButtons = buttons.slice(0, NOTIFICATION_DROPDOWN_VISIBLE_COUNT);
+        const firstButton = visibleButtons[0];
+        const lastButton = visibleButtons[visibleButtons.length - 1];
+        if (!firstButton || !lastButton) return;
+
+        const measuredHeight = (lastButton.offsetTop - firstButton.offsetTop) + lastButton.offsetHeight;
+        if (measuredHeight > 0) {
+            listEl.style.maxHeight = `min(${Math.ceil(measuredHeight)}px, calc(100vh - 14rem))`;
+        }
     });
 }
 
@@ -544,7 +573,7 @@ function renderNotificationDropdown() {
     if (!loadingEl || !emptyEl || !listEl) return;
 
     loadingEl.classList.add('hidden');
-    const items = Array.isArray(notificationState.all) ? notificationState.all.slice(0, 5) : [];
+    const items = Array.isArray(notificationState.all) ? notificationState.all : [];
     if (items.length === 0) {
         emptyEl.classList.remove('hidden');
         listEl.classList.add('hidden');
@@ -555,6 +584,7 @@ function renderNotificationDropdown() {
     emptyEl.classList.add('hidden');
     listEl.classList.remove('hidden');
     listEl.innerHTML = items.map((item) => createNotificationItemHtml(item, true)).join('');
+    applyNotificationDropdownViewportLimit();
 }
 
 function renderNotificationCenterList() {
@@ -641,6 +671,7 @@ function toggleNotificationDropdown() {
     if (shouldOpen) {
         dropdown.classList.remove('hidden');
         dropdown.setAttribute('aria-hidden', 'false');
+        applyNotificationDropdownViewportLimit();
     }
     if (bellButton) {
         bellButton.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
@@ -1416,6 +1447,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         notificationDropdown.setAttribute('aria-hidden', notificationDropdown.classList.contains('hidden') ? 'true' : 'false');
     }
+
+    window.addEventListener('resize', applyNotificationDropdownViewportLimit);
 
     document.addEventListener('click', (event) => {
         const bellTrigger = event.target.closest('[data-action="toggle-notification-dropdown"]');

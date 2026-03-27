@@ -62,6 +62,8 @@ let paylaterCheckoutState = {
 };
 let paylaterCheckoutRequestSeq = 0;
 const HEADER_NOTIFICATION_REFRESH_INTERVAL_MS = 60000;
+const HEADER_NOTIFICATION_VISIBLE_COUNT = 5;
+const HEADER_NOTIFICATION_LIST_FALLBACK_MAX_HEIGHT = 'min(28rem, calc(100vh - 14rem))';
 let headerNotificationRefreshTimer = null;
 let headerNotificationRefreshInFlight = false;
 let headerNotificationState = {
@@ -773,6 +775,42 @@ function normalizeHeaderNotificationRecord(row) {
     };
 }
 
+function sortHeaderNotificationsByNewest(rows) {
+    return (Array.isArray(rows) ? rows.slice() : []).sort((a, b) => {
+        const dateA = parseHeaderNotificationDate(a.updatedAt || a.createdAt || a.startAt) || new Date(0);
+        const dateB = parseHeaderNotificationDate(b.updatedAt || b.createdAt || b.startAt) || new Date(0);
+        const dateDelta = dateB - dateA;
+        if (dateDelta !== 0) return dateDelta;
+        if (a.isPinned !== b.isPinned) return Number(b.isPinned) - Number(a.isPinned);
+        return String(b.id || '').localeCompare(String(a.id || ''));
+    });
+}
+
+function applyHeaderNotificationDropdownViewportLimit() {
+    const listEl = document.getElementById('header-notification-list');
+    const dropdownEl = document.getElementById('header-notification-dropdown');
+    if (!listEl) return;
+
+    const buttons = Array.from(listEl.querySelectorAll('[data-action="open-header-notification"]'));
+    listEl.style.maxHeight = HEADER_NOTIFICATION_LIST_FALLBACK_MAX_HEIGHT;
+
+    if (!dropdownEl || dropdownEl.classList.contains('hidden') || buttons.length <= HEADER_NOTIFICATION_VISIBLE_COUNT) {
+        return;
+    }
+
+    window.requestAnimationFrame(() => {
+        const visibleButtons = buttons.slice(0, HEADER_NOTIFICATION_VISIBLE_COUNT);
+        const firstButton = visibleButtons[0];
+        const lastButton = visibleButtons[visibleButtons.length - 1];
+        if (!firstButton || !lastButton) return;
+
+        const measuredHeight = (lastButton.offsetTop - firstButton.offsetTop) + lastButton.offsetHeight;
+        if (measuredHeight > 0) {
+            listEl.style.maxHeight = `min(${Math.ceil(measuredHeight)}px, calc(100vh - 14rem))`;
+        }
+    });
+}
+
 function createHeaderNotificationItemHtml(notification) {
     const unread = !notification.isRead;
     const summary = truncateHeaderNotificationText(notification.summary || notification.content, 88);
@@ -806,7 +844,7 @@ function renderHeaderNotificationDropdown() {
     const listEl = document.getElementById('header-notification-list');
     if (!subtitleEl || !markAllEl || !loadingEl || !emptyEl || !listEl) return;
 
-    const items = Array.isArray(headerNotificationState.items) ? headerNotificationState.items.slice(0, 5) : [];
+    const items = Array.isArray(headerNotificationState.items) ? headerNotificationState.items : [];
     const unreadCount = Math.max(0, parseInt(headerNotificationState.unreadCount, 10) || 0);
 
     subtitleEl.textContent = unreadCount > 0
@@ -825,6 +863,7 @@ function renderHeaderNotificationDropdown() {
     emptyEl.classList.add('hidden');
     listEl.classList.remove('hidden');
     listEl.innerHTML = items.map((item) => createHeaderNotificationItemHtml(item)).join('');
+    applyHeaderNotificationDropdownViewportLimit();
 }
 
 function closeHeaderNotificationDropdown() {
@@ -1188,6 +1227,7 @@ function toggleHeaderNotificationDropdown() {
     closeHeaderNotificationDropdown();
     if (!shouldOpen) return;
     dropdown.classList.remove('hidden');
+    applyHeaderNotificationDropdownViewportLimit();
     if (hasCheckoutLoginSession()) {
         syncHeaderNotificationState({ force: true, showLoading: !headerNotificationState.items.length });
     }
@@ -1312,7 +1352,7 @@ async function syncHeaderNotificationState(options = {}) {
             'Gagal memuat notifikasi.'
         );
         const notifications = Array.isArray(payload && payload.notifications)
-            ? payload.notifications.map((item) => normalizeHeaderNotificationRecord(item))
+            ? sortHeaderNotificationsByNewest(payload.notifications.map((item) => normalizeHeaderNotificationRecord(item)))
             : [];
         const unreadCount = Number(payload && payload.unread_count);
         const computedUnread = Number.isFinite(unreadCount)
@@ -3815,6 +3855,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    window.addEventListener('resize', applyHeaderNotificationDropdownViewportLimit);
 
     const headerNotificationDetailModal = document.getElementById('header-notification-detail-modal');
     if (headerNotificationDetailModal) {
