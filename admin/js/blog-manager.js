@@ -71,7 +71,8 @@ function showToast(message, type = 'success') {
 
 async function fetchPosts() {
     try {
-        const data = await apiGet(ADMIN_API_URL, { action: 'get_blog_posts', sheet: BLOG_POSTS_SHEET });
+        const url = ADMIN_API_URL || CONFIG.getAdminApiUrl();
+        const data = await apiGet(url, { sheet: BLOG_POSTS_SHEET });
         if (data && Array.isArray(data.data)) return data.data;
         if (Array.isArray(data)) return data;
         return [];
@@ -83,7 +84,8 @@ async function fetchPosts() {
 
 async function fetchComments() {
     try {
-        const data = await apiGet(ADMIN_API_URL, { action: 'get_blog_comments', sheet: BLOG_COMMENTS_SHEET });
+        const url = ADMIN_API_URL || CONFIG.getAdminApiUrl();
+        const data = await apiGet(url, { sheet: BLOG_COMMENTS_SHEET });
         if (data && Array.isArray(data.data)) return data.data;
         if (Array.isArray(data)) return data;
         return [];
@@ -95,40 +97,33 @@ async function fetchComments() {
 
 async function savePost(postData) {
     const isEdit = Boolean(postData.id && State.editingPostId);
-    const action = isEdit ? 'update_blog_post' : 'create_blog_post';
-    const payload = { action, sheet: BLOG_POSTS_SHEET, data: postData };
-    try {
-        const result = await apiPost(ADMIN_API_URL, payload);
-        return result;
-    } catch (err) {
-        console.warn('BlogManager: Gagal menyimpan artikel.', err);
-        // Fallback: update local state
-        return { success: true, local: true };
+    // Gunakan GASActions agar token admin otomatis disertakan
+    if (isEdit) {
+        return await GASActions.update(BLOG_POSTS_SHEET, postData.id, postData);
+    } else {
+        return await GASActions.create(BLOG_POSTS_SHEET, postData);
     }
 }
 
 async function deletePost(postId) {
-    const payload = { action: 'delete_blog_post', sheet: BLOG_POSTS_SHEET, id: postId };
     try {
-        await apiPost(ADMIN_API_URL, payload);
+        await GASActions.delete(BLOG_POSTS_SHEET, postId);
     } catch (err) {
         console.warn('BlogManager: Gagal menghapus artikel.', err);
     }
 }
 
 async function updateCommentStatus(commentId, status) {
-    const payload = { action: 'update_blog_comment_status', sheet: BLOG_COMMENTS_SHEET, id: commentId, status };
     try {
-        await apiPost(ADMIN_API_URL, payload);
+        await GASActions.update(BLOG_COMMENTS_SHEET, commentId, { status });
     } catch (err) {
         console.warn('BlogManager: Gagal mengubah status komentar.', err);
     }
 }
 
 async function deleteComment(commentId) {
-    const payload = { action: 'delete_blog_comment', sheet: BLOG_COMMENTS_SHEET, id: commentId };
     try {
-        await apiPost(ADMIN_API_URL, payload);
+        await GASActions.delete(BLOG_COMMENTS_SHEET, commentId);
     } catch (err) {
         console.warn('BlogManager: Gagal menghapus komentar.', err);
     }
@@ -519,7 +514,14 @@ async function handlePostFormSubmit(e) {
     }
 
     try {
-        await savePost(postData);
+        const result = await savePost(postData);
+
+        // Periksa apakah GAS mengembalikan error
+        if (result && result.error) {
+            const errMsg = result.message || result.error || 'GAS mengembalikan error.';
+            if (errorEl) { errorEl.textContent = 'Gagal menyimpan: ' + errMsg; errorEl.classList.remove('hidden'); }
+            return;
+        }
 
         // Update local state
         if (isEdit) {
@@ -533,7 +535,8 @@ async function handlePostFormSubmit(e) {
         closePostModal();
         showToast(isEdit ? 'Artikel berhasil diperbarui!' : 'Artikel berhasil ditambahkan!', 'success');
     } catch (err) {
-        if (errorEl) { errorEl.textContent = 'Gagal menyimpan artikel. Silakan coba lagi.'; errorEl.classList.remove('hidden'); }
+        console.error('BlogManager savePost error:', err);
+        if (errorEl) { errorEl.textContent = 'Gagal menyimpan artikel: ' + (err.message || 'Periksa koneksi dan konfigurasi API.'); errorEl.classList.remove('hidden'); }
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
