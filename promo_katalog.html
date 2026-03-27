@@ -720,6 +720,18 @@
         }
 
         // ===== MODAL =====
+        // Membangun URL viewer: jika pdfUrl adalah URL absolut (http/https), gunakan Google Docs Viewer.
+        // Jika file lokal (relatif), bangun URL absolut terlebih dahulu lalu kirim ke Google Docs Viewer.
+        function buildViewerUrl(pdfUrl) {
+            var absUrl = pdfUrl;
+            if (!/^https?:\/\//i.test(pdfUrl)) {
+                // Jadikan URL absolut berdasarkan lokasi halaman saat ini
+                var base = window.location.href.replace(/\/[^\/]*$/, '/');
+                absUrl = base + pdfUrl;
+            }
+            return 'https://docs.google.com/viewer?embedded=true&url=' + encodeURIComponent(absUrl);
+        }
+
         window.openPreview = function(id) {
             var c = CATALOGS.find(function(x){ return x.id === id; });
             if (!c) return;
@@ -736,18 +748,20 @@
             overlay.classList.add('open');
             document.body.style.overflow = 'hidden';
             setTimeout(function() {
-                iframe.src = c.pdfUrl;
+                // Gunakan Google Docs Viewer agar PDF tampil di modal, bukan di-download
+                iframe.src = buildViewerUrl(c.pdfUrl);
                 iframe.onload = function() {
                     loading.style.display = 'none';
                     iframe.style.display = 'block';
                 };
+                // Fallback: tampilkan iframe setelah 5 detik meski onload belum terpanggil
                 setTimeout(function() {
                     if (loading.style.display !== 'none') {
                         loading.style.display = 'none';
                         iframe.style.display = 'block';
                     }
-                }, 3500);
-            }, 100);
+                }, 5000);
+            }, 150);
         };
 
         function closeModal() {
