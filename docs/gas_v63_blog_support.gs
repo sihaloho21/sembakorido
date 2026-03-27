@@ -194,6 +194,15 @@ const SCHEMA_REQUIREMENTS = {
     'created_at', 'updated_at', 'start_at', 'end_at',
     'created_by', 'source', 'read_at'
   ],
+  blog_posts: [
+    'id', 'title', 'slug', 'excerpt', 'content', 'author',
+    'published_at', 'status', 'image_url', 'categories', 'tags',
+    'meta_description', 'created_at', 'updated_at'
+  ],
+  blog_comments: [
+    'id', 'post_id', 'user_name', 'content', 'status',
+    'created_at', 'updated_at'
+  ],
   notification_reads: [
     'id', 'notification_id', 'phone', 'read_at', 'created_at', 'updated_at'
   ]
@@ -5022,6 +5031,22 @@ function validatePublicCreatePayload(sheetName, payload) {
     }
     if (poin <= 0) {
       return { success: false, error: 'INVALID_PAYLOAD', message: 'poin harus lebih besar dari 0' };
+    }
+    return null;
+  }
+
+  if (sheetName === 'blog_comments') {
+    const postId = String(data.post_id || '').trim();
+    const userName = String(data.user_name || '').trim();
+    const content = String(data.content || '').trim();
+    if (!postId) {
+      return { success: false, error: 'INVALID_PAYLOAD', message: 'post_id wajib diisi' };
+    }
+    if (!userName || userName.length < 2) {
+      return { success: false, error: 'INVALID_PAYLOAD', message: 'nama minimal 2 karakter' };
+    }
+    if (!content || content.length < 3) {
+      return { success: false, error: 'INVALID_PAYLOAD', message: 'komentar minimal 3 karakter' };
     }
     return null;
   }

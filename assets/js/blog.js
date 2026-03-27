@@ -193,7 +193,7 @@ const BlogListPage = {
 
     async loadPosts() {
         try {
-            const data = await apiGet({ action: 'get_blog_posts', sheet: 'blog_posts', status: 'published' });
+            const data = await apiGet({ sheet: 'blog_posts' });
             if (data && Array.isArray(data.data)) {
                 this.allPosts = data.data.filter(p => p.status === 'published' || !p.status);
             } else if (Array.isArray(data)) {
@@ -510,7 +510,7 @@ const BlogDetailPage = {
 
     async loadPost() {
         try {
-            const data = await apiGet({ action: 'get_blog_post', sheet: 'blog_posts', id: this.postId });
+            const data = await apiGet({ sheet: 'blog_posts', id: this.postId });
             let post = null;
             if (data && data.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
                 post = data.data;
@@ -522,7 +522,7 @@ const BlogDetailPage = {
 
             if (!post) {
                 // Fallback: get all and find
-                const allData = await apiGet({ action: 'get_blog_posts', sheet: 'blog_posts' });
+                const allData = await apiGet({ sheet: 'blog_posts' });
                 const allPosts = allData && Array.isArray(allData.data) ? allData.data : (Array.isArray(allData) ? allData : []);
                 post = allPosts.find(p => p.id === this.postId || p.slug === this.postId);
             }
@@ -665,7 +665,7 @@ const BlogDetailPage = {
 
     async loadComments(postId) {
         try {
-            const data = await apiGet({ action: 'get_blog_comments', sheet: 'blog_comments', post_id: postId, status: 'approved' });
+            const data = await apiGet({ sheet: 'blog_comments' });
             let comments = [];
             if (data && Array.isArray(data.data)) {
                 comments = data.data.filter(c => c.post_id === postId && c.status === 'approved');
@@ -757,7 +757,7 @@ const BlogDetailPage = {
 
             try {
                 const payload = {
-                    action: 'create_blog_comment',
+                    action: 'create',
                     sheet: 'blog_comments',
                     data: {
                         id: 'cmt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
@@ -768,7 +768,10 @@ const BlogDetailPage = {
                         created_at: new Date().toISOString()
                     }
                 };
-                await apiPost(payload);
+                const result = await apiPost(payload);
+                if (result && result.error) {
+                    throw new Error(result.message || result.error);
+                }
                 if (successEl) {
                     successEl.textContent = 'Komentar berhasil dikirim dan sedang menunggu persetujuan. Terima kasih!';
                     successEl.classList.remove('hidden');
@@ -776,11 +779,9 @@ const BlogDetailPage = {
                 form.reset();
             } catch (err) {
                 console.warn('Blog: Gagal mengirim komentar.', err);
-                if (successEl) {
-                    // Show success anyway (comment will be stored locally or API may not support it yet)
-                    successEl.textContent = 'Komentar berhasil dikirim dan sedang menunggu persetujuan. Terima kasih!';
-                    successEl.classList.remove('hidden');
-                    form.reset();
+                if (errorEl) {
+                    errorEl.textContent = 'Gagal mengirim komentar. Silakan coba lagi dalam beberapa saat.';
+                    errorEl.classList.remove('hidden');
                 }
             } finally {
                 if (submitBtn) {
@@ -793,7 +794,7 @@ const BlogDetailPage = {
 
     async loadRelatedPosts(currentPost) {
         try {
-            const data = await apiGet({ action: 'get_blog_posts', sheet: 'blog_posts', status: 'published' });
+            const data = await apiGet({ sheet: 'blog_posts' });
             let allPosts = [];
             if (data && Array.isArray(data.data)) allPosts = data.data;
             else if (Array.isArray(data)) allPosts = data;
