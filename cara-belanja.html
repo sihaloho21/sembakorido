@@ -3,176 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Panduan cara belanja di GoSembako – mudah, cepat, dan aman. Pelajari langkah-langkah pemesanan, metode pembayaran, dan pengiriman sembako ke rumah Anda.">
-    <meta name="keywords" content="cara belanja, panduan belanja, GoSembako, sembako online">
-    <meta name="author" content="GoSembako">
-    <link rel="canonical" href="https://paketsembako.com/cara-belanja.html">
-    <meta property="og:title" content="Cara Belanja – GoSembako">
-    <meta property="og:description" content="Panduan lengkap cara belanja sembako di GoSembako. Mudah, cepat, dan aman.">
-    <meta property="og:type" content="website">
-    <meta property="og:locale" content="id_ID">
-    <meta property="og:site_name" content="GoSembako">
-    <meta property="og:url" content="https://paketsembako.com/cara-belanja.html">
-    <meta property="og:image" content="assets/img/logo.webp">
+    <meta name="description" content="Panduan cara belanja di GoSembako – mudah, cepat, dan aman. Pelajari langkah-langkah pemesanan sembako ke rumah Anda.">
     <link rel="icon" href="assets/img/logo.webp" type="image/webp">
     <title>Cara Belanja – GoSembako</title>
-    <link rel="stylesheet" href="assets/css/tailwind-fallback.css">
-    <link rel="stylesheet" href="assets/css/tailwind.min.css">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f0;
             color: #1e293b;
+            min-height: 100vh;
         }
 
         /* ── HEADER ── */
         .site-header {
             background: #fff;
             border-bottom: 1px solid #e5e7eb;
-            box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
             position: sticky; top: 0; z-index: 50;
         }
         .header-inner {
-            max-width: 1100px; margin: 0 auto;
-            padding: 0 24px; height: 62px;
+            max-width: 960px; margin: 0 auto;
+            padding: 0 20px; height: 58px;
             display: flex; align-items: center; justify-content: space-between;
         }
-        .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-        .brand img { height: 38px; width: auto; object-fit: contain; }
-        .brand-name { color: #16a34a; font-size: 1.05rem; font-weight: 800; }
+        .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+        .brand img { height: 36px; width: auto; object-fit: contain; }
+        .brand-name { color: #16a34a; font-size: 1rem; font-weight: 800; }
         .back-link {
             display: inline-flex; align-items: center; gap: 6px;
-            color: #6b7280; font-size: 0.82rem; font-weight: 600;
-            text-decoration: none; padding: 7px 14px;
+            color: #6b7280; font-size: 0.8rem; font-weight: 600;
+            text-decoration: none; padding: 6px 14px;
             border: 1.5px solid #e5e7eb; border-radius: 10px;
             background: #fff; transition: all 0.2s;
         }
         .back-link:hover { color: #16a34a; border-color: #16a34a; background: #f0fdf4; }
 
-        /* ── HERO ── */
-        .hero {
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 60%, #bbf7d0 100%);
-            padding: 56px 24px 64px;
+        /* ── PAGE WRAPPER ── */
+        .page-wrap {
+            max-width: 760px; margin: 0 auto;
+            padding: 48px 20px 64px;
+        }
+
+        /* ── INFOGRAPHIC CARD ── */
+        .infographic {
+            background: #fffdf7;
+            border-radius: 28px;
+            padding: 40px 36px 44px;
+            box-shadow: 0 4px 32px rgba(0,0,0,0.07);
+        }
+
+        .infographic-title {
             text-align: center;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 36px;
+            line-height: 1.5;
         }
-        .hero-eyebrow {
-            display: inline-block;
-            background: #16a34a; color: #fff;
-            font-size: 0.72rem; font-weight: 700;
-            letter-spacing: 0.08em; text-transform: uppercase;
-            padding: 4px 14px; border-radius: 999px; margin-bottom: 18px;
-        }
-        .hero h1 {
-            font-size: clamp(1.7rem, 4.5vw, 2.6rem);
-            font-weight: 900; color: #14532d; line-height: 1.2;
-            margin-bottom: 14px;
-        }
-        .hero h1 span { color: #16a34a; }
-        .hero p {
-            font-size: 1rem; color: #4b5563; max-width: 480px;
-            margin: 0 auto 30px; line-height: 1.7;
-        }
-        .hero-btn {
-            display: inline-flex; align-items: center; gap: 8px;
-            background: #16a34a; color: #fff;
-            font-weight: 700; font-size: 0.92rem;
-            padding: 13px 26px; border-radius: 12px;
-            text-decoration: none;
-            box-shadow: 0 4px 18px rgba(22,163,74,0.35);
-            transition: all 0.2s;
-        }
-        .hero-btn:hover { background: #15803d; transform: translateY(-2px); }
+        .infographic-title span { font-style: italic; }
 
-        /* ── WRAPPER ── */
-        .page-wrap { max-width: 1100px; margin: 0 auto; padding: 64px 24px; }
-
-        /* ── SECTION HEADER ── */
-        .sec-head { text-align: center; margin-bottom: 48px; }
-        .sec-head h2 { font-size: 1.55rem; font-weight: 900; color: #14532d; margin-bottom: 8px; }
-        .sec-head p { font-size: 0.9rem; color: #6b7280; max-width: 420px; margin: 0 auto; line-height: 1.6; }
-        .sec-line { width: 44px; height: 4px; background: linear-gradient(90deg,#16a34a,#4ade80); border-radius: 999px; margin: 12px auto 0; }
-
-        /* ── STEPS ── */
-        .steps-section { margin-bottom: 80px; }
-        .steps-row {
-            display: flex; flex-wrap: wrap;
-            justify-content: center; gap: 20px;
-        }
-        .step-card {
-            background: #fff;
-            border: 1.5px solid #e5e7eb;
-            border-radius: 20px;
-            padding: 36px 24px 28px;
-            width: 200px;
-            flex-shrink: 0;
-            text-align: center;
-            position: relative;
-            transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-        }
-        .step-card:hover {
-            border-color: #16a34a;
-            box-shadow: 0 6px 28px rgba(22,163,74,0.13);
-            transform: translateY(-4px);
-        }
-        /* Active / highlighted card (step 4 in reference) */
-        .step-card.active {
-            border-color: #16a34a;
-            box-shadow: 0 6px 28px rgba(22,163,74,0.18);
-        }
-        .step-num {
-            position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
-            width: 28px; height: 28px; border-radius: 50%;
-            background: #16a34a; color: #fff;
-            font-size: 0.75rem; font-weight: 800;
-            display: flex; align-items: center; justify-content: center;
-            border: 2.5px solid #fff;
-            box-shadow: 0 2px 8px rgba(22,163,74,0.35);
-        }
-        .step-icon-wrap {
-            width: 72px; height: 72px; border-radius: 20px;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 18px;
-        }
-        .step-icon-wrap svg { width: 34px; height: 34px; }
-        .step-title { font-size: 0.92rem; font-weight: 800; color: #1e293b; margin-bottom: 10px; }
-        .step-desc { font-size: 0.8rem; color: #6b7280; line-height: 1.65; }
-
-        /* connector arrow between cards */
-        .step-arrow {
-            display: flex; align-items: center; color: #d1d5db;
-            font-size: 1.4rem; margin-top: 36px; flex-shrink: 0;
-        }
-        @media (max-width: 700px) { .step-arrow { display: none; } }
-
-        /* ── PAYMENT ── */
-        .payment-section { margin-bottom: 80px; }
-        .payment-grid {
+        /* ── STEPS GRID ── */
+        .steps-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .step-item {
+            background: #fff;
+            border-radius: 20px;
+            padding: 0;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Illustration area */
+        .step-illus {
+            width: 100%;
+            aspect-ratio: 4/3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step-illus svg.scene {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Number badge */
+        .step-num {
+            position: absolute;
+            top: 12px; left: 12px;
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            background: #16a34a;
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 900;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 8px rgba(22,163,74,0.4);
+            z-index: 2;
+        }
+
+        /* Text area */
+        .step-text {
+            padding: 16px 18px 20px;
+            flex: 1;
+        }
+        .step-text strong {
+            display: block;
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+        .step-text p {
+            font-size: 0.78rem;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        /* Last step centered if odd */
+        .steps-grid .step-item:last-child:nth-child(odd) {
+            grid-column: 1 / -1;
+            max-width: 340px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* ── FOOTNOTE ── */
+        .footnote {
+            margin-top: 20px;
+            font-size: 0.72rem;
+            color: #9ca3af;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* ── EXTRA SECTIONS ── */
+        .section-gap { margin-top: 48px; }
+
+        .sec-head { text-align: center; margin-bottom: 28px; }
+        .sec-head h2 { font-size: 1.2rem; font-weight: 900; color: #14532d; margin-bottom: 6px; }
+        .sec-head p { font-size: 0.85rem; color: #6b7280; }
+        .sec-line { width: 40px; height: 4px; background: linear-gradient(90deg,#16a34a,#4ade80); border-radius: 999px; margin: 10px auto 0; }
+
+        /* Payment cards */
+        .pay-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px;
         }
         .pay-card {
             background: #fff;
             border: 1.5px solid #e5e7eb;
             border-radius: 16px;
-            padding: 28px 20px;
+            padding: 22px 16px;
             text-align: center;
             transition: all 0.2s;
         }
-        .pay-card:hover { border-color: #16a34a; box-shadow: 0 4px 18px rgba(22,163,74,0.1); }
+        .pay-card:hover { border-color: #16a34a; box-shadow: 0 4px 16px rgba(22,163,74,0.1); }
         .pay-icon {
-            width: 56px; height: 56px; border-radius: 16px;
+            width: 50px; height: 50px; border-radius: 14px;
             display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 14px;
+            margin: 0 auto 12px;
         }
-        .pay-icon svg { width: 28px; height: 28px; }
-        .pay-name { font-size: 0.9rem; font-weight: 800; color: #1e293b; margin-bottom: 6px; }
-        .pay-desc { font-size: 0.78rem; color: #6b7280; line-height: 1.55; }
+        .pay-icon svg { width: 26px; height: 26px; }
+        .pay-name { font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 4px; }
+        .pay-desc { font-size: 0.75rem; color: #6b7280; line-height: 1.5; }
 
-        /* ── FAQ ── */
-        .faq-section { margin-bottom: 80px; }
-        .faq-wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+        /* FAQ */
+        .faq-wrap { display: flex; flex-direction: column; gap: 10px; }
         .faq-item {
             background: #fff; border: 1.5px solid #e5e7eb;
             border-radius: 14px; overflow: hidden; transition: border-color 0.2s;
@@ -181,77 +189,65 @@
         .faq-btn {
             width: 100%; display: flex; align-items: center;
             justify-content: space-between; gap: 12px;
-            padding: 17px 20px; background: transparent;
+            padding: 15px 18px; background: transparent;
             border: none; cursor: pointer; text-align: left;
         }
-        .faq-q { font-size: 0.875rem; font-weight: 700; color: #1e293b; }
+        .faq-q { font-size: 0.85rem; font-weight: 700; color: #1e293b; }
         .faq-chevron {
-            width: 18px; height: 18px; color: #16a34a;
+            width: 17px; height: 17px; color: #16a34a;
             flex-shrink: 0; transition: transform 0.25s;
         }
         .faq-item.open .faq-chevron { transform: rotate(180deg); }
         .faq-body {
             max-height: 0; overflow: hidden;
             transition: max-height 0.3s ease, padding 0.3s ease;
-            padding: 0 20px;
+            padding: 0 18px;
         }
-        .faq-item.open .faq-body { max-height: 260px; padding: 0 20px 17px; }
-        .faq-body p { font-size: 0.85rem; color: #4b5563; line-height: 1.7; }
+        .faq-item.open .faq-body { max-height: 200px; padding: 0 18px 15px; }
+        .faq-body p { font-size: 0.82rem; color: #4b5563; line-height: 1.7; }
 
-        /* ── CTA ── */
+        /* CTA */
         .cta-wrap {
             background: linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%);
-            border-radius: 22px; padding: 48px 32px;
-            text-align: center; margin-bottom: 60px;
-            position: relative; overflow: hidden;
+            border-radius: 22px; padding: 40px 28px;
+            text-align: center; margin-top: 48px;
         }
-        .cta-wrap::before {
-            content: ''; position: absolute;
-            top: -50px; right: -50px;
-            width: 200px; height: 200px;
-            background: rgba(255,255,255,0.06); border-radius: 50%;
-        }
-        .cta-wrap h2 { font-size: 1.5rem; font-weight: 900; color: #fff; margin-bottom: 8px; }
-        .cta-wrap p { color: rgba(255,255,255,0.82); font-size: 0.92rem; margin-bottom: 26px; }
-        .cta-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+        .cta-wrap h2 { font-size: 1.3rem; font-weight: 900; color: #fff; margin-bottom: 6px; }
+        .cta-wrap p { color: rgba(255,255,255,0.82); font-size: 0.88rem; margin-bottom: 22px; }
+        .cta-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
         .btn-white {
-            display: inline-flex; align-items: center; gap: 8px;
+            display: inline-flex; align-items: center; gap: 7px;
             background: #fff; color: #16a34a;
-            font-weight: 800; font-size: 0.9rem;
-            padding: 13px 24px; border-radius: 12px;
+            font-weight: 800; font-size: 0.88rem;
+            padding: 11px 22px; border-radius: 11px;
             text-decoration: none;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.12);
             transition: all 0.2s;
         }
-        .btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+        .btn-white:hover { transform: translateY(-2px); }
         .btn-wa {
-            display: inline-flex; align-items: center; gap: 8px;
+            display: inline-flex; align-items: center; gap: 7px;
             background: rgba(255,255,255,0.15); color: #fff;
-            font-weight: 700; font-size: 0.9rem;
-            padding: 13px 24px; border-radius: 12px;
+            font-weight: 700; font-size: 0.88rem;
+            padding: 11px 22px; border-radius: 11px;
             text-decoration: none;
             border: 1.5px solid rgba(255,255,255,0.3);
             transition: all 0.2s;
         }
         .btn-wa:hover { background: rgba(255,255,255,0.25); }
 
-        /* ── FOOTER ── */
+        /* Footer */
         .site-footer {
             background: #1e293b; color: #94a3b8;
-            text-align: center; padding: 26px 20px;
-            font-size: 0.82rem;
+            text-align: center; padding: 24px 20px;
+            font-size: 0.8rem; margin-top: 64px;
         }
         .site-footer a { color: #4ade80; text-decoration: none; }
-        .site-footer a:hover { text-decoration: underline; }
 
-        /* ── RESPONSIVE ── */
-        @media (max-width: 640px) {
-            .hero { padding: 40px 16px 52px; }
-            .page-wrap { padding: 48px 16px; }
-            .step-card { width: 160px; padding: 30px 16px 22px; }
-            .step-icon-wrap { width: 60px; height: 60px; }
-            .step-icon-wrap svg { width: 28px; height: 28px; }
-            .cta-wrap { padding: 36px 20px; }
+        @media (max-width: 520px) {
+            .infographic { padding: 28px 16px 32px; border-radius: 20px; }
+            .steps-grid { gap: 14px; }
+            .step-text { padding: 12px 14px 16px; }
         }
     </style>
 </head>
@@ -260,12 +256,12 @@
     <!-- Header -->
     <header class="site-header">
         <div class="header-inner">
-            <a href="index.html" class="brand" aria-label="GoSembako – Halaman Utama">
+            <a href="index.html" class="brand">
                 <img src="assets/img/logo.webp" alt="GoSembako Logo">
                 <span class="brand-name">GoSembako</span>
             </a>
-            <a href="index.html" class="back-link" aria-label="Kembali ke toko">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <a href="index.html" class="back-link">
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
                 Kembali Belanja
@@ -273,243 +269,326 @@
         </div>
     </header>
 
-    <!-- Hero -->
-    <section class="hero">
-        <span class="hero-eyebrow">Panduan Belanja</span>
-        <h1>Belanja Sembako<br><span>Mudah &amp; Cepat</span></h1>
-        <p>Ikuti 5 langkah sederhana untuk memesan sembako segar berkualitas langsung ke pintu rumah Anda.</p>
-        <a href="index.html" class="hero-btn" aria-label="Mulai belanja">
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-            </svg>
-            Mulai Belanja
-        </a>
-    </section>
-
     <main class="page-wrap">
 
-        <!-- ── LANGKAH BELANJA ── -->
-        <section class="steps-section" aria-labelledby="steps-title">
-            <div class="sec-head">
-                <h2 id="steps-title">Langkah-Langkah Pemesanan</h2>
-                <p>Hanya 5 langkah mudah untuk mendapatkan sembako pilihan Anda</p>
-                <div class="sec-line"></div>
+        <!-- ── INFOGRAPHIC ── -->
+        <div class="infographic">
+            <div class="infographic-title">
+                Cara Belanja di <span>GoSembako</span>
             </div>
 
-            <div class="steps-row">
+            <div class="steps-grid">
 
-                <!-- Step 1 -->
-                <div class="step-card">
-                    <div class="step-num">1</div>
-                    <div class="step-icon-wrap" style="background:#f0fdf4;">
-                        <svg fill="none" stroke="#16a34a" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                <!-- Step 1: Pilih Produk -->
+                <div class="step-item">
+                    <div class="step-illus" style="background:#e8f5e9;">
+                        <div class="step-num">1</div>
+                        <svg class="scene" viewBox="0 0 280 210" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- phone body -->
+                            <rect x="90" y="20" width="100" height="170" rx="16" fill="#fff" stroke="#c8e6c9" stroke-width="2.5"/>
+                            <rect x="97" y="36" width="86" height="130" rx="6" fill="#f1f8e9"/>
+                            <!-- home button -->
+                            <circle cx="140" cy="178" r="6" fill="#c8e6c9"/>
+                            <!-- product list items -->
+                            <rect x="104" y="44" width="72" height="36" rx="6" fill="#fff" stroke="#a5d6a7" stroke-width="1.5"/>
+                            <rect x="112" y="52" width="20" height="20" rx="4" fill="#c8e6c9"/>
+                            <!-- rice bag icon -->
+                            <ellipse cx="122" cy="62" rx="7" ry="8" fill="#66bb6a"/>
+                            <rect x="118" y="54" width="8" height="4" rx="2" fill="#43a047"/>
+                            <rect x="136" y="55" width="32" height="5" rx="2.5" fill="#e0e0e0"/>
+                            <rect x="136" y="63" width="22" height="4" rx="2" fill="#a5d6a7"/>
+                            <!-- item 2 -->
+                            <rect x="104" y="86" width="72" height="36" rx="6" fill="#fff" stroke="#a5d6a7" stroke-width="1.5"/>
+                            <rect x="112" y="94" width="20" height="20" rx="4" fill="#fff9c4"/>
+                            <!-- oil bottle -->
+                            <rect x="118" y="96" width="8" height="14" rx="3" fill="#fdd835"/>
+                            <rect x="120" y="93" width="4" height="4" rx="1" fill="#f9a825"/>
+                            <rect x="136" y="97" width="32" height="5" rx="2.5" fill="#e0e0e0"/>
+                            <rect x="136" y="105" width="22" height="4" rx="2" fill="#a5d6a7"/>
+                            <!-- item 3 -->
+                            <rect x="104" y="128" width="72" height="36" rx="6" fill="#fff" stroke="#a5d6a7" stroke-width="1.5"/>
+                            <rect x="112" y="136" width="20" height="20" rx="4" fill="#fce4ec"/>
+                            <!-- sugar bag -->
+                            <ellipse cx="122" cy="146" rx="7" ry="8" fill="#f48fb1"/>
+                            <rect x="118" y="138" width="8" height="4" rx="2" fill="#e91e63"/>
+                            <rect x="136" y="139" width="32" height="5" rx="2.5" fill="#e0e0e0"/>
+                            <rect x="136" y="147" width="22" height="4" rx="2" fill="#a5d6a7"/>
+                            <!-- magnifier -->
+                            <circle cx="195" cy="75" r="22" fill="#fff" stroke="#66bb6a" stroke-width="3"/>
+                            <circle cx="195" cy="75" r="14" fill="#f1f8e9" stroke="#a5d6a7" stroke-width="1.5"/>
+                            <line x1="204" y1="84" x2="215" y2="95" stroke="#388e3c" stroke-width="3.5" stroke-linecap="round"/>
+                            <!-- search lines inside magnifier -->
+                            <rect x="188" y="71" width="14" height="3" rx="1.5" fill="#66bb6a"/>
+                            <rect x="188" y="77" width="10" height="3" rx="1.5" fill="#a5d6a7"/>
                         </svg>
                     </div>
-                    <div class="step-title">Pilih Produk</div>
-                    <div class="step-desc">Telusuri katalog dan gunakan filter kategori atau pencarian untuk menemukan sembako yang Anda butuhkan.</div>
+                    <div class="step-text">
+                        <strong>Pilih Produk</strong>
+                        <p>Telusuri katalog sembako. Gunakan filter atau pencarian untuk menemukan produk yang Anda butuhkan.</p>
+                    </div>
                 </div>
 
-                <div class="step-arrow" aria-hidden="true">›</div>
-
-                <!-- Step 2 -->
-                <div class="step-card">
-                    <div class="step-num">2</div>
-                    <div class="step-icon-wrap" style="background:#eff6ff;">
-                        <svg fill="none" stroke="#2563eb" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                <!-- Step 2: Masukkan Keranjang -->
+                <div class="step-item">
+                    <div class="step-illus" style="background:#e3f2fd;">
+                        <div class="step-num">2</div>
+                        <svg class="scene" viewBox="0 0 280 210" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- phone -->
+                            <rect x="80" y="20" width="100" height="170" rx="16" fill="#fff" stroke="#bbdefb" stroke-width="2.5"/>
+                            <rect x="87" y="36" width="86" height="130" rx="6" fill="#e8f4fd"/>
+                            <circle cx="130" cy="178" r="6" fill="#bbdefb"/>
+                            <!-- product detail page -->
+                            <rect x="94" y="44" width="72" height="50" rx="5" fill="#fff" stroke="#90caf9" stroke-width="1.5"/>
+                            <!-- product image placeholder -->
+                            <rect x="98" y="48" width="30" height="30" rx="4" fill="#bbdefb"/>
+                            <ellipse cx="113" cy="63" rx="10" ry="11" fill="#42a5f5"/>
+                            <rect x="109" y="52" width="8" height="5" rx="2" fill="#1565c0"/>
+                            <!-- product info -->
+                            <rect x="132" y="51" width="28" height="5" rx="2.5" fill="#e0e0e0"/>
+                            <rect x="132" y="59" width="20" height="4" rx="2" fill="#90caf9"/>
+                            <rect x="132" y="66" width="24" height="4" rx="2" fill="#e0e0e0"/>
+                            <!-- add to cart button -->
+                            <rect x="94" y="100" width="72" height="22" rx="8" fill="#1976d2"/>
+                            <text x="130" y="115" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="sans-serif">+ Keranjang</text>
+                            <!-- quantity selector -->
+                            <rect x="94" y="128" width="72" height="22" rx="6" fill="#fff" stroke="#90caf9" stroke-width="1.5"/>
+                            <text x="107" y="143" text-anchor="middle" fill="#1976d2" font-size="14" font-weight="700" font-family="sans-serif">−</text>
+                            <text x="130" y="143" text-anchor="middle" fill="#1e293b" font-size="10" font-weight="700" font-family="sans-serif">1</text>
+                            <text x="153" y="143" text-anchor="middle" fill="#1976d2" font-size="14" font-weight="700" font-family="sans-serif">+</text>
+                            <!-- cart badge floating -->
+                            <circle cx="210" cy="55" r="26" fill="#fff" stroke="#90caf9" stroke-width="2"/>
+                            <!-- cart icon -->
+                            <path d="M197 48 l3 0 l8 12 l14 0" stroke="#1976d2" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                            <circle cx="207" cy="63" r="2.5" fill="#1976d2"/>
+                            <circle cx="217" cy="63" r="2.5" fill="#1976d2"/>
+                            <!-- badge count -->
+                            <circle cx="222" cy="47" r="7" fill="#f44336"/>
+                            <text x="222" y="51" text-anchor="middle" fill="#fff" font-size="7" font-weight="800" font-family="sans-serif">3</text>
                         </svg>
                     </div>
-                    <div class="step-title">Masukkan Keranjang</div>
-                    <div class="step-desc">Klik "Tambah ke Keranjang" pada produk pilihan. Tambahkan beberapa produk sekaligus sebelum melanjutkan.</div>
+                    <div class="step-text">
+                        <strong>Masukkan Keranjang</strong>
+                        <p>Klik tombol "Tambah ke Keranjang". Anda bisa menambahkan beberapa produk sekaligus.</p>
+                    </div>
                 </div>
 
-                <div class="step-arrow" aria-hidden="true">›</div>
-
-                <!-- Step 3 -->
-                <div class="step-card">
-                    <div class="step-num">3</div>
-                    <div class="step-icon-wrap" style="background:#fefce8;">
-                        <svg fill="none" stroke="#ca8a04" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                <!-- Step 3: Isi Data Pesanan -->
+                <div class="step-item">
+                    <div class="step-illus" style="background:#fff8e1;">
+                        <div class="step-num">3</div>
+                        <svg class="scene" viewBox="0 0 280 210" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- phone -->
+                            <rect x="80" y="20" width="100" height="170" rx="16" fill="#fff" stroke="#ffe082" stroke-width="2.5"/>
+                            <rect x="87" y="36" width="86" height="130" rx="6" fill="#fffde7"/>
+                            <circle cx="130" cy="178" r="6" fill="#ffe082"/>
+                            <!-- form title -->
+                            <rect x="94" y="44" width="50" height="7" rx="3.5" fill="#ffd54f"/>
+                            <!-- name field -->
+                            <rect x="94" y="58" width="72" height="18" rx="5" fill="#fff" stroke="#ffe082" stroke-width="1.5"/>
+                            <text x="100" y="71" fill="#bdbdbd" font-size="7" font-family="sans-serif">Nama Lengkap</text>
+                            <!-- whatsapp field -->
+                            <rect x="94" y="82" width="72" height="18" rx="5" fill="#fff" stroke="#ffe082" stroke-width="1.5"/>
+                            <text x="100" y="95" fill="#bdbdbd" font-size="7" font-family="sans-serif">No. WhatsApp</text>
+                            <!-- address field -->
+                            <rect x="94" y="106" width="72" height="32" rx="5" fill="#fff" stroke="#ffe082" stroke-width="1.5"/>
+                            <text x="100" y="119" fill="#bdbdbd" font-size="7" font-family="sans-serif">Alamat Pengiriman</text>
+                            <!-- pencil icon floating -->
+                            <circle cx="210" cy="80" r="26" fill="#fff" stroke="#ffe082" stroke-width="2"/>
+                            <path d="M200 90 l14-14 l6 6 l-14 14 z" fill="#ffd54f" stroke="#f9a825" stroke-width="1"/>
+                            <path d="M200 90 l-2 6 l6-2 z" fill="#f9a825"/>
+                            <line x1="206" y1="74" x2="212" y2="80" stroke="#fff" stroke-width="1.5"/>
+                            <!-- checkmark on last field -->
+                            <circle cx="160" cy="122" r="6" fill="#66bb6a"/>
+                            <path d="M157 122 l2 2 l4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                         </svg>
                     </div>
-                    <div class="step-title">Isi Data Pesanan</div>
-                    <div class="step-desc">Lengkapi nama, nomor WhatsApp aktif, dan alamat pengiriman agar pesanan dapat diproses dengan tepat.</div>
+                    <div class="step-text">
+                        <strong>Isi Data Pesanan</strong>
+                        <p>Lengkapi nama, nomor WhatsApp aktif, dan alamat pengiriman agar pesanan dapat diproses.</p>
+                    </div>
                 </div>
 
-                <div class="step-arrow" aria-hidden="true">›</div>
-
-                <!-- Step 4 -->
-                <div class="step-card active">
-                    <div class="step-num">4</div>
-                    <div class="step-icon-wrap" style="background:#fdf4ff;">
-                        <svg fill="none" stroke="#9333ea" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                <!-- Step 4: Pilih Pembayaran -->
+                <div class="step-item">
+                    <div class="step-illus" style="background:#fce4ec;">
+                        <div class="step-num">4</div>
+                        <svg class="scene" viewBox="0 0 280 210" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- phone -->
+                            <rect x="80" y="20" width="100" height="170" rx="16" fill="#fff" stroke="#f8bbd0" stroke-width="2.5"/>
+                            <rect x="87" y="36" width="86" height="130" rx="6" fill="#fce4ec"/>
+                            <circle cx="130" cy="178" r="6" fill="#f8bbd0"/>
+                            <!-- payment title -->
+                            <rect x="94" y="44" width="55" height="7" rx="3.5" fill="#f48fb1"/>
+                            <!-- bank transfer option -->
+                            <rect x="94" y="58" width="72" height="20" rx="6" fill="#fff" stroke="#f48fb1" stroke-width="1.5"/>
+                            <rect x="100" y="64" width="12" height="8" rx="2" fill="#e91e63" opacity="0.3"/>
+                            <text x="117" y="71" fill="#1e293b" font-size="7.5" font-weight="600" font-family="sans-serif">Transfer Bank</text>
+                            <circle cx="158" cy="68" r="4" fill="#f8bbd0" stroke="#e91e63" stroke-width="1.5"/>
+                            <!-- qris option selected -->
+                            <rect x="94" y="83" width="72" height="20" rx="6" fill="#fce4ec" stroke="#e91e63" stroke-width="2"/>
+                            <rect x="100" y="89" width="10" height="10" rx="2" fill="#e91e63" opacity="0.5"/>
+                            <text x="115" y="97" fill="#1e293b" font-size="7.5" font-weight="600" font-family="sans-serif">QRIS</text>
+                            <circle cx="158" cy="93" r="4" fill="#e91e63"/>
+                            <circle cx="158" cy="93" r="2" fill="#fff"/>
+                            <!-- cod option -->
+                            <rect x="94" y="108" width="72" height="20" rx="6" fill="#fff" stroke="#f48fb1" stroke-width="1.5"/>
+                            <rect x="100" y="114" width="12" height="8" rx="2" fill="#e91e63" opacity="0.3"/>
+                            <text x="117" y="121" fill="#1e293b" font-size="7.5" font-weight="600" font-family="sans-serif">COD</text>
+                            <circle cx="158" cy="118" r="4" fill="#f8bbd0" stroke="#e91e63" stroke-width="1.5"/>
+                            <!-- credit card floating -->
+                            <circle cx="210" cy="80" r="26" fill="#fff" stroke="#f8bbd0" stroke-width="2"/>
+                            <rect x="196" y="67" width="28" height="18" rx="4" fill="#e91e63"/>
+                            <rect x="196" y="74" width="28" height="5" fill="#c2185b"/>
+                            <rect x="199" y="79" width="8" height="3" rx="1.5" fill="#fff" opacity="0.7"/>
+                            <rect x="210" y="79" width="5" height="3" rx="1.5" fill="#fff" opacity="0.7"/>
                         </svg>
                     </div>
-                    <div class="step-title">Pilih Pembayaran</div>
-                    <div class="step-desc">Pilih metode pembayaran yang paling nyaman: Transfer Bank, QRIS, COD, atau e-wallet.</div>
+                    <div class="step-text">
+                        <strong>Pilih Pembayaran</strong>
+                        <p>Pilih metode pembayaran yang paling nyaman: Transfer Bank, QRIS, COD, atau e-wallet.</p>
+                    </div>
                 </div>
 
-                <div class="step-arrow" aria-hidden="true">›</div>
-
-                <!-- Step 5 -->
-                <div class="step-card">
-                    <div class="step-num">5</div>
-                    <div class="step-icon-wrap" style="background:#fff7ed;">
-                        <svg fill="none" stroke="#ea580c" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                <!-- Step 5: Pesanan Dikirim -->
+                <div class="step-item">
+                    <div class="step-illus" style="background:#e8f5e9;">
+                        <div class="step-num">5</div>
+                        <svg class="scene" viewBox="0 0 280 210" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- delivery truck -->
+                            <!-- truck body -->
+                            <rect x="40" y="90" width="110" height="65" rx="8" fill="#fff" stroke="#a5d6a7" stroke-width="2.5"/>
+                            <!-- truck cab -->
+                            <rect x="150" y="105" width="55" height="50" rx="8" fill="#fff" stroke="#a5d6a7" stroke-width="2.5"/>
+                            <!-- window -->
+                            <rect x="158" y="112" width="30" height="20" rx="4" fill="#b3e5fc"/>
+                            <!-- wheels -->
+                            <circle cx="75" cy="160" r="14" fill="#fff" stroke="#66bb6a" stroke-width="3"/>
+                            <circle cx="75" cy="160" r="6" fill="#a5d6a7"/>
+                            <circle cx="175" cy="160" r="14" fill="#fff" stroke="#66bb6a" stroke-width="3"/>
+                            <circle cx="175" cy="160" r="6" fill="#a5d6a7"/>
+                            <!-- road line -->
+                            <line x1="20" y1="174" x2="260" y2="174" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="12 8"/>
+                            <!-- box on truck -->
+                            <rect x="60" y="100" width="40" height="40" rx="5" fill="#fff9c4" stroke="#fdd835" stroke-width="2"/>
+                            <line x1="80" y1="100" x2="80" y2="140" stroke="#fdd835" stroke-width="1.5"/>
+                            <line x1="60" y1="120" x2="100" y2="120" stroke="#fdd835" stroke-width="1.5"/>
+                            <!-- green checkmark badge -->
+                            <circle cx="210" cy="65" r="30" fill="#fff" stroke="#a5d6a7" stroke-width="2.5"/>
+                            <circle cx="210" cy="65" r="22" fill="#66bb6a"/>
+                            <path d="M198 65 l8 8 l14-14" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                            <!-- speed lines -->
+                            <line x1="20" y1="108" x2="38" y2="108" stroke="#c8e6c9" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="20" y1="118" x2="35" y2="118" stroke="#c8e6c9" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="20" y1="128" x2="38" y2="128" stroke="#c8e6c9" stroke-width="2.5" stroke-linecap="round"/>
                         </svg>
                     </div>
-                    <div class="step-title">Pesanan Dikirim</div>
-                    <div class="step-desc">Setelah pembayaran dikonfirmasi, pesanan segera diproses dan dikirim ke alamat Anda.</div>
+                    <div class="step-text">
+                        <strong>Pesanan Dikirim</strong>
+                        <p>Setelah pembayaran dikonfirmasi, pesanan segera diproses dan dikirim ke alamat Anda.</p>
+                    </div>
                 </div>
 
-            </div>
-        </section>
+            </div><!-- /steps-grid -->
+
+            <p class="footnote">*Konfirmasi pembayaran dikirim otomatis via WhatsApp. Estimasi pengiriman 1–2 hari kerja.</p>
+        </div><!-- /infographic -->
 
         <!-- ── METODE PEMBAYARAN ── -->
-        <section class="payment-section" aria-labelledby="pay-title">
+        <div class="section-gap">
             <div class="sec-head">
-                <h2 id="pay-title">Metode Pembayaran</h2>
+                <h2>Metode Pembayaran</h2>
                 <p>Berbagai pilihan pembayaran yang aman dan mudah</p>
                 <div class="sec-line"></div>
             </div>
-
-            <div class="payment-grid">
-
+            <div class="pay-grid">
                 <div class="pay-card">
                     <div class="pay-icon" style="background:#f0fdf4;">
-                        <svg fill="none" stroke="#16a34a" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/>
-                        </svg>
+                        <svg fill="none" stroke="#16a34a" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
                     </div>
                     <div class="pay-name">Transfer Bank</div>
                     <div class="pay-desc">BCA, BRI, BNI, Mandiri, dan bank lainnya.</div>
                 </div>
-
                 <div class="pay-card">
                     <div class="pay-icon" style="background:#fdf4ff;">
-                        <svg fill="none" stroke="#9333ea" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
-                        </svg>
+                        <svg fill="none" stroke="#9333ea" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
                     </div>
                     <div class="pay-name">QRIS</div>
-                    <div class="pay-desc">Scan QR dengan aplikasi e-wallet atau mobile banking manapun.</div>
+                    <div class="pay-desc">Scan QR dengan aplikasi e-wallet atau mobile banking.</div>
                 </div>
-
                 <div class="pay-card">
                     <div class="pay-icon" style="background:#fff7ed;">
-                        <svg fill="none" stroke="#ea580c" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
+                        <svg fill="none" stroke="#ea580c" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                     </div>
                     <div class="pay-name">COD</div>
-                    <div class="pay-desc">Bayar tunai saat barang tiba. Tersedia untuk area tertentu.</div>
+                    <div class="pay-desc">Bayar tunai saat barang tiba di rumah Anda.</div>
                 </div>
-
                 <div class="pay-card">
                     <div class="pay-icon" style="background:#eff6ff;">
-                        <svg fill="none" stroke="#2563eb" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                        </svg>
+                        <svg fill="none" stroke="#2563eb" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                     </div>
                     <div class="pay-name">E-Wallet</div>
                     <div class="pay-desc">GoPay, OVO, Dana, ShopeePay, dan lainnya.</div>
                 </div>
-
             </div>
-        </section>
+        </div>
 
         <!-- ── FAQ ── -->
-        <section class="faq-section" aria-labelledby="faq-title">
+        <div class="section-gap">
             <div class="sec-head">
-                <h2 id="faq-title">Pertanyaan Umum</h2>
+                <h2>Pertanyaan Umum</h2>
                 <p>Jawaban atas pertanyaan yang sering ditanyakan</p>
                 <div class="sec-line"></div>
             </div>
-
             <div class="faq-wrap">
-
                 <div class="faq-item">
                     <button class="faq-btn" aria-expanded="false" onclick="toggleFaq(this)">
                         <span class="faq-q">Berapa lama estimasi pengiriman?</span>
-                        <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                        </svg>
+                        <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                     </button>
-                    <div class="faq-body">
-                        <p><strong>1–2 hari kerja</strong> setelah pembayaran dikonfirmasi. Untuk area tertentu, pesanan sebelum pukul 12.00 WIB dapat tiba di hari yang sama.</p>
-                    </div>
+                    <div class="faq-body"><p><strong>1–2 hari kerja</strong> setelah pembayaran dikonfirmasi. Untuk area tertentu, pesanan sebelum pukul 12.00 WIB dapat tiba di hari yang sama.</p></div>
                 </div>
-
                 <div class="faq-item">
                     <button class="faq-btn" aria-expanded="false" onclick="toggleFaq(this)">
                         <span class="faq-q">Bisakah saya mengubah atau membatalkan pesanan?</span>
-                        <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                        </svg>
+                        <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                     </button>
-                    <div class="faq-body">
-                        <p>Bisa, selama pesanan <strong>belum diproses</strong> (biasanya dalam 1 jam setelah pemesanan). Hubungi kami via WhatsApp <strong>0899-3370-200</strong> segera.</p>
-                    </div>
+                    <div class="faq-body"><p>Bisa, selama pesanan <strong>belum diproses</strong> (biasanya dalam 1 jam). Hubungi kami via WhatsApp <strong>0899-3370-200</strong> segera.</p></div>
                 </div>
-
                 <div class="faq-item">
                     <button class="faq-btn" aria-expanded="false" onclick="toggleFaq(this)">
                         <span class="faq-q">Bagaimana cara melacak status pesanan?</span>
-                        <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                        </svg>
+                        <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                     </button>
-                    <div class="faq-body">
-                        <p>Notifikasi status pesanan dikirim otomatis via <strong>WhatsApp</strong>. Anda juga dapat melihat riwayat pesanan di halaman <strong>Akun</strong>.</p>
-                    </div>
+                    <div class="faq-body"><p>Notifikasi status pesanan dikirim otomatis via <strong>WhatsApp</strong>. Anda juga dapat melihat riwayat pesanan di halaman <strong>Akun</strong>.</p></div>
                 </div>
-
                 <div class="faq-item">
                     <button class="faq-btn" aria-expanded="false" onclick="toggleFaq(this)">
                         <span class="faq-q">Apakah ada minimum pembelian?</span>
-                        <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                        </svg>
+                        <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                     </button>
-                    <div class="faq-body">
-                        <p>Tidak ada minimum untuk produk eceran. Untuk <strong>harga grosir</strong>, ketentuan jumlah minimum tertera langsung di halaman produk.</p>
-                    </div>
+                    <div class="faq-body"><p>Tidak ada minimum untuk produk eceran. Untuk <strong>harga grosir</strong>, ketentuan jumlah minimum tertera langsung di halaman produk.</p></div>
                 </div>
-
                 <div class="faq-item">
                     <button class="faq-btn" aria-expanded="false" onclick="toggleFaq(this)">
                         <span class="faq-q">Bagaimana jika produk yang diterima rusak atau tidak sesuai?</span>
-                        <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                        </svg>
+                        <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                     </button>
-                    <div class="faq-body">
-                        <p>Hubungi kami via WhatsApp dalam <strong>24 jam setelah penerimaan</strong> dengan foto produk. Kami akan mengganti atau mengembalikan dana Anda sepenuhnya.</p>
-                    </div>
+                    <div class="faq-body"><p>Hubungi kami via WhatsApp dalam <strong>24 jam setelah penerimaan</strong> dengan foto produk. Kami akan mengganti atau mengembalikan dana Anda sepenuhnya.</p></div>
                 </div>
-
             </div>
-        </section>
+        </div>
 
         <!-- ── CTA ── -->
-        <div class="cta-wrap" role="complementary">
+        <div class="cta-wrap">
             <h2>Siap Mulai Belanja?</h2>
             <p>Dapatkan sembako segar berkualitas, langsung dikirim ke rumah Anda.</p>
             <div class="cta-btns">
-                <a href="index.html" class="btn-white" aria-label="Belanja sekarang">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
+                <a href="index.html" class="btn-white">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                     Belanja Sekarang
                 </a>
-                <a href="https://wa.me/628993370200" target="_blank" rel="noopener noreferrer" class="btn-wa" aria-label="Tanya via WhatsApp">
-                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
+                <a href="https://wa.me/628993370200" target="_blank" rel="noopener noreferrer" class="btn-wa">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                     Tanya via WhatsApp
                 </a>
             </div>
