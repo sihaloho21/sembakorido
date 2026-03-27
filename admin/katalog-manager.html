@@ -640,17 +640,41 @@
         setTimeout(function () { t.classList.remove('show'); }, 3500);
     }
 
+    // ===== HELPERS GET =====
+    function getAdminToken() {
+        if (typeof GASActions !== 'undefined' && typeof GASActions.getAdminToken === 'function') {
+            var t = String(GASActions.getAdminToken() || '').trim();
+            if (t) return t;
+        }
+        var keys = ['sembako_admin_api_token','sembako_admin_write_token','sembako_admin_token','admin_token','api_token','sembako_api_token','gos_admin_token','gos_api_token'];
+        for (var i = 0; i < keys.length; i++) {
+            var v = String(sessionStorage.getItem(keys[i]) || localStorage.getItem(keys[i]) || '').trim();
+            if (v) return v;
+        }
+        return '';
+    }
+    function buildGetUrl(sheetName) {
+        var apiUrl = (typeof CONFIG !== 'undefined' && CONFIG.getAdminApiUrl) ? CONFIG.getAdminApiUrl() : '';
+        var params = new URLSearchParams({ sheet: sheetName });
+        var token = getAdminToken();
+        if (token) params.set('token', token);
+        return apiUrl + '?' + params.toString();
+    }
+    async function fetchSheetRows(sheetName) {
+        var response = await fetch(buildGetUrl(sheetName));
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        var payload = await response.json();
+        if (payload && typeof payload === 'object' && !Array.isArray(payload) && payload.error) {
+            throw new Error(String(payload.message || payload.error));
+        }
+        return Array.isArray(payload) ? payload : [];
+    }
     // ===== LOAD DATA =====
     async function loadCatalogs() {
         try {
-            var res = await GASActions.get(SHEET);
-            if (res && res.data) {
-                allCatalogs = res.data;
-            } else {
-                allCatalogs = [];
-            }
+            allCatalogs = await fetchSheetRows(SHEET);
         } catch (e) {
-            console.warn('Gagal memuat dari GAS, menggunakan data lokal:', e);
+            console.warn('Gagal memuat dari GAS:', e);
             allCatalogs = [];
         }
         updateStats();
