@@ -2163,11 +2163,11 @@
     <script>
         (function () {
             function scrollToKatalog() {
-                const katalog = document.getElementById('katalog');
-                if (!katalog) return;
+                const target = document.getElementById('product-grid') || document.getElementById('katalog');
+                if (!target) return;
                 const headerEl = document.getElementById('main-header');
                 const headerHeight = headerEl ? headerEl.offsetHeight : 72;
-                const top = katalog.getBoundingClientRect().top + window.pageYOffset - headerHeight - 12;
+                const top = target.getBoundingClientRect().top + window.pageYOffset - headerHeight - 16;
                 window.scrollTo({ top: top, behavior: 'smooth' });
             }
 
