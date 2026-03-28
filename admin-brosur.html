@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Brosur – GoSembako Admin</title>
+    <link rel="icon" href="assets/img/logo.webp" type="image/webp">
+    <link rel="stylesheet" href="assets/css/tailwind.min.css">
+    <script src="assets/js/config.js"></script>
+    <style>
+        :root {
+            --brand: #128052;
+            --brand-dark: #0b5f42;
+            --brand-soft: #e7f8ef;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; }
+
+        /* ── PIN SCREEN ── */
+        #pin-screen {
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #0b5f42 0%, #128052 50%, #1d4ed8 100%);
+        }
+        .pin-card {
+            background: #fff; border-radius: 1.5rem;
+            padding: 2.5rem 2rem; width: 100%; max-width: 360px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+            text-align: center;
+        }
+        .pin-input {
+            letter-spacing: 0.5em; font-size: 1.5rem; font-weight: 700;
+            text-align: center; border: 2px solid #e5e7eb;
+            border-radius: 0.75rem; padding: 0.75rem 1rem;
+            width: 100%; outline: none; transition: border-color 0.2s;
+        }
+        .pin-input:focus { border-color: var(--brand); }
+        .pin-btn {
+            width: 100%; padding: 0.85rem;
+            background: linear-gradient(135deg, var(--brand-dark), var(--brand));
+            color: #fff; font-weight: 700; border-radius: 0.75rem;
+            border: none; cursor: pointer; font-size: 1rem;
+            transition: opacity 0.2s; margin-top: 1rem;
+        }
+        .pin-btn:hover { opacity: 0.88; }
+        .pin-error { color: #dc2626; font-size: 0.82rem; margin-top: 0.5rem; min-height: 1.2em; }
+
+        /* ── MAIN APP ── */
+        #app { display: none; }
+        .topbar {
+            background: linear-gradient(135deg, var(--brand-dark), var(--brand));
+            color: #fff; padding: 0 1.25rem; height: 60px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 40;
+            box-shadow: 0 4px 16px rgba(11,95,66,0.18);
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 0.625rem; }
+        .topbar-brand img { height: 36px; }
+        .topbar-brand span { font-size: 1rem; font-weight: 800; }
+        .topbar-actions { display: flex; align-items: center; gap: 0.5rem; }
+        .btn-logout {
+            font-size: 0.75rem; font-weight: 700; padding: 0.4rem 0.875rem;
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 0.5rem; color: #fff; cursor: pointer; transition: background 0.2s;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.25); }
+
+        /* ── LAYOUT ── */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 1.25rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.25rem;
+        }
+        @media (max-width: 1024px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+
+        /* ── CARDS ── */
+        .card {
+            background: #fff; border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 12px rgba(15,23,42,0.05);
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 1rem 1.25rem; border-bottom: 1px solid #f1f5f9;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .card-title { font-size: 0.9rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; }
+        .card-body { padding: 1.25rem; }
+
+        /* ── STEP INDICATOR ── */
+        .steps { display: flex; gap: 0; margin-bottom: 1.25rem; }
+        .step {
+            flex: 1; padding: 0.625rem 0.5rem; text-align: center;
+            font-size: 0.72rem; font-weight: 700; color: #94a3b8;
+            border-bottom: 3px solid #e2e8f0;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .step.active { color: var(--brand); border-color: var(--brand); }
+        .step.done { color: #22c55e; border-color: #22c55e; }
+        .step-num {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: #e2e8f0; color: #64748b; font-size: 0.65rem; font-weight: 900;
+            margin-right: 0.25rem;
+        }
+        .step.active .step-num { background: var(--brand); color: #fff; }
+        .step.done .step-num { background: #22c55e; color: #fff; }
+
+        /* ── TEMPLATE PICKER ── */
+        .template-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+        .template-card {
+            border: 2px solid #e2e8f0; border-radius: 0.875rem;
+            padding: 0.875rem 0.5rem; text-align: center; cursor: pointer;
+            transition: all 0.2s; background: #f8fafc;
+        }
+        .template-card:hover { border-color: var(--brand); background: var(--brand-soft); }
+        .template-card.selected { border-color: var(--brand); background: var(--brand-soft); }
+        .template-card.selected .template-icon { color: var(--brand); }
+        .template-icon { font-size: 1.75rem; margin-bottom: 0.375rem; }
+        .template-name { font-size: 0.72rem; font-weight: 800; color: #374151; }
+        .template-desc { font-size: 0.65rem; color: #6b7280; margin-top: 0.125rem; }
+
+        /* ── PRODUCT SEARCH ── */
+        .search-input {
+            width: 100%; padding: 0.625rem 0.875rem;
+            border: 1.5px solid #e2e8f0; border-radius: 0.625rem;
+            font-size: 0.82rem; outline: none; transition: border-color 0.2s;
+        }
+        .search-input:focus { border-color: var(--brand); }
+
+        /* ── PRODUCT LIST ── */
+        .product-list { max-height: 320px; overflow-y: auto; }
+        .product-item {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.625rem 0.75rem; border-radius: 0.625rem;
+            cursor: pointer; transition: background 0.15s;
+            border: 1.5px solid transparent;
+        }
+        .product-item:hover { background: #f8fafc; }
+        .product-item.selected { background: var(--brand-soft); border-color: var(--brand); }
+        .product-item img {
+            width: 44px; height: 44px; object-fit: cover;
+            border-radius: 0.5rem; flex-shrink: 0;
+            background: #f1f5f9;
+        }
+        .product-item-info { flex: 1; min-width: 0; }
+        .product-item-name { font-size: 0.78rem; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .product-item-price { font-size: 0.7rem; color: var(--brand); font-weight: 700; }
+        .product-item-check {
+            width: 20px; height: 20px; border-radius: 50%;
+            border: 2px solid #d1d5db; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s;
+        }
+        .product-item.selected .product-item-check {
+            background: var(--brand); border-color: var(--brand); color: #fff;
+        }
+
+        /* ── SELECTED PRODUCTS (CRUD) ── */
+        .selected-products { display: flex; flex-direction: column; gap: 0.625rem; }
+        .selected-product-card {
+            border: 1.5px solid #e2e8f0; border-radius: 0.75rem;
+            padding: 0.75rem; background: #f8fafc;
+        }
+        .selected-product-card .prod-header {
+            display: flex; align-items: center; gap: 0.625rem; margin-bottom: 0.625rem;
+        }
+        .selected-product-card img { width: 40px; height: 40px; object-fit: cover; border-radius: 0.5rem; }
+        .selected-product-card .prod-name { font-size: 0.78rem; font-weight: 700; flex: 1; }
+        .btn-remove-prod {
+            width: 24px; height: 24px; border-radius: 50%;
+            background: #fee2e2; color: #dc2626; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 0.75rem;
+            transition: background 0.15s; flex-shrink: 0;
+        }
+        .btn-remove-prod:hover { background: #fca5a5; }
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .field-row.full { grid-template-columns: 1fr; }
+        .field-label { font-size: 0.68rem; font-weight: 700; color: #64748b; margin-bottom: 0.2rem; }
+        .field-input {
+            width: 100%; padding: 0.4rem 0.625rem;
+            border: 1.5px solid #e2e8f0; border-radius: 0.5rem;
+            font-size: 0.75rem; outline: none; transition: border-color 0.2s;
+            background: #fff;
+        }
+        .field-input:focus { border-color: var(--brand); }
+
+        /* ── CUSTOMIZATION ── */
+        .custom-section { margin-bottom: 1rem; }
+        .custom-label { font-size: 0.78rem; font-weight: 700; color: #374151; margin-bottom: 0.375rem; display: block; }
+        .color-swatches { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .color-swatch {
+            width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+            border: 3px solid transparent; transition: all 0.15s;
+        }
+        .color-swatch.selected { border-color: #1e293b; transform: scale(1.15); }
+
+        /* ── PREVIEW PANEL ── */
+        .preview-panel { position: sticky; top: 76px; }
+        .preview-wrap {
+            width: 100%; aspect-ratio: 1/1;
+            background: #f1f5f9; border-radius: 0.875rem;
+            overflow: hidden; position: relative;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .preview-wrap.portrait { aspect-ratio: 4/5; }
+        #brosur-canvas {
+            max-width: 100%; max-height: 100%;
+            display: block;
+        }
+        .preview-placeholder {
+            text-align: center; color: #94a3b8;
+            font-size: 0.82rem; padding: 2rem;
+        }
+
+        /* ── ACTION BUTTONS ── */
+        .btn-primary {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.75rem 1.25rem; border-radius: 0.75rem;
+            background: linear-gradient(135deg, var(--brand-dark), var(--brand));
+            color: #fff; font-weight: 700; font-size: 0.85rem;
+            border: none; cursor: pointer; transition: opacity 0.2s;
+        }
+        .btn-primary:hover { opacity: 0.88; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.75rem 1.25rem; border-radius: 0.75rem;
+            background: #fff; color: #374151; font-weight: 700; font-size: 0.85rem;
+            border: 1.5px solid #e2e8f0; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-secondary:hover { border-color: var(--brand); color: var(--brand); }
+        .btn-wa {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.75rem 1.25rem; border-radius: 0.75rem;
+            background: #25d366; color: #fff; font-weight: 700; font-size: 0.85rem;
+            border: none; cursor: pointer; transition: opacity 0.2s; text-decoration: none;
+        }
+        .btn-wa:hover { opacity: 0.88; }
+
+        /* ── TOAST ── */
+        #toast {
+            position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+            background: #1e293b; color: #fff; padding: 0.75rem 1.5rem;
+            border-radius: 999px; font-size: 0.82rem; font-weight: 600;
+            z-index: 9999; opacity: 0; transition: opacity 0.3s;
+            pointer-events: none; white-space: nowrap;
+        }
+        #toast.show { opacity: 1; }
+
+        /* ── LOADING ── */
+        .spinner {
+            width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,0.3);
+            border-top-color: #fff; border-radius: 50%;
+            animation: spin 0.7s linear infinite; display: inline-block;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── BADGE PRESETS ── */
+        .badge-presets { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+        .badge-preset {
+            font-size: 0.68rem; font-weight: 700; padding: 0.25rem 0.625rem;
+            border-radius: 999px; cursor: pointer; border: 1.5px solid;
+            transition: all 0.15s;
+        }
+
+        /* ── EMPTY STATE ── */
+        .empty-state { text-align: center; padding: 2rem 1rem; color: #94a3b8; }
+        .empty-state svg { width: 48px; height: 48px; margin: 0 auto 0.75rem; opacity: 0.4; }
+
+        /* ── LIMIT BADGE ── */
+        .limit-badge {
+            font-size: 0.68rem; font-weight: 700; padding: 0.2rem 0.5rem;
+            border-radius: 999px; background: #fee2e2; color: #dc2626;
+        }
+        .limit-badge.ok { background: #dcfce7; color: #16a34a; }
+
+        /* Scrollbar */
+        .product-list::-webkit-scrollbar { width: 4px; }
+        .product-list::-webkit-scrollbar-track { background: #f1f5f9; }
+        .product-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     PIN SCREEN
+══════════════════════════════════════════════ -->
+<div id="pin-screen">
+    <div class="pin-card">
+        <img src="assets/img/logo.webp" alt="GoSembako" style="height:52px;margin:0 auto 1rem;" onerror="this.style.display='none'">
+        <h1 style="font-size:1.2rem;font-weight:900;color:#0f172a;margin-bottom:0.25rem;">Generator Brosur</h1>
+        <p style="font-size:0.8rem;color:#6b7280;margin-bottom:1.5rem;">Masukkan PIN Admin untuk melanjutkan</p>
+        <input type="password" id="pin-input" class="pin-input" placeholder="••••••" maxlength="8"
+               autocomplete="current-password" inputmode="numeric">
+        <p id="pin-error" class="pin-error"></p>
+        <button class="pin-btn" id="pin-submit-btn" onclick="checkPin()">
+            <span id="pin-btn-text">Masuk</span>
+        </button>
+        <p style="font-size:0.72rem;color:#94a3b8;margin-top:1rem;">
+            <a href="index.html" style="color:#128052;font-weight:600;">← Kembali ke Beranda</a>
+        </p>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════════ -->
+<div id="app">
+    <!-- Topbar -->
+    <header class="topbar">
+        <div class="topbar-brand">
+            <img src="assets/img/logo.webp" alt="GoSembako" onerror="this.style.display='none'">
+            <span>Generator Brosur</span>
+        </div>
+        <div class="topbar-actions">
+            <a href="index.html" class="btn-logout">← Beranda</a>
+            <button class="btn-logout" onclick="logout()">Keluar</button>
+        </div>
+    </header>
+
+    <div class="main-layout">
+
+        <!-- ── LEFT COLUMN: Editor ── -->
+        <div>
+            <!-- Step Indicator -->
+            <div class="steps" id="step-indicator">
+                <div class="step active" data-step="1" onclick="goToStep(1)">
+                    <span class="step-num">1</span>Template
+                </div>
+                <div class="step" data-step="2" onclick="goToStep(2)">
+                    <span class="step-num">2</span>Produk
+                </div>
+                <div class="step" data-step="3" onclick="goToStep(3)">
+                    <span class="step-num">3</span>Kustomisasi
+                </div>
+                <div class="step" data-step="4" onclick="goToStep(4)">
+                    <span class="step-num">4</span>Export
+                </div>
+            </div>
+
+            <!-- ── STEP 1: Template ── -->
+            <div id="step-1" class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+                        Pilih Template Brosur
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="template-grid">
+                        <div class="template-card selected" data-template="featured" onclick="selectTemplate('featured')">
+                            <div class="template-icon">🌟</div>
+                            <div class="template-name">1 Produk</div>
+                            <div class="template-desc">Featured utama</div>
+                        </div>
+                        <div class="template-card" data-template="grid4" onclick="selectTemplate('grid4')">
+                            <div class="template-icon">⊞</div>
+                            <div class="template-name">Grid 4</div>
+                            <div class="template-desc">2×2 produk</div>
+                        </div>
+                        <div class="template-card" data-template="grid6" onclick="selectTemplate('grid6')">
+                            <div class="template-icon">⊟</div>
+                            <div class="template-name">Grid 6</div>
+                            <div class="template-desc">2×3 produk</div>
+                        </div>
+                    </div>
+                    <div style="margin-top:1.25rem;text-align:right;">
+                        <button class="btn-primary" onclick="goToStep(2)">
+                            Pilih Produk
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── STEP 2: Produk ── -->
+            <div id="step-2" class="card" style="display:none;">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 10V7"/></svg>
+                        Pilih &amp; Edit Produk
+                    </span>
+                    <span class="limit-badge ok" id="slot-counter">0 / 1 slot</span>
+                </div>
+                <div class="card-body">
+                    <!-- Search -->
+                    <div style="position:relative;margin-bottom:0.75rem;">
+                        <svg style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#94a3b8;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+                        <input type="text" id="product-search" class="search-input" style="padding-left:2.25rem;" placeholder="Cari nama produk..." oninput="filterProductList()">
+                    </div>
+
+                    <!-- Loading -->
+                    <div id="product-loading" style="text-align:center;padding:2rem;color:#94a3b8;font-size:0.82rem;">
+                        <div class="spinner" style="border-color:rgba(18,128,82,0.2);border-top-color:#128052;margin:0 auto 0.5rem;"></div>
+                        Memuat produk...
+                    </div>
+
+                    <!-- Product List -->
+                    <div id="product-list-wrap" class="product-list" style="display:none;"></div>
+
+                    <!-- Selected Products CRUD -->
+                    <div id="selected-products-section" style="display:none;margin-top:1.25rem;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                            <span style="font-size:0.82rem;font-weight:800;color:#0f172a;">Edit Detail Produk Terpilih</span>
+                        </div>
+                        <div id="selected-products-list" class="selected-products"></div>
+                    </div>
+
+                    <div style="display:flex;gap:0.625rem;margin-top:1.25rem;justify-content:space-between;">
+                        <button class="btn-secondary" onclick="goToStep(1)">← Kembali</button>
+                        <button class="btn-primary" id="step2-next-btn" onclick="goToStep(3)" disabled>
+                            Kustomisasi
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── STEP 3: Kustomisasi ── -->
+            <div id="step-3" class="card" style="display:none;">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+                        Kustomisasi Brosur
+                    </span>
+                </div>
+                <div class="card-body">
+                    <!-- Warna Tema -->
+                    <div class="custom-section">
+                        <label class="custom-label">🎨 Warna Tema</label>
+                        <div class="color-swatches" id="color-swatches">
+                            <div class="color-swatch selected" style="background:linear-gradient(135deg,#128052,#1d4ed8);" data-theme="green-blue" onclick="selectTheme(this,'green-blue')" title="Hijau-Biru (Default)"></div>
+                            <div class="color-swatch" style="background:linear-gradient(135deg,#dc2626,#f97316);" data-theme="red-orange" onclick="selectTheme(this,'red-orange')" title="Merah-Oranye (Promo Panas)"></div>
+                            <div class="color-swatch" style="background:linear-gradient(135deg,#7c3aed,#ec4899);" data-theme="purple-pink" onclick="selectTheme(this,'purple-pink')" title="Ungu-Pink (Premium)"></div>
+                            <div class="color-swatch" style="background:linear-gradient(135deg,#0369a1,#06b6d4);" data-theme="blue-cyan" onclick="selectTheme(this,'blue-cyan')" title="Biru-Cyan (Segar)"></div>
+                            <div class="color-swatch" style="background:linear-gradient(135deg,#d97706,#fbbf24);" data-theme="amber" onclick="selectTheme(this,'amber')" title="Amber (Hangat)"></div>
+                            <div class="color-swatch" style="background:linear-gradient(135deg,#1e293b,#475569);" data-theme="dark" onclick="selectTheme(this,'dark')" title="Gelap (Elegan)"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tanggal Promo -->
+                    <div class="custom-section">
+                        <label class="custom-label" for="promo-date">📅 Tanggal Promo Berlaku</label>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                            <div>
+                                <div class="field-label">Mulai</div>
+                                <input type="date" id="promo-date-start" class="field-input" onchange="schedulePreview()">
+                            </div>
+                            <div>
+                                <div class="field-label">Berakhir</div>
+                                <input type="date" id="promo-date-end" class="field-input" onchange="schedulePreview()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Teks CTA -->
+                    <div class="custom-section">
+                        <label class="custom-label" for="cta-text">📣 Teks CTA</label>
+                        <input type="text" id="cta-text" class="field-input" value="Pesan Sekarang! Stok Terbatas 🔥" maxlength="60" oninput="schedulePreview()">
+                        <div style="font-size:0.65rem;color:#94a3b8;margin-top:0.25rem;">Maks. 60 karakter</div>
+                    </div>
+
+                    <!-- Nomor WA -->
+                    <div class="custom-section">
+                        <label class="custom-label" for="wa-number">📱 Nomor WhatsApp</label>
+                        <input type="text" id="wa-number" class="field-input" value="0899-3370-200" oninput="schedulePreview()">
+                    </div>
+
+                    <!-- Watermark -->
+                    <div class="custom-section">
+                        <label class="custom-label">💧 Watermark / Stempel</label>
+                        <div style="display:flex;align-items:center;gap:0.75rem;">
+                            <label style="display:flex;align-items:center;gap:0.375rem;cursor:pointer;font-size:0.8rem;">
+                                <input type="checkbox" id="show-watermark" checked onchange="schedulePreview()" style="accent-color:var(--brand);">
+                                Tampilkan watermark
+                            </label>
+                            <select id="watermark-pos" class="field-input" style="width:auto;flex:1;" onchange="schedulePreview()">
+                                <option value="br">Kanan Bawah</option>
+                                <option value="bl">Kiri Bawah</option>
+                                <option value="tr">Kanan Atas</option>
+                                <option value="tl">Kiri Atas</option>
+                                <option value="center">Tengah</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:0.625rem;margin-top:1.25rem;justify-content:space-between;">
+                        <button class="btn-secondary" onclick="goToStep(2)">← Kembali</button>
+                        <button class="btn-primary" onclick="generateBrosur()">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Generate Brosur
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── STEP 4: Export ── -->
+            <div id="step-4" class="card" style="display:none;">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        Download &amp; Bagikan
+                    </span>
+                </div>
+                <div class="card-body">
+                    <p style="font-size:0.82rem;color:#6b7280;margin-bottom:1.25rem;">Brosur siap! Download sebagai gambar PNG atau bagikan langsung via WhatsApp.</p>
+                    <div style="display:flex;flex-wrap:wrap;gap:0.75rem;">
+                        <button class="btn-primary" id="download-btn" onclick="downloadBrosur()">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Download PNG
+                        </button>
+                        <button class="btn-wa" id="share-wa-btn" onclick="shareWhatsApp()">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                            Share WhatsApp
+                        </button>
+                        <button class="btn-secondary" onclick="goToStep(3)">← Edit Ulang</button>
+                    </div>
+                    <div style="margin-top:1rem;padding:0.75rem;background:#f8fafc;border-radius:0.625rem;border:1px solid #e2e8f0;">
+                        <p style="font-size:0.72rem;color:#64748b;font-weight:600;">💡 Tips: Untuk Share WhatsApp, gambar akan didownload terlebih dahulu. Kemudian lampirkan gambar tersebut di chat WhatsApp Anda.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── RIGHT COLUMN: Preview ── -->
+        <div class="preview-panel">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        Preview Brosur
+                    </span>
+                    <span id="preview-size-label" style="font-size:0.68rem;color:#94a3b8;font-weight:600;">1080×1080 px</span>
+                </div>
+                <div class="card-body" style="padding:0.75rem;">
+                    <div class="preview-wrap" id="preview-wrap">
+                        <div class="preview-placeholder" id="preview-placeholder">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:48px;height:48px;margin:0 auto 0.75rem;opacity:0.3;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <p>Preview brosur akan<br>muncul di sini</p>
+                        </div>
+                        <canvas id="brosur-canvas" style="display:none;"></canvas>
+                    </div>
+                    <div id="generating-indicator" style="display:none;text-align:center;padding:0.75rem;font-size:0.78rem;color:#128052;font-weight:600;">
+                        <div class="spinner" style="border-color:rgba(18,128,82,0.2);border-top-color:#128052;margin:0 auto 0.375rem;"></div>
+                        Membuat brosur...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Hidden canvas for export -->
+<canvas id="export-canvas" style="display:none;"></canvas>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/brosur.js"></script>
+</body>
+</html>
