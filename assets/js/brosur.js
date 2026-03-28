@@ -9,6 +9,8 @@
    CONSTANTS & STATE
 ══════════════════════════════════════════ */
 const BROSUR_PIN_KEY = 'gosembako_brosur_pin_ok';
+const BROSUR_DRAFTS_KEY = 'gosembako_brosur_drafts'; // localStorage key untuk draft list
+const BROSUR_MAX_DRAFTS = 10; // maksimal draft tersimpan
 const BROSUR_PIN_CORRECT = '082625'; // PIN default — bisa diganti
 const CANVAS_SIZE = { w: 1080, h: 1080 };
 const CANVAS_SIZE_PORTRAIT = { w: 1080, h: 1350 };
@@ -99,8 +101,10 @@ function checkPin() {
 function showApp() {
     state.authed = true;
     document.getElementById('pin-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
+    document.getElementById('app-screen').style.display = 'block';
     loadProducts();
+    // Update badge draft saat app pertama kali tampil
+    setTimeout(updateDraftBadge, 100);
 }
 
 function logout() {
@@ -1292,6 +1296,245 @@ function shareWhatsApp() {
     setTimeout(() => {
         window.open(`https://wa.me/?text=${msg}`, '_blank');
     }, 600);
+}
+
+/* ══════════════════════════════════════════
+   DRAFT MANAGEMENT
+══════════════════════════════════════════ */
+
+/** Ambil semua draft dari localStorage */
+function getAllDrafts() {
+    try {
+        return JSON.parse(localStorage.getItem(BROSUR_DRAFTS_KEY) || '[]');
+    } catch { return []; }
+}
+
+/** Simpan draft baru atau update yang sudah ada */
+function saveDraft(customName = '') {
+    // Sinkronkan state dari form
+    schedulePreview();
+
+    const name = customName.trim() ||
+        `Draft ${new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })} ${new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' })}`;
+
+    // Buat snapshot state yang bisa di-serialize
+    const snapshot = {
+        id: Date.now().toString(),
+        name,
+        savedAt: new Date().toISOString(),
+        template: state.template,
+        theme: state.theme,
+        promoStart: state.promoStart,
+        promoEnd: state.promoEnd,
+        ctaText: state.ctaText,
+        waNumber: state.waNumber,
+        showWatermark: state.showWatermark,
+        watermarkPos: state.watermarkPos,
+        // Simpan produk terpilih beserta semua override
+        // Catatan: _gambarDataUrl (base64) bisa besar, simpan hanya jika ada
+        selected: state.selected.map(p => ({
+            id: p.id,
+            nama: p.nama,
+            harga: p.harga,
+            hargaCoret: p.hargaCoret,
+            gambar: p.gambar,
+            deskripsi: p.deskripsi,
+            kategori: p.kategori,
+            badge: p.badge,
+            minOrder: p.minOrder,
+            rewardPoin: p.rewardPoin,
+            _nama: p._nama || '',
+            _harga: p._harga || '',
+            _hargaCoret: p._hargaCoret || '',
+            _deskripsi: p._deskripsi || '',
+            _badge: p._badge || '',
+            _minOrder: p._minOrder || '',
+            _rewardPoin: p._rewardPoin || '',
+            _gambar: p._gambar || '',
+            _gambarDataUrl: p._gambarDataUrl || '' // base64 jika ada upload manual
+        }))
+    };
+
+    const drafts = getAllDrafts();
+
+    // Cek apakah sudah penuh
+    if (drafts.length >= BROSUR_MAX_DRAFTS) {
+        // Hapus draft terlama
+        drafts.sort((a, b) => new Date(a.savedAt) - new Date(b.savedAt));
+        drafts.shift();
+    }
+
+    drafts.push(snapshot);
+
+    try {
+        localStorage.setItem(BROSUR_DRAFTS_KEY, JSON.stringify(drafts));
+        showToast(`Draft "${name}" berhasil disimpan! 💾`);
+        renderDraftList();
+        // Tutup modal setelah simpan
+        closeDraftModal();
+    } catch (e) {
+        // localStorage mungkin penuh karena base64 gambar
+        // Coba simpan tanpa gambar upload
+        const snapshotNoImg = { ...snapshot, selected: snapshot.selected.map(p => ({ ...p, _gambarDataUrl: '' })) };
+        const draftsNoImg = getAllDrafts();
+        if (draftsNoImg.length >= BROSUR_MAX_DRAFTS) { draftsNoImg.sort((a,b) => new Date(a.savedAt)-new Date(b.savedAt)); draftsNoImg.shift(); }
+        draftsNoImg.push(snapshotNoImg);
+        try {
+            localStorage.setItem(BROSUR_DRAFTS_KEY, JSON.stringify(draftsNoImg));
+            showToast(`Draft disimpan (tanpa gambar upload karena storage penuh). 💾`);
+            renderDraftList();
+            closeDraftModal();
+        } catch {
+            showToast('Gagal menyimpan draft. Storage penuh.', 3500);
+        }
+    }
+}
+
+/** Muat draft ke state */
+function loadDraft(id) {
+    const drafts = getAllDrafts();
+    const draft = drafts.find(d => d.id === id);
+    if (!draft) { showToast('Draft tidak ditemukan.'); return; }
+
+    // Restore state
+    state.template  = draft.template  || 'featured';
+    state.theme     = draft.theme     || 'green-blue';
+    state.promoStart = draft.promoStart || '';
+    state.promoEnd   = draft.promoEnd   || '';
+    state.ctaText    = draft.ctaText    || '';
+    state.waNumber   = draft.waNumber   || '';
+    state.showWatermark = draft.showWatermark !== false;
+    state.watermarkPos  = draft.watermarkPos  || 'br';
+    state.selected   = draft.selected  || [];
+
+    // Update UI form
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    setVal('promo-date-start', state.promoStart);
+    setVal('promo-date-end',   state.promoEnd);
+    setVal('cta-text',         state.ctaText);
+    setVal('wa-number',        state.waNumber);
+    const wmEl = document.getElementById('show-watermark');
+    if (wmEl) wmEl.checked = state.showWatermark;
+    const wmPos = document.getElementById('watermark-pos');
+    if (wmPos) wmPos.value = state.watermarkPos;
+
+    // Update template selection UI
+    selectTemplate(state.template);
+
+    // Update theme selection UI
+    document.querySelectorAll('.color-swatch').forEach(s => {
+        s.classList.toggle('selected', s.dataset.theme === state.theme);
+    });
+
+    // Re-render produk terpilih
+    updateSlotCounter();
+    renderSelectedProducts();
+    schedulePreview();
+
+    closeDraftModal();
+    showToast(`Draft "${draft.name}" berhasil dimuat! 📂`);
+
+    // Navigasi ke step yang sesuai
+    if (state.selected.length > 0) {
+        goToStep(2);
+    } else {
+        goToStep(1);
+    }
+}
+
+/** Hapus draft */
+function deleteDraft(id) {
+    const drafts = getAllDrafts().filter(d => d.id !== id);
+    localStorage.setItem(BROSUR_DRAFTS_KEY, JSON.stringify(drafts));
+    renderDraftList();
+    showToast('Draft dihapus.');
+}
+
+/** Update angka badge di tombol Draft header */
+function updateDraftBadge() {
+    const badge = document.getElementById('draft-badge');
+    if (!badge) return;
+    const count = getAllDrafts().length;
+    badge.textContent = count;
+    badge.dataset.count = count;
+    badge.style.display = count > 0 ? 'inline-block' : 'none';
+}
+
+/** Render daftar draft di modal */
+function renderDraftList() {
+    const list = document.getElementById('draft-list');
+    const emptyMsg = document.getElementById('draft-empty-msg');
+    const countEl = document.getElementById('draft-count');
+    if (!list) return;
+    updateDraftBadge();
+
+    const drafts = getAllDrafts().sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+
+    if (countEl) countEl.textContent = `${drafts.length}/${BROSUR_MAX_DRAFTS}`;
+
+    if (!drafts.length) {
+        list.innerHTML = '';
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+    }
+    if (emptyMsg) emptyMsg.style.display = 'none';
+
+    const templateIcons = { featured: '🌟', grid4: '⊞', grid6: '⊟', lottemart: '📰' };
+    const templateNames = { featured: '1 Produk', grid4: 'Grid 4', grid6: 'Grid 6', lottemart: 'Katalog' };
+    const themeColors = {
+        'green-blue': '#128052', 'red-orange': '#dc2626', 'purple-pink': '#7c3aed',
+        'blue-cyan': '#0369a1', 'amber': '#d97706', 'dark': '#1e293b'
+    };
+
+    list.innerHTML = drafts.map(d => {
+        const savedDate = new Date(d.savedAt).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        const prodCount = (d.selected || []).length;
+        const icon = templateIcons[d.template] || '📄';
+        const tName = templateNames[d.template] || d.template;
+        const color = themeColors[d.theme] || '#128052';
+        return `
+        <div class="draft-item" data-id="${d.id}">
+            <div class="draft-item-left">
+                <div class="draft-template-badge" style="background:${color}15;color:${color};border:1px solid ${color}40;">
+                    ${icon} ${tName}
+                </div>
+                <div class="draft-name">${escHtml(d.name)}</div>
+                <div class="draft-meta">${savedDate} &bull; ${prodCount} produk</div>
+            </div>
+            <div class="draft-item-actions">
+                <button class="btn-draft-load" onclick="loadDraft('${d.id}')" title="Muat draft ini">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    Muat
+                </button>
+                <button class="btn-draft-delete" onclick="deleteDraft('${d.id}')" title="Hapus draft">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+/** Buka modal draft */
+function openDraftModal() {
+    renderDraftList();
+    const modal = document.getElementById('draft-modal');
+    if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+}
+
+/** Tutup modal draft */
+function closeDraftModal() {
+    const modal = document.getElementById('draft-modal');
+    if (modal) { modal.style.display = 'none'; document.body.style.overflow = ''; }
+    // Reset input nama
+    const nameInput = document.getElementById('draft-name-input');
+    if (nameInput) nameInput.value = '';
+}
+
+/** Trigger simpan dengan nama dari input */
+function triggerSaveDraft() {
+    const nameInput = document.getElementById('draft-name-input');
+    const name = nameInput ? nameInput.value.trim() : '';
+    saveDraft(name);
 }
 
 /* ══════════════════════════════════════════
