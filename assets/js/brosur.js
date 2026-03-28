@@ -22,7 +22,8 @@ const THEMES = {
     'dark':        { from: '#1e293b', to: '#475569', accent: '#22c55e', text: '#ffffff' }
 };
 
-const TEMPLATE_SLOTS = { featured: 1, grid4: 4, grid6: 6 };
+const TEMPLATE_SLOTS = { featured: 1, grid4: 4, grid6: 6, lottemart: 4 };
+const CANVAS_SIZE_LOTTEMART = { w: 1080, h: 1527 }; // A4 portrait ratio
 
 let state = {
     authed: false,
@@ -356,14 +357,55 @@ function renderSelectedProducts() {
             <div class="field-row full">
                 <div>
                     <div class="field-label">URL Gambar (opsional override)</div>
-                    <input type="text" class="field-input"
+                    <input type="text" class="field-input" id="img-url-${i}"
                            placeholder="${escHtml(p.gambar || 'https://...')}"
                            value="${escHtml(p._gambar || '')}"
                            oninput="updateField(${i},'_gambar',this.value)">
                 </div>
             </div>
+
+            <div class="field-row full">
+                <div>
+                    <div class="field-label">Upload Gambar Manual</div>
+                    <div class="upload-area" id="upload-area-${i}" onclick="document.getElementById('img-upload-${i}').click()">
+                        <input type="file" id="img-upload-${i}" accept="image/*" style="display:none"
+                               onchange="handleImageUpload(${i}, this)">
+                        ${p._gambarDataUrl
+                            ? `<img src="${escHtml(p._gambarDataUrl)}" style="max-height:80px;border-radius:8px;object-fit:contain;">`
+                            : `<div class="upload-placeholder">
+                                <svg width="28" height="28" fill="none" stroke="#94a3b8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <span>Klik untuk upload gambar</span>
+                                <span style="font-size:0.7rem;color:#94a3b8;">JPG, PNG, WEBP (maks. 5MB)</span>
+                               </div>`
+                        }
+                    </div>
+                </div>
+            </div>
         </div>`;
     }).join('');
+}
+
+function handleImageUpload(idx, input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('Ukuran gambar maksimal 5MB.');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        if (state.selected[idx]) {
+            state.selected[idx]._gambarDataUrl = e.target.result;
+            // Jika tidak ada URL override, gunakan dataUrl sebagai gambar
+            if (!state.selected[idx]._gambar) {
+                state.selected[idx]._gambar = e.target.result;
+            }
+            renderSelectedProducts();
+            schedulePreview();
+            showToast('Gambar berhasil diupload! 📸');
+        }
+    };
+    reader.readAsDataURL(file);
 }
 
 function removeProduct(idx) {
@@ -428,10 +470,13 @@ function selectTemplate(t) {
     const previewWrap = document.getElementById('preview-wrap');
     if (t === 'grid6') {
         if (sizeLabel) sizeLabel.textContent = '1080×1350 px';
-        if (previewWrap) previewWrap.classList.add('portrait');
+        if (previewWrap) { previewWrap.classList.add('portrait'); previewWrap.classList.remove('lottemart'); }
+    } else if (t === 'lottemart') {
+        if (sizeLabel) sizeLabel.textContent = '1080×1527 px';
+        if (previewWrap) { previewWrap.classList.add('portrait'); previewWrap.classList.add('lottemart'); }
     } else {
         if (sizeLabel) sizeLabel.textContent = '1080×1080 px';
-        if (previewWrap) previewWrap.classList.remove('portrait');
+        if (previewWrap) { previewWrap.classList.remove('portrait'); previewWrap.classList.remove('lottemart'); }
     }
     schedulePreview();
 }
@@ -505,7 +550,12 @@ async function generateBrosur() {
    CANVAS DRAWING ENGINE
 ══════════════════════════════════════════ */
 async function drawBrosur(canvas, highRes) {
+    const isLottemart = state.template === 'lottemart';
     const isPortrait = state.template === 'grid6';
+    if (isLottemart) {
+        await drawLotteMart(canvas, highRes);
+        return;
+    }
     const size = isPortrait ? CANVAS_SIZE_PORTRAIT : CANVAS_SIZE;
     const scale = highRes ? 1 : 0.4; // preview at 40%
 
@@ -803,6 +853,250 @@ async function drawGridCell(ctx, prod, x, y, w, h, theme) {
 }
 
 /* ══════════════════════════════════════════
+   LOTTE MART STYLE TEMPLATE
+══════════════════════════════════════════ */
+async function drawLotteMart(canvas, highRes) {
+    const W = CANVAS_SIZE_LOTTEMART.w;
+    const H = CANVAS_SIZE_LOTTEMART.h;
+    const scale = highRes ? 1 : 0.35;
+    canvas.width = W * scale;
+    canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+
+    const theme = THEMES[state.theme] || THEMES['green-blue'];
+    const accentColor = theme.from;
+    const accentColor2 = theme.to;
+
+    // ── Background: putih/krem seperti Lotte Mart ──
+    ctx.fillStyle = '#f5f0e8';
+    ctx.fillRect(0, 0, W, H);
+
+    // ── HEADER SECTION ──
+    const headerH = 220;
+    // Header background gradient
+    const hGrad = ctx.createLinearGradient(0, 0, W, headerH);
+    hGrad.addColorStop(0, accentColor);
+    hGrad.addColorStop(1, accentColor2);
+    ctx.fillStyle = hGrad;
+    ctx.fillRect(0, 0, W, headerH);
+
+    // Logo GoSembako (kiri)
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 52px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🛒 GoSembako', 48, 72);
+
+    // Tagline (kiri bawah logo)
+    ctx.font = '400 26px -apple-system, Arial, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText('Belanja Hemat, Kualitas Terjamin', 48, 112);
+
+    // Tanggal promo (kiri)
+    ctx.font = '600 24px -apple-system, Arial, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    const dateStr = formatDateRange(state.promoStart, state.promoEnd);
+    ctx.fillText(`Periode: ${dateStr}`, 48, 150);
+
+    // WA number (kiri)
+    ctx.font = '600 24px -apple-system, Arial, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillText(`📱 ${state.waNumber}`, 48, 185);
+
+    // Dekorasi kanan atas: teks promo besar miring
+    ctx.save();
+    ctx.translate(W - 20, 20);
+    ctx.rotate(-0.08);
+    const promoLines = ['HEMAT', 'LEBIH', 'BANYAK!'];
+    const promoColors = ['#ffffff', 'rgba(255,255,255,0.85)', 'rgba(255,255,255,0.7)'];
+    const promoSizes = [72, 58, 48];
+    let py = 30;
+    for (let i = 0; i < promoLines.length; i++) {
+        ctx.fillStyle = promoColors[i];
+        ctx.font = `900 ${promoSizes[i]}px -apple-system, Arial, sans-serif`;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        // Background strip
+        const tw = ctx.measureText(promoLines[i]).width;
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.fillRect(-tw - 20, py - 4, tw + 20, promoSizes[i] + 8);
+        ctx.fillStyle = promoColors[i];
+        ctx.fillText(promoLines[i], -10, py);
+        py += promoSizes[i] + 10;
+    }
+    ctx.restore();
+
+    // ── PROMO BANNER STRIP ──
+    const bannerY = headerH;
+    const bannerH = 72;
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, bannerY, W, bannerH);
+    // Ikon kiri
+    ctx.fillStyle = accentColor;
+    ctx.fillRect(0, bannerY, 120, bannerH);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 32px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🎁', 60, bannerY + bannerH / 2);
+    // Teks banner
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 28px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('GoSembako Reward Point  •  HEMAT LEBIH BANYAK!', 140, bannerY + bannerH / 2);
+
+    // ── PRODUCT GRID 2×2 ──
+    const gridY = bannerY + bannerH + 28;
+    const gridPad = 32;
+    const gap = 20;
+    const cols = 2, rows = 2;
+    const cellW = (W - gridPad * 2 - gap * (cols - 1)) / cols;
+    const cellH = 480;
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const idx = r * cols + c;
+            const prod = state.selected[idx];
+            const cx = gridPad + c * (cellW + gap);
+            const cy = gridY + r * (cellH + gap);
+            await drawLotteMartCell(ctx, prod, cx, cy, cellW, cellH, theme);
+        }
+    }
+
+    // ── CTA FOOTER ──
+    const footerY = gridY + rows * (cellH + gap) - gap + 24;
+    const footerH = 110;
+    const fGrad = ctx.createLinearGradient(0, footerY, W, footerY + footerH);
+    fGrad.addColorStop(0, accentColor);
+    fGrad.addColorStop(1, accentColor2);
+    ctx.fillStyle = fGrad;
+    ctx.fillRect(0, footerY, W, footerH);
+
+    // CTA text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 38px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(state.ctaText, W / 2, footerY + footerH / 2);
+
+    // Watermark
+    if (state.showWatermark) {
+        drawWatermark(ctx, W, H, state.watermarkPos, theme);
+    }
+}
+
+async function drawLotteMartCell(ctx, prod, x, y, w, h, theme) {
+    // Card background: putih
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.12)';
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 4;
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, x, y, w, h, 20);
+    ctx.fill();
+    ctx.restore();
+
+    if (!prod) {
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '500 26px -apple-system, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Slot Kosong', x + w / 2, y + h / 2);
+        return;
+    }
+
+    const eff = effectiveProd(prod);
+    const imgH = Math.round(h * 0.52);
+    const pad = 18;
+
+    // ── Gambar produk (atas) ──
+    await drawProductImage(ctx, eff.gambar, x + pad, y + pad, w - pad * 2, imgH - pad, 14);
+
+    // ── Badge pojok kiri atas ──
+    if (eff.badge) {
+        const bText = eff.badge.toUpperCase();
+        ctx.font = 'bold 20px -apple-system, Arial, sans-serif';
+        const bW = ctx.measureText(bText).width + 24;
+        ctx.fillStyle = '#ef4444';
+        roundRect(ctx, x + pad, y + pad, bW, 34, 8);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(bText, x + pad + 12, y + pad + 17);
+    }
+
+    // ── Min order badge (pojok kanan atas) — gaya lingkaran Lotte Mart ──
+    if (eff.minOrder > 1) {
+        const cx2 = x + w - pad - 36;
+        const cy2 = y + pad + 36;
+        ctx.save();
+        ctx.fillStyle = theme.from;
+        ctx.beginPath();
+        ctx.arc(cx2, cy2, 36, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px -apple-system, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Min', cx2, cy2 - 10);
+        ctx.font = 'bold 24px -apple-system, Arial, sans-serif';
+        ctx.fillText(eff.minOrder, cx2, cy2 + 10);
+        ctx.restore();
+    }
+
+    // ── Info area (bawah) ──
+    let curY = y + imgH + 10;
+
+    // Nama produk
+    ctx.fillStyle = '#1e293b';
+    ctx.font = 'bold 28px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    curY = drawWrappedText(ctx, eff.nama.toUpperCase(), x + pad, curY, w - pad * 2, 34, 2);
+    curY += 6;
+
+    // Deskripsi singkat
+    if (eff.deskripsi) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '400 21px -apple-system, Arial, sans-serif';
+        curY = drawWrappedText(ctx, eff.deskripsi, x + pad, curY, w - pad * 2, 27, 1);
+        curY += 8;
+    }
+
+    // Harga coret
+    if (eff.hargaCoret > eff.harga) {
+        const coretStr = `Rp ${eff.hargaCoret.toLocaleString('id-ID')}`;
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '400 22px -apple-system, Arial, sans-serif';
+        ctx.fillText(coretStr, x + pad, curY);
+        const tw = ctx.measureText(coretStr).width;
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x + pad, curY + 11);
+        ctx.lineTo(x + pad + tw, curY + 11);
+        ctx.stroke();
+        curY += 30;
+    }
+
+    // Harga promo — besar dan menonjol
+    ctx.fillStyle = theme.from;
+    ctx.font = 'bold 42px -apple-system, Arial, sans-serif';
+    ctx.fillText(`Rp ${eff.harga.toLocaleString('id-ID')}`, x + pad, curY);
+    curY += 52;
+
+    // Reward poin + min order row
+    ctx.fillStyle = '#64748b';
+    ctx.font = '500 20px -apple-system, Arial, sans-serif';
+    const infoRow = [];
+    if (eff.rewardPoin > 0) infoRow.push(`⭐ +${eff.rewardPoin} Poin`);
+    if (eff.minOrder > 0) infoRow.push(`📦 Min. ${eff.minOrder} pcs`);
+    if (infoRow.length) ctx.fillText(infoRow.join('   '), x + pad, curY);
+}
+
+/* ══════════════════════════════════════════
    HELPERS
 ══════════════════════════════════════════ */
 function effectiveProd(p) {
@@ -810,7 +1104,7 @@ function effectiveProd(p) {
         nama:       (p._nama || p.nama || '').trim(),
         harga:      parseInt(p._harga) || p.harga || 0,
         hargaCoret: parseInt(p._hargaCoret) || p.hargaCoret || 0,
-        gambar:     (p._gambar || p.gambar || '').trim(),
+        gambar:     (p._gambarDataUrl || p._gambar || p.gambar || '').trim(),
         deskripsi:  (p._deskripsi || p.deskripsi || 'Kualitas terjamin, stok selalu baru').trim(),
         kategori:   p.kategori || 'Produk',
         badge:      (p._badge !== undefined ? p._badge : p.badge) || '',
