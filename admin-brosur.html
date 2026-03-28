@@ -283,6 +283,25 @@
         .selected-product-card[draggable="true"] { cursor: grab; }
         .selected-product-card.dragging { opacity: 0.5; transform: scale(0.98); }
 
+        /* Drag handle untuk custom-section */
+        .drag-handle {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px; cursor: grab;
+            color: #cbd5e1; font-size: 0.9rem; margin-right: 0.25rem;
+            border-radius: 4px; transition: color 0.15s, background 0.15s;
+            vertical-align: middle;
+        }
+        .drag-handle:hover { color: #64748b; background: #f1f5f9; }
+        .custom-section {
+            background: #fff; border: 1.5px solid #e2e8f0;
+            border-radius: 0.625rem; padding: 0.875rem 1rem;
+            margin-bottom: 0.625rem; transition: box-shadow 0.15s, border-color 0.15s;
+        }
+        .custom-section:hover { border-color: #cbd5e1; }
+        .sortable-ghost { opacity: 0.4; background: #f0fdf4 !important; border-color: #86efac !important; }
+        .sortable-chosen { box-shadow: 0 4px 16px rgba(18,128,82,0.18); border-color: #128052 !important; }
+        .sortable-drag { box-shadow: 0 8px 24px rgba(18,128,82,0.22); }
+
         .btn-draft-open {
             display: inline-flex; align-items: center; gap: 0.4rem;
             background: rgba(255,255,255,0.15); color: #fff;
@@ -609,11 +628,20 @@
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
                         Kustomisasi Brosur
                     </span>
+                    <button onclick="resetSectionOrder()" title="Reset urutan ke default" style="display:inline-flex;align-items:center;gap:0.3rem;font-size:0.7rem;color:#94a3b8;background:none;border:1px solid #e2e8f0;border-radius:0.375rem;padding:0.25rem 0.5rem;cursor:pointer;">
+                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Reset Urutan
+                    </button>
                 </div>
                 <div class="card-body">
+                    <div style="font-size:0.7rem;color:#94a3b8;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.375rem;">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        Seret ☰ untuk mengatur urutan section
+                    </div>
+                    <div id="custom-sections-sortable">
                     <!-- Logo Custom -->
-                    <div class="custom-section">
-                        <label class="custom-label">🏢 Logo Toko</label>
+                    <div class="custom-section" data-section-id="logo">
+                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 🏢 Logo Toko</label>
                         <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
                             <div id="logo-preview" style="min-width:120px;"><span style="color:#94a3b8;font-size:0.8rem;">Belum ada logo custom</span></div>
                             <div style="display:flex;gap:0.5rem;">
@@ -632,8 +660,8 @@
                     </div>
 
                     <!-- Background Custom -->
-                    <div class="custom-section">
-                        <label class="custom-label">🌄 Background</label>
+                    <div class="custom-section" data-section-id="background">
+                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 🌄 Background</label>
                         <!-- Tipe background -->
                         <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap;">
                             <button class="bg-type-btn active" data-bgtype="gradient" onclick="setBgType('gradient');document.querySelectorAll('.bg-type-btn').forEach(b=>b.classList.toggle('active',b.dataset.bgtype==='gradient'));">Gradient</button>
@@ -653,8 +681,8 @@
                     </div>
 
                     <!-- Pilih Font -->
-                    <div class="custom-section">
-                        <label class="custom-label" for="font-family-select">🔤 Gaya Font</label>
+                    <div class="custom-section" data-section-id="font">
+                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 🔤 Gaya Font</label>
                         <select id="font-family-select" class="field-input" onchange="pushUndo();state.fontFamily=this.value;schedulePreview();">
                             <option value="default">Default (System)</option>
                             <option value="modern">Modern (Poppins)</option>
@@ -665,8 +693,8 @@
                     </div>
 
                     <!-- Efek Harga -->
-                    <div class="custom-section">
-                        <label class="custom-label" for="price-effect-select">💰 Efek Harga</label>
+                    <div class="custom-section" data-section-id="price-effect">
+                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 💰 Efek Harga</label>
                         <select id="price-effect-select" class="field-input" onchange="pushUndo();state.priceEffect=this.value;schedulePreview();">
                             <option value="none">Normal (teks biasa)</option>
                             <option value="circle">Lingkaran Merah (gaya supermarket)</option>
@@ -676,8 +704,8 @@
                     </div>
 
                     <!-- Warna Tema -->
-                    <div class="custom-section">
-                        <label class="custom-label">🎨 Warna Tema</label>
+                    <div class="custom-section" data-section-id="theme">
+                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 🎨 Warna Tema</label>
                         <div class="color-swatches" id="color-swatches">
                             <div class="color-swatch selected" style="background:linear-gradient(135deg,#128052,#1d4ed8);" data-theme="green-blue" onclick="selectTheme(this,'green-blue')" title="Hijau-Biru (Default)"></div>
                             <div class="color-swatch" style="background:linear-gradient(135deg,#dc2626,#f97316);" data-theme="red-orange" onclick="selectTheme(this,'red-orange')" title="Merah-Oranye (Promo Panas)"></div>
@@ -689,8 +717,8 @@
                     </div>
 
                     <!-- Tanggal Promo -->
-                    <div class="custom-section">
-                        <label class="custom-label" for="promo-date">📅 Tanggal Promo Berlaku</label>
+                    <div class="custom-section" data-section-id="promo-date">
+                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 📅 Tanggal Promo Berlaku</label>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
                             <div>
                                 <div class="field-label">Mulai</div>
@@ -704,28 +732,28 @@
                     </div>
 
                     <!-- Teks CTA -->
-                    <div class="custom-section">
-                        <label class="custom-label" for="cta-text">📣 Teks CTA</label>
+                    <div class="custom-section" data-section-id="cta">
+                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 📣 Teks CTA</label>
                         <input type="text" id="cta-text" class="field-input" value="Pesan Sekarang! Stok Terbatas 🔥" maxlength="60" oninput="schedulePreview()">
                         <div style="font-size:0.65rem;color:#94a3b8;margin-top:0.25rem;">Maks. 60 karakter</div>
                     </div>
 
                     <!-- Nomor WA -->
-                    <div class="custom-section">
-                        <label class="custom-label" for="wa-number">📱 Nomor WhatsApp</label>
+                    <div class="custom-section" data-section-id="whatsapp">
+                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 📱 Nomor WhatsApp</label>
                         <input type="text" id="wa-number" class="field-input" value="0899-3370-200" oninput="schedulePreview()">
                     </div>
 
                     <!-- Stiker Overlay -->
-                    <div class="custom-section">
-                        <label class="custom-label">🏷️ Stiker / Overlay Preset</label>
+                    <div class="custom-section" data-section-id="sticker">
+                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 🏷️ Stiker / Overlay Preset</label>
                         <div style="font-size:0.75rem;color:#64748b;margin-bottom:0.625rem;">Klik stiker untuk aktifkan, lalu pilih posisinya di brosur.</div>
                         <div id="sticker-grid"></div>
                     </div>
 
                     <!-- Watermark -->
-                    <div class="custom-section">
-                        <label class="custom-label">💧 Watermark / Stempel</label>
+                    <div class="custom-section" data-section-id="watermark">
+                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 💧 Watermark / Stempel</label>
                         <div style="display:flex;align-items:center;gap:0.75rem;">
                             <label style="display:flex;align-items:center;gap:0.375rem;cursor:pointer;font-size:0.8rem;">
                                 <input type="checkbox" id="show-watermark" checked onchange="schedulePreview()" style="accent-color:var(--brand);">
@@ -739,8 +767,8 @@
                                 <option value="center">Tengah</option>
                             </select>
                         </div>
-                    </div>
-
+                     </div><!-- end watermark custom-section -->
+                    </div><!-- end custom-sections-sortable -->
                     <div style="display:flex;gap:0.625rem;margin-top:1.25rem;justify-content:space-between;">
                         <button class="btn-secondary" onclick="goToStep(2)">← Kembali</button>
                         <button class="btn-primary" onclick="generateBrosur()">
@@ -897,8 +925,83 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script src="assets/js/config.js"></script>
 <script src="assets/js/api-service.js"></script>
 <script src="assets/js/brosur.js"></script>
+<script>
+// ── SortableJS: Kustomisasi Section Drag & Drop ──
+const SECTION_ORDER_KEY = 'brosur_section_order';
+
+function initCustomSectionSortable() {
+    const container = document.getElementById('custom-sections-sortable');
+    if (!container || typeof Sortable === 'undefined') return;
+
+    // Terapkan urutan tersimpan dari localStorage
+    applySavedSectionOrder(container);
+
+    Sortable.create(container, {
+        handle: '.drag-handle',
+        animation: 180,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        dragClass: 'sortable-drag',
+        onEnd: function() {
+            // Simpan urutan baru ke localStorage
+            const order = [...container.querySelectorAll('.custom-section')]
+                .map(el => el.dataset.sectionId)
+                .filter(Boolean);
+            localStorage.setItem(SECTION_ORDER_KEY, JSON.stringify(order));
+        }
+    });
+}
+
+function applySavedSectionOrder(container) {
+    const saved = localStorage.getItem(SECTION_ORDER_KEY);
+    if (!saved) return;
+    try {
+        const order = JSON.parse(saved);
+        if (!Array.isArray(order) || order.length === 0) return;
+        const sections = {};
+        container.querySelectorAll('.custom-section[data-section-id]').forEach(el => {
+            sections[el.dataset.sectionId] = el;
+        });
+        // Reorder sesuai urutan tersimpan
+        order.forEach(id => {
+            if (sections[id]) container.appendChild(sections[id]);
+        });
+        // Append sisa yang tidak ada di saved order
+        Object.values(sections).forEach(el => {
+            if (!order.includes(el.dataset.sectionId)) container.appendChild(el);
+        });
+    } catch(e) { /* ignore */ }
+}
+
+function resetSectionOrder() {
+    localStorage.removeItem(SECTION_ORDER_KEY);
+    location.reload();
+}
+
+// Inisialisasi setelah DOM siap
+document.addEventListener('DOMContentLoaded', () => {
+    // Tunggu showApp dipanggil (PIN sudah diisi)
+    const observer = new MutationObserver(() => {
+        const appScreen = document.getElementById('app-screen');
+        if (appScreen && appScreen.style.display !== 'none') {
+            initCustomSectionSortable();
+            observer.disconnect();
+        }
+    });
+    const appScreen = document.getElementById('app-screen');
+    if (appScreen) {
+        observer.observe(appScreen, { attributes: true, attributeFilter: ['style'] });
+        // Jika sudah visible (session tersimpan)
+        if (appScreen.style.display !== 'none') {
+            initCustomSectionSortable();
+            observer.disconnect();
+        }
+    }
+});
+</script>
 </body>
 </html>
