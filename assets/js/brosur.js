@@ -127,7 +127,7 @@ async function loadProducts() {
             raw = await resp.json();
         }
         const arr = Array.isArray(raw) ? raw : (raw.products || raw.result || raw.data || []);
-        state.products = arr.map(normalizeProduct).filter(p => p.nama);
+        state.products = arr.map((p, i) => normalizeProduct(p, i)).filter(p => p.nama);
         if (state.products.length === 0) {
             document.getElementById('product-loading').innerHTML =
                 '<p style="color:#f59e0b;font-size:0.8rem;">Tidak ada produk ditemukan di API. Pastikan sheet "products" tersedia.</p>';
@@ -141,13 +141,26 @@ async function loadProducts() {
     }
 }
 
-function normalizeProduct(p) {
+function createSlug(text) {
+    if (!text) return '';
+    return text.toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .trim()
+        .replace(/[-\s]+/g, '-');
+}
+
+function normalizeProduct(p, index) {
     const harga = parseInt(p.harga) || 0;
     const hargaCoret = parseInt(p.harga_coret || p.hargaCoret) || 0;
     const gambarRaw = (p.gambar || p.foto || p.image || '').split(',')[0].trim();
+    const nama = (p.nama || p.name || '').trim();
+    // Generate id yang selalu unik — sama persis dengan ensureProductId di script.js
+    const baseId = p.id || p.sku || p.slug || createSlug(nama) || 'product';
+    const needsSuffix = !(p.id || p.sku);
+    const uid = needsSuffix ? `${baseId}-${index}` : String(baseId);
     return {
-        id: p.id || p.sku || '',
-        nama: (p.nama || p.name || '').trim(),
+        id: uid,
+        nama,
         harga,
         hargaCoret: hargaCoret > harga ? hargaCoret : 0,
         gambar: gambarRaw,
@@ -195,7 +208,7 @@ function renderProductList(filter = '') {
         const disabledClass = (!isSelected && state.selected.length >= maxSlots) ? 'opacity-50 pointer-events-none' : '';
         return `
         <div class="product-item ${isSelected ? 'selected' : ''} ${disabledClass}"
-             data-id="${escHtml(p.id)}" onclick="toggleProduct('${escHtml(p.id)}')">
+             data-prod-id="${escHtml(p.id)}">
             <img src="${escHtml(imgSrc)}" alt="${escHtml(p.nama)}"
                  onerror="this.src='https://placehold.co/80x80/e2e8f0/94a3b8?text=Produk'">
             <div class="product-item-info">
@@ -207,6 +220,14 @@ function renderProductList(filter = '') {
             </div>
         </div>`;
     }).join('');
+
+    // Event delegation — aman dari karakter khusus di ID
+    wrap.querySelectorAll('.product-item[data-prod-id]').forEach(el => {
+        el.addEventListener('click', () => {
+            const id = el.dataset.prodId;
+            if (id) toggleProduct(id);
+        });
+    });
 }
 
 function filterProductList() {
