@@ -80,7 +80,16 @@ let state = {
     undoStack: [],
     redoStack: [],
     generatedDataUrl: null,
-    previewTimer: null
+    previewTimer: null,
+    // ── Posisi elemen (x,y dalam 0–1 relatif terhadap canvas) ──
+    elementPositions: {
+        logo:      { x: 0.05, y: 0.05 },
+        cta:       { x: 0.5,  y: 0.94 },
+        wa:        { x: 0.88, y: 0.05 },
+        watermark: { x: 0.92, y: 0.94 },
+        // stiker: { [presetId]: { x, y } }
+        stickers: {}
+    }
 };
 
 /* Font mapping untuk canvas */
@@ -618,6 +627,7 @@ async function renderPreview() {
     await drawBrosur(canvas, false);
     document.getElementById('preview-placeholder').style.display = 'none';
     canvas.style.display = 'block';
+    updateDragOverlay();
 }
 
 /* ══════════════════════════════════════════
@@ -689,13 +699,15 @@ async function drawBrosur(canvas, highRes) {
 
     // Logo (custom atau teks)
     const ff = (FONT_MAP[state.fontFamily] || FONT_MAP.default).family;
-    await drawLogoHeader(ctx, W, headerH, ff, isPortrait);
+    const logoPos = state.elementPositions.logo || { x: 0.05, y: 0.05 };
+    await drawLogoHeaderAt(ctx, W, H, headerH, ff, isPortrait, logoPos);
 
-    // WA number in header
+    // WA number — posisi dari drag
+    const waPos = state.elementPositions.wa || { x: 0.88, y: 0.05 };
     ctx.font = `600 ${isPortrait ? 26 : 24}px ${ff}`;
-    ctx.textAlign = 'right';
+    ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillText(`\uD83D\uDCF1 ${state.waNumber}`, W - 48, headerH / 2);
+    ctx.fillText(`\uD83D\uDCF1 ${state.waNumber}`, waPos.x * W, waPos.y * H + 12);
 
     // ── Promo date strip ──
     const dateY = headerH;
@@ -734,18 +746,21 @@ async function drawBrosur(canvas, highRes) {
     ctx.fillStyle = ctaGrad;
     ctx.fillRect(0, footerY, W, footerH);
 
+    // CTA text — posisi dari drag
+    const ctaPos = state.elementPositions.cta || { x: 0.5, y: 0.94 };
     ctx.fillStyle = '#ffffff';
     ctx.font = `bold ${isPortrait ? 34 : 32}px ${ff}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(state.ctaText, W / 2, footerY + footerH / 2);
+    ctx.fillText(state.ctaText, ctaPos.x * W, ctaPos.y * H);
 
     // ── Stiker overlay ──
     drawStickers(ctx, W, H);
 
-    // ── Watermark ──
+    // ── Watermark ── posisi dari drag
     if (state.showWatermark) {
-        drawWatermark(ctx, W, H, state.watermarkPos, theme);
+        const wmPos = state.elementPositions.watermark || { x: 0.92, y: 0.94 };
+        drawWatermarkAt(ctx, W, H, wmPos, theme);
     }
 }
 
@@ -1582,6 +1597,19 @@ function drawRewardBadge(ctx, poin, x, y, theme) {
     ctx.fillText(text, x - 8, y + 6);
 }
 
+/** Versi drawWatermark yang menggunakan posisi dari drag (pos.x, pos.y dalam 0-1) */
+function drawWatermarkAt(ctx, W, H, pos, theme) {
+    const text = 'paketsembako.com';
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 28px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, pos.x * W, pos.y * H);
+    ctx.restore();
+}
+
 function drawWatermark(ctx, W, H, pos, theme) {
     const text = 'paketsembako.com';
     ctx.save();
@@ -1699,6 +1727,27 @@ async function drawLogoHeader(ctx, W, headerH, ff, isPortrait) {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText('\uD83D\uDED2 GoSembako', 48, headerH / 2);
+}
+
+/** Versi drawLogoHeader yang menggunakan posisi dari drag (pos.x, pos.y dalam 0-1) */
+async function drawLogoHeaderAt(ctx, W, H, headerH, ff, isPortrait, pos) {
+    const lx = pos.x * W;
+    const ly = pos.y * H;
+    if (state.logoDataUrl) {
+        try {
+            const img = await loadImage(state.logoDataUrl);
+            const maxH = headerH - 24;
+            const lh = Math.min(maxH, 80);
+            const lw = lh * (img.width / img.height);
+            ctx.drawImage(img, lx, ly - lh/2, lw, lh);
+            return;
+        } catch { /* fallback */ }
+    }
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${isPortrait ? 38 : 36}px ${ff}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('\uD83D\uDED2 GoSembako', lx, ly + 12);
 }
 
 function loadImage(src) {
@@ -2062,8 +2111,16 @@ function drawStickers(ctx, W, H) {
         const preset = STICKER_PRESETS.find(s => s.id === presetId);
         if (!preset) return;
 
-        // Hitung koordinat berdasarkan pos
-        const { x, y } = stickerPosition(pos, W, H, preset);
+        // Gunakan posisi dari drag jika ada, fallback ke pos string
+        const dragPos = (state.elementPositions.stickers || {})[presetId];
+        let x, y;
+        if (dragPos) {
+            x = dragPos.x * W;
+            y = dragPos.y * H;
+        } else {
+            const p = stickerPosition(pos, W, H, preset);
+            x = p.x; y = p.y;
+        }
 
         ctx.save();
         if (preset.type === 'badge-circle') drawStickerBadgeCircle(ctx, preset, x, y, W);
@@ -2522,4 +2579,273 @@ function showToast(msg, duration = 2800) {
     el.textContent = msg;
     el.classList.add('show');
     setTimeout(() => el.classList.remove('show'), duration);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DRAG & DROP OVERLAY — Posisi elemen di atas canvas preview
+══════════════════════════════════════════════════════════════ */
+
+/**
+ * Definisi semua elemen yang bisa di-drag di atas preview.
+ * Setiap elemen punya: id, label, icon, warna handle.
+ * Posisi disimpan di state.elementPositions.
+ */
+function getDraggableElements() {
+    const els = [
+        { id: 'logo',      label: 'Logo',      icon: '🏢', color: '#128052' },
+        { id: 'cta',       label: 'CTA',        icon: '📣', color: '#d97706' },
+        { id: 'wa',        label: 'WA',         icon: '📱', color: '#16a34a' },
+        { id: 'watermark', label: 'Watermark',  icon: '💧', color: '#64748b' },
+    ];
+    // Tambahkan stiker aktif
+    (state.activeStickers || []).forEach(({ presetId }) => {
+        const preset = STICKER_PRESETS.find(s => s.id === presetId);
+        if (!preset) return;
+        els.push({
+            id: `sticker_${presetId}`,
+            label: preset.label.replace(/\n/g, ' ').substring(0, 12),
+            icon: preset.type === 'badge-circle' ? '🔴' :
+                  preset.type === 'banner'       ? '🏷️' :
+                  preset.type === 'stamp'        ? '🔵' : '🎀',
+            color: preset.bg || '#ef4444',
+            isSicker: true,
+            presetId
+        });
+    });
+    return els;
+}
+
+/**
+ * Buat atau update overlay layer di atas canvas preview.
+ * Setiap elemen ditampilkan sebagai handle kecil yang bisa di-drag.
+ */
+function updateDragOverlay() {
+    const canvas = document.getElementById('brosur-canvas');
+    if (!canvas || canvas.style.display === 'none') return;
+
+    const wrap = document.getElementById('preview-wrap');
+    if (!wrap) return;
+
+    // Buat container overlay jika belum ada
+    let overlay = document.getElementById('drag-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'drag-overlay';
+        overlay.style.cssText = `
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        `;
+        // Pastikan wrap punya position relative
+        wrap.style.position = 'relative';
+        wrap.appendChild(overlay);
+    }
+
+    // Bersihkan handle lama
+    overlay.innerHTML = '';
+
+    const canvasRect = canvas.getBoundingClientRect();
+    const wrapRect   = wrap.getBoundingClientRect();
+
+    // Offset canvas dalam wrap
+    const offX = canvasRect.left - wrapRect.left;
+    const offY = canvasRect.top  - wrapRect.top;
+    const cW   = canvasRect.width;
+    const cH   = canvasRect.height;
+
+    const elements = getDraggableElements();
+
+    elements.forEach(el => {
+        // Ambil posisi dari state
+        let pos;
+        if (el.isSicker) {
+            pos = (state.elementPositions.stickers || {})[el.presetId];
+            if (!pos) {
+                // Default: posisi dari pos string stiker lama
+                const s = state.activeStickers.find(s => s.presetId === el.presetId);
+                const posStr = (s && s.pos) || 'tr';
+                const map = { tl:[0.05,0.05], tc:[0.5,0.05], tr:[0.88,0.05],
+                               ml:[0.05,0.5],  mc:[0.5,0.5],  mr:[0.88,0.5],
+                               bl:[0.05,0.92], bc:[0.5,0.92], br:[0.88,0.92] };
+                const def = map[posStr] || [0.88, 0.05];
+                pos = { x: def[0], y: def[1] };
+                if (!state.elementPositions.stickers) state.elementPositions.stickers = {};
+                state.elementPositions.stickers[el.presetId] = pos;
+            }
+        } else {
+            pos = state.elementPositions[el.id] || { x: 0.5, y: 0.5 };
+        }
+
+        // Hitung pixel position dalam overlay
+        const px = offX + pos.x * cW;
+        const py = offY + pos.y * cH;
+
+        // Buat handle element
+        const handle = document.createElement('div');
+        handle.className = 'drag-el-handle';
+        handle.dataset.elId = el.id;
+        handle.title = `Drag untuk pindahkan: ${el.label}`;
+        handle.style.cssText = `
+            position: absolute;
+            left: ${px}px; top: ${py}px;
+            transform: translate(-50%, -50%);
+            background: ${el.color};
+            color: #fff;
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 20px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+            cursor: grab;
+            pointer-events: auto;
+            user-select: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+            display: flex; align-items: center; gap: 4px;
+            transition: box-shadow 0.15s, transform 0.1s;
+            z-index: 20;
+            line-height: 1.4;
+        `;
+        handle.innerHTML = `<span>${el.icon}</span><span>${el.label}</span>`;
+
+        // Hover effect
+        handle.addEventListener('mouseenter', () => {
+            handle.style.boxShadow = '0 4px 16px rgba(0,0,0,0.5)';
+            handle.style.transform = 'translate(-50%, -50%) scale(1.08)';
+        });
+        handle.addEventListener('mouseleave', () => {
+            if (!handle._dragging) {
+                handle.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)';
+                handle.style.transform = 'translate(-50%, -50%) scale(1)';
+            }
+        });
+
+        // ── Mouse drag ──
+        handle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            handle._dragging = true;
+            handle.style.cursor = 'grabbing';
+            handle.style.boxShadow = '0 6px 24px rgba(0,0,0,0.55)';
+            handle.style.transform = 'translate(-50%, -50%) scale(1.12)';
+
+            const onMove = (ev) => {
+                const wRect = wrap.getBoundingClientRect();
+                const cRect = canvas.getBoundingClientRect();
+                const offXn = cRect.left - wRect.left;
+                const offYn = cRect.top  - wRect.top;
+                // Posisi relatif terhadap canvas
+                let nx = (ev.clientX - cRect.left) / cRect.width;
+                let ny = (ev.clientY - cRect.top)  / cRect.height;
+                nx = Math.max(0.02, Math.min(0.98, nx));
+                ny = Math.max(0.02, Math.min(0.98, ny));
+                // Update handle position
+                handle.style.left = (offXn + nx * cRect.width)  + 'px';
+                handle.style.top  = (offYn + ny * cRect.height) + 'px';
+                // Simpan ke state
+                saveElPosition(el, nx, ny);
+            };
+
+            const onUp = () => {
+                handle._dragging = false;
+                handle.style.cursor = 'grab';
+                handle.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)';
+                handle.style.transform = 'translate(-50%, -50%) scale(1)';
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                // Re-render canvas dengan posisi baru
+                schedulePreview();
+            };
+
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+
+        // ── Touch drag (mobile) ──
+        handle.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handle._dragging = true;
+            handle.style.cursor = 'grabbing';
+
+            const onMove = (ev) => {
+                const touch = ev.touches[0];
+                const cRect = canvas.getBoundingClientRect();
+                const wRect = wrap.getBoundingClientRect();
+                const offXn = cRect.left - wRect.left;
+                const offYn = cRect.top  - wRect.top;
+                let nx = (touch.clientX - cRect.left) / cRect.width;
+                let ny = (touch.clientY - cRect.top)  / cRect.height;
+                nx = Math.max(0.02, Math.min(0.98, nx));
+                ny = Math.max(0.02, Math.min(0.98, ny));
+                handle.style.left = (offXn + nx * cRect.width)  + 'px';
+                handle.style.top  = (offYn + ny * cRect.height) + 'px';
+                saveElPosition(el, nx, ny);
+            };
+
+            const onEnd = () => {
+                handle._dragging = false;
+                handle.style.cursor = 'grab';
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onEnd);
+                schedulePreview();
+            };
+
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('touchend', onEnd);
+        }, { passive: false });
+
+        overlay.appendChild(handle);
+    });
+
+    // Tombol Reset Posisi
+    const resetBtn = document.createElement('button');
+    resetBtn.title = 'Reset semua posisi ke default';
+    resetBtn.style.cssText = `
+        position: absolute;
+        bottom: 6px; right: 6px;
+        background: rgba(0,0,0,0.55);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 3px 8px;
+        font-size: 10px;
+        cursor: pointer;
+        pointer-events: auto;
+        z-index: 20;
+    `;
+    resetBtn.textContent = '↺ Reset Posisi';
+    resetBtn.addEventListener('click', () => {
+        state.elementPositions = {
+            logo:      { x: 0.05, y: 0.05 },
+            cta:       { x: 0.5,  y: 0.94 },
+            wa:        { x: 0.88, y: 0.05 },
+            watermark: { x: 0.92, y: 0.94 },
+            stickers:  {}
+        };
+        schedulePreview();
+        showToast('Posisi elemen direset ke default.');
+    });
+    overlay.appendChild(resetBtn);
+}
+
+/** Simpan posisi elemen ke state */
+function saveElPosition(el, nx, ny) {
+    if (el.isSicker) {
+        if (!state.elementPositions.stickers) state.elementPositions.stickers = {};
+        state.elementPositions.stickers[el.presetId] = { x: nx, y: ny };
+    } else {
+        state.elementPositions[el.id] = { x: nx, y: ny };
+    }
+}
+
+/** Sembunyikan overlay (saat generate / step lain) */
+function hideDragOverlay() {
+    const overlay = document.getElementById('drag-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+/** Tampilkan kembali overlay */
+function showDragOverlay() {
+    const overlay = document.getElementById('drag-overlay');
+    if (overlay) overlay.style.display = '';
 }

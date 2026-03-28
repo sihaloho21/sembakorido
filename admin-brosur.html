@@ -302,6 +302,40 @@
         .sortable-chosen { box-shadow: 0 4px 16px rgba(18,128,82,0.18); border-color: #128052 !important; }
         .sortable-drag { box-shadow: 0 8px 24px rgba(18,128,82,0.22); }
 
+        /* Drag overlay elemen brosur */
+        #preview-wrap { position: relative; }
+        #drag-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+        .drag-el-handle {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            pointer-events: auto;
+            user-select: none;
+            border-radius: 20px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            border: 2px solid rgba(255,255,255,0.8);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+            display: flex; align-items: center; gap: 4px;
+            line-height: 1.4;
+            white-space: nowrap;
+            transition: box-shadow 0.15s;
+            z-index: 20;
+        }
+        .drag-el-handle:active { cursor: grabbing; }
+        /* Petunjuk drag di atas preview */
+        #drag-overlay-hint {
+            position: absolute; bottom: 28px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            color: #fff; font-size: 10px;
+            padding: 3px 10px; border-radius: 10px;
+            pointer-events: none; white-space: nowrap;
+            z-index: 21;
+        }
+
         .btn-draft-open {
             display: inline-flex; align-items: center; gap: 0.4rem;
             background: rgba(255,255,255,0.15); color: #fff;
