@@ -64,14 +64,45 @@ let state = {
     selected: [],          // selected product objects (with overrides)
     promoStart: '',
     promoEnd: '',
-    ctaText: 'Pesan Sekarang! Stok Terbatas 🔥',
+    ctaText: 'Pesan Sekarang! Stok Terbatas \uD83D\uDD25',
     waNumber: '0899-3370-200',
     showWatermark: true,
     watermarkPos: 'br',
-    activeStickers: [],    // array of { presetId, pos } — pos: 'tl','tc','tr','bl','bc','br','c'
+    activeStickers: [],    // array of { presetId, pos }
+    // ── Fitur Baru ──
+    logoDataUrl: null,     // base64 logo custom
+    bgType: 'gradient',    // 'gradient' | 'solid' | 'pattern' | 'custom'
+    bgPattern: 'none',     // preset pattern id
+    bgDataUrl: null,       // base64 background custom
+    fontFamily: 'default', // 'default' | 'elegant' | 'modern' | 'casual'
+    priceEffect: 'none',   // 'none' | 'burst' | 'circle'
+    previewSize: 'auto',   // 'auto' | 'mobile' | 'desktop'
+    undoStack: [],
+    redoStack: [],
     generatedDataUrl: null,
     previewTimer: null
 };
+
+/* Font mapping untuk canvas */
+const FONT_MAP = {
+    default: { family: '-apple-system, Arial, sans-serif',  gfont: null,                  label: 'Default (System)' },
+    elegant: { family: 'Playfair Display, Georgia, serif',  gfont: 'Playfair+Display:wght@700',  label: 'Elegant (Serif)' },
+    modern:  { family: 'Poppins, Helvetica, sans-serif',    gfont: 'Poppins:wght@400;600;700',   label: 'Modern (Poppins)' },
+    casual:  { family: 'Nunito, Verdana, sans-serif',       gfont: 'Nunito:wght@400;700;800',    label: 'Casual (Nunito)' },
+    bold:    { family: 'Oswald, Impact, sans-serif',        gfont: 'Oswald:wght@500;700',        label: 'Bold (Oswald)' },
+};
+
+/* Background pattern presets */
+const BG_PATTERNS = [
+    { id: 'none',    label: 'Tidak Ada',   icon: '\u2715' },
+    { id: 'dots',    label: 'Titik-Titik', icon: '\u25CF' },
+    { id: 'grid',    label: 'Grid',        icon: '\u229E' },
+    { id: 'wave',    label: 'Gelombang',   icon: '\u223F' },
+    { id: 'diamond', label: 'Berlian',     icon: '\u25C6' },
+    { id: 'stripe',  label: 'Garis Miring',icon: '\u2571' },
+];
+
+let currentStep = 1;
 
 /* ══════════════════════════════════════════
    INIT
@@ -133,8 +164,35 @@ function showApp() {
     document.getElementById('pin-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'block';
     loadProducts();
-    // Update badge draft saat app pertama kali tampil
-    setTimeout(() => { updateDraftBadge(); renderStickerUI(); }, 100);
+    loadGoogleFonts();
+    setTimeout(() => {
+        updateDraftBadge();
+        renderStickerUI();
+        renderBgPatternUI();
+        updateLogoPreview();
+        updateBgPreview();
+        updateUndoRedoButtons();
+    }, 100);
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+        if (!state.authed) return;
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); }
+    });
+}
+
+/** Load semua Google Fonts yang dipakai */
+function loadGoogleFonts() {
+    Object.values(FONT_MAP).forEach(f => {
+        if (!f.gfont) return;
+        const id = 'gfont-' + f.gfont.split(':')[0].replace(/\+/g, '-').toLowerCase();
+        if (document.getElementById(id)) return;
+        const link = document.createElement('link');
+        link.id = id;
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${f.gfont}&display=swap`;
+        document.head.appendChild(link);
+    });
 }
 
 function logout() {
@@ -318,8 +376,13 @@ function renderSelectedProducts() {
         const imgSrc = p.gambar || 'https://placehold.co/80x80/e2e8f0/94a3b8?text=Produk';
         const badgePresets = ['TERLARIS', 'BARU', 'PROMO', 'HEMAT', 'LIMITED', 'BEST SELLER'];
         return `
-        <div class="selected-product-card">
+        <div class="selected-product-card" draggable="true"
+             ondragstart="onDragStart(event,${i})"
+             ondragover="onDragOver(event)"
+             ondrop="onDrop(event,${i})"
+             ondragend="onDragEnd(event)">
             <div class="prod-header">
+                <span style="cursor:grab;color:#94a3b8;font-size:1rem;padding-right:0.25rem;" title="Drag untuk ubah urutan">☰</span>
                 <img src="${escHtml(imgSrc)}" alt="${escHtml(p.nama)}"
                      onerror="this.src='https://placehold.co/80x80/e2e8f0/94a3b8?text=Produk'">
                 <span class="prod-name">${escHtml(p.nama)}</span>
@@ -612,22 +675,8 @@ async function drawBrosur(canvas, highRes) {
     const theme = THEMES[state.theme] || THEMES['green-blue'];
     const W = size.w, H = size.h;
 
-    // ── Background gradient ──
-    const bgGrad = ctx.createLinearGradient(0, 0, W, H);
-    bgGrad.addColorStop(0, theme.from);
-    bgGrad.addColorStop(1, theme.to);
-    ctx.fillStyle = bgGrad;
-    roundRect(ctx, 0, 0, W, H, 0);
-    ctx.fill();
-
-    // ── Decorative circles ──
-    ctx.save();
-    ctx.globalAlpha = 0.06;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.arc(W * 0.85, H * 0.12, 180, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W * 0.1, H * 0.88, 140, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W * 0.5, H * 0.5, 320, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
+    // ── Background (gradient / solid / pattern / custom) ──
+    await drawBackground(ctx, W, H, theme);
 
     // ── Header bar ──
     const headerH = isPortrait ? 120 : 110;
@@ -638,18 +687,15 @@ async function drawBrosur(canvas, highRes) {
     ctx.fill();
     ctx.restore();
 
-    // Logo text (GoSembako)
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${isPortrait ? 38 : 36}px -apple-system, Arial, sans-serif`;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🛒 GoSembako', 48, headerH / 2);
+    // Logo (custom atau teks)
+    const ff = (FONT_MAP[state.fontFamily] || FONT_MAP.default).family;
+    await drawLogoHeader(ctx, W, headerH, ff, isPortrait);
 
     // WA number in header
-    ctx.font = `600 ${isPortrait ? 26 : 24}px -apple-system, Arial, sans-serif`;
+    ctx.font = `600 ${isPortrait ? 26 : 24}px ${ff}`;
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillText(`📱 ${state.waNumber}`, W - 48, headerH / 2);
+    ctx.fillText(`\uD83D\uDCF1 ${state.waNumber}`, W - 48, headerH / 2);
 
     // ── Promo date strip ──
     const dateY = headerH;
@@ -661,7 +707,7 @@ async function drawBrosur(canvas, highRes) {
     ctx.restore();
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = `700 ${isPortrait ? 26 : 24}px -apple-system, Arial, sans-serif`;
+    ctx.font = `700 ${isPortrait ? 26 : 24}px ${ff}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const dateStr = formatDateRange(state.promoStart, state.promoEnd);
@@ -689,7 +735,7 @@ async function drawBrosur(canvas, highRes) {
     ctx.fillRect(0, footerY, W, footerH);
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${isPortrait ? 34 : 32}px -apple-system, Arial, sans-serif`;
+    ctx.font = `bold ${isPortrait ? 34 : 32}px ${ff}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(state.ctaText, W / 2, footerY + footerH / 2);
@@ -1556,6 +1602,364 @@ function drawWatermark(ctx, W, H, pos, theme) {
 
     ctx.fillText(text, wx, wy);
     ctx.restore();
+}
+
+/* ══════════════════════════════════════════
+   DRAW BACKGROUND
+══════════════════════════════════════════ */
+async function drawBackground(ctx, W, H, theme) {
+    if (state.bgType === 'custom' && state.bgDataUrl) {
+        try {
+            const img = await loadImage(state.bgDataUrl);
+            ctx.drawImage(img, 0, 0, W, H);
+        } catch { drawGradientBg(ctx, W, H, theme); }
+    } else if (state.bgType === 'solid') {
+        ctx.fillStyle = theme.from;
+        ctx.fillRect(0, 0, W, H);
+    } else {
+        drawGradientBg(ctx, W, H, theme);
+    }
+    if (state.bgPattern && state.bgPattern !== 'none') {
+        drawBgPattern(ctx, W, H, state.bgPattern);
+    } else if (state.bgType !== 'custom') {
+        ctx.save(); ctx.globalAlpha = 0.06; ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(W*0.85, H*0.12, 180, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(W*0.1,  H*0.88, 140, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(W*0.5,  H*0.5,  320, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+    }
+}
+
+function drawGradientBg(ctx, W, H, theme) {
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, theme.from); g.addColorStop(1, theme.to);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+}
+
+function drawBgPattern(ctx, W, H, pattern) {
+    ctx.save(); ctx.globalAlpha = 0.08;
+    ctx.strokeStyle = '#ffffff'; ctx.fillStyle = '#ffffff';
+    const step = 48;
+    switch (pattern) {
+        case 'dots':
+            for (let x = step; x < W; x += step)
+                for (let y = step; y < H; y += step) {
+                    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
+                }
+            break;
+        case 'grid':
+            ctx.lineWidth = 1;
+            for (let x = 0; x <= W; x += step) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+            for (let y = 0; y <= H; y += step) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+            break;
+        case 'wave':
+            ctx.lineWidth = 2;
+            for (let y = step; y < H; y += step*1.5) {
+                ctx.beginPath();
+                for (let x = 0; x <= W; x += 4) {
+                    const wy = y + Math.sin((x/W)*Math.PI*6)*18;
+                    x===0 ? ctx.moveTo(x,wy) : ctx.lineTo(x,wy);
+                }
+                ctx.stroke();
+            }
+            break;
+        case 'diamond':
+            ctx.lineWidth = 1;
+            for (let x = 0; x < W+step; x += step)
+                for (let y = 0; y < H+step; y += step) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, y-step/2); ctx.lineTo(x+step/2, y);
+                    ctx.lineTo(x, y+step/2); ctx.lineTo(x-step/2, y);
+                    ctx.closePath(); ctx.stroke();
+                }
+            break;
+        case 'stripe':
+            ctx.lineWidth = 2;
+            for (let i = -H; i < W+H; i += step) {
+                ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i+H,H); ctx.stroke();
+            }
+            break;
+    }
+    ctx.restore();
+}
+
+async function drawLogoHeader(ctx, W, headerH, ff, isPortrait) {
+    if (state.logoDataUrl) {
+        try {
+            const img = await loadImage(state.logoDataUrl);
+            const maxH = headerH - 24;
+            const lh = Math.min(maxH, 80);
+            const lw = lh * (img.width / img.height);
+            ctx.drawImage(img, 40, (headerH - lh) / 2, lw, lh);
+            return;
+        } catch { /* fallback */ }
+    }
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${isPortrait ? 38 : 36}px ${ff}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('\uD83D\uDED2 GoSembako', 48, headerH / 2);
+}
+
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
+/* ══════════════════════════════════════════
+   PRICE EFFECT
+══════════════════════════════════════════ */
+function drawPriceEffect(ctx, priceStr, x, y, theme, effect) {
+    if (!effect || effect === 'none') {
+        ctx.fillStyle = theme.accent;
+        ctx.fillText(priceStr, x, y);
+        return;
+    }
+    const tw = ctx.measureText(priceStr).width;
+    const fontSize = parseInt(ctx.font) || 64;
+    if (effect === 'circle') {
+        const cx = x + tw/2, cy = y - fontSize/2;
+        const r = Math.max(tw, fontSize*1.2)/2 + 24;
+        ctx.save();
+        ctx.fillStyle = '#dc2626'; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(priceStr, cx, cy); ctx.restore();
+    } else if (effect === 'burst') {
+        const cx = x + tw/2, cy = y - fontSize/2;
+        const outerR = Math.max(tw, fontSize*1.2)/2 + 36;
+        const innerR = outerR * 0.55;
+        const spikes = 12;
+        ctx.save();
+        ctx.fillStyle = '#dc2626'; ctx.beginPath();
+        for (let i = 0; i < spikes*2; i++) {
+            const angle = (i*Math.PI)/spikes - Math.PI/2;
+            const r = i%2===0 ? outerR : innerR;
+            const px = cx + Math.cos(angle)*r, py = cy + Math.sin(angle)*r;
+            i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(priceStr, cx, cy); ctx.restore();
+    }
+}
+
+/* ══════════════════════════════════════════
+   UNDO / REDO
+══════════════════════════════════════════ */
+function snapshotState() {
+    return JSON.stringify({
+        template: state.template, theme: state.theme,
+        promoStart: state.promoStart, promoEnd: state.promoEnd,
+        ctaText: state.ctaText, waNumber: state.waNumber,
+        showWatermark: state.showWatermark, watermarkPos: state.watermarkPos,
+        activeStickers: state.activeStickers,
+        logoDataUrl: state.logoDataUrl,
+        bgType: state.bgType, bgPattern: state.bgPattern, bgDataUrl: state.bgDataUrl,
+        fontFamily: state.fontFamily, priceEffect: state.priceEffect,
+        selected: state.selected.map(p => ({ ...p, _gambarDataUrl: p._gambarDataUrl || '' }))
+    });
+}
+
+function pushUndo() {
+    const snap = snapshotState();
+    if (state.undoStack.length && state.undoStack[state.undoStack.length-1] === snap) return;
+    state.undoStack.push(snap);
+    if (state.undoStack.length > 30) state.undoStack.shift();
+    state.redoStack = [];
+    updateUndoRedoButtons();
+}
+
+function applySnapshot(snap) {
+    const s = JSON.parse(snap);
+    Object.assign(state, s);
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    setVal('promo-date-start', state.promoStart);
+    setVal('promo-date-end',   state.promoEnd);
+    setVal('cta-text',         state.ctaText);
+    setVal('wa-number',        state.waNumber);
+    const wmEl = document.getElementById('show-watermark');
+    if (wmEl) wmEl.checked = state.showWatermark;
+    const wmPos = document.getElementById('watermark-pos');
+    if (wmPos) wmPos.value = state.watermarkPos;
+    const fontSel = document.getElementById('font-family-select');
+    if (fontSel) fontSel.value = state.fontFamily;
+    const priceSel = document.getElementById('price-effect-select');
+    if (priceSel) priceSel.value = state.priceEffect;
+    document.querySelectorAll('.template-card').forEach(c => c.classList.toggle('selected', c.dataset.tpl === state.template));
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.toggle('selected', s.dataset.theme === state.theme));
+    updateSlotCounter(); renderSelectedProducts(); renderStickerUI(); renderBgPatternUI();
+    updateLogoPreview(); updateBgPreview(); schedulePreview(); updateUndoRedoButtons();
+}
+
+function undo() {
+    if (!state.undoStack.length) return;
+    state.redoStack.push(snapshotState());
+    applySnapshot(state.undoStack.pop());
+    showToast('Dibatalkan \u21A9');
+}
+
+function redo() {
+    if (!state.redoStack.length) return;
+    state.undoStack.push(snapshotState());
+    applySnapshot(state.redoStack.pop());
+    showToast('Diulangi \u21AA');
+}
+
+function updateUndoRedoButtons() {
+    const u = document.getElementById('btn-undo');
+    const r = document.getElementById('btn-redo');
+    if (u) u.disabled = state.undoStack.length === 0;
+    if (r) r.disabled = state.redoStack.length === 0;
+}
+
+/* ══════════════════════════════════════════
+   DRAG & DROP URUTAN PRODUK
+══════════════════════════════════════════ */
+let dragSrcIdx = null;
+
+function onDragStart(e, idx) {
+    dragSrcIdx = idx;
+    e.dataTransfer.effectAllowed = 'move';
+    e.currentTarget.classList.add('dragging');
+}
+
+function onDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+
+function onDrop(e, idx) {
+    e.preventDefault();
+    if (dragSrcIdx === null || dragSrcIdx === idx) return;
+    pushUndo();
+    const moved = state.selected.splice(dragSrcIdx, 1)[0];
+    state.selected.splice(idx, 0, moved);
+    dragSrcIdx = null;
+    renderSelectedProducts(); schedulePreview();
+    showToast('Urutan produk diperbarui!');
+}
+
+function onDragEnd(e) {
+    dragSrcIdx = null;
+    document.querySelectorAll('.selected-product-card').forEach(c => c.classList.remove('dragging'));
+}
+
+/* ══════════════════════════════════════════
+   SHARE KE SOSMED
+══════════════════════════════════════════ */
+function shareToSosmed(platform) {
+    const shareText = encodeURIComponent(`${state.ctaText}\n\nBelanja sembako berkualitas di paketsembako.com\nWA: ${state.waNumber}`);
+    const pageUrl = encodeURIComponent('https://paketsembako.com');
+    let url = '';
+    switch (platform) {
+        case 'whatsapp':  url = `https://wa.me/?text=${shareText}%20${pageUrl}`; break;
+        case 'facebook':  url = `https://www.facebook.com/sharer/sharer.php?u=${pageUrl}&quote=${shareText}`; break;
+        case 'telegram':  url = `https://t.me/share/url?url=${pageUrl}&text=${shareText}`; break;
+        case 'twitter':   url = `https://twitter.com/intent/tweet?text=${shareText}&url=${pageUrl}`; break;
+        case 'instagram': showToast('Untuk Instagram: download gambar lalu upload manual ke IG Story/Feed. \uD83D\uDCF8'); return;
+    }
+    if (url) window.open(url, '_blank', 'noopener');
+}
+
+/* ══════════════════════════════════════════
+   LOGO CUSTOM & BG CUSTOM
+══════════════════════════════════════════ */
+function handleLogoUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 2*1024*1024) { showToast('Logo maksimal 2MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+        pushUndo(); state.logoDataUrl = e.target.result;
+        updateLogoPreview(); schedulePreview();
+        showToast('Logo berhasil diupload! \uD83C\uDFE2');
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeLogo() {
+    pushUndo(); state.logoDataUrl = null;
+    updateLogoPreview(); schedulePreview();
+    showToast('Logo dihapus.');
+}
+
+function updateLogoPreview() {
+    const prev = document.getElementById('logo-preview');
+    const btn  = document.getElementById('btn-remove-logo');
+    if (!prev) return;
+    if (state.logoDataUrl) {
+        prev.innerHTML = `<img src="${state.logoDataUrl}" style="max-height:56px;max-width:180px;object-fit:contain;border-radius:8px;">`;
+        if (btn) btn.style.display = 'inline-flex';
+    } else {
+        prev.innerHTML = '<span style="color:#94a3b8;font-size:0.8rem;">Belum ada logo custom</span>';
+        if (btn) btn.style.display = 'none';
+    }
+}
+
+function handleBgUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 5*1024*1024) { showToast('Background maksimal 5MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+        pushUndo(); state.bgDataUrl = e.target.result; state.bgType = 'custom';
+        updateBgPreview(); schedulePreview();
+        showToast('Background berhasil diupload! \uD83C\uDF04');
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeBgCustom() {
+    pushUndo(); state.bgDataUrl = null; state.bgType = 'gradient';
+    updateBgPreview(); schedulePreview();
+    showToast('Background dikembalikan ke gradient.');
+}
+
+function updateBgPreview() {
+    const prev = document.getElementById('bg-preview');
+    const btn  = document.getElementById('btn-remove-bg');
+    if (!prev) return;
+    if (state.bgDataUrl) {
+        prev.innerHTML = `<img src="${state.bgDataUrl}" style="max-height:56px;max-width:180px;object-fit:cover;border-radius:8px;">`;
+        if (btn) btn.style.display = 'inline-flex';
+    } else {
+        prev.innerHTML = '<span style="color:#94a3b8;font-size:0.8rem;">Belum ada background custom</span>';
+        if (btn) btn.style.display = 'none';
+    }
+}
+
+function renderBgPatternUI() {
+    const wrap = document.getElementById('bg-pattern-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = BG_PATTERNS.map(p =>
+        `<button class="bg-pattern-chip ${state.bgPattern===p.id?'active':''}" data-pattern="${p.id}" onclick="setBgPattern('${p.id}')" title="${p.label}">${p.icon} ${p.label}</button>`
+    ).join('');
+}
+
+function setBgPattern(id) {
+    pushUndo(); state.bgPattern = id;
+    renderBgPatternUI(); schedulePreview();
+}
+
+function setBgType(type) {
+    pushUndo(); state.bgType = type;
+    if (type !== 'custom') state.bgDataUrl = null;
+    updateBgPreview(); schedulePreview();
+}
+
+/* ══════════════════════════════════════════
+   PREVIEW SIZE TOGGLE
+══════════════════════════════════════════ */
+function setPreviewSize(size) {
+    state.previewSize = size;
+    const wrap = document.getElementById('preview-wrap');
+    if (!wrap) return;
+    document.querySelectorAll('.preview-size-btn').forEach(b => b.classList.toggle('active', b.dataset.size === size));
+    if (size === 'mobile')       { wrap.style.maxWidth = '375px'; wrap.style.margin = '0 auto'; }
+    else if (size === 'desktop') { wrap.style.maxWidth = '100%';  wrap.style.margin = ''; }
+    else                         { wrap.style.maxWidth = '';       wrap.style.margin = ''; }
 }
 
 function drawWrappedText(ctx, text, x, y, maxW, lineH, maxLines) {

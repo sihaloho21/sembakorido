@@ -213,6 +213,76 @@
         .preview-wrap.banner    { aspect-ratio: 1200/628; }
 
         /* ── Draft Button ── */
+        .btn-undo-redo {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; border-radius: 8px;
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+            color: #fff; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-undo-redo:hover:not(:disabled) { background: rgba(255,255,255,0.28); }
+        .btn-undo-redo:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        .btn-share {
+            display: inline-flex; align-items: center; gap: 0.375rem;
+            padding: 0.5rem 0.875rem; border-radius: 0.5rem;
+            font-size: 0.78rem; font-weight: 600; cursor: pointer;
+            border: none; transition: all 0.2s; color: #fff;
+        }
+        .btn-share-fb  { background: #1877f2; }
+        .btn-share-fb:hover  { background: #166fe5; }
+        .btn-share-tg  { background: #229ed9; }
+        .btn-share-tg:hover  { background: #1a8cbf; }
+        .btn-share-tw  { background: #000; }
+        .btn-share-tw:hover  { background: #333; }
+        .btn-share-ig  { background: linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888); }
+        .btn-share-ig:hover  { opacity: 0.9; }
+
+        .bg-type-btn {
+            padding: 0.375rem 0.75rem; border-radius: 0.5rem;
+            font-size: 0.75rem; font-weight: 600; cursor: pointer;
+            border: 1.5px solid #d1d5db; background: #fff; color: #374151;
+            transition: all 0.2s;
+        }
+        .bg-type-btn.active { border-color: #128052; background: #f0fdf4; color: #128052; }
+        .bg-type-btn:hover:not(.active) { border-color: #9ca3af; }
+
+        .bg-pattern-chip {
+            padding: 0.3rem 0.6rem; border-radius: 0.375rem;
+            font-size: 0.7rem; font-weight: 600; cursor: pointer;
+            border: 1.5px solid #d1d5db; background: #fff; color: #374151;
+            transition: all 0.2s;
+        }
+        .bg-pattern-chip.active { border-color: #128052; background: #f0fdf4; color: #128052; }
+
+        .preview-size-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; border-radius: 5px;
+            border: 1.5px solid #d1d5db; background: #fff; color: #6b7280;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .preview-size-btn.active { border-color: #128052; background: #f0fdf4; color: #128052; }
+        .preview-size-btn:hover:not(.active) { border-color: #9ca3af; }
+
+        .btn-upload-logo {
+            display: inline-flex; align-items: center; gap: 0.375rem;
+            padding: 0.4rem 0.75rem; border-radius: 0.5rem;
+            font-size: 0.75rem; font-weight: 600; cursor: pointer;
+            border: 1.5px solid #128052; background: #f0fdf4; color: #128052;
+            transition: all 0.2s;
+        }
+        .btn-upload-logo:hover { background: #dcfce7; }
+        .btn-remove-logo {
+            display: inline-flex; align-items: center; gap: 0.375rem;
+            padding: 0.4rem 0.75rem; border-radius: 0.5rem;
+            font-size: 0.75rem; font-weight: 600; cursor: pointer;
+            border: 1.5px solid #ef4444; background: #fef2f2; color: #ef4444;
+            transition: all 0.2s;
+        }
+        .btn-remove-logo:hover { background: #fee2e2; }
+
+        .selected-product-card[draggable="true"] { cursor: grab; }
+        .selected-product-card.dragging { opacity: 0.5; transform: scale(0.98); }
+
         .btn-draft-open {
             display: inline-flex; align-items: center; gap: 0.4rem;
             background: rgba(255,255,255,0.15); color: #fff;
@@ -402,8 +472,13 @@
             <span>Generator Brosur</span>
         </div>
         <div class="topbar-actions">
-            <button class="btn-draft-open" onclick="openDraftModal()" title="Simpan & muat draft">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+            <button id="btn-undo" class="btn-undo-redo" onclick="undo()" title="Undo (Ctrl+Z)" disabled>
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+            </button>
+            <button id="btn-redo" class="btn-undo-redo" onclick="redo()" title="Redo (Ctrl+Y)" disabled>
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10H11a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6"/></svg>
+            </button>
+            <button class="btn-draft-open" onclick="openDraftModal()" title="Simpan &amp; muat draft">               <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
                 Draft
                 <span class="draft-badge" id="draft-badge">0</span>
             </button>
@@ -536,6 +611,70 @@
                     </span>
                 </div>
                 <div class="card-body">
+                    <!-- Logo Custom -->
+                    <div class="custom-section">
+                        <label class="custom-label">🏢 Logo Toko</label>
+                        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+                            <div id="logo-preview" style="min-width:120px;"><span style="color:#94a3b8;font-size:0.8rem;">Belum ada logo custom</span></div>
+                            <div style="display:flex;gap:0.5rem;">
+                                <button class="btn-upload-logo" onclick="document.getElementById('logo-upload-input').click()">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                    Upload Logo
+                                </button>
+                                <button id="btn-remove-logo" class="btn-remove-logo" onclick="removeLogo()" style="display:none;">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    Hapus
+                                </button>
+                            </div>
+                        </div>
+                        <input type="file" id="logo-upload-input" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
+                        <div style="font-size:0.65rem;color:#94a3b8;margin-top:0.25rem;">PNG transparan direkomendasikan. Maks. 2MB.</div>
+                    </div>
+
+                    <!-- Background Custom -->
+                    <div class="custom-section">
+                        <label class="custom-label">🌄 Background</label>
+                        <!-- Tipe background -->
+                        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap;">
+                            <button class="bg-type-btn active" data-bgtype="gradient" onclick="setBgType('gradient');document.querySelectorAll('.bg-type-btn').forEach(b=>b.classList.toggle('active',b.dataset.bgtype==='gradient'));">Gradient</button>
+                            <button class="bg-type-btn" data-bgtype="solid" onclick="setBgType('solid');document.querySelectorAll('.bg-type-btn').forEach(b=>b.classList.toggle('active',b.dataset.bgtype==='solid'));">Solid</button>
+                            <button class="bg-type-btn" data-bgtype="custom" onclick="document.getElementById('bg-upload-input').click();">Upload Gambar</button>
+                        </div>
+                        <!-- Preview bg custom -->
+                        <div id="bg-preview" style="margin-bottom:0.5rem;"><span style="color:#94a3b8;font-size:0.8rem;">Belum ada background custom</span></div>
+                        <button id="btn-remove-bg" class="btn-remove-logo" onclick="removeBgCustom()" style="display:none;margin-bottom:0.5rem;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            Hapus Background
+                        </button>
+                        <input type="file" id="bg-upload-input" accept="image/*" style="display:none" onchange="handleBgUpload(this)">
+                        <!-- Pattern overlay -->
+                        <div style="font-size:0.75rem;color:#64748b;margin-bottom:0.375rem;">Pola Overlay:</div>
+                        <div id="bg-pattern-wrap" style="display:flex;flex-wrap:wrap;gap:0.375rem;"></div>
+                    </div>
+
+                    <!-- Pilih Font -->
+                    <div class="custom-section">
+                        <label class="custom-label" for="font-family-select">🔤 Gaya Font</label>
+                        <select id="font-family-select" class="field-input" onchange="pushUndo();state.fontFamily=this.value;schedulePreview();">
+                            <option value="default">Default (System)</option>
+                            <option value="modern">Modern (Poppins)</option>
+                            <option value="bold">Bold (Oswald)</option>
+                            <option value="elegant">Elegant (Playfair)</option>
+                            <option value="casual">Casual (Nunito)</option>
+                        </select>
+                    </div>
+
+                    <!-- Efek Harga -->
+                    <div class="custom-section">
+                        <label class="custom-label" for="price-effect-select">💰 Efek Harga</label>
+                        <select id="price-effect-select" class="field-input" onchange="pushUndo();state.priceEffect=this.value;schedulePreview();">
+                            <option value="none">Normal (teks biasa)</option>
+                            <option value="circle">Lingkaran Merah (gaya supermarket)</option>
+                            <option value="burst">Bintang Meledak (eye-catching)</option>
+                        </select>
+                        <div style="font-size:0.65rem;color:#94a3b8;margin-top:0.25rem;">Berlaku pada template Featured & Grid.</div>
+                    </div>
+
                     <!-- Warna Tema -->
                     <div class="custom-section">
                         <label class="custom-label">🎨 Warna Tema</label>
@@ -621,20 +760,48 @@
                     </span>
                 </div>
                 <div class="card-body">
-                    <p style="font-size:0.82rem;color:#6b7280;margin-bottom:1.25rem;">Brosur siap! Download sebagai gambar PNG atau bagikan langsung via WhatsApp.</p>
-                    <div style="display:flex;flex-wrap:wrap;gap:0.75rem;">
+                    <p style="font-size:0.82rem;color:#6b7280;margin-bottom:1.25rem;">Brosur siap! Download sebagai gambar PNG atau bagikan langsung ke berbagai platform.</p>
+
+                    <!-- Download -->
+                    <div style="margin-bottom:1rem;">
+                        <div style="font-size:0.72rem;font-weight:700;color:#475569;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.05em;">Download</div>
                         <button class="btn-primary" id="download-btn" onclick="downloadBrosur()">
                             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                             Download PNG
                         </button>
-                        <button class="btn-wa" id="share-wa-btn" onclick="shareWhatsApp()">
-                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                            Share WhatsApp
-                        </button>
-                        <button class="btn-secondary" onclick="goToStep(3)">← Edit Ulang</button>
                     </div>
+
+                    <!-- Share ke Sosmed -->
+                    <div style="margin-bottom:1rem;">
+                        <div style="font-size:0.72rem;font-weight:700;color:#475569;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.05em;">Bagikan ke</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+                            <button class="btn-wa" onclick="shareWhatsApp()">
+                                <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                WhatsApp
+                            </button>
+                            <button class="btn-share btn-share-fb" onclick="shareToSosmed('facebook')">
+                                <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                                Facebook
+                            </button>
+                            <button class="btn-share btn-share-tg" onclick="shareToSosmed('telegram')">
+                                <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                                Telegram
+                            </button>
+                            <button class="btn-share btn-share-tw" onclick="shareToSosmed('twitter')">
+                                <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.259 5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                                Twitter/X
+                            </button>
+                            <button class="btn-share btn-share-ig" onclick="shareToSosmed('instagram')">
+                                <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                                Instagram
+                            </button>
+                        </div>
+                    </div>
+
+                    <button class="btn-secondary" onclick="goToStep(3)">← Edit Ulang</button>
+
                     <div style="margin-top:1rem;padding:0.75rem;background:#f8fafc;border-radius:0.625rem;border:1px solid #e2e8f0;">
-                        <p style="font-size:0.72rem;color:#64748b;font-weight:600;">💡 Tips: Untuk Share WhatsApp, gambar akan didownload terlebih dahulu. Kemudian lampirkan gambar tersebut di chat WhatsApp Anda.</p>
+                        <p style="font-size:0.72rem;color:#64748b;font-weight:600;">💡 Tips: Untuk WhatsApp & Instagram, gambar akan didownload terlebih dahulu lalu lampirkan secara manual.</p>
                     </div>
                 </div>
             </div>
@@ -648,7 +815,20 @@
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                         Preview Brosur
                     </span>
-                    <span id="preview-size-label" style="font-size:0.68rem;color:#94a3b8;font-weight:600;">1080×1080 px</span>
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <span id="preview-size-label" style="font-size:0.68rem;color:#94a3b8;font-weight:600;">1080×1080 px</span>
+                        <div style="display:flex;gap:0.25rem;margin-left:0.5rem;">
+                            <button class="preview-size-btn active" data-size="auto" onclick="setPreviewSize('auto')" title="Auto">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                            </button>
+                            <button class="preview-size-btn" data-size="mobile" onclick="setPreviewSize('mobile')" title="Mobile (375px)">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            </button>
+                            <button class="preview-size-btn" data-size="desktop" onclick="setPreviewSize('desktop')" title="Desktop (full)">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body" style="padding:0.75rem;">
                     <div class="preview-wrap" id="preview-wrap">
