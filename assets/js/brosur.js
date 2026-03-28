@@ -24,8 +24,10 @@ const THEMES = {
     'dark':        { from: '#1e293b', to: '#475569', accent: '#22c55e', text: '#ffffff' }
 };
 
-const TEMPLATE_SLOTS = { featured: 1, grid4: 4, grid6: 6, lottemart: 4 };
+const TEMPLATE_SLOTS = { featured: 1, grid4: 4, grid6: 6, lottemart: 4, story: 3, banner: 3 };
 const CANVAS_SIZE_LOTTEMART = { w: 1080, h: 1527 }; // A4 portrait ratio
+const CANVAS_SIZE_STORY  = { w: 1080, h: 1920 }; // Instagram Story / Reels
+const CANVAS_SIZE_BANNER = { w: 1200, h: 628  }; // Facebook / WA Status landscape
 
 /* Koleksi stiker preset */
 const STICKER_PRESETS = [
@@ -500,18 +502,24 @@ function selectTemplate(t) {
         renderSelectedProducts();
     }
     updateSlotCounter();
-    // Update preview size label
-    const sizeLabel = document.getElementById('preview-size-label');
+    // Update preview size label & preview-wrap class
+    const sizeLabel  = document.getElementById('preview-size-label');
     const previewWrap = document.getElementById('preview-wrap');
-    if (t === 'grid6') {
-        if (sizeLabel) sizeLabel.textContent = '1080×1350 px';
-        if (previewWrap) { previewWrap.classList.add('portrait'); previewWrap.classList.remove('lottemart'); }
-    } else if (t === 'lottemart') {
-        if (sizeLabel) sizeLabel.textContent = '1080×1527 px';
-        if (previewWrap) { previewWrap.classList.add('portrait'); previewWrap.classList.add('lottemart'); }
-    } else {
-        if (sizeLabel) sizeLabel.textContent = '1080×1080 px';
-        if (previewWrap) { previewWrap.classList.remove('portrait'); previewWrap.classList.remove('lottemart'); }
+    const sizeMap = {
+        featured:  '1080×1080 px',
+        grid4:     '1080×1080 px',
+        grid6:     '1080×1350 px',
+        lottemart: '1080×1527 px',
+        story:     '1080×1920 px',
+        banner:    '1200×628 px',
+    };
+    if (sizeLabel) sizeLabel.textContent = sizeMap[t] || '1080×1080 px';
+    if (previewWrap) {
+        previewWrap.classList.remove('portrait', 'lottemart', 'story', 'banner');
+        if (t === 'grid6')     previewWrap.classList.add('portrait');
+        if (t === 'lottemart') { previewWrap.classList.add('portrait'); previewWrap.classList.add('lottemart'); }
+        if (t === 'story')     previewWrap.classList.add('story');
+        if (t === 'banner')    previewWrap.classList.add('banner');
     }
     schedulePreview();
 }
@@ -586,11 +594,12 @@ async function generateBrosur() {
 ══════════════════════════════════════════ */
 async function drawBrosur(canvas, highRes) {
     const isLottemart = state.template === 'lottemart';
-    const isPortrait = state.template === 'grid6';
-    if (isLottemart) {
-        await drawLotteMart(canvas, highRes);
-        return;
-    }
+    const isStory     = state.template === 'story';
+    const isBanner    = state.template === 'banner';
+    const isPortrait  = state.template === 'grid6';
+    if (isLottemart) { await drawLotteMart(canvas, highRes); return; }
+    if (isStory)     { await drawStory(canvas, highRes);     return; }
+    if (isBanner)    { await drawBanner(canvas, highRes);    return; }
     const size = isPortrait ? CANVAS_SIZE_PORTRAIT : CANVAS_SIZE;
     const scale = highRes ? 1 : 0.4; // preview at 40%
 
@@ -1135,6 +1144,305 @@ async function drawLotteMartCell(ctx, prod, x, y, w, h, theme) {
     if (eff.rewardPoin > 0) infoRow.push(`⭐ +${eff.rewardPoin} Poin`);
     if (eff.minOrder > 0) infoRow.push(`📦 Min. ${eff.minOrder} pcs`);
     if (infoRow.length) ctx.fillText(infoRow.join('   '), x + pad, curY);
+}
+
+/* ══════════════════════════════════════════
+   STORY INSTAGRAM TEMPLATE (1080×1920)
+══════════════════════════════════════════ */
+async function drawStory(canvas, highRes) {
+    const W = CANVAS_SIZE_STORY.w, H = CANVAS_SIZE_STORY.h;
+    const scale = highRes ? 1 : 0.28; // preview kecil agar muat
+    canvas.width  = W * scale;
+    canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    const theme = THEMES[state.theme] || THEMES['green-blue'];
+
+    // ── Background gradient diagonal ──
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, theme.from);
+    bg.addColorStop(0.55, theme.to);
+    bg.addColorStop(1, theme.from);
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // ── Dekorasi lingkaran besar ──
+    ctx.save();
+    ctx.globalAlpha = 0.07;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(W * 0.85, H * 0.08, 280, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W * 0.1,  H * 0.92, 220, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W * 0.5,  H * 0.5,  480, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // ── Header ──
+    const hdrH = 130;
+    ctx.save(); ctx.globalAlpha = 0.2; ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, hdrH); ctx.restore();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 44px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('\uD83D\uDED2 GoSembako', 56, hdrH / 2);
+    ctx.font = '600 30px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText(`\uD83D\uDCF1 ${state.waNumber}`, W - 56, hdrH / 2);
+
+    // ── Tanggal promo ──
+    const dateH = 60;
+    ctx.save(); ctx.globalAlpha = 0.22; ctx.fillStyle = '#000';
+    ctx.fillRect(0, hdrH, W, dateH); ctx.restore();
+    ctx.fillStyle = '#fff';
+    ctx.font = '700 28px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`\uD83D\uDCC5 Promo: ${formatDateRange(state.promoStart, state.promoEnd)}`, W / 2, hdrH + dateH / 2);
+
+    // ── Judul CTA besar di tengah ──
+    const ctaY = hdrH + dateH + 40;
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 68px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const ctaLines = wrapTextLines(ctx, state.ctaText, W - 120, 68);
+    let ctaDrawY = ctaY;
+    ctaLines.slice(0, 2).forEach(line => {
+        ctx.fillText(line, W / 2, ctaDrawY);
+        ctaDrawY += 80;
+    });
+
+    // ── Produk cards (vertikal stack, max 3) ──
+    const prods = state.selected.slice(0, 3);
+    const cardAreaY = ctaDrawY + 40;
+    const cardAreaH = H - cardAreaY - 160;
+    const cardH = Math.floor(cardAreaH / prods.length) - 20;
+    const cardW = W - 80;
+    const cardX = 40;
+
+    for (let i = 0; i < prods.length; i++) {
+        const cardY = cardAreaY + i * (cardH + 20);
+        await drawStoryCard(ctx, prods[i], cardX, cardY, cardW, cardH, theme);
+    }
+
+    // ── Footer CTA bar ──
+    const ftY = H - 140;
+    const ftGrad = ctx.createLinearGradient(0, ftY, W, ftY + 140);
+    ftGrad.addColorStop(0, 'rgba(0,0,0,0.4)');
+    ftGrad.addColorStop(1, 'rgba(0,0,0,0.65)');
+    ctx.fillStyle = ftGrad;
+    ctx.fillRect(0, ftY, W, 140);
+    // Tombol order
+    const btnW = 480, btnH = 80, btnX = (W - btnW) / 2, btnY = ftY + 30;
+    const btnGrad = ctx.createLinearGradient(btnX, btnY, btnX + btnW, btnY);
+    btnGrad.addColorStop(0, theme.from);
+    btnGrad.addColorStop(1, theme.to);
+    roundRect(ctx, btnX, btnY, btnW, btnH, btnH / 2);
+    ctx.fillStyle = btnGrad; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 32px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('\uD83D\uDED2 Pesan via WhatsApp', W / 2, btnY + btnH / 2);
+
+    drawStickers(ctx, W, H);
+    if (state.showWatermark) drawWatermark(ctx, W, H, state.watermarkPos, theme);
+}
+
+async function drawStoryCard(ctx, prod, x, y, w, h, theme) {
+    if (!prod) return;
+    const eff = effectiveProd(prod);
+    // Card bg
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.2)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 6;
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    roundRect(ctx, x, y, w, h, 24); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.restore();
+
+    const imgW = Math.round(h * 0.9);
+    const imgX = x + 16, imgY = y + (h - imgW) / 2;
+    await drawProductImage(ctx, eff.gambar, imgX, imgY, imgW, imgW, 18);
+
+    // Info kanan
+    const infoX = imgX + imgW + 24;
+    const infoW = w - imgW - 56;
+    let cy = y + 22;
+    if (eff.badge) {
+        ctx.fillStyle = theme.accent || '#22c55e';
+        ctx.font = 'bold 22px -apple-system, Arial, sans-serif';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText(eff.badge.toUpperCase(), infoX, cy); cy += 30;
+    }
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 30px -apple-system, Arial, sans-serif';
+    cy = drawWrappedText(ctx, eff.nama, infoX, cy, infoW, 36, 2); cy += 8;
+    if (eff.hargaCoret > 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = '500 22px -apple-system, Arial, sans-serif';
+        const coretTxt = `Rp ${eff.hargaCoret.toLocaleString('id-ID')}`;
+        const coretW = ctx.measureText(coretTxt).width;
+        ctx.fillText(coretTxt, infoX, cy);
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(infoX, cy + 11); ctx.lineTo(infoX + coretW, cy + 11); ctx.stroke();
+        cy += 28;
+    }
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 38px -apple-system, Arial, sans-serif';
+    ctx.fillText(`Rp ${eff.harga.toLocaleString('id-ID')}`, infoX, cy); cy += 46;
+    if (eff.rewardPoin > 0 || eff.minOrder > 1) {
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = '500 20px -apple-system, Arial, sans-serif';
+        const info = [];
+        if (eff.rewardPoin > 0) info.push(`\u2B50 +${eff.rewardPoin} Poin`);
+        if (eff.minOrder > 1)   info.push(`\uD83D\uDCE6 Min. ${eff.minOrder}`);
+        ctx.fillText(info.join('  '), infoX, cy);
+    }
+}
+
+/* ══════════════════════════════════════════
+   BANNER HORIZONTAL TEMPLATE (1200×628)
+══════════════════════════════════════════ */
+async function drawBanner(canvas, highRes) {
+    const W = CANVAS_SIZE_BANNER.w, H = CANVAS_SIZE_BANNER.h;
+    const scale = highRes ? 1 : 0.45;
+    canvas.width  = W * scale;
+    canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    const theme = THEMES[state.theme] || THEMES['green-blue'];
+
+    // ── Background gradient ──
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, theme.from);
+    bg.addColorStop(1, theme.to);
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    // ── Dekorasi ──
+    ctx.save(); ctx.globalAlpha = 0.06; ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(W * 0.92, H * 0.15, 180, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W * 0.05, H * 0.85, 140, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // ── Header strip ──
+    const hdrH = 72;
+    ctx.save(); ctx.globalAlpha = 0.2; ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, hdrH); ctx.restore();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 30px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('\uD83D\uDED2 GoSembako', 40, hdrH / 2);
+    ctx.font = '600 22px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`\uD83D\uDCC5 ${formatDateRange(state.promoStart, state.promoEnd)}`, W / 2, hdrH / 2);
+    ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText(`\uD83D\uDCF1 ${state.waNumber}`, W - 40, hdrH / 2);
+
+    // ── Layout: kiri = teks CTA besar, kanan = produk cards ──
+    const prods = state.selected.slice(0, 3);
+    const contentY = hdrH + 20;
+    const contentH = H - contentY - 80;
+
+    // Kolom kiri: CTA
+    const leftW = Math.round(W * 0.32);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 52px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    const ctaLines = wrapTextLines(ctx, state.ctaText, leftW - 40, 52);
+    let ctaY = contentY + 20;
+    ctaLines.slice(0, 3).forEach(line => {
+        ctx.fillText(line, 40, ctaY);
+        ctaY += 62;
+    });
+    // Garis dekorasi
+    const lineGrad = ctx.createLinearGradient(40, 0, 40 + leftW - 60, 0);
+    lineGrad.addColorStop(0, 'rgba(255,255,255,0.8)');
+    lineGrad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.strokeStyle = lineGrad; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(40, ctaY + 10); ctx.lineTo(leftW - 20, ctaY + 10); ctx.stroke();
+
+    // Kolom kanan: produk cards horizontal
+    const rightX = leftW + 20;
+    const rightW = W - rightX - 20;
+    const cardW = Math.floor(rightW / prods.length) - 16;
+    const cardH = contentH;
+
+    for (let i = 0; i < prods.length; i++) {
+        const cx = rightX + i * (cardW + 16);
+        await drawBannerCard(ctx, prods[i], cx, contentY, cardW, cardH, theme);
+    }
+
+    // ── Footer CTA bar ──
+    const ftY = H - 72;
+    ctx.save(); ctx.globalAlpha = 0.25; ctx.fillStyle = '#000';
+    ctx.fillRect(0, ftY, W, 72); ctx.restore();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 28px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(state.ctaText, W / 2, ftY + 36);
+
+    drawStickers(ctx, W, H);
+    if (state.showWatermark) drawWatermark(ctx, W, H, state.watermarkPos, theme);
+}
+
+async function drawBannerCard(ctx, prod, x, y, w, h, theme) {
+    // Card bg
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.18)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 4;
+    ctx.fillStyle = 'rgba(255,255,255,0.13)';
+    roundRect(ctx, x, y, w, h, 20); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.restore();
+
+    if (!prod) {
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '500 22px -apple-system, Arial, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('Slot Kosong', x + w / 2, y + h / 2);
+        return;
+    }
+
+    const eff = effectiveProd(prod);
+    const imgH = Math.round(h * 0.52);
+    const pad = 14;
+
+    await drawProductImage(ctx, eff.gambar, x + pad, y + pad, w - pad * 2, imgH - pad, 14);
+    if (eff.badge) drawBadge(ctx, eff.badge, x + pad + 8, y + pad + 8, theme, true);
+
+    let cy = y + imgH + 14;
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 22px -apple-system, Arial, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    cy = drawWrappedText(ctx, eff.nama, x + pad, cy, w - pad * 2, 26, 2); cy += 6;
+    if (eff.hargaCoret > 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = '500 18px -apple-system, Arial, sans-serif';
+        const coretTxt = `Rp ${eff.hargaCoret.toLocaleString('id-ID')}`;
+        const cw = ctx.measureText(coretTxt).width;
+        ctx.fillText(coretTxt, x + pad, cy);
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(x + pad, cy + 9); ctx.lineTo(x + pad + cw, cy + 9); ctx.stroke();
+        cy += 24;
+    }
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 28px -apple-system, Arial, sans-serif';
+    ctx.fillText(`Rp ${eff.harga.toLocaleString('id-ID')}`, x + pad, cy); cy += 36;
+    if (eff.rewardPoin > 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = '500 18px -apple-system, Arial, sans-serif';
+        ctx.fillText(`\u2B50 +${eff.rewardPoin} Poin`, x + pad, cy);
+    }
+}
+
+/** Helper: wrap teks jadi array baris */
+function wrapTextLines(ctx, text, maxW, fontSize) {
+    const words = text.split(' ');
+    const lines = [];
+    let cur = '';
+    for (const w of words) {
+        const test = cur ? cur + ' ' + w : w;
+        if (ctx.measureText(test).width > maxW && cur) {
+            lines.push(cur); cur = w;
+        } else { cur = test; }
+    }
+    if (cur) lines.push(cur);
+    return lines;
 }
 
 /* ══════════════════════════════════════════

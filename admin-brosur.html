@@ -110,7 +110,7 @@
         .step.done .step-num { background: #22c55e; color: #fff; }
 
         /* ── TEMPLATE PICKER ── */
-        .template-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+        .template-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
         @media (max-width: 600px) { .template-grid { grid-template-columns: repeat(2, 1fr); } }
         .template-card {
             border: 2px solid #e2e8f0; border-radius: 0.875rem;
@@ -207,8 +207,10 @@
             overflow: hidden; position: relative;
             display: flex; align-items: center; justify-content: center;
         }
-        .preview-wrap.portrait { aspect-ratio: 4/5; }
+        .preview-wrap.portrait  { aspect-ratio: 4/5; }
         .preview-wrap.lottemart { aspect-ratio: 1080/1527; }
+        .preview-wrap.story     { aspect-ratio: 1080/1920; }
+        .preview-wrap.banner    { aspect-ratio: 1200/628; }
 
         /* ── Draft Button ── */
         .btn-draft-open {
@@ -456,10 +458,21 @@
                             <div class="template-desc">2×3 produk</div>
                         </div>
                         <div class="template-card" data-template="lottemart" onclick="selectTemplate('lottemart')" style="position:relative;">
-                            <div style="position:absolute;top:-8px;right:-8px;background:#ef4444;color:#fff;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:99px;letter-spacing:0.05em;">BARU</div>
                             <div class="template-icon">📰</div>
                             <div class="template-name">Katalog</div>
-                            <div class="template-desc">Gaya Lotte Mart</div>
+                            <div class="template-desc">Gaya Lotte Mart • 1080×1527</div>
+                        </div>
+                        <div class="template-card" data-template="story" onclick="selectTemplate('story')" style="position:relative;">
+                            <div style="position:absolute;top:-8px;right:-8px;background:#7c3aed;color:#fff;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:99px;letter-spacing:0.05em;">BARU</div>
+                            <div class="template-icon">📱</div>
+                            <div class="template-name">Story</div>
+                            <div class="template-desc">Instagram/WA Story • 1080×1920</div>
+                        </div>
+                        <div class="template-card" data-template="banner" onclick="selectTemplate('banner')" style="position:relative;">
+                            <div style="position:absolute;top:-8px;right:-8px;background:#0369a1;color:#fff;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:99px;letter-spacing:0.05em;">BARU</div>
+                            <div class="template-icon">🖼️</div>
+                            <div class="template-name">Banner</div>
+                            <div class="template-desc">Facebook/WA Status • 1200×628</div>
                         </div>
                     </div>
                     <div style="margin-top:1.25rem;text-align:right;">
