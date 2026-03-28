@@ -650,6 +650,18 @@ function renderNotificationUI() {
     renderNotificationCenterList();
 }
 
+function setNotificationBackdrop(active) {
+    const backdrop = document.getElementById('notification-backdrop');
+    if (!backdrop) return;
+    if (active) {
+        backdrop.classList.add('active');
+        backdrop.onclick = function() { closeNotificationDropdown(); };
+    } else {
+        backdrop.classList.remove('active');
+        backdrop.onclick = null;
+    }
+}
+
 function closeNotificationDropdown() {
     const bellButton = document.getElementById('notification-bell-button');
     const dropdown = document.getElementById('notification-dropdown');
@@ -660,6 +672,7 @@ function closeNotificationDropdown() {
     if (bellButton) {
         bellButton.setAttribute('aria-expanded', 'false');
     }
+    setNotificationBackdrop(false);
 }
 
 function toggleNotificationDropdown() {
@@ -672,6 +685,7 @@ function toggleNotificationDropdown() {
         dropdown.classList.remove('hidden');
         dropdown.setAttribute('aria-hidden', 'false');
         applyNotificationDropdownViewportLimit();
+        setNotificationBackdrop(true);
     }
     if (bellButton) {
         bellButton.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
