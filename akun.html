@@ -258,6 +258,41 @@
         #notification-dropdown {
             z-index: 120;
         }
+        /* ── MOBILE: dropdown jadi panel fixed terpusat ── */
+        @media (max-width: 639px) {
+            #notification-bell-wrap {
+                position: static;
+            }
+            #notification-dropdown {
+                position: fixed !important;
+                top: 50% !important;
+                left: 50% !important;
+                right: auto !important;
+                bottom: auto !important;
+                transform: translate(-50%, -50%) !important;
+                width: calc(100vw - 2rem) !important;
+                max-width: 420px !important;
+                max-height: calc(100dvh - 4rem) !important;
+                overflow-y: auto !important;
+                border-radius: 1.25rem !important;
+                box-shadow: 0 24px 64px rgba(0,0,0,0.28) !important;
+                margin-top: 0 !important;
+            }
+            #notification-dropdown-list {
+                max-height: calc(100dvh - 20rem) !important;
+            }
+        }
+        /* Backdrop overlay saat dropdown terbuka di mobile */
+        #notification-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 119;
+        }
+        #notification-backdrop.active {
+            display: block;
+        }
         .notifications-extra-collapse {
             display: grid;
             grid-template-rows: 0fr;
@@ -613,7 +648,7 @@
                         <p class="text-sm text-gray-500" id="user-whatsapp">+62 xxx</p>
                     </div>
                     <div class="flex items-center gap-2 sm:gap-3">
-                        <div id="notification-bell-wrap" class="relative">
+                        <div id="notification-bell-wrap" class="relative" style="position:static;">
                             <button type="button" id="notification-bell-button" data-action="toggle-notification-dropdown" class="relative text-amber-600 hover:bg-amber-50 p-2 rounded-lg transition" title="Lihat notifikasi" aria-label="Lihat notifikasi" aria-expanded="false" aria-controls="notification-dropdown">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
@@ -905,6 +940,9 @@
         </div>
 
     </main>
+
+    <!-- Notification Backdrop (mobile) -->
+    <div id="notification-backdrop"></div>
 
     <!-- PayLater Detail Modal -->
     <div id="paylater-detail-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="paylater-detail-title" tabindex="-1" data-modal>
