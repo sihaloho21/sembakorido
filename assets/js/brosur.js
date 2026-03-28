@@ -27,6 +27,33 @@ const THEMES = {
 const TEMPLATE_SLOTS = { featured: 1, grid4: 4, grid6: 6, lottemart: 4 };
 const CANVAS_SIZE_LOTTEMART = { w: 1080, h: 1527 }; // A4 portrait ratio
 
+/* Koleksi stiker preset */
+const STICKER_PRESETS = [
+    // ─ Badge Diskon ─
+    { id: 'disc10',  type: 'badge-circle', label: 'DISKON\n10%',  bg: '#ef4444', fg: '#fff', size: 'md' },
+    { id: 'disc20',  type: 'badge-circle', label: 'DISKON\n20%',  bg: '#ef4444', fg: '#fff', size: 'md' },
+    { id: 'disc30',  type: 'badge-circle', label: 'DISKON\n30%',  bg: '#ef4444', fg: '#fff', size: 'md' },
+    { id: 'disc50',  type: 'badge-circle', label: 'DISKON\n50%',  bg: '#dc2626', fg: '#fff', size: 'lg' },
+    { id: 'disc75',  type: 'badge-circle', label: 'DISKON\n75%',  bg: '#b91c1c', fg: '#fff', size: 'lg' },
+    // ─ Banner Teks ─
+    { id: 'flash',   type: 'banner',       label: '⚡ FLASH SALE!',    bg: '#f97316', fg: '#fff' },
+    { id: 'free',    type: 'banner',       label: '🎁 GRATIS ONGKIR',   bg: '#16a34a', fg: '#fff' },
+    { id: 'limited', type: 'banner',       label: '⏰ STOK TERBATAS',  bg: '#dc2626', fg: '#fff' },
+    { id: 'new',     type: 'banner',       label: '✨ PRODUK BARU',    bg: '#7c3aed', fg: '#fff' },
+    { id: 'buy2',    type: 'banner',       label: '📦 BELI 2 GRATIS 1', bg: '#0369a1', fg: '#fff' },
+    { id: 'best',    type: 'banner',       label: '🏆 BEST SELLER',    bg: '#d97706', fg: '#fff' },
+    { id: 'hot',     type: 'banner',       label: '🔥 HOT PROMO',      bg: '#dc2626', fg: '#fff' },
+    // ─ Stempel / Stamp ─
+    { id: 'stamp_ori',   type: 'stamp', label: 'ORIGINAL',    bg: '#16a34a', fg: '#fff' },
+    { id: 'stamp_fresh', type: 'stamp', label: 'FRESH',       bg: '#0369a1', fg: '#fff' },
+    { id: 'stamp_halal', type: 'stamp', label: 'HALAL',       bg: '#16a34a', fg: '#fff' },
+    { id: 'stamp_sale',  type: 'stamp', label: 'ON SALE',     bg: '#dc2626', fg: '#fff' },
+    // ─ Pita Sudut ─
+    { id: 'ribbon_new',  type: 'ribbon', label: 'BARU',   bg: '#7c3aed', fg: '#fff', corner: 'tr' },
+    { id: 'ribbon_hot',  type: 'ribbon', label: 'HOT',    bg: '#ef4444', fg: '#fff', corner: 'tr' },
+    { id: 'ribbon_sale', type: 'ribbon', label: 'SALE',   bg: '#f97316', fg: '#fff', corner: 'tr' },
+];
+
 let state = {
     authed: false,
     template: 'featured',
@@ -39,6 +66,7 @@ let state = {
     waNumber: '0899-3370-200',
     showWatermark: true,
     watermarkPos: 'br',
+    activeStickers: [],    // array of { presetId, pos } — pos: 'tl','tc','tr','bl','bc','br','c'
     generatedDataUrl: null,
     previewTimer: null
 };
@@ -104,7 +132,7 @@ function showApp() {
     document.getElementById('app-screen').style.display = 'block';
     loadProducts();
     // Update badge draft saat app pertama kali tampil
-    setTimeout(updateDraftBadge, 100);
+    setTimeout(() => { updateDraftBadge(); renderStickerUI(); }, 100);
 }
 
 function logout() {
@@ -439,16 +467,19 @@ function setBadge(idx, badge) {
    STEP NAVIGATION
 ══════════════════════════════════════════ */
 function goToStep(n) {
-    [1, 2, 3, 4].forEach(i => {
+    [1,2,3,4].forEach(i => {
         const el = document.getElementById(`step-${i}`);
         if (el) el.style.display = i === n ? 'block' : 'none';
     });
-    document.querySelectorAll('.step').forEach(el => {
-        const sn = parseInt(el.dataset.step);
-        el.classList.remove('active', 'done');
-        if (sn === n) el.classList.add('active');
-        else if (sn < n) el.classList.add('done');
+    // Update step indicators
+    document.querySelectorAll('.step').forEach(s => {
+        const sn = parseInt(s.dataset.step);
+        s.classList.toggle('active', sn === n);
+        s.classList.toggle('done', sn < n);
     });
+    currentStep = n;
+    // Render stiker UI saat masuk Step 3
+    if (n === 3) renderStickerUI();
     if (n === 2) updateSlotCounter();
     if (n === 3 || n === 4) schedulePreview();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -653,6 +684,9 @@ async function drawBrosur(canvas, highRes) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(state.ctaText, W / 2, footerY + footerH / 2);
+
+    // ── Stiker overlay ──
+    drawStickers(ctx, W, H);
 
     // ── Watermark ──
     if (state.showWatermark) {
@@ -984,6 +1018,9 @@ async function drawLotteMart(canvas, highRes) {
     ctx.textBaseline = 'middle';
     ctx.fillText(state.ctaText, W / 2, footerY + footerH / 2);
 
+    // Stiker overlay
+    drawStickers(ctx, W, H);
+
     // Watermark
     if (state.showWatermark) {
         drawWatermark(ctx, W, H, state.watermarkPos, theme);
@@ -1299,6 +1336,230 @@ function shareWhatsApp() {
 }
 
 /* ══════════════════════════════════════════
+   STICKER ENGINE
+══════════════════════════════════════════ */
+
+/**
+ * Render semua stiker aktif di atas canvas.
+ * Dipanggil setelah semua elemen brosur selesai digambar.
+ */
+function drawStickers(ctx, W, H) {
+    if (!state.activeStickers || state.activeStickers.length === 0) return;
+
+    state.activeStickers.forEach(({ presetId, pos }) => {
+        const preset = STICKER_PRESETS.find(s => s.id === presetId);
+        if (!preset) return;
+
+        // Hitung koordinat berdasarkan pos
+        const { x, y } = stickerPosition(pos, W, H, preset);
+
+        ctx.save();
+        if (preset.type === 'badge-circle') drawStickerBadgeCircle(ctx, preset, x, y, W);
+        else if (preset.type === 'banner')  drawStickerBanner(ctx, preset, x, y, W, H);
+        else if (preset.type === 'stamp')   drawStickerStamp(ctx, preset, x, y, W);
+        else if (preset.type === 'ribbon')  drawStickerRibbon(ctx, preset, W, H);
+        ctx.restore();
+    });
+}
+
+/** Hitung koordinat stiker berdasarkan posisi kode */
+function stickerPosition(pos, W, H, preset) {
+    const pad = 40;
+    const map = {
+        'tl': { x: pad,          y: pad },
+        'tc': { x: W / 2,        y: pad },
+        'tr': { x: W - pad,      y: pad },
+        'ml': { x: pad,          y: H / 2 },
+        'mc': { x: W / 2,        y: H / 2 },
+        'mr': { x: W - pad,      y: H / 2 },
+        'bl': { x: pad,          y: H - pad },
+        'bc': { x: W / 2,        y: H - pad },
+        'br': { x: W - pad,      y: H - pad },
+    };
+    return map[pos] || map['tr'];
+}
+
+/** Badge lingkaran (gaya diskon) */
+function drawStickerBadgeCircle(ctx, preset, cx, cy, W) {
+    const r = preset.size === 'lg' ? Math.round(W * 0.1) : Math.round(W * 0.08);
+    // Shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 4;
+    // Lingkaran utama
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = preset.bg;
+    ctx.fill();
+    // Border putih
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    // Teks (bisa 2 baris)
+    const lines = preset.label.split('\n');
+    ctx.fillStyle = preset.fg;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (lines.length === 2) {
+        const fs1 = Math.round(r * 0.42);
+        const fs2 = Math.round(r * 0.55);
+        ctx.font = `700 ${fs1}px -apple-system, Arial, sans-serif`;
+        ctx.fillText(lines[0], cx, cy - r * 0.22);
+        ctx.font = `900 ${fs2}px -apple-system, Arial, sans-serif`;
+        ctx.fillText(lines[1], cx, cy + r * 0.3);
+    } else {
+        ctx.font = `900 ${Math.round(r * 0.5)}px -apple-system, Arial, sans-serif`;
+        ctx.fillText(preset.label, cx, cy);
+    }
+}
+
+/** Banner teks horizontal */
+function drawStickerBanner(ctx, preset, cx, cy, W, H) {
+    const fs = Math.round(W * 0.038);
+    ctx.font = `800 ${fs}px -apple-system, Arial, sans-serif`;
+    const tw = ctx.measureText(preset.label).width;
+    const bw = tw + fs * 2;
+    const bh = fs * 1.8;
+    const bx = cx - bw / 2;
+    const by = cy - bh / 2;
+    // Shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 3;
+    // Background pill
+    roundRect(ctx, bx, by, bw, bh, bh / 2);
+    ctx.fillStyle = preset.bg;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Garis putih atas-bawah
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    // Teks
+    ctx.fillStyle = preset.fg;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(preset.label, cx, cy);
+}
+
+/** Stempel bulat dengan border dashed */
+function drawStickerStamp(ctx, preset, cx, cy, W) {
+    const r = Math.round(W * 0.09);
+    const fs = Math.round(r * 0.48);
+    // Shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.25)';
+    ctx.shadowBlur = 10;
+    // Lingkaran luar (dashed border effect)
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 8, 0, Math.PI * 2);
+    ctx.strokeStyle = preset.bg;
+    ctx.lineWidth = 5;
+    ctx.setLineDash([12, 8]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Lingkaran dalam
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = preset.bg;
+    ctx.fill();
+    // Teks
+    ctx.fillStyle = preset.fg;
+    ctx.font = `900 ${fs}px -apple-system, Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(preset.label, cx, cy);
+    // Ring dalam
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 10, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+}
+
+/** Pita sudut (ribbon) */
+function drawStickerRibbon(ctx, preset, W, H) {
+    const size = Math.round(W * 0.22);
+    ctx.save();
+    // Pojok kanan atas
+    ctx.translate(W, 0);
+    ctx.rotate(Math.PI / 4);
+    const bh = Math.round(W * 0.065);
+    ctx.fillStyle = preset.bg;
+    ctx.fillRect(-size * 0.7, size * 0.28, size * 1.4, bh);
+    ctx.fillStyle = preset.fg;
+    ctx.font = `800 ${Math.round(bh * 0.65)}px -apple-system, Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(preset.label, 0, size * 0.28 + bh / 2);
+    ctx.restore();
+}
+
+/** Toggle stiker aktif/nonaktif */
+function toggleSticker(presetId, pos) {
+    const idx = state.activeStickers.findIndex(s => s.presetId === presetId);
+    if (idx >= 0) {
+        // Sudah aktif — hapus
+        state.activeStickers.splice(idx, 1);
+    } else {
+        // Tambah stiker baru
+        state.activeStickers.push({ presetId, pos: pos || 'tr' });
+    }
+    renderStickerUI();
+    schedulePreview();
+}
+
+/** Update posisi stiker yang sudah aktif */
+function updateStickerPos(presetId, newPos) {
+    const s = state.activeStickers.find(s => s.presetId === presetId);
+    if (s) { s.pos = newPos; schedulePreview(); }
+}
+
+/** Render UI daftar stiker di panel kustomisasi */
+function renderStickerUI() {
+    const container = document.getElementById('sticker-grid');
+    if (!container) return;
+
+    const groups = [
+        { label: 'Badge Diskon', types: ['badge-circle'] },
+        { label: 'Banner Teks', types: ['banner'] },
+        { label: 'Stempel',     types: ['stamp'] },
+        { label: 'Pita Sudut',  types: ['ribbon'] },
+    ];
+
+    const posOptions = [
+        { v: 'tl', l: '↖ Kiri Atas' }, { v: 'tc', l: '↑ Tengah Atas' }, { v: 'tr', l: '↗ Kanan Atas' },
+        { v: 'ml', l: '← Kiri Tengah' }, { v: 'mc', l: '⊙ Tengah' }, { v: 'mr', l: '→ Kanan Tengah' },
+        { v: 'bl', l: '↙ Kiri Bawah' }, { v: 'bc', l: '↓ Tengah Bawah' }, { v: 'br', l: '↘ Kanan Bawah' },
+    ];
+
+    container.innerHTML = groups.map(g => {
+        const presets = STICKER_PRESETS.filter(p => g.types.includes(p.type));
+        return `
+        <div class="sticker-group">
+            <div class="sticker-group-label">${g.label}</div>
+            <div class="sticker-chips">
+                ${presets.map(p => {
+                    const active = state.activeStickers.find(s => s.presetId === p.id);
+                    const activePos = active ? active.pos : 'tr';
+                    return `
+                    <div class="sticker-chip ${active ? 'active' : ''}" data-id="${p.id}">
+                        <div class="sticker-chip-main" onclick="toggleSticker('${p.id}', '${activePos}')" style="background:${p.bg};">
+                            <span style="color:${p.fg};font-size:0.72rem;font-weight:700;text-align:center;line-height:1.2;">${p.label.replace('\n','<br>')}</span>
+                        </div>
+                        ${active ? `
+                        <select class="sticker-pos-select" onchange="updateStickerPos('${p.id}', this.value)" title="Posisi stiker">
+                            ${posOptions.map(o => `<option value="${o.v}" ${activePos === o.v ? 'selected' : ''}>${o.l}</option>`).join('')}
+                        </select>` : ''}
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+/* ══════════════════════════════════════════
    DRAFT MANAGEMENT
 ══════════════════════════════════════════ */
 
@@ -1330,6 +1591,7 @@ function saveDraft(customName = '') {
         waNumber: state.waNumber,
         showWatermark: state.showWatermark,
         watermarkPos: state.watermarkPos,
+        activeStickers: state.activeStickers || [],
         // Simpan produk terpilih beserta semua override
         // Catatan: _gambarDataUrl (base64) bisa besar, simpan hanya jika ada
         selected: state.selected.map(p => ({
@@ -1403,9 +1665,10 @@ function loadDraft(id) {
     state.promoEnd   = draft.promoEnd   || '';
     state.ctaText    = draft.ctaText    || '';
     state.waNumber   = draft.waNumber   || '';
-    state.showWatermark = draft.showWatermark !== false;
-    state.watermarkPos  = draft.watermarkPos  || 'br';
-    state.selected   = draft.selected  || [];
+    state.showWatermark  = draft.showWatermark !== false;
+    state.watermarkPos   = draft.watermarkPos  || 'br';
+    state.activeStickers = draft.activeStickers || [];
+    state.selected       = draft.selected  || [];
 
     // Update UI form
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
@@ -1429,6 +1692,7 @@ function loadDraft(id) {
     // Re-render produk terpilih
     updateSlotCounter();
     renderSelectedProducts();
+    renderStickerUI();
     schedulePreview();
 
     closeDraftModal();
