@@ -111,16 +111,28 @@ function logout() {
    FETCH PRODUCTS
 ══════════════════════════════════════════ */
 async function loadProducts() {
-    const apiUrl = (typeof CONFIG !== 'undefined' && CONFIG.getMainApiUrl)
-        ? CONFIG.getMainApiUrl()
-        : 'https://script.google.com/macros/s/AKfycbwDmh_cc-J9c0cuzcSThFQBdiZ7lpy3oUjDENZhHW-4UszuKwPB20g6OeRccVsgvp79hw/exec';
-
     try {
-        const url = `${apiUrl}?action=getProducts&t=${Date.now()}`;
-        const resp = await fetch(url);
-        const data = await resp.json();
-        const raw = Array.isArray(data) ? data : (data.products || data.result || []);
-        state.products = raw.map(normalizeProduct).filter(p => p.nama);
+        // Gunakan ApiService dengan endpoint yang sama seperti index.html
+        let raw;
+        if (typeof ApiService !== 'undefined') {
+            raw = await ApiService.get('?sheet=products', {
+                cacheDuration: 5 * 60 * 1000
+            });
+        } else {
+            // Fallback langsung ke fetch jika ApiService belum tersedia
+            const apiUrl = (typeof CONFIG !== 'undefined' && CONFIG.getMainApiUrl)
+                ? CONFIG.getMainApiUrl()
+                : 'https://script.google.com/macros/s/AKfycbwDmh_cc-J9c0cuzcSThFQBdiZ7lpy3oUjDENZhHW-4UszuKwPB20g6OeRccVsgvp79hw/exec';
+            const resp = await fetch(`${apiUrl}?sheet=products&t=${Date.now()}`);
+            raw = await resp.json();
+        }
+        const arr = Array.isArray(raw) ? raw : (raw.products || raw.result || raw.data || []);
+        state.products = arr.map(normalizeProduct).filter(p => p.nama);
+        if (state.products.length === 0) {
+            document.getElementById('product-loading').innerHTML =
+                '<p style="color:#f59e0b;font-size:0.8rem;">Tidak ada produk ditemukan di API. Pastikan sheet "products" tersedia.</p>';
+            return;
+        }
         renderProductList();
     } catch (err) {
         console.error('loadProducts error:', err);
