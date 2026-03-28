@@ -256,7 +256,7 @@
             isolation: isolate;
         }
         #notification-dropdown {
-            z-index: 120;
+            z-index: 121;
         }
         /* ── MOBILE: dropdown jadi panel fixed terpusat ── */
         @media (max-width: 639px) {
@@ -277,6 +277,11 @@
                 border-radius: 1.25rem !important;
                 box-shadow: 0 24px 64px rgba(0,0,0,0.28) !important;
                 margin-top: 0 !important;
+                z-index: 121 !important;
+                pointer-events: auto !important;
+            }
+            #notification-dropdown * {
+                pointer-events: auto !important;
             }
             #notification-dropdown-list {
                 max-height: calc(100dvh - 20rem) !important;
@@ -288,10 +293,12 @@
             position: fixed;
             inset: 0;
             background: rgba(0,0,0,0.45);
-            z-index: 119;
+            z-index: 118;
+            pointer-events: none;
         }
         #notification-backdrop.active {
             display: block;
+            pointer-events: auto;
         }
         .notifications-extra-collapse {
             display: grid;
