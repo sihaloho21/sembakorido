@@ -850,10 +850,9 @@ async function drawFeatured(ctx, prod, x, y, w, h, theme) {
     }
 
     // Harga promo
-    ctx.fillStyle = theme.accent;
     ctx.font = 'bold 64px -apple-system, Arial, sans-serif';
-    ctx.fillText(`Rp ${eff.harga.toLocaleString('id-ID')}`, infoX, curY);
-    curY += 80;
+    drawPriceEffect(ctx, `Rp ${eff.harga.toLocaleString('id-ID')}`, infoX, curY, theme, state.priceEffect);
+    curY += (state.priceEffect === 'circle' || state.priceEffect === 'burst') ? 110 : 80;
 
     // Min order + poin row
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
@@ -949,10 +948,9 @@ async function drawGridCell(ctx, prod, x, y, w, h, theme) {
     }
 
     // Harga promo
-    ctx.fillStyle = theme.accent;
     ctx.font = `bold ${Math.round(fs * 1.1)}px -apple-system, Arial, sans-serif`;
-    ctx.fillText(`Rp ${eff.harga.toLocaleString('id-ID')}`, x + pad, curY);
-    curY += Math.round(fs * 1.4);
+    drawPriceEffect(ctx, `Rp ${eff.harga.toLocaleString('id-ID')}`, x + pad, curY, theme, state.priceEffect);
+    curY += (state.priceEffect === 'circle' || state.priceEffect === 'burst') ? Math.round(fs * 1.8) : Math.round(fs * 1.4);
 
     // Min order
     ctx.fillStyle = 'rgba(255,255,255,0.65)';
@@ -1193,10 +1191,9 @@ async function drawLotteMartCell(ctx, prod, x, y, w, h, theme) {
     }
 
     // Harga promo — besar dan menonjol
-    ctx.fillStyle = theme.from;
     ctx.font = 'bold 42px -apple-system, Arial, sans-serif';
-    ctx.fillText(`Rp ${eff.harga.toLocaleString('id-ID')}`, x + pad, curY);
-    curY += 52;
+    drawPriceEffect(ctx, `Rp ${eff.harga.toLocaleString('id-ID')}`, x + pad, curY, theme, state.priceEffect);
+    curY += (state.priceEffect === 'circle' || state.priceEffect === 'burst') ? 72 : 52;
 
     // Reward poin + min order row
     ctx.fillStyle = '#64748b';
@@ -1344,9 +1341,9 @@ async function drawStoryCard(ctx, prod, x, y, w, h, theme) {
         ctx.beginPath(); ctx.moveTo(infoX, cy + 11); ctx.lineTo(infoX + coretW, cy + 11); ctx.stroke();
         cy += 28;
     }
-    ctx.fillStyle = '#fff';
     ctx.font = 'bold 38px -apple-system, Arial, sans-serif';
-    ctx.fillText(`Rp ${eff.harga.toLocaleString('id-ID')}`, infoX, cy); cy += 46;
+    drawPriceEffect(ctx, `Rp ${eff.harga.toLocaleString('id-ID')}`, infoX, cy, theme, state.priceEffect);
+    cy += (state.priceEffect === 'circle' || state.priceEffect === 'burst') ? 66 : 46;
     if (eff.rewardPoin > 0 || eff.minOrder > 1) {
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
         ctx.font = '500 20px -apple-system, Arial, sans-serif';
@@ -1481,9 +1478,9 @@ async function drawBannerCard(ctx, prod, x, y, w, h, theme) {
         ctx.beginPath(); ctx.moveTo(x + pad, cy + 9); ctx.lineTo(x + pad + cw, cy + 9); ctx.stroke();
         cy += 24;
     }
-    ctx.fillStyle = '#fff';
     ctx.font = 'bold 28px -apple-system, Arial, sans-serif';
-    ctx.fillText(`Rp ${eff.harga.toLocaleString('id-ID')}`, x + pad, cy); cy += 36;
+    drawPriceEffect(ctx, `Rp ${eff.harga.toLocaleString('id-ID')}`, x + pad, cy, theme, state.priceEffect);
+    cy += (state.priceEffect === 'circle' || state.priceEffect === 'burst') ? 56 : 36;
     if (eff.rewardPoin > 0) {
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
         ctx.font = '500 18px -apple-system, Arial, sans-serif';
