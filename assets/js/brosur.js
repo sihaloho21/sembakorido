@@ -24,7 +24,7 @@ const THEMES = {
     'dark':        { from: '#1e293b', to: '#475569', accent: '#22c55e', text: '#ffffff' }
 };
 
-const TEMPLATE_SLOTS = { featured: 1, grid4: 4, grid6: 6, lottemart: 4, story: 3, banner: 3 };
+const TEMPLATE_SLOTS = { featured: 1, grid4: 4, grid6: 6, lottemart: 4, story: 3, banner: 3, minimalist: 1, retro: 4, neon: 4, newspaper: 6, polaroid: 4, zigzag: 4 };
 const CANVAS_SIZE_LOTTEMART = { w: 1080, h: 1527 }; // A4 portrait ratio
 const CANVAS_SIZE_STORY  = { w: 1080, h: 1920 }; // Instagram Story / Reels
 const CANVAS_SIZE_BANNER = { w: 1200, h: 628  }; // Facebook / WA Status landscape
@@ -578,20 +578,27 @@ function selectTemplate(t) {
     const sizeLabel  = document.getElementById('preview-size-label');
     const previewWrap = document.getElementById('preview-wrap');
     const sizeMap = {
-        featured:  '1080×1080 px',
-        grid4:     '1080×1080 px',
-        grid6:     '1080×1350 px',
-        lottemart: '1080×1527 px',
-        story:     '1080×1920 px',
-        banner:    '1200×628 px',
+        featured:   '1080×1080 px',
+        grid4:      '1080×1080 px',
+        grid6:      '1080×1350 px',
+        lottemart:  '1080×1527 px',
+        story:      '1080×1920 px',
+        banner:     '1200×628 px',
+        minimalist: '1080×1080 px',
+        retro:      '1080×1080 px',
+        neon:       '1080×1080 px',
+        newspaper:  '1080×1080 px',
+        polaroid:   '1080×1080 px',
+        zigzag:     '1080×1350 px',
     };
     if (sizeLabel) sizeLabel.textContent = sizeMap[t] || '1080×1080 px';
     if (previewWrap) {
-        previewWrap.classList.remove('portrait', 'lottemart', 'story', 'banner');
+        previewWrap.classList.remove('portrait', 'lottemart', 'story', 'banner', 'zigzag');
         if (t === 'grid6')     previewWrap.classList.add('portrait');
         if (t === 'lottemart') { previewWrap.classList.add('portrait'); previewWrap.classList.add('lottemart'); }
         if (t === 'story')     previewWrap.classList.add('story');
         if (t === 'banner')    previewWrap.classList.add('banner');
+        if (t === 'zigzag')    previewWrap.classList.add('portrait');
     }
     schedulePreview();
 }
@@ -666,13 +673,25 @@ async function generateBrosur() {
    CANVAS DRAWING ENGINE
 ══════════════════════════════════════════ */
 async function drawBrosur(canvas, highRes) {
-    const isLottemart = state.template === 'lottemart';
-    const isStory     = state.template === 'story';
-    const isBanner    = state.template === 'banner';
-    const isPortrait  = state.template === 'grid6';
-    if (isLottemart) { await drawLotteMart(canvas, highRes); return; }
-    if (isStory)     { await drawStory(canvas, highRes);     return; }
-    if (isBanner)    { await drawBanner(canvas, highRes);    return; }
+    const isLottemart  = state.template === 'lottemart';
+    const isStory      = state.template === 'story';
+    const isBanner     = state.template === 'banner';
+    const isMinimalist = state.template === 'minimalist';
+    const isRetro      = state.template === 'retro';
+    const isNeon       = state.template === 'neon';
+    const isNewspaper  = state.template === 'newspaper';
+    const isPolaroid   = state.template === 'polaroid';
+    const isZigzag     = state.template === 'zigzag';
+    const isPortrait   = state.template === 'grid6';
+    if (isLottemart)  { await drawLotteMart(canvas, highRes);  return; }
+    if (isStory)      { await drawStory(canvas, highRes);      return; }
+    if (isBanner)     { await drawBanner(canvas, highRes);     return; }
+    if (isMinimalist) { await drawMinimalist(canvas, highRes); return; }
+    if (isRetro)      { await drawRetro(canvas, highRes);      return; }
+    if (isNeon)       { await drawNeon(canvas, highRes);       return; }
+    if (isNewspaper)  { await drawNewspaper(canvas, highRes);  return; }
+    if (isPolaroid)   { await drawPolaroid(canvas, highRes);   return; }
+    if (isZigzag)     { await drawZigzag(canvas, highRes);     return; }
     const size = isPortrait ? CANVAS_SIZE_PORTRAIT : CANVAS_SIZE;
     const scale = highRes ? 1 : 0.4; // preview at 40%
 
@@ -1486,6 +1505,643 @@ async function drawBannerCard(ctx, prod, x, y, w, h, theme) {
         ctx.font = '500 18px -apple-system, Arial, sans-serif';
         ctx.fillText(`\u2B50 +${eff.rewardPoin} Poin`, x + pad, cy);
     }
+}
+
+/* ══════════════════════════════════════════
+   MINIMALIST CLEAN TEMPLATE
+══════════════════════════════════════════ */
+async function drawMinimalist(canvas, highRes) {
+    const W = 1080, H = 1080;
+    const scale = highRes ? 1 : 0.4;
+    canvas.width = W * scale; canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    const theme = THEMES[state.theme] || THEMES['green-blue'];
+    const ff = (FONT_MAP[state.fontFamily] || FONT_MAP.default).family;
+    const prod = state.selected[0];
+    const eff = prod ? effectiveProd(prod) : null;
+
+    // Background putih bersih
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    // Accent bar kiri
+    const accentW = 14;
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, theme.from); grad.addColorStop(1, theme.to);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, accentW, H);
+
+    // Header area
+    ctx.fillStyle = theme.from;
+    ctx.fillRect(accentW, 0, W - accentW, 120);
+
+    // Logo/Brand
+    const logoPos = state.elementPositions.logo || { x: 0.05, y: 0.05 };
+    await drawLogoHeaderAt(ctx, W, H, 120, ff, false, logoPos);
+
+    // WA
+    const waPos = state.elementPositions.wa || { x: 0.88, y: 0.05 };
+    ctx.font = `600 22px ${ff}`; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`📱 ${state.waNumber}`, waPos.x * W, waPos.y * H + 12);
+
+    // Tanggal promo strip
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(accentW, 120, W - accentW, 52);
+    ctx.fillStyle = theme.from;
+    ctx.font = `600 22px ${ff}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`📅 ${formatDateRange(state.promoStart, state.promoEnd)}`, W / 2 + accentW / 2, 146);
+
+    if (eff) {
+        // Gambar produk — besar, di tengah atas
+        const imgX = accentW + 80, imgY = 192;
+        const imgW = W - accentW - 160, imgH = 380;
+        await drawProductImage(ctx, eff.gambar, imgX, imgY, imgW, imgH, 20);
+
+        // Badge
+        if (eff.badge) drawBadge(ctx, eff.badge, imgX + 16, imgY + 16, theme);
+        if (eff.rewardPoin > 0) drawRewardBadge(ctx, eff.rewardPoin, imgX + imgW - 16, imgY + 16, theme);
+
+        // Divider
+        ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(accentW + 60, imgY + imgH + 32); ctx.lineTo(W - 60, imgY + imgH + 32); ctx.stroke();
+
+        let cy = imgY + imgH + 64;
+        // Kategori
+        ctx.fillStyle = theme.from; ctx.font = `700 20px ${ff}`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(eff.kategori.toUpperCase(), W / 2, cy); cy += 36;
+
+        // Nama produk — besar
+        ctx.fillStyle = '#0f172a'; ctx.font = `bold 56px ${ff}`;
+        ctx.textAlign = 'center';
+        const nameLines = wrapTextLines(ctx, eff.nama, W - 160, 56);
+        nameLines.slice(0, 2).forEach(l => { ctx.fillText(l, W / 2, cy); cy += 64; });
+
+        // Deskripsi
+        ctx.fillStyle = '#64748b'; ctx.font = `400 26px ${ff}`;
+        const descLines = wrapTextLines(ctx, eff.deskripsi, W - 200, 26);
+        descLines.slice(0, 2).forEach(l => { ctx.fillText(l, W / 2, cy); cy += 36; });
+        cy += 12;
+
+        // Harga coret
+        if (eff.hargaCoret > eff.harga) {
+            const diskon = Math.round(((eff.hargaCoret - eff.harga) / eff.hargaCoret) * 100);
+            ctx.fillStyle = '#94a3b8'; ctx.font = `500 28px ${ff}`;
+            ctx.textAlign = 'center';
+            const coretStr = `Rp ${eff.hargaCoret.toLocaleString('id-ID')}`;
+            const coretW = ctx.measureText(coretStr).width;
+            ctx.fillText(coretStr, W / 2, cy);
+            ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(W/2 - coretW/2, cy + 14); ctx.lineTo(W/2 + coretW/2, cy + 14); ctx.stroke();
+            // Diskon pill
+            ctx.fillStyle = '#ef4444';
+            roundRect(ctx, W/2 + coretW/2 + 16, cy - 2, 80, 30, 15); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.font = `bold 18px ${ff}`;
+            ctx.fillText(`-${diskon}%`, W/2 + coretW/2 + 56, cy + 13);
+            cy += 44;
+        }
+
+        // Harga promo — sangat besar
+        ctx.font = `bold 72px ${ff}`;
+        ctx.textAlign = 'center';
+        drawPriceEffect(ctx, `Rp ${eff.harga.toLocaleString('id-ID')}`, W / 2, cy, theme, state.priceEffect);
+        cy += (state.priceEffect === 'circle' || state.priceEffect === 'burst') ? 110 : 86;
+
+        // Min order
+        ctx.fillStyle = '#94a3b8'; ctx.font = `500 22px ${ff}`;
+        ctx.textAlign = 'center';
+        ctx.fillText(`📦 Min. ${eff.minOrder} pcs`, W / 2, cy);
+    }
+
+    // CTA Footer
+    const footerY = H - 80;
+    ctx.fillStyle = theme.from;
+    ctx.fillRect(accentW, footerY, W - accentW, 80);
+    const ctaPos = state.elementPositions.cta || { x: 0.5, y: 0.94 };
+    ctx.fillStyle = '#ffffff'; ctx.font = `bold 30px ${ff}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(state.ctaText, ctaPos.x * W, ctaPos.y * H);
+
+    drawStickers(ctx, W, H);
+    if (state.showWatermark) drawWatermarkAt(ctx, W, H, state.elementPositions.watermark || { x: 0.92, y: 0.94 }, theme);
+}
+
+/* ══════════════════════════════════════════
+   RETRO / VINTAGE TEMPLATE
+══════════════════════════════════════════ */
+async function drawRetro(canvas, highRes) {
+    const W = 1080, H = 1080;
+    const scale = highRes ? 1 : 0.4;
+    canvas.width = W * scale; canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    const ff = (FONT_MAP[state.fontFamily] || FONT_MAP.default).family;
+    const prods = state.selected.slice(0, 4);
+
+    // Background krem vintage
+    ctx.fillStyle = '#fdf6e3';
+    ctx.fillRect(0, 0, W, H);
+
+    // Outer border ornamen
+    const brd = 28;
+    ctx.strokeStyle = '#8b5e3c'; ctx.lineWidth = 6;
+    ctx.strokeRect(brd, brd, W - brd * 2, H - brd * 2);
+    ctx.strokeStyle = '#c9956b'; ctx.lineWidth = 2;
+    ctx.strokeRect(brd + 12, brd + 12, W - (brd + 12) * 2, H - (brd + 12) * 2);
+
+    // Corner ornamen (diamond)
+    const corners = [[brd, brd], [W - brd, brd], [brd, H - brd], [W - brd, H - brd]];
+    corners.forEach(([cx, cy]) => {
+        ctx.fillStyle = '#8b5e3c';
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.PI / 4);
+        ctx.fillRect(-10, -10, 20, 20); ctx.restore();
+    });
+
+    // Header
+    ctx.fillStyle = '#8b5e3c';
+    ctx.fillRect(brd + 12, brd + 12, W - (brd + 12) * 2, 100);
+    const logoPos = state.elementPositions.logo || { x: 0.05, y: 0.05 };
+    await drawLogoHeaderAt(ctx, W, H, brd + 112, ff, false, logoPos);
+
+    // WA
+    const waPos = state.elementPositions.wa || { x: 0.88, y: 0.05 };
+    ctx.font = `600 20px ${ff}`; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.textBaseline = 'middle';
+    ctx.fillText(`📱 ${state.waNumber}`, waPos.x * W, waPos.y * H + 12);
+
+    // Judul tengah
+    ctx.fillStyle = '#5c3d1e'; ctx.font = `bold 36px ${ff}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('✦ PROMO SPESIAL ✦', W / 2, brd + 120);
+    ctx.fillStyle = '#8b5e3c'; ctx.font = `400 20px ${ff}`;
+    ctx.fillText(formatDateRange(state.promoStart, state.promoEnd), W / 2, brd + 164);
+
+    // Grid 2×2 produk
+    const pad = brd + 14;
+    const gridX = pad + 20, gridY = pad + 200;
+    const gridW = W - pad * 2 - 40, gridH = H - gridY - 120;
+    const cellW = (gridW - 20) / 2, cellH = (gridH - 20) / 2;
+    for (let i = 0; i < 4; i++) {
+        const prod = prods[i];
+        const cx = gridX + (i % 2) * (cellW + 20);
+        const cy = gridY + Math.floor(i / 2) * (cellH + 20);
+        // Card
+        ctx.fillStyle = '#fffbf0';
+        roundRect(ctx, cx, cy, cellW, cellH, 12); ctx.fill();
+        ctx.strokeStyle = '#c9956b'; ctx.lineWidth = 2;
+        ctx.stroke();
+        if (!prod) continue;
+        const eff = effectiveProd(prod);
+        // Gambar
+        const imgH2 = Math.round(cellH * 0.52);
+        await drawProductImage(ctx, eff.gambar, cx + 8, cy + 8, cellW - 16, imgH2, 8);
+        if (eff.badge) drawBadge(ctx, eff.badge, cx + 12, cy + 12, { accent: '#8b5e3c', text: '#fff', from: '#8b5e3c', to: '#c9956b' }, true);
+        // Info
+        let iy = cy + imgH2 + 20;
+        ctx.fillStyle = '#5c3d1e'; ctx.font = `bold ${Math.round(cellW * 0.075)}px ${ff}`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const nLines = wrapTextLines(ctx, eff.nama, cellW - 24, Math.round(cellW * 0.075));
+        nLines.slice(0, 2).forEach(l => { ctx.fillText(l, cx + cellW / 2, iy); iy += Math.round(cellW * 0.09); });
+        iy += 8;
+        ctx.font = `bold ${Math.round(cellW * 0.085)}px ${ff}`;
+        ctx.fillStyle = '#8b5e3c';
+        drawPriceEffect(ctx, `Rp ${eff.harga.toLocaleString('id-ID')}`, cx + cellW / 2, iy, { accent: '#8b5e3c', text: '#fff', from: '#8b5e3c', to: '#c9956b' }, state.priceEffect);
+    }
+
+    // CTA Footer
+    ctx.fillStyle = '#8b5e3c';
+    ctx.fillRect(pad, H - pad - 72, W - pad * 2, 72);
+    const ctaPos = state.elementPositions.cta || { x: 0.5, y: 0.94 };
+    ctx.fillStyle = '#fdf6e3'; ctx.font = `bold 28px ${ff}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(state.ctaText, ctaPos.x * W, ctaPos.y * H);
+
+    drawStickers(ctx, W, H);
+    if (state.showWatermark) drawWatermarkAt(ctx, W, H, state.elementPositions.watermark || { x: 0.92, y: 0.94 }, { accent: '#8b5e3c', text: '#fff', from: '#8b5e3c', to: '#c9956b' });
+}
+
+/* ══════════════════════════════════════════
+   NEON / DARK MODE TEMPLATE
+══════════════════════════════════════════ */
+async function drawNeon(canvas, highRes) {
+    const W = 1080, H = 1080;
+    const scale = highRes ? 1 : 0.4;
+    canvas.width = W * scale; canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    const ff = (FONT_MAP[state.fontFamily] || FONT_MAP.default).family;
+    const prods = state.selected.slice(0, 4);
+    const theme = THEMES[state.theme] || THEMES['green-blue'];
+
+    // Neon colors berdasarkan tema
+    const neonColors = {
+        'green-blue':  { primary: '#00ff88', secondary: '#00cfff', glow: 'rgba(0,255,136,0.4)' },
+        'red-orange':  { primary: '#ff4d4d', secondary: '#ff9900', glow: 'rgba(255,77,77,0.4)' },
+        'purple-pink': { primary: '#c800ff', secondary: '#ff00aa', glow: 'rgba(200,0,255,0.4)' },
+        'blue-cyan':   { primary: '#00b4ff', secondary: '#00ffee', glow: 'rgba(0,180,255,0.4)' },
+        'amber':       { primary: '#ffcc00', secondary: '#ff8800', glow: 'rgba(255,204,0,0.4)' },
+        'dark':        { primary: '#00ff88', secondary: '#00cfff', glow: 'rgba(0,255,136,0.4)' },
+    };
+    const neon = neonColors[state.theme] || neonColors['green-blue'];
+
+    // Background gelap
+    ctx.fillStyle = '#0a0a0f';
+    ctx.fillRect(0, 0, W, H);
+
+    // Grid lines samar
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+    // Glow circle dekorasi
+    const grd = ctx.createRadialGradient(W * 0.15, H * 0.15, 0, W * 0.15, H * 0.15, 300);
+    grd.addColorStop(0, neon.glow); grd.addColorStop(1, 'transparent');
+    ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
+    const grd2 = ctx.createRadialGradient(W * 0.85, H * 0.85, 0, W * 0.85, H * 0.85, 280);
+    grd2.addColorStop(0, neon.glow.replace('0.4', '0.25')); grd2.addColorStop(1, 'transparent');
+    ctx.fillStyle = grd2; ctx.fillRect(0, 0, W, H);
+
+    // Header neon bar
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fillRect(0, 0, W, 110);
+    ctx.strokeStyle = neon.primary; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, 110); ctx.lineTo(W, 110); ctx.stroke();
+    // Glow effect on line
+    ctx.shadowColor = neon.primary; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.moveTo(0, 110); ctx.lineTo(W, 110); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    const logoPos = state.elementPositions.logo || { x: 0.05, y: 0.05 };
+    await drawLogoHeaderAt(ctx, W, H, 110, ff, false, logoPos);
+    const waPos = state.elementPositions.wa || { x: 0.88, y: 0.05 };
+    ctx.font = `600 20px ${ff}`; ctx.textAlign = 'center';
+    ctx.fillStyle = neon.secondary; ctx.textBaseline = 'middle';
+    ctx.fillText(`📱 ${state.waNumber}`, waPos.x * W, waPos.y * H + 12);
+
+    // Tanggal
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRect(0, 110, W, 48);
+    ctx.fillStyle = neon.primary; ctx.font = `600 22px ${ff}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`⚡ ${formatDateRange(state.promoStart, state.promoEnd)}`, W / 2, 134);
+
+    // Grid 2×2 produk
+    const gridX = 40, gridY = 178;
+    const gridW = W - 80, gridH = H - gridY - 100;
+    const cellW = (gridW - 20) / 2, cellH = (gridH - 20) / 2;
+    for (let i = 0; i < 4; i++) {
+        const prod = prods[i];
+        const cx = gridX + (i % 2) * (cellW + 20);
+        const cy = gridY + Math.floor(i / 2) * (cellH + 20);
+        // Card dark dengan neon border
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        roundRect(ctx, cx, cy, cellW, cellH, 16); ctx.fill();
+        ctx.strokeStyle = neon.primary; ctx.lineWidth = 1.5;
+        ctx.shadowColor = neon.primary; ctx.shadowBlur = 8;
+        ctx.stroke(); ctx.shadowBlur = 0;
+        if (!prod) continue;
+        const eff = effectiveProd(prod);
+        const imgH2 = Math.round(cellH * 0.52);
+        await drawProductImage(ctx, eff.gambar, cx + 8, cy + 8, cellW - 16, imgH2, 10);
+        if (eff.badge) drawBadge(ctx, eff.badge, cx + 12, cy + 12, { accent: neon.primary, text: '#0a0a0f', from: neon.primary, to: neon.secondary }, true);
+        let iy = cy + imgH2 + 18;
+        ctx.fillStyle = '#ffffff'; ctx.font = `bold ${Math.round(cellW * 0.075)}px ${ff}`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const nLines = wrapTextLines(ctx, eff.nama, cellW - 24, Math.round(cellW * 0.075));
+        nLines.slice(0, 2).forEach(l => { ctx.fillText(l, cx + cellW / 2, iy); iy += Math.round(cellW * 0.09); });
+        iy += 6;
+        ctx.font = `bold ${Math.round(cellW * 0.085)}px ${ff}`;
+        ctx.fillStyle = neon.primary;
+        ctx.shadowColor = neon.primary; ctx.shadowBlur = 10;
+        drawPriceEffect(ctx, `Rp ${eff.harga.toLocaleString('id-ID')}`, cx + cellW / 2, iy, { accent: neon.primary, text: '#0a0a0f', from: neon.primary, to: neon.secondary }, state.priceEffect);
+        ctx.shadowBlur = 0;
+    }
+
+    // CTA Footer
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fillRect(0, H - 88, W, 88);
+    ctx.strokeStyle = neon.secondary; ctx.lineWidth = 1.5;
+    ctx.shadowColor = neon.secondary; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(0, H - 88); ctx.lineTo(W, H - 88); ctx.stroke();
+    ctx.shadowBlur = 0;
+    const ctaPos = state.elementPositions.cta || { x: 0.5, y: 0.94 };
+    ctx.fillStyle = neon.primary; ctx.font = `bold 30px ${ff}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(state.ctaText, ctaPos.x * W, ctaPos.y * H);
+
+    drawStickers(ctx, W, H);
+    if (state.showWatermark) drawWatermarkAt(ctx, W, H, state.elementPositions.watermark || { x: 0.92, y: 0.94 }, { accent: neon.primary, text: '#0a0a0f', from: neon.primary, to: neon.secondary });
+}
+
+/* ══════════════════════════════════════════
+   NEWSPAPER / EDITORIAL TEMPLATE
+══════════════════════════════════════════ */
+async function drawNewspaper(canvas, highRes) {
+    const W = 1080, H = 1080;
+    const scale = highRes ? 1 : 0.4;
+    canvas.width = W * scale; canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    const ff = (FONT_MAP[state.fontFamily] || FONT_MAP.default).family;
+    const theme = THEMES[state.theme] || THEMES['green-blue'];
+    const prods = state.selected.slice(0, 6);
+
+    // Background kertas
+    ctx.fillStyle = '#f9f6f0';
+    ctx.fillRect(0, 0, W, H);
+
+    // Masthead (header koran)
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, W, 130);
+    const logoPos = state.elementPositions.logo || { x: 0.05, y: 0.05 };
+    await drawLogoHeaderAt(ctx, W, H, 130, ff, false, logoPos);
+    const waPos = state.elementPositions.wa || { x: 0.88, y: 0.05 };
+    ctx.font = `600 20px ${ff}`; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.textBaseline = 'middle';
+    ctx.fillText(`📱 ${state.waNumber}`, waPos.x * W, waPos.y * H + 12);
+
+    // Garis tebal
+    ctx.fillStyle = theme.from;
+    ctx.fillRect(0, 130, W, 8);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 138, W, 2);
+
+    // Tanggal & edisi
+    ctx.fillStyle = '#1a1a1a'; ctx.font = `600 20px ${ff}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(`EDISI PROMO  ·  ${formatDateRange(state.promoStart, state.promoEnd)}`, W / 2, 150);
+    ctx.fillStyle = '#1a1a1a'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(40, 182); ctx.lineTo(W - 40, 182); ctx.stroke();
+
+    // Grid 3×2 produk (koran)
+    const cols = 3, rows = 2;
+    const padX = 40, padY = 194;
+    const gap = 16;
+    const cellW = (W - padX * 2 - gap * (cols - 1)) / cols;
+    const cellH = (H - padY - 80 - gap * (rows - 1)) / rows;
+
+    for (let i = 0; i < 6; i++) {
+        const prod = prods[i];
+        const col = i % cols, row = Math.floor(i / cols);
+        const cx = padX + col * (cellW + gap);
+        const cy = padY + row * (cellH + gap);
+
+        // Kolom divider
+        if (col > 0) {
+            ctx.strokeStyle = '#d1d5db'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(cx - gap / 2, padY); ctx.lineTo(cx - gap / 2, padY + cellH * rows + gap); ctx.stroke();
+        }
+
+        if (!prod) {
+            ctx.fillStyle = '#f1f5f9';
+            roundRect(ctx, cx, cy, cellW, cellH, 4); ctx.fill();
+            continue;
+        }
+        const eff = effectiveProd(prod);
+        const imgH2 = Math.round(cellH * 0.5);
+        await drawProductImage(ctx, eff.gambar, cx, cy, cellW, imgH2, 4);
+        if (eff.badge) drawBadge(ctx, eff.badge, cx + 8, cy + 8, theme, true);
+
+        let iy = cy + imgH2 + 10;
+        ctx.fillStyle = '#374151'; ctx.font = `600 ${Math.round(cellW * 0.065)}px ${ff}`;
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        const nLines = wrapTextLines(ctx, eff.nama, cellW - 8, Math.round(cellW * 0.065));
+        nLines.slice(0, 2).forEach(l => { ctx.fillText(l, cx + 4, iy); iy += Math.round(cellW * 0.08); });
+        iy += 4;
+        // Harga coret kecil
+        if (eff.hargaCoret > eff.harga) {
+            ctx.fillStyle = '#9ca3af'; ctx.font = `400 ${Math.round(cellW * 0.055)}px ${ff}`;
+            ctx.fillText(`Rp ${eff.hargaCoret.toLocaleString('id-ID')}`, cx + 4, iy);
+            iy += Math.round(cellW * 0.07);
+        }
+        ctx.font = `bold ${Math.round(cellW * 0.08)}px ${ff}`;
+        ctx.fillStyle = theme.from;
+        drawPriceEffect(ctx, `Rp ${eff.harga.toLocaleString('id-ID')}`, cx + 4, iy, theme, state.priceEffect);
+    }
+
+    // Footer
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, H - 72, W, 72);
+    ctx.fillStyle = theme.from;
+    ctx.fillRect(0, H - 72, W, 4);
+    const ctaPos = state.elementPositions.cta || { x: 0.5, y: 0.94 };
+    ctx.fillStyle = '#ffffff'; ctx.font = `bold 28px ${ff}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(state.ctaText, ctaPos.x * W, ctaPos.y * H);
+
+    drawStickers(ctx, W, H);
+    if (state.showWatermark) drawWatermarkAt(ctx, W, H, state.elementPositions.watermark || { x: 0.92, y: 0.94 }, theme);
+}
+
+/* ══════════════════════════════════════════
+   POLAROID GRID TEMPLATE
+══════════════════════════════════════════ */
+async function drawPolaroid(canvas, highRes) {
+    const W = 1080, H = 1080;
+    const scale = highRes ? 1 : 0.4;
+    canvas.width = W * scale; canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    const ff = (FONT_MAP[state.fontFamily] || FONT_MAP.default).family;
+    const theme = THEMES[state.theme] || THEMES['green-blue'];
+    const prods = state.selected.slice(0, 4);
+
+    // Background gradient
+    await drawBackground(ctx, W, H, theme);
+
+    // Header
+    const headerH = 110;
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(0, 0, W, headerH);
+    const logoPos = state.elementPositions.logo || { x: 0.05, y: 0.05 };
+    await drawLogoHeaderAt(ctx, W, H, headerH, ff, false, logoPos);
+    const waPos = state.elementPositions.wa || { x: 0.88, y: 0.05 };
+    ctx.font = `600 22px ${ff}`; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.textBaseline = 'middle';
+    ctx.fillText(`📱 ${state.waNumber}`, waPos.x * W, waPos.y * H + 12);
+
+    // Tanggal
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(0, headerH, W, 48);
+    ctx.fillStyle = '#ffffff'; ctx.font = `600 22px ${ff}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`📅 ${formatDateRange(state.promoStart, state.promoEnd)}`, W / 2, headerH + 24);
+
+    // Polaroid cards 2×2
+    const startY = headerH + 60;
+    const availH = H - startY - 90;
+    const gap = 28;
+    const cardW = (W - 80 - gap) / 2;
+    const cardH = (availH - gap) / 2;
+    const photoH = Math.round(cardH * 0.68);
+    const labelH = cardH - photoH;
+
+    for (let i = 0; i < 4; i++) {
+        const col = i % 2, row = Math.floor(i / 2);
+        // Slight rotation untuk efek polaroid
+        const rot = [1.5, -1.2, -1.8, 1.0][i] * Math.PI / 180;
+        const cx = 40 + col * (cardW + gap) + cardW / 2;
+        const cy = startY + row * (cardH + gap) + cardH / 2;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(rot);
+
+        // Drop shadow
+        ctx.shadowColor = 'rgba(0,0,0,0.35)';
+        ctx.shadowBlur = 18;
+        ctx.shadowOffsetX = 4; ctx.shadowOffsetY = 6;
+
+        // Card putih (polaroid frame)
+        const padPol = 12;
+        ctx.fillStyle = '#ffffff';
+        roundRect(ctx, -cardW / 2, -cardH / 2, cardW, cardH, 4);
+        ctx.fill();
+        ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+
+        ctx.restore();
+
+        // Gambar produk (tanpa rotasi untuk clip yang benar)
+        ctx.save();
+        ctx.translate(cx, cy); ctx.rotate(rot);
+        const imgX2 = -cardW / 2 + 10;
+        const imgY2 = -cardH / 2 + 10;
+        await drawProductImage(ctx, prods[i] ? effectiveProd(prods[i]).gambar : '', imgX2, imgY2, cardW - 20, photoH - 10, 2);
+        if (prods[i] && effectiveProd(prods[i]).badge) {
+            drawBadge(ctx, effectiveProd(prods[i]).badge, imgX2 + 8, imgY2 + 8, theme, true);
+        }
+        ctx.restore();
+
+        // Teks polaroid (tanpa rotasi agar mudah dibaca, dengan sedikit rotasi)
+        if (prods[i]) {
+            const eff = effectiveProd(prods[i]);
+            ctx.save();
+            ctx.translate(cx, cy); ctx.rotate(rot);
+            const textY = -cardH / 2 + photoH + 16;
+            ctx.fillStyle = '#1e293b'; ctx.font = `bold ${Math.round(cardW * 0.075)}px ${ff}`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            const nLines = wrapTextLines(ctx, eff.nama, cardW - 24, Math.round(cardW * 0.075));
+            let ty = textY;
+            nLines.slice(0, 1).forEach(l => { ctx.fillText(l, 0, ty); ty += Math.round(cardW * 0.09); });
+            ctx.font = `bold ${Math.round(cardW * 0.085)}px ${ff}`;
+            ctx.fillStyle = theme.from;
+            drawPriceEffect(ctx, `Rp ${eff.harga.toLocaleString('id-ID')}`, 0, ty, theme, state.priceEffect);
+            ctx.restore();
+        }
+    }
+
+    // CTA Footer
+    const footerY = H - 80;
+    const ctaGrad = ctx.createLinearGradient(0, footerY, W, footerY + 80);
+    ctaGrad.addColorStop(0, 'rgba(0,0,0,0.4)'); ctaGrad.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = ctaGrad; ctx.fillRect(0, footerY, W, 80);
+    const ctaPos = state.elementPositions.cta || { x: 0.5, y: 0.94 };
+    ctx.fillStyle = '#ffffff'; ctx.font = `bold 30px ${ff}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(state.ctaText, ctaPos.x * W, ctaPos.y * H);
+
+    drawStickers(ctx, W, H);
+    if (state.showWatermark) drawWatermarkAt(ctx, W, H, state.elementPositions.watermark || { x: 0.92, y: 0.94 }, theme);
+}
+
+/* ══════════════════════════════════════════
+   ZIG-ZAG LAYOUT TEMPLATE
+══════════════════════════════════════════ */
+async function drawZigzag(canvas, highRes) {
+    const W = 1080, H = 1350; // Portrait
+    const scale = highRes ? 1 : 0.32;
+    canvas.width = W * scale; canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    const ff = (FONT_MAP[state.fontFamily] || FONT_MAP.default).family;
+    const theme = THEMES[state.theme] || THEMES['green-blue'];
+    const prods = state.selected.slice(0, 4);
+
+    // Background
+    await drawBackground(ctx, W, H, theme);
+
+    // Header
+    const headerH = 120;
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.fillRect(0, 0, W, headerH);
+    const logoPos = state.elementPositions.logo || { x: 0.05, y: 0.05 };
+    await drawLogoHeaderAt(ctx, W, H, headerH, ff, true, logoPos);
+    const waPos = state.elementPositions.wa || { x: 0.88, y: 0.05 };
+    ctx.font = `600 24px ${ff}`; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.textBaseline = 'middle';
+    ctx.fillText(`📱 ${state.waNumber}`, waPos.x * W, waPos.y * H + 12);
+
+    // Tanggal strip
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(0, headerH, W, 52);
+    ctx.fillStyle = '#ffffff'; ctx.font = `600 24px ${ff}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`📅 ${formatDateRange(state.promoStart, state.promoEnd)}`, W / 2, headerH + 26);
+
+    // Zig-zag rows
+    const startY = headerH + 52 + 20;
+    const rowH = (H - startY - 90) / 4;
+    const imgW = Math.round(W * 0.44);
+    const infoW = W - imgW - 60;
+
+    for (let i = 0; i < 4; i++) {
+        const prod = prods[i];
+        const rowY = startY + i * rowH;
+        const isLeft = i % 2 === 0; // gambar di kiri atau kanan
+
+        // Row background alternating
+        ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+        ctx.fillRect(0, rowY, W, rowH - 12);
+
+        if (!prod) continue;
+        const eff = effectiveProd(prod);
+
+        const imgX = isLeft ? 20 : W - imgW - 20;
+        const imgY = rowY + 12;
+        const imgH2 = rowH - 32;
+        await drawProductImage(ctx, eff.gambar, imgX, imgY, imgW, imgH2, 16);
+        if (eff.badge) drawBadge(ctx, eff.badge, imgX + 12, imgY + 12, theme, true);
+
+        // Info area
+        const infoX = isLeft ? imgW + 40 : 20;
+        let iy = rowY + 20;
+        ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = `600 20px ${ff}`;
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText(eff.kategori.toUpperCase(), infoX, iy); iy += 30;
+
+        ctx.fillStyle = '#ffffff'; ctx.font = `bold ${Math.round(infoW * 0.1)}px ${ff}`;
+        const nLines = wrapTextLines(ctx, eff.nama, infoW - 20, Math.round(infoW * 0.1));
+        nLines.slice(0, 2).forEach(l => { ctx.fillText(l, infoX, iy); iy += Math.round(infoW * 0.12); });
+        iy += 8;
+
+        // Harga coret
+        if (eff.hargaCoret > eff.harga) {
+            ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = `500 22px ${ff}`;
+            const coretStr = `Rp ${eff.hargaCoret.toLocaleString('id-ID')}`;
+            const coretW2 = ctx.measureText(coretStr).width;
+            ctx.fillText(coretStr, infoX, iy);
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(infoX, iy + 11); ctx.lineTo(infoX + coretW2, iy + 11); ctx.stroke();
+            iy += 32;
+        }
+        ctx.font = `bold ${Math.round(infoW * 0.12)}px ${ff}`;
+        drawPriceEffect(ctx, `Rp ${eff.harga.toLocaleString('id-ID')}`, infoX, iy, theme, state.priceEffect);
+    }
+
+    // CTA Footer
+    const footerY = H - 80;
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(0, footerY, W, 80);
+    const ctaPos = state.elementPositions.cta || { x: 0.5, y: 0.94 };
+    ctx.fillStyle = '#ffffff'; ctx.font = `bold 32px ${ff}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(state.ctaText, ctaPos.x * W, ctaPos.y * H);
+
+    drawStickers(ctx, W, H);
+    if (state.showWatermark) drawWatermarkAt(ctx, W, H, state.elementPositions.watermark || { x: 0.92, y: 0.94 }, theme);
 }
 
 /** Helper: wrap teks jadi array baris */
