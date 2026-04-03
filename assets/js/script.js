@@ -151,6 +151,10 @@ function findProductById(id) {
     }) || null;
 }
 
+function isProductInteractionLocked(product) {
+    return Boolean(product && product.isHidden === true);
+}
+
 function resolveProductForModal(product) {
     if (!product || typeof product !== 'object') return null;
 
@@ -1699,16 +1703,30 @@ function renderProducts(products) {
             : '<svg class="w-5 h-5 text-gray-400 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>';
 
         // Kelas tambahan untuk produk hidden
-        const hiddenCardClass = isHiddenProd ? ' opacity-70' : '';
+        const hiddenCardClass = isHiddenProd ? ' opacity-70 pointer-events-none select-none' : '';
         const hiddenBanner = isHiddenProd
             ? `<div class="absolute inset-x-0 top-0 z-30 bg-gray-700/90 text-white text-[10px] font-bold text-center py-1.5 flex items-center justify-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>Sedang Tidak Tersedia Saat Ini</div>`
             : '';
+        const wishlistButtonAttrs = isHiddenProd
+            ? 'disabled aria-disabled="true" tabindex="-1"'
+            : `data-action="toggle-wishlist" data-product-id="${productId}"`;
+        const wishlistButtonClass = isHiddenProd
+            ? 'absolute top-3 right-3 z-20 p-2 bg-white/90 rounded-full shadow-md transition opacity-60 cursor-not-allowed'
+            : 'absolute top-3 right-3 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition active:scale-95';
+        const imageActionAttrs = isHiddenProd ? '' : `data-action="show-detail" data-product-id="${productId}"`;
+        const imageInteractiveClass = isHiddenProd ? 'cursor-default' : 'cursor-pointer hover:opacity-90';
+        const shareButtonAttrs = isHiddenProd
+            ? 'disabled aria-disabled="true" tabindex="-1"'
+            : `data-action="share-product" data-product-id="${productId}"`;
+        const shareButtonClass = isHiddenProd
+            ? 'text-gray-400 flex items-center gap-1 text-xs font-medium cursor-not-allowed'
+            : 'text-green-600 hover:text-green-700 flex items-center gap-1 text-xs font-medium';
 
         cardsHtml += `
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300 relative${hiddenCardClass}" data-product-id="${productId}">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300 relative${hiddenCardClass}" data-product-id="${productId}" aria-disabled="${isHiddenProd ? 'true' : 'false'}">
                 ${hiddenBanner}
                 <!-- Wishlist Heart Button -->
-                <button id="wishlist-btn-${productId}" data-action="toggle-wishlist" data-product-id="${productId}" class="absolute top-3 right-3 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition active:scale-95" aria-label="${wishlistLabel}" title="${wishlistLabel}">
+                <button id="wishlist-btn-${productId}" ${wishlistButtonAttrs} class="${wishlistButtonClass}" aria-label="${wishlistLabel}" title="${wishlistLabel}">
                     ${heartIcon}
                 </button>
                 <div class="absolute top-3 left-3 z-10 flex flex-col gap-2">
@@ -1725,7 +1743,7 @@ function renderProducts(products) {
                 </div>
                 <div class="lazy-image-wrapper bg-white" style="aspect-ratio: 16 / 9;">
                     <div class="skeleton skeleton-product-image"></div>
-                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" data-action="show-detail" data-product-id="${productId}" class="w-full h-full object-contain object-center bg-white cursor-pointer hover:opacity-90 transition-opacity ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="720" height="405" data-fallback-src="https://placehold.co/300x200?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="720" height="405" data-fallback-src="https://placehold.co/300x200?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
                 </div>
                 <div class="p-6">
                     <div class="flex justify-between items-start mb-2">
@@ -1733,7 +1751,7 @@ function renderProducts(products) {
                         ${stokLabel}
                     </div>
                     <div class="flex justify-between items-center mb-4">
-                        <button data-action="share-product" data-product-id="${productId}" class="text-green-600 hover:text-green-700 flex items-center gap-1 text-xs font-medium">
+                        <button ${shareButtonAttrs} class="${shareButtonClass}">
                             <span>Share</span>
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.631 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                         </button>
@@ -1761,7 +1779,7 @@ function renderProducts(products) {
                         Sedang Tidak Tersedia
                     </button>
                     <div class="grid grid-cols-2 gap-2">
-                        <button data-action="show-detail" data-product-id="${productId}" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded-lg text-sm transition">Rincian</button>
+                        <button disabled aria-disabled="true" tabindex="-1" class="bg-gray-100 text-gray-400 font-bold py-2 rounded-lg text-sm cursor-not-allowed">Rincian</button>
                         <button disabled class="bg-gray-100 text-gray-300 font-bold py-2 rounded-lg text-sm cursor-not-allowed">Beli Sekarang</button>
                     </div>
                     ` : hasVariations ? `
@@ -3787,6 +3805,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const productId = actionEl.getAttribute('data-product-id') ||
                 actionEl.closest('[data-product-id]')?.getAttribute('data-product-id');
             const product = findProductById(productId);
+            if (isProductInteractionLocked(product)) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
 
             switch (action) {
                 case 'toggle-wishlist':
