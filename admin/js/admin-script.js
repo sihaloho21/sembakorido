@@ -129,8 +129,6 @@ let productBulkSearchQuery = '';
 let productBulkBusy = false;
 let productBulkEditMode = false;
 let productBulkEditDrafts = {};
-// Fallback storage marker so homepage ON/OFF can work without requiring a new sheet column.
-const PRODUCT_HOMEPAGE_OFF_MARKER = '[[HOMEPAGE_OFF]]';
 
 function showSection(sectionId) {
     stopPaylaterSchedulerAutoRefresh();
@@ -2604,8 +2602,7 @@ if (bundleForm) {
             kategori: document.getElementById('bundle-category').value,
             deskripsi: description,
             variasi: '',
-            grosir: '',
-            homepage_visible: 'on'
+            grosir: ''
         };
 
         try {
@@ -3693,69 +3690,6 @@ function getProductRecordId(product) {
     return String((product && product.id) || '').trim();
 }
 
-function readExplicitProductHomepageVisibility(product) {
-    if (!product || typeof product !== 'object') return '';
-    const fields = ['homepage_visible', 'tampil_homepage', 'status_tampil'];
-    for (let i = 0; i < fields.length; i += 1) {
-        const raw = product[fields[i]];
-        const value = String(raw === undefined || raw === null ? '' : raw).trim();
-        if (value) return value;
-    }
-    return '';
-}
-
-function stripProductHomepageVisibilityMarker(value) {
-    return String(value === undefined || value === null ? '' : value)
-        .split(PRODUCT_HOMEPAGE_OFF_MARKER)
-        .join('')
-        .trim();
-}
-
-function normalizeProductHomepageVisibilityFlag(value) {
-    const normalized = String(value === undefined || value === null ? '' : value).trim().toLowerCase();
-    if (!normalized) return true;
-    if (['off', 'false', '0', 'no', 'tidak', 'hide', 'hidden', 'inactive', 'nonaktif'].includes(normalized)) {
-        return false;
-    }
-    return true;
-}
-
-function isProductVisibleOnHomepage(product) {
-    const explicitValue = readExplicitProductHomepageVisibility(product);
-    if (explicitValue) {
-        return normalizeProductHomepageVisibilityFlag(explicitValue);
-    }
-    const rawDescription = String(
-        (product && (product.deskripsi_raw !== undefined ? product.deskripsi_raw : product.deskripsi)) || ''
-    );
-    return !rawDescription.includes(PRODUCT_HOMEPAGE_OFF_MARKER);
-}
-
-function getProductHomepageVisibilityValue(product) {
-    return isProductVisibleOnHomepage(product) ? 'on' : 'off';
-}
-
-function buildProductDescriptionForStorage(description, shouldShowOnHomepage) {
-    const cleanedDescription = stripProductHomepageVisibilityMarker(description);
-    if (shouldShowOnHomepage) return cleanedDescription;
-    return cleanedDescription
-        ? `${PRODUCT_HOMEPAGE_OFF_MARKER}\n${cleanedDescription}`
-        : PRODUCT_HOMEPAGE_OFF_MARKER;
-}
-
-function normalizeAdminProductRow(product) {
-    const rawDescription = String((product && product.deskripsi) || '');
-    return {
-        ...(product || {}),
-        deskripsi_raw: rawDescription,
-        deskripsi: stripProductHomepageVisibilityMarker(rawDescription),
-        homepageVisible: isProductVisibleOnHomepage({
-            ...(product || {}),
-            deskripsi_raw: rawDescription
-        })
-    };
-}
-
 function getFilteredAdminProducts() {
     const products = Array.isArray(allProducts) ? allProducts : [];
     const query = String(productBulkSearchQuery || '').trim().toLowerCase();
@@ -4327,7 +4261,6 @@ function parseBulkCreateProductsInput(rawText) {
             kategori: category,
             deskripsi: description,
             gambar: images,
-            homepage_visible: 'on',
             __rawLine: line
         });
     });
@@ -4570,7 +4503,7 @@ async function handleBulkCreateProducts() {
 // ============ PRODUCT FUNCTIONS ============
 async function fetchAdminProducts() {
     const tbody = document.getElementById('admin-product-list');
-    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-10 text-center text-gray-500">Memuat data...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Memuat data...</td></tr>';
     try {
         const [productsRes, purchasesRes, suppliersRes] = await Promise.all([
             fetch(buildAdminGetUrl(PRODUCTS_SHEET)),
@@ -4578,7 +4511,7 @@ async function fetchAdminProducts() {
             fetch(buildAdminGetUrl(SUPPLIERS_SHEET))
         ]);
         const productsData = await productsRes.json();
-        allProducts = (Array.isArray(productsData) ? productsData : []).map(normalizeAdminProductRow);
+        allProducts = Array.isArray(productsData) ? productsData : [];
         if (purchasesRes.ok) {
             const purchasesData = await purchasesRes.json();
             allPurchases = Array.isArray(purchasesData) ? purchasesData : [];
@@ -4611,14 +4544,14 @@ async function fetchAdminProducts() {
 function renderAdminTable() {
     const tbody = document.getElementById('admin-product-list');
     if (!Array.isArray(allProducts) || allProducts.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-10 text-center text-gray-500">Belum ada produk.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Belum ada produk.</td></tr>';
         updateProductBulkSelectionUI();
         return;
     }
 
     const filteredProducts = getFilteredAdminProducts();
     if (filteredProducts.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-10 text-center text-gray-500">Tidak ada produk yang cocok dengan pencarian.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Tidak ada produk yang cocok dengan pencarian.</td></tr>';
         updateProductBulkSelectionUI();
         return;
     }
@@ -4655,12 +4588,6 @@ function renderAdminTable() {
             ? 'p-2 text-red-600 hover:bg-red-50 rounded-lg transition'
             : 'p-2 text-gray-300 cursor-not-allowed';
         const selectedCategoryValue = String((draft && draft.kategori) || p.kategori || '').trim();
-        const homepageVisible = isProductVisibleOnHomepage(p);
-        const homepageToggleClass = hasValidId && !isEditableRow && !productBulkBusy
-            ? (homepageVisible
-                ? 'inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold transition'
-                : 'inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold transition')
-            : 'inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-gray-100 text-gray-400 text-xs font-bold cursor-not-allowed';
         const hasKnownCategoryOption = Array.isArray(allCategories) && allCategories.some((cat) => (
             String((cat && cat.nama) || '').trim() === selectedCategoryValue
         ));
@@ -4737,18 +4664,6 @@ function renderAdminTable() {
                     <span class="text-sm ${parseInt(p.stok) <= 5 ? 'text-red-600 font-bold' : 'text-gray-600'}">${safeStock}</span>
                 `}
             </td>
-            <td class="px-6 py-4" data-label="Homepage">
-                ${hasValidId ? `
-                    <div class="flex flex-col items-start gap-1">
-                        <button type="button" data-action="toggle-product-homepage" data-id="${escapeAttr(productId)}" class="${homepageToggleClass}" ${hasValidId && !isEditableRow && !productBulkBusy ? '' : 'disabled aria-disabled="true"'}>
-                            ${homepageVisible ? 'ON' : 'OFF'}
-                        </button>
-                        <span class="text-[10px] ${homepageVisible ? 'text-green-600' : 'text-gray-500'} font-medium">
-                            ${homepageVisible ? 'Tampil di homepage' : 'Disembunyikan'}
-                        </span>
-                    </div>
-                ` : '<span class="text-gray-300">-</span>'}
-            </td>
             <td class="px-6 py-4 text-right flex justify-end gap-2" data-label="Aksi">
                 <button data-action="edit-product" data-id="${escapeAttr(productId)}" class="${editActionClass}" ${hasValidId && !isEditableRow ? '' : 'disabled aria-disabled="true"'}>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
@@ -4767,7 +4682,6 @@ function openAddModal() {
     document.getElementById('modal-title').innerText = 'Tambah Produk';
     document.getElementById('product-id').value = '';
     document.getElementById('product-form').reset();
-    document.getElementById('form-homepage-visible').value = 'on';
     document.getElementById('variants-container').innerHTML = '';
     document.getElementById('product-modal').classList.remove('hidden');
 }
@@ -4783,10 +4697,7 @@ function openEditModal(id) {
     document.getElementById('form-harga-coret').value = p.harga_coret || '';
     document.getElementById('form-stok').value = p.stok;
     document.getElementById('form-category').value = p.kategori || '';
-    document.getElementById('form-homepage-visible').value = getProductHomepageVisibilityValue(p);
-    document.getElementById('form-deskripsi').value = stripProductHomepageVisibilityMarker(
-        p.deskripsi_raw !== undefined ? p.deskripsi_raw : p.deskripsi || ''
-    );
+    document.getElementById('form-deskripsi').value = p.deskripsi || '';
     
     const images = p.gambar ? p.gambar.split(',') : [];
     document.getElementById('form-gambar-1').value = images[0] || '';
@@ -4818,8 +4729,6 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
 
     const variantsData = collectVariants();
     const variantsJson = variantsData.length > 0 ? JSON.stringify(variantsData) : '';
-    const homepageVisible = String(document.getElementById('form-homepage-visible').value || 'on').trim().toLowerCase() !== 'off';
-    const cleanDescription = document.getElementById('form-deskripsi').value;
 
     const data = {
         nama: document.getElementById('form-nama').value,
@@ -4827,10 +4736,9 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
         harga_coret: document.getElementById('form-harga-coret').value,
         stok: document.getElementById('form-stok').value,
         kategori: document.getElementById('form-category').value,
-        deskripsi: buildProductDescriptionForStorage(cleanDescription, homepageVisible),
+        deskripsi: document.getElementById('form-deskripsi').value,
         gambar: images,
-        variasi: variantsJson,
-        homepage_visible: homepageVisible ? 'on' : 'off'
+        variasi: variantsJson
     };
 
     try {
@@ -4868,40 +4776,6 @@ async function handleDelete(id) {
     } catch (error) {
         console.error(error);
         showAdminToast('Gagal menghapus produk.', 'error');
-    }
-}
-
-async function toggleProductHomepageVisibility(id) {
-    const product = getProductById(id);
-    if (!product) {
-        showAdminToast('Produk tidak ditemukan.', 'error');
-        return;
-    }
-
-    const nextVisible = !isProductVisibleOnHomepage(product);
-    const nextPayload = {
-        homepage_visible: nextVisible ? 'on' : 'off',
-        deskripsi: buildProductDescriptionForStorage(
-            product.deskripsi_raw !== undefined ? product.deskripsi_raw : product.deskripsi || '',
-            nextVisible
-        )
-    };
-
-    try {
-        const result = await GASActions.update(PRODUCTS_SHEET, String(id), nextPayload);
-        const affected = Number((result && (result.affected || result.updated || result.success)) || 0);
-        if (affected > 0 || (result && !result.error)) {
-            showAdminToast(
-                nextVisible ? 'Produk ditampilkan di homepage.' : 'Produk disembunyikan dari homepage.',
-                'success'
-            );
-            await fetchAdminProducts();
-            return;
-        }
-        showAdminToast('Status homepage produk gagal diperbarui.', 'error');
-    } catch (error) {
-        console.error('Toggle homepage visibility error:', error);
-        showAdminToast('Gagal mengubah status homepage produk.', 'error');
     }
 }
 
@@ -5902,11 +5776,6 @@ function bindAdminActions() {
 
         if (action === 'open-add-modal') {
             openAddModal();
-            return;
-        }
-
-        if (action === 'toggle-product-homepage') {
-            toggleProductHomepageVisibility(trigger.dataset.id);
             return;
         }
 
