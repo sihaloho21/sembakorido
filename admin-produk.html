@@ -42,6 +42,62 @@
         }
         .pin-btn:hover { opacity: 0.88; }
         .pin-error { color: #dc2626; font-size: 0.82rem; margin-top: 0.5rem; min-height: 1.2em; }
+        .auth-step { display: none; }
+        .auth-step.active { display: block; }
+        .auth-field { text-align: left; margin-top: 1rem; }
+        .auth-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #475569;
+            margin-bottom: 0.375rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .auth-input,
+        .auth-select {
+            width: 100%;
+            padding: 0.75rem 0.875rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+            background: #fff;
+        }
+        .auth-input:focus,
+        .auth-select:focus { border-color: var(--brand); }
+        .auth-help {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.75rem;
+            line-height: 1.5;
+        }
+        .auth-error {
+            color: #dc2626;
+            font-size: 0.82rem;
+            margin-top: 0.5rem;
+            min-height: 1.2em;
+            text-align: left;
+        }
+        .auth-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+        .auth-btn-secondary {
+            flex: 1;
+            padding: 0.85rem;
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: 700;
+            border-radius: 0.75rem;
+            border: 1px solid #cbd5e1;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+        }
+        .auth-btn-secondary:hover { background: #e2e8f0; }
 
         /* ── MAIN APP ── */
         #app { display: none; }
@@ -272,11 +328,41 @@
 <div id="pin-screen">
     <div class="pin-card">
         <img src="assets/img/logo.webp" alt="Logo" style="height:56px;margin:0 auto 1rem;" onerror="this.style.display='none'">
-        <h2 style="font-size:1.25rem;font-weight:900;color:#0f172a;margin-bottom:0.25rem;">Kelola Produk</h2>
-        <p style="font-size:0.82rem;color:#64748b;margin-bottom:1.5rem;">Masukkan PIN Admin untuk melanjutkan</p>
+        <h2 id="pin-title" style="font-size:1.25rem;font-weight:900;color:#0f172a;margin-bottom:0.25rem;">Kelola Produk</h2>
+        <p id="pin-subtitle" style="font-size:0.82rem;color:#64748b;margin-bottom:1.5rem;">Masukkan PIN Admin untuk melanjutkan</p>
         <input type="password" id="pin-input" class="pin-input" placeholder="••••••" maxlength="10" autocomplete="off">
         <div class="pin-error" id="pin-error"></div>
-        <button class="pin-btn" onclick="checkPin()">Masuk</button>
+        <button class="pin-btn" id="pin-submit-btn" onclick="checkPin()">Masuk</button>
+
+        <div id="token-step" class="auth-step">
+            <h2 style="font-size:1.25rem;font-weight:900;color:#0f172a;margin-bottom:0.25rem;">Sesi Admin</h2>
+            <p id="token-step-message" style="font-size:0.82rem;color:#64748b;margin-bottom:1rem;">Masukkan ADMIN_TOKEN untuk mengaktifkan perubahan produk.</p>
+
+            <div class="auth-field">
+                <label class="auth-label" for="admin-token">Admin Token</label>
+                <input type="password" id="admin-token" class="auth-input" placeholder="Masukkan ADMIN_TOKEN GAS" autocomplete="off">
+            </div>
+
+            <div class="auth-field">
+                <label class="auth-label" for="admin-role">Role Admin</label>
+                <select id="admin-role" class="auth-select">
+                    <option value="superadmin">superadmin</option>
+                    <option value="manager">manager</option>
+                    <option value="operator">operator</option>
+                    <option value="viewer">viewer</option>
+                </select>
+            </div>
+
+            <div class="auth-help">
+                Token ini dipakai untuk aksi simpan ke backend. Jika Anda sudah login dari panel admin, field ini biasanya otomatis terisi untuk tab yang sama.
+            </div>
+            <div class="auth-error" id="admin-auth-error"></div>
+
+            <div class="auth-actions">
+                <button type="button" class="auth-btn-secondary" onclick="backToPinStep()">Kembali</button>
+                <button type="button" class="pin-btn" id="admin-auth-btn" onclick="submitAdminSession()" style="margin-top:0;flex:1;">Aktifkan</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -406,29 +492,276 @@
 ═══════════════════════════════════════════════ */
 const BROSUR_PIN_KEY     = 'gosembako_brosur_auth';
 const BROSUR_PIN_CORRECT = '082625';
+const ADMIN_SESSION_KEY = 'sembako_admin_session_v1';
+const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const ADMIN_TOKEN_KEYS = [
+    'sembako_admin_api_token',
+    'sembako_admin_write_token',
+    'sembako_admin_token',
+    'admin_token',
+    'api_token',
+    'sembako_api_token',
+    'gos_admin_token',
+    'gos_api_token'
+];
+const ADMIN_ROLE_KEYS = ['sembako_admin_role', 'admin_role', 'sembako_role'];
+
+function readStorageValue(keys) {
+    for (let i = 0; i < keys.length; i += 1) {
+        const key = keys[i];
+        const sessionValue = String(sessionStorage.getItem(key) || '').trim();
+        if (sessionValue) return sessionValue;
+        const localValue = String(localStorage.getItem(key) || '').trim();
+        if (localValue) return localValue;
+    }
+    return '';
+}
+
+function normalizeAdminRole(value) {
+    const role = String(value || '').trim().toLowerCase();
+    if (role === 'superadmin' || role === 'manager' || role === 'operator' || role === 'viewer') {
+        return role;
+    }
+    return 'superadmin';
+}
+
+function getStoredAdminToken() {
+    if (typeof GASActions !== 'undefined' && typeof GASActions.getAdminToken === 'function') {
+        const token = String(GASActions.getAdminToken() || '').trim();
+        if (token) return token;
+    }
+    return readStorageValue(ADMIN_TOKEN_KEYS);
+}
+
+function getStoredAdminRole() {
+    if (typeof GASActions !== 'undefined' && typeof GASActions.getAdminRole === 'function') {
+        const role = normalizeAdminRole(GASActions.getAdminRole());
+        if (role) return role;
+    }
+    return normalizeAdminRole(readStorageValue(ADMIN_ROLE_KEYS) || 'superadmin');
+}
+
+function hasAdminWriteAccess() {
+    return Boolean(getStoredAdminToken());
+}
+
+function persistAdminSession(token, role) {
+    const normalizedRole = normalizeAdminRole(role);
+    const now = Date.now();
+    const sessionPayload = {
+        role: normalizedRole,
+        issued_at: now,
+        expires_at: now + ADMIN_SESSION_TTL_MS
+    };
+
+    sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(sessionPayload));
+    sessionStorage.setItem('sembako_admin_write_token', token);
+    sessionStorage.setItem('sembako_admin_api_token', token);
+    sessionStorage.setItem('sembako_admin_role', normalizedRole);
+    localStorage.setItem('sembako_admin_role', normalizedRole);
+    localStorage.removeItem('admin_logged_in');
+}
+
+function clearAdminSessionStorage() {
+    const keys = [
+        ADMIN_SESSION_KEY,
+        'admin_logged_in',
+        ...ADMIN_TOKEN_KEYS,
+        ...ADMIN_ROLE_KEYS
+    ];
+    keys.forEach((key) => {
+        sessionStorage.removeItem(key);
+        localStorage.removeItem(key);
+    });
+}
+
+function showPinStep() {
+    document.getElementById('pin-title').style.display = '';
+    document.getElementById('pin-subtitle').style.display = '';
+    document.getElementById('pin-input').style.display = '';
+    document.getElementById('pin-submit-btn').style.display = '';
+    document.getElementById('pin-error').textContent = '';
+    document.getElementById('token-step').classList.remove('active');
+    document.getElementById('pin-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+}
+
+function showAdminTokenStep(message) {
+    const info = message || 'Masukkan ADMIN_TOKEN untuk mengaktifkan perubahan produk.';
+    document.getElementById('pin-title').style.display = 'none';
+    document.getElementById('pin-subtitle').style.display = 'none';
+    document.getElementById('pin-input').style.display = 'none';
+    document.getElementById('pin-submit-btn').style.display = 'none';
+    document.getElementById('pin-error').textContent = '';
+    document.getElementById('token-step-message').textContent = info;
+    document.getElementById('admin-auth-error').textContent = '';
+    document.getElementById('admin-token').value = getStoredAdminToken();
+    document.getElementById('admin-role').value = getStoredAdminRole();
+    document.getElementById('token-step').classList.add('active');
+    document.getElementById('pin-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+}
+
+function backToPinStep() {
+    sessionStorage.removeItem(BROSUR_PIN_KEY);
+    document.getElementById('pin-input').value = '';
+    showPinStep();
+    document.getElementById('pin-input').focus();
+}
+
+async function verifyAdminToken(token) {
+    const apiUrl = typeof CONFIG !== 'undefined' && typeof CONFIG.getAdminApiUrl === 'function'
+        ? CONFIG.getAdminApiUrl()
+        : '';
+    if (!apiUrl) {
+        return { ok: false, message: 'API admin belum dikonfigurasi.' };
+    }
+
+    const verificationRole = 'superadmin';
+    const payload = {
+        action: 'admin_ping',
+        sheet: 'settings',
+        token: token,
+        admin_token: token,
+        role: verificationRole,
+        admin_role: verificationRole,
+        data: {}
+    };
+
+    const formData = new FormData();
+    formData.append('json', JSON.stringify(payload));
+    formData.append('token', token);
+    formData.append('admin_token', token);
+    formData.append('role', verificationRole);
+    formData.append('admin_role', verificationRole);
+
+    let response;
+    try {
+        response = await fetch(apiUrl, {
+            method: 'POST',
+            body: formData
+        });
+    } catch (error) {
+        return { ok: false, message: 'Gagal terhubung ke API admin.' };
+    }
+
+    let body = {};
+    try {
+        body = await response.json();
+    } catch (error) {
+        body = {};
+    }
+
+    const errorCode = String(body.error || '').trim();
+    if (!response.ok) {
+        return { ok: false, message: `HTTP ${response.status}: ${errorCode || 'Gagal verifikasi token.'}` };
+    }
+    if (errorCode === 'ADMIN_TOKEN_NOT_CONFIGURED') {
+        return { ok: false, message: 'ADMIN_TOKEN di GAS belum dikonfigurasi.' };
+    }
+    if (errorCode === 'Unauthorized') {
+        return { ok: false, message: 'ADMIN_TOKEN tidak valid.' };
+    }
+    if (String(errorCode || '').toLowerCase().includes('invalid action')) {
+        return { ok: true };
+    }
+    if (errorCode) {
+        return { ok: false, message: String(body.message || errorCode || 'Verifikasi token gagal.') };
+    }
+    return { ok: true };
+}
+
+function enterAdminApp(options = {}) {
+    document.getElementById('pin-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    if (options.reload) {
+        loadProducts();
+    }
+}
+
+function continueAfterPin() {
+    if (hasAdminWriteAccess()) {
+        enterAdminApp({ reload: true });
+        return;
+    }
+    showAdminTokenStep('Masukkan ADMIN_TOKEN untuk mengaktifkan perubahan produk.');
+    document.getElementById('admin-token').focus();
+}
+
+function isUnauthorizedError(error) {
+    const message = String((error && error.message) || '').toLowerCase();
+    return message.includes('unauthorized') || message.includes('admin_token');
+}
+
+function requireAdminReauth(message) {
+    clearAdminSessionStorage();
+    sessionStorage.setItem(BROSUR_PIN_KEY, '1');
+    showAdminTokenStep(message || 'Sesi admin berakhir atau token tidak valid. Masukkan ADMIN_TOKEN lagi.');
+    document.getElementById('admin-token').focus();
+}
+
+async function submitAdminSession() {
+    const tokenInput = document.getElementById('admin-token');
+    const roleInput = document.getElementById('admin-role');
+    const errorEl = document.getElementById('admin-auth-error');
+    const button = document.getElementById('admin-auth-btn');
+    const token = String(tokenInput.value || '').trim();
+    const role = normalizeAdminRole(roleInput.value);
+
+    errorEl.textContent = '';
+    if (!token) {
+        errorEl.textContent = 'ADMIN_TOKEN wajib diisi.';
+        tokenInput.focus();
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = 'Memverifikasi...';
+    try {
+        const result = await verifyAdminToken(token);
+        if (!result.ok) {
+            errorEl.textContent = result.message || 'Token tidak valid atau akses ditolak.';
+            return;
+        }
+        persistAdminSession(token, role);
+        enterAdminApp({ reload: true });
+        showToast('Sesi admin aktif', 'success');
+    } finally {
+        button.disabled = false;
+        button.textContent = 'Aktifkan';
+    }
+}
 
 function checkPin() {
     const val = document.getElementById('pin-input').value.trim();
     const err = document.getElementById('pin-error');
     if (val === BROSUR_PIN_CORRECT) {
         sessionStorage.setItem(BROSUR_PIN_KEY, '1');
-        document.getElementById('pin-screen').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
-        loadProducts();
+        continueAfterPin();
     } else {
         err.textContent = 'PIN salah. Coba lagi.';
         document.getElementById('pin-input').value = '';
         document.getElementById('pin-input').focus();
     }
 }
+
 function logout() {
     sessionStorage.removeItem(BROSUR_PIN_KEY);
+    clearAdminSessionStorage();
     location.reload();
 }
+
 document.getElementById('pin-input').addEventListener('keydown', e => { if (e.key === 'Enter') checkPin(); });
+document.getElementById('admin-token').addEventListener('keydown', e => { if (e.key === 'Enter') submitAdminSession(); });
+
 if (sessionStorage.getItem(BROSUR_PIN_KEY) === '1') {
-    document.getElementById('pin-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
+    if (hasAdminWriteAccess()) {
+        enterAdminApp({ reload: true });
+    } else {
+        showAdminTokenStep('Masukkan ADMIN_TOKEN untuk mengaktifkan perubahan produk.');
+    }
+} else {
+    showPinStep();
 }
 
 /* ═══════════════════════════════════════════════
@@ -615,6 +948,10 @@ async function toggleStatus(id, isOn) {
         // Revert
         const prod = allProducts.find(p => String(p.id) === String(id));
         if (prod) prod.status = isOn ? 'sembunyikan' : 'tampil'; // revert
+        if (isUnauthorizedError(err)) {
+            requireAdminReauth('Sesi admin berakhir atau token tidak valid. Masukkan ADMIN_TOKEN lagi.');
+            return;
+        }
         showToast('Gagal menyimpan. Coba lagi.', 'error');
     } finally {
         savingIds.delete(String(id));
@@ -690,6 +1027,7 @@ async function bulkSetStatus(newStatus) {
 
     let successCount = 0;
     let failCount = 0;
+    let authError = null;
 
     // Process in parallel (max 5 at a time)
     const BATCH = 5;
@@ -702,12 +1040,21 @@ async function bulkSetStatus(newStatus) {
                 if (prod) prod.status = newStatus;
                 successCount++;
             } catch (e) {
+                if (!authError && isUnauthorizedError(e)) {
+                    authError = e;
+                }
                 failCount++;
             } finally {
                 savingIds.delete(id);
             }
         }));
         renderTable(); // update progress
+        if (authError) break;
+    }
+
+    if (authError) {
+        requireAdminReauth('Sesi admin berakhir atau token tidak valid. Masukkan ADMIN_TOKEN lagi.');
+        return;
     }
 
     updateStats();
