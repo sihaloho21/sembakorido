@@ -604,7 +604,7 @@ async function toggleStatus(id, isOn) {
     renderTable();
 
     try {
-        await GasActions.update('products', String(id), { status: newStatus });
+        await GASActions.update('products', String(id), { status: newStatus });
         // Update local state
         const prod = allProducts.find(p => String(p.id) === String(id));
         if (prod) prod.status = newStatus;
@@ -697,7 +697,7 @@ async function bulkSetStatus(newStatus) {
         const batch = ids.slice(i, i + BATCH);
         await Promise.all(batch.map(async id => {
             try {
-                await GasActions.update('products', String(id), { status: newStatus });
+                await GASActions.update('products', String(id), { status: newStatus });
                 const prod = allProducts.find(p => String(p.id) === String(id));
                 if (prod) prod.status = newStatus;
                 successCount++;
