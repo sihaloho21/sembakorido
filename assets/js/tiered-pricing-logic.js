@@ -2,6 +2,68 @@
  * Tiered Pricing Logic for Customer Side
  */
 
+function normalizeTieredPriceEntries(tiers) {
+    if (!Array.isArray(tiers)) return [];
+
+    return tiers
+        .map((tier) => {
+            const minQty = parseInt(tier && tier.min_qty, 10);
+            const price = parseInt(tier && tier.price, 10);
+            if (!Number.isFinite(minQty) || !Number.isFinite(price) || minQty <= 0 || price < 0) {
+                return null;
+            }
+            return {
+                ...tier,
+                min_qty: minQty,
+                price: price
+            };
+        })
+        .filter(Boolean);
+}
+
+function parseTieredPricesInput(tieredPrices) {
+    if (!tieredPrices) return [];
+
+    if (Array.isArray(tieredPrices)) {
+        return normalizeTieredPriceEntries(tieredPrices);
+    }
+
+    const raw = String(tieredPrices || '').trim();
+    if (raw === '') return [];
+
+    const normalized = raw.toLowerCase();
+    if (
+        normalized === 'sembunyikan' ||
+        normalized === 'disembunyikan' ||
+        normalized === 'tampil' ||
+        normalized === 'ditampilkan' ||
+        normalized === 'on' ||
+        normalized === 'off'
+    ) {
+        return [];
+    }
+
+    if (!raw.startsWith('[') && !raw.startsWith('{')) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+            return normalizeTieredPriceEntries(parsed);
+        }
+        if (parsed && Array.isArray(parsed.tiers)) {
+            return normalizeTieredPriceEntries(parsed.tiers);
+        }
+        return [];
+    } catch (e) {
+        console.error('Error parsing tiered prices:', e);
+        return [];
+    }
+}
+
+window.parseTieredPricesInput = parseTieredPricesInput;
+
 /**
  * Calculate tiered price based on quantity
  * @param {number} basePrice - The original price
@@ -11,19 +73,8 @@
  */
 function calculateTieredPrice(basePrice, quantity, tieredPrices) {
     if (!tieredPrices) return basePrice;
-    
-    let tiers = [];
-    if (typeof tieredPrices === 'string') {
-        try {
-            tiers = JSON.parse(tieredPrices);
-        } catch (e) {
-            console.error('Error parsing tiered prices:', e);
-            return basePrice;
-        }
-    } else {
-        tiers = tieredPrices;
-    }
-    
+
+    const tiers = parseTieredPricesInput(tieredPrices);
     if (!Array.isArray(tiers) || tiers.length === 0) {
         return basePrice;
     }
@@ -50,18 +101,8 @@ function calculateTieredPrice(basePrice, quantity, tieredPrices) {
  */
 function getNextTierInfo(quantity, tieredPrices) {
     if (!tieredPrices) return null;
-    
-    let tiers = [];
-    if (typeof tieredPrices === 'string') {
-        try {
-            tiers = JSON.parse(tieredPrices);
-        } catch (e) {
-            return null;
-        }
-    } else {
-        tiers = tieredPrices;
-    }
-    
+
+    const tiers = parseTieredPricesInput(tieredPrices);
     if (!Array.isArray(tiers) || tiers.length === 0) return null;
     
     // Sort by min_qty ascending
@@ -95,14 +136,7 @@ function updateTieredPricingUI(product, currentQty = 1) {
         return;
     }
 
-    let tiers = [];
-    try {
-        tiers = typeof product.grosir === 'string' ? JSON.parse(product.grosir) : product.grosir;
-    } catch (e) {
-        container.classList.add('hidden');
-        return;
-    }
-
+    const tiers = parseTieredPricesInput(product.grosir);
     if (!Array.isArray(tiers) || tiers.length === 0) {
         container.classList.add('hidden');
         return;

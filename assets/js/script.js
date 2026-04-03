@@ -155,6 +155,42 @@ function isProductInteractionLocked(product) {
     return Boolean(product && product.isHidden === true);
 }
 
+function normalizeProductStatusValue(primaryValue, fallbackValue) {
+    const candidates = [primaryValue, fallbackValue];
+    for (let i = 0; i < candidates.length; i += 1) {
+        const normalized = String(candidates[i] || '').trim().toLowerCase();
+        if (normalized === '') continue;
+        if (normalized === 'sembunyikan' || normalized === 'disembunyikan' || normalized === 'hidden' || normalized === 'off') {
+            return 'sembunyikan';
+        }
+        if (normalized === 'tampil' || normalized === 'ditampilkan' || normalized === 'show' || normalized === 'on') {
+            return 'tampil';
+        }
+    }
+    return 'tampil';
+}
+
+function sanitizeTieredPricesValue(value) {
+    if (!value) return '';
+
+    if (typeof parseTieredPricesInput === 'function') {
+        const parsed = parseTieredPricesInput(value);
+        return parsed.length > 0 ? JSON.stringify(parsed) : '';
+    }
+
+    const raw = String(value || '').trim();
+    if (raw === '' || (!raw.startsWith('[') && !raw.startsWith('{'))) {
+        return '';
+    }
+
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) && parsed.length > 0 ? JSON.stringify(parsed) : '';
+    } catch (error) {
+        return '';
+    }
+}
+
 function resolveProductForModal(product) {
     if (!product || typeof product !== 'object') return null;
 
@@ -305,6 +341,8 @@ function syncCartWithStockLimits() {
     let adjusted = false;
 
     cart.forEach((item) => {
+        const targetId = String(item.productId || item.id || '').trim();
+        const product = allProducts.find((p) => String(p.productId || p.id || '').trim() === targetId);
         const maxStock = getLatestStockForCartItem(item);
         if (maxStock <= 0) {
             adjusted = true;
@@ -313,9 +351,50 @@ function syncCartWithStockLimits() {
 
         const currentQty = Math.max(1, parseInt(item.qty, 10) || 1);
         const nextQty = Math.min(currentQty, maxStock);
-        const nextItem = { ...item, stok: maxStock, qty: nextQty };
+        const nextItem = {
+            ...item,
+            stok: maxStock,
+            qty: nextQty,
+            grosir: sanitizeTieredPricesValue(product ? product.grosir : item.grosir)
+        };
+        if (product) {
+            nextItem.productId = product.productId || nextItem.productId;
+            nextItem.slug = product.slug || nextItem.slug;
+        }
         if (nextItem.selectedVariation && typeof nextItem.selectedVariation === 'object') {
-            nextItem.selectedVariation = { ...nextItem.selectedVariation, stok: maxStock };
+            let nextVariation = {
+                ...nextItem.selectedVariation,
+                stok: maxStock,
+                grosir: sanitizeTieredPricesValue(nextItem.selectedVariation.grosir)
+            };
+            if (product && Array.isArray(product.variations)) {
+                const targetSku = String(nextItem.selectedVariation.sku || '').trim();
+                const matchedVariation = product.variations.find((variation) => String(variation.sku || '').trim() === targetSku);
+                if (matchedVariation) {
+                    nextVariation = {
+                        ...nextVariation,
+                        ...matchedVariation,
+                        stok: maxStock,
+                        grosir: sanitizeTieredPricesValue(matchedVariation.grosir)
+                    };
+                    nextItem.harga = parseInt(matchedVariation.harga, 10) || nextItem.harga;
+                }
+            }
+            nextItem.selectedVariation = nextVariation;
+        } else if (product) {
+            nextItem.harga = parseInt(product.harga, 10) || nextItem.harga;
+        }
+        if (nextItem.grosir !== String(item.grosir || '')) {
+            adjusted = true;
+        }
+        const originalVariationGrosir = item.selectedVariation && item.selectedVariation.grosir
+            ? String(item.selectedVariation.grosir)
+            : '';
+        const nextVariationGrosir = nextItem.selectedVariation && nextItem.selectedVariation.grosir
+            ? String(nextItem.selectedVariation.grosir)
+            : '';
+        if (nextVariationGrosir !== originalVariationGrosir) {
+            adjusted = true;
         }
         if (nextQty !== currentQty) {
             adjusted = true;
@@ -365,13 +444,20 @@ async function fetchProducts() {
                     console.error('Error parsing variations for product:', p.id, e);
                 }
             }
+            if (Array.isArray(variations)) {
+                variations = variations.map((variation) => ({
+                    ...variation,
+                    grosir: sanitizeTieredPricesValue(variation.grosir)
+                }));
+            }
 
             const slug = p.slug || createSlug(p.nama);
             const productId = ensureProductId({ ...p, slug }, index);
 
             // Status visibility: 'tampil' (default) atau 'sembunyikan'
-            const statusVal = (p.status || 'tampil').toLowerCase().trim();
+            const statusVal = normalizeProductStatusValue(p.status, p.grosir);
             const isHidden  = statusVal === 'sembunyikan';
+            const normalizedGrosir = sanitizeTieredPricesValue(p.grosir);
 
             return {
                 ...p,
@@ -384,6 +470,7 @@ async function fetchProducts() {
                 category: category,
                 deskripsi: (p.deskripsi && p.deskripsi.trim() !== "") ? p.deskripsi : defaultDesc,
                 variations: variations,
+                grosir: normalizedGrosir,
                 status: statusVal,
                 isHidden: isHidden
             };
