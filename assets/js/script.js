@@ -365,6 +365,10 @@ async function fetchProducts() {
             const slug = p.slug || createSlug(p.nama);
             const productId = ensureProductId({ ...p, slug }, index);
 
+            // Status visibility: 'tampil' (default) atau 'sembunyikan'
+            const statusVal = (p.status || 'tampil').toLowerCase().trim();
+            const isHidden  = statusVal === 'sembunyikan';
+
             return {
                 ...p,
                 slug,
@@ -375,7 +379,9 @@ async function fetchProducts() {
                 stok: parseInt(p.stok) || 0,
                 category: category,
                 deskripsi: (p.deskripsi && p.deskripsi.trim() !== "") ? p.deskripsi : defaultDesc,
-                variations: variations
+                variations: variations,
+                status: statusVal,
+                isHidden: isHidden
             };
         });
         syncCartWithStockLimits();
@@ -1623,8 +1629,13 @@ function renderProducts(products) {
     
     let cardsHtml = '';
     paginatedProducts.forEach(p => {
+        // Produk yang disembunyikan admin
+        const isHiddenProd = p.isHidden === true;
+
         let stokLabel = '';
-        if (p.stok > 10) {
+        if (isHiddenProd) {
+            stokLabel = `<span class="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold">Sedang Tidak Tersedia Saat Ini</span>`;
+        } else if (p.stok > 10) {
             stokLabel = `<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Stok Tersedia</span>`;
         } else if (p.stok > 5) {
             stokLabel = `<span class="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Stok Menipis (${p.stok})</span>`;
@@ -1687,8 +1698,15 @@ function renderProducts(products) {
             ? '<svg class="w-5 h-5 text-red-500 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>'
             : '<svg class="w-5 h-5 text-gray-400 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>';
 
+        // Kelas tambahan untuk produk hidden
+        const hiddenCardClass = isHiddenProd ? ' opacity-70' : '';
+        const hiddenBanner = isHiddenProd
+            ? `<div class="absolute inset-x-0 top-0 z-30 bg-gray-700/90 text-white text-[10px] font-bold text-center py-1.5 flex items-center justify-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>Sedang Tidak Tersedia Saat Ini</div>`
+            : '';
+
         cardsHtml += `
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300 relative" data-product-id="${productId}">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300 relative${hiddenCardClass}" data-product-id="${productId}">
+                ${hiddenBanner}
                 <!-- Wishlist Heart Button -->
                 <button id="wishlist-btn-${productId}" data-action="toggle-wishlist" data-product-id="${productId}" class="absolute top-3 right-3 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition active:scale-95" aria-label="${wishlistLabel}" title="${wishlistLabel}">
                     ${heartIcon}
@@ -1707,7 +1725,7 @@ function renderProducts(products) {
                 </div>
                 <div class="lazy-image-wrapper bg-white" style="aspect-ratio: 16 / 9;">
                     <div class="skeleton skeleton-product-image"></div>
-                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" data-action="show-detail" data-product-id="${productId}" class="w-full h-full object-contain object-center bg-white cursor-pointer hover:opacity-90 transition-opacity ${p.stok === 0 ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="720" height="405" data-fallback-src="https://placehold.co/300x200?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" data-action="show-detail" data-product-id="${productId}" class="w-full h-full object-contain object-center bg-white cursor-pointer hover:opacity-90 transition-opacity ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="720" height="405" data-fallback-src="https://placehold.co/300x200?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
                 </div>
                 <div class="p-6">
                     <div class="flex justify-between items-start mb-2">
@@ -1737,7 +1755,16 @@ function renderProducts(products) {
                         </div>
                     </div>
                     ${grosirGridHtml}
-                    ${hasVariations ? `
+                    ${isHiddenProd ? `
+                    <button disabled class="w-full bg-gray-200 text-gray-400 font-bold py-3 rounded-xl flex items-center justify-center gap-2 mb-3 cursor-not-allowed">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                        Sedang Tidak Tersedia
+                    </button>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button data-action="show-detail" data-product-id="${productId}" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded-lg text-sm transition">Rincian</button>
+                        <button disabled class="bg-gray-100 text-gray-300 font-bold py-2 rounded-lg text-sm cursor-not-allowed">Beli Sekarang</button>
+                    </div>
+                    ` : hasVariations ? `
                     <button data-action="show-detail" data-product-id="${productId}" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 mb-3">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                         Pilih Variasi
@@ -1748,10 +1775,11 @@ function renderProducts(products) {
                         Tambah ke Keranjang
                     </button>
                     `}
+                    ${!isHiddenProd ? `
                     <div class="grid grid-cols-2 gap-2">
                         <button data-action="show-detail" data-product-id="${productId}" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded-lg text-sm transition">Rincian</button>
                         <button data-action="direct-order" data-product-id="${productId}" ${p.stok === 0 ? 'disabled' : ''} class="bg-green-100 hover:bg-green-200 text-green-700 font-bold py-2 rounded-lg text-sm transition">Beli Sekarang</button>
-                    </div>
+                    </div>` : ''}
 
                 </div>
             </div>
@@ -1782,19 +1810,20 @@ function filterProducts() {
 
 function sortProducts(products, sortValue) {
     const list = [...products];
-    if (sortValue === 'price-asc') {
-        list.sort((a, b) => (a.harga || 0) - (b.harga || 0));
-        return list;
-    }
-    if (sortValue === 'price-desc') {
-        list.sort((a, b) => (b.harga || 0) - (a.harga || 0));
-        return list;
-    }
-    if (sortValue === 'promo') {
-        list.sort((a, b) => promoScore(b) - promoScore(a));
-        return list;
-    }
-    return list;
+    // Pisahkan produk visible dan hidden
+    const visible = list.filter(p => !p.isHidden);
+    const hidden  = list.filter(p => p.isHidden);
+
+    // Sort masing-masing grup
+    const sortFn = (arr) => {
+        if (sortValue === 'price-asc')  { arr.sort((a, b) => (a.harga || 0) - (b.harga || 0)); }
+        if (sortValue === 'price-desc') { arr.sort((a, b) => (b.harga || 0) - (a.harga || 0)); }
+        if (sortValue === 'promo')      { arr.sort((a, b) => promoScore(b) - promoScore(a)); }
+        return arr;
+    };
+
+    // Produk hidden selalu di urutan paling belakang
+    return [...sortFn(visible), ...sortFn(hidden)];
 }
 
 function promoScore(product) {
