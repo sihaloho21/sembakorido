@@ -74,6 +74,46 @@ let headerNotificationState = {
     detailAction: null
 };
 let headerNotificationOrderCache = Object.create(null);
+// Fallback storage marker so hidden products can stay hidden even before the API schema adds a dedicated column.
+const PRODUCT_HOMEPAGE_OFF_MARKER = '[[HOMEPAGE_OFF]]';
+
+function readExplicitProductHomepageVisibility(product) {
+    if (!product || typeof product !== 'object') return '';
+    const fields = ['homepage_visible', 'tampil_homepage', 'status_tampil'];
+    for (let i = 0; i < fields.length; i += 1) {
+        const raw = product[fields[i]];
+        const value = String(raw === undefined || raw === null ? '' : raw).trim();
+        if (value) return value;
+    }
+    return '';
+}
+
+function stripProductHomepageVisibilityMarker(value) {
+    return String(value === undefined || value === null ? '' : value)
+        .split(PRODUCT_HOMEPAGE_OFF_MARKER)
+        .join('')
+        .trim();
+}
+
+function normalizeProductHomepageVisibilityFlag(value) {
+    const normalized = String(value === undefined || value === null ? '' : value).trim().toLowerCase();
+    if (!normalized) return true;
+    if (['off', 'false', '0', 'no', 'tidak', 'hide', 'hidden', 'inactive', 'nonaktif'].includes(normalized)) {
+        return false;
+    }
+    return true;
+}
+
+function isProductVisibleOnHomepage(product) {
+    const explicitValue = readExplicitProductHomepageVisibility(product);
+    if (explicitValue) {
+        return normalizeProductHomepageVisibilityFlag(explicitValue);
+    }
+    const rawDescription = String(
+        (product && (product.deskripsi_raw !== undefined ? product.deskripsi_raw : product.deskripsi)) || ''
+    );
+    return !rawDescription.includes(PRODUCT_HOMEPAGE_OFF_MARKER);
+}
 
 /**
  * Normalize phone number to standard format (08xxxxxxxxxx)
@@ -351,6 +391,8 @@ async function fetchProducts() {
             }
             
             const defaultDesc = "Kualitas Terjamin, Stok Selalu Baru, Harga Kompetitif";
+            const rawDescription = String(p.deskripsi || '');
+            const cleanedDescription = stripProductHomepageVisibilityMarker(rawDescription);
             
             // Phase 1 & 2: Parse variations
             let variations = [];
@@ -374,10 +416,15 @@ async function fetchProducts() {
                 hargaGajian: gajianInfo.price,
                 stok: parseInt(p.stok) || 0,
                 category: category,
-                deskripsi: (p.deskripsi && p.deskripsi.trim() !== "") ? p.deskripsi : defaultDesc,
-                variations: variations
+                deskripsi_raw: rawDescription,
+                deskripsi: cleanedDescription !== "" ? cleanedDescription : defaultDesc,
+                variations: variations,
+                homepageVisible: isProductVisibleOnHomepage({
+                    ...p,
+                    deskripsi_raw: rawDescription
+                })
             };
-        });
+        }).filter((product) => product.homepageVisible);
         syncCartWithStockLimits();
         renderCategoryFilters(); // Render dynamic categories
         filterProducts();
