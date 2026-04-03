@@ -4180,6 +4180,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 toggleWishlist(productId);
                 return;
             }
+            if (action === 'wishlist-buy' && isProductInteractionLocked(product)) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
             if (action === 'wishlist-buy' && product) {
                 showDetail(product);
             }
@@ -5909,6 +5914,16 @@ async function renderWishlistItems() {
         const harga = parseFloat(p.harga_tunai || p.harga || 0);
         const imageUrl = p.gambar ? String(p.gambar).split(',')[0].trim() : '';
         const safeImage = sanitizeUrl(imageUrl, 'https://placehold.co/100x100?text=Produk');
+        const isHiddenProd = isProductInteractionLocked(p);
+        const buyButtonAttrs = isHiddenProd
+            ? 'disabled aria-disabled="true" tabindex="-1"'
+            : `data-action="wishlist-buy" data-product-id="${productId}"`;
+        const buyButtonClass = isHiddenProd
+            ? 'bg-gray-200 text-gray-400 text-xs font-bold px-3 py-1.5 rounded-lg cursor-not-allowed'
+            : 'bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95';
+        const availabilityHtml = isHiddenProd
+            ? '<p class="text-[10px] text-gray-500 font-semibold mt-1">Sedang Tidak Tersedia</p>'
+            : '';
         return `
             <div class="flex items-center justify-between p-4 border-b border-gray-100 hover:bg-gray-50 transition">
                 <div class="flex items-center gap-3 flex-1">
@@ -5916,14 +5931,15 @@ async function renderWishlistItems() {
                     <div class="flex-1">
                         <p class="font-semibold text-sm text-gray-800">${escapeHtml(p.nama)}</p>
                         <p class="text-xs text-green-600 font-bold mt-1">Rp ${harga.toLocaleString('id-ID')}</p>
+                        ${availabilityHtml}
                     </div>
                 </div>
                 <div class="flex gap-2">
                     <button type="button" data-action="wishlist-toggle" data-product-id="${productId}" class="text-red-500 hover:text-red-700 p-2 transition active:scale-95" title="Hapus dari Wishlist">
                         <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                     </button>
-                    <button type="button" data-action="wishlist-buy" data-product-id="${productId}" class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95">
-                        Beli
+                    <button type="button" ${buyButtonAttrs} class="${buyButtonClass}">
+                        ${isHiddenProd ? 'Tidak Tersedia' : 'Beli'}
                     </button>
                 </div>
             </div>
