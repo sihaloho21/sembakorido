@@ -90,7 +90,6 @@ function isPathInsideRoot(filePath) {
 
 async function resolveFilePath(rawPathname) {
     let pathname = rawPathname || '/';
-    if (pathname === '/admin') pathname = '/admin/index.html';
     if (pathname.endsWith('/')) pathname += 'index.html';
     if (pathname === '/') pathname = '/index.html';
 
@@ -185,6 +184,17 @@ const server = http.createServer(async (req, res) => {
     }
 
     const parsedUrl = new URL(req.url, 'http://localhost');
+    if (parsedUrl.pathname === '/admin') {
+        const search = parsedUrl.search || '';
+        res.writeHead(308, {
+            Location: `/admin/${search}`,
+            'Cache-Control': 'public, max-age=3600',
+            Server: 'gos-frontend'
+        });
+        res.end();
+        return;
+    }
+
     const filePath = await resolveFilePath(parsedUrl.pathname);
     if (!filePath) {
         sendTextResponse(res, 404, 'Not Found');
