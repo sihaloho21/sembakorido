@@ -191,6 +191,18 @@ function sanitizeTieredPricesValue(value) {
     }
 }
 
+function getProductForCartItem(item) {
+    if (!item) return null;
+    const targetId = String(item.productId || item.id || '').trim();
+    if (!targetId) return null;
+    return allProducts.find((p) => String(p.productId || p.id || '').trim() === targetId) || null;
+}
+
+function isCartItemUnavailable(item) {
+    const product = getProductForCartItem(item);
+    return Boolean(product && isProductInteractionLocked(product));
+}
+
 function resolveProductForModal(product) {
     if (!product || typeof product !== 'object') return null;
 
@@ -318,9 +330,9 @@ function getCurrentModalMaxStock() {
 
 function getLatestStockForCartItem(item) {
     if (!item) return 0;
-    const targetId = String(item.productId || item.id || '').trim();
-    const product = allProducts.find((p) => String(p.productId || p.id || '').trim() === targetId);
+    const product = getProductForCartItem(item);
     if (!product) return getItemMaxStock(item);
+    if (isProductInteractionLocked(product)) return 0;
 
     if (item.selectedVariation && item.selectedVariation.sku && Array.isArray(product.variations)) {
         const targetSku = String(item.selectedVariation.sku || '').trim();
@@ -335,14 +347,20 @@ function getLatestStockForCartItem(item) {
     return Number.isFinite(productStock) && productStock > 0 ? productStock : 0;
 }
 
-function syncCartWithStockLimits() {
+function syncCartWithStockLimits(options) {
+    const settings = options || {};
     if (!Array.isArray(cart) || cart.length === 0) return;
     const nextCart = [];
     let adjusted = false;
+    let removedUnavailableCount = 0;
 
     cart.forEach((item) => {
-        const targetId = String(item.productId || item.id || '').trim();
-        const product = allProducts.find((p) => String(p.productId || p.id || '').trim() === targetId);
+        const product = getProductForCartItem(item);
+        if (product && isProductInteractionLocked(product)) {
+            adjusted = true;
+            removedUnavailableCount += 1;
+            return;
+        }
         const maxStock = getLatestStockForCartItem(item);
         if (maxStock <= 0) {
             adjusted = true;
@@ -405,6 +423,12 @@ function syncCartWithStockLimits() {
     if (adjusted) {
         cart = nextCart;
         saveCart();
+    }
+
+    if (!settings.silent && removedUnavailableCount > 0) {
+        showToast(removedUnavailableCount === 1
+            ? 'Produk yang sedang tidak tersedia dihapus dari keranjang.'
+            : 'Beberapa produk yang sedang tidak tersedia dihapus dari keranjang.');
     }
 }
 
@@ -2207,6 +2231,10 @@ function setCategory(cat) {
 }
 
 function addToCart(p, event, qty = 1) {
+    if (isProductInteractionLocked(p)) {
+        showToast('Produk sedang tidak tersedia saat ini.');
+        return;
+    }
     if (storeClosed) {
         showStoreWarning(() => {
             proceedAddToCart(p, event, qty);
@@ -2222,6 +2250,10 @@ function getPrimaryCartButton() {
 }
 
 function proceedAddToCart(p, event, qty = 1) {
+    if (isProductInteractionLocked(p)) {
+        showToast('Produk sedang tidak tersedia saat ini.');
+        return;
+    }
     // If product has variations and none selected, show detail
     if (p.variations && p.variations.length > 0 && !selectedVariation) {
         showDetail(p);
@@ -2852,6 +2884,10 @@ function saveCart() {
 }
 
 function updateCartUI() {
+    if (Array.isArray(allProducts) && allProducts.length > 0) {
+        syncCartWithStockLimits({ silent: true });
+    }
+
     const count = cart.reduce((sum, item) => sum + item.qty, 0);
     const countEl = document.getElementById('cart-count');
     
@@ -2927,7 +2963,14 @@ function updateQty(index, delta) {
     if (!item) return;
 
     const currentQty = parseInt(item.qty, 10) || 0;
-    const maxStock = getItemMaxStock(item);
+    const maxStock = getLatestStockForCartItem(item);
+    if (maxStock <= 0) {
+        cart.splice(index, 1);
+        saveCart();
+        updateCartUI();
+        showToast('Produk yang sedang tidak tersedia dihapus dari keranjang.');
+        return;
+    }
     let nextQty = currentQty + delta;
 
     if (delta > 0 && maxStock > 0 && nextQty > maxStock) {
@@ -3189,6 +3232,10 @@ function closeDetailModal() {
 }
 
 function directOrder(p) {
+    if (isProductInteractionLocked(p)) {
+        showToast('Produk sedang tidak tersedia saat ini.');
+        return;
+    }
     if (storeClosed) {
         showStoreWarning(() => {
             proceedDirectOrder(p);
@@ -3199,6 +3246,10 @@ function directOrder(p) {
 }
 
 function proceedDirectOrder(p) {
+    if (isProductInteractionLocked(p)) {
+        showToast('Produk sedang tidak tersedia saat ini.');
+        return;
+    }
     // If product has variations and none selected, show detail
     if (p.variations && p.variations.length > 0 && !selectedVariation) {
         showDetail(p);
@@ -3291,7 +3342,13 @@ function closeStoreWarningModal() {
 }
 
 function openOrderModal() {
-    if (cart.length === 0) return;
+    if (Array.isArray(allProducts) && allProducts.length > 0) {
+        syncCartWithStockLimits();
+    }
+    if (cart.length === 0) {
+        showToast('Keranjang kosong atau produk sedang tidak tersedia untuk dipesan.');
+        return;
+    }
     
     closeCartModal();
     resetOrderValidationState();
@@ -3731,7 +3788,9 @@ function getOrderItemsForPayMethod(payMethod) {
     const selectedPayMethod = String(payMethod || '').trim();
     const isGajian = selectedPayMethod === 'Bayar Gajian';
 
-    return cart.map((item) => {
+    return cart
+        .filter((item) => !isCartItemUnavailable(item))
+        .map((item) => {
         const basePrice = isGajian ? item.hargaGajian : item.harga;
         const effectivePrice = calculateTieredPrice(basePrice, item.qty, item.grosir);
         const itemTotal = effectivePrice * item.qty;
@@ -3746,7 +3805,7 @@ function getOrderItemsForPayMethod(payMethod) {
             isGrosir: effectivePrice < basePrice,
             itemPoints: itemPoints
         };
-    });
+        });
 }
 
 function getOrderSnapshot(payMethod, shipMethod) {
@@ -4903,6 +4962,7 @@ function updateOrderCTAState(options) {
     const sendButton = document.getElementById('send-order-btn') || document.querySelector('[data-action="send-wa"]');
     const validationState = getOrderFormValidationState();
     const settings = (typeof options === 'boolean') ? { showInlineErrors: options } : { ...(options || {}) };
+    const hasOrderableItems = getOrderItemsForPayMethod(getSelectedPayMethodValue()).length > 0;
 
     if (!Object.prototype.hasOwnProperty.call(settings, 'showInlineErrors') && !settings.forceShowAllErrors) {
         settings.showInlineErrors = Object.values(orderValidationTouched).some(Boolean);
@@ -4912,8 +4972,8 @@ function updateOrderCTAState(options) {
 
     if (!sendButton) return validationState;
 
-    sendButton.disabled = !validationState.isValid;
-    sendButton.setAttribute('aria-disabled', String(!validationState.isValid));
+    sendButton.disabled = !validationState.isValid || !hasOrderableItems;
+    sendButton.setAttribute('aria-disabled', String(!validationState.isValid || !hasOrderableItems));
     return validationState;
 }
 
@@ -5016,6 +5076,18 @@ async function sendToWA() {
         payment: true,
         deliveryAddress: true
     };
+
+    if (Array.isArray(allProducts) && allProducts.length > 0) {
+        syncCartWithStockLimits();
+        updateCartUI();
+        updateOrderTotal();
+    }
+
+    if (cart.length === 0 || getOrderItemsForPayMethod(getSelectedPayMethodValue()).length === 0) {
+        showToast('Keranjang kosong atau produk sedang tidak tersedia untuk dipesan.');
+        closeOrderModal();
+        return;
+    }
 
     let validationState = updateOrderCTAState({ forceShowAllErrors: true });
     if (!validationState.isValid) {
