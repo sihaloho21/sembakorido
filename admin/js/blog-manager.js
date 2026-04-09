@@ -1,5 +1,5 @@
 /**
- * Blog Manager JavaScript – Admin GoSembako
+ * Blog Manager JavaScript – Admin Paket Sembako
  * Mengelola CRUD artikel blog dan moderasi komentar.
  * Menggunakan GAS API via CONFIG.getAdminApiUrl() dan api-helper.js
  */
@@ -220,7 +220,7 @@ function getSamplePosts() {
             slug: '5-tips-hemat-belanja-sembako-bulanan',
             excerpt: 'Temukan cara cerdas mengatur anggaran belanja sembako agar lebih hemat.',
             content: '<p>Belanja sembako adalah kebutuhan rutin setiap keluarga...</p>',
-            author: 'Tim GoSembako',
+            author: 'Tim Paket Sembako',
             published_at: '2026-03-20 10:00:00',
             status: 'published',
             image_url: '',
@@ -234,7 +234,7 @@ function getSamplePosts() {
             slug: 'resep-sayur-sop-sederhana-bergizi',
             excerpt: 'Sayur sop adalah hidangan klasik yang mudah dibuat dan bergizi tinggi.',
             content: '<p>Sayur sop adalah salah satu masakan Indonesia yang paling digemari...</p>',
-            author: 'Chef GoSembako',
+            author: 'Chef Paket Sembako',
             published_at: '2026-03-15 09:00:00',
             status: 'published',
             image_url: '',
@@ -248,7 +248,7 @@ function getSamplePosts() {
             slug: 'panduan-memilih-beras-berkualitas',
             excerpt: 'Pelajari cara memilih beras yang berkualitas dengan harga terjangkau.',
             content: '<p>Memilih beras yang tepat sangat penting untuk kesehatan keluarga...</p>',
-            author: 'Tim GoSembako',
+            author: 'Tim Paket Sembako',
             published_at: '2026-03-10 08:00:00',
             status: 'draft',
             image_url: '',
@@ -394,7 +394,7 @@ function openPostModal(post = null) {
         document.getElementById('post-id').value = post.id || '';
         document.getElementById('post-title').value = post.title || '';
         document.getElementById('post-slug').value = post.slug || '';
-        document.getElementById('post-author').value = post.author || 'Tim GoSembako';
+        document.getElementById('post-author').value = post.author || 'Tim Paket Sembako';
         document.getElementById('post-status').value = post.status || 'published';
         document.getElementById('post-categories').value = post.categories || '';
         document.getElementById('post-tags').value = post.tags || '';
@@ -550,7 +550,7 @@ async function handlePostFormSubmit(e) {
         id: isEdit ? State.editingPostId : generateId('post'),
         title,
         slug,
-        author: author || 'Tim GoSembako',
+        author: author || 'Tim Paket Sembako',
         status: document.getElementById('post-status')?.value || 'published',
         categories: document.getElementById('post-categories')?.value.trim() || '',
         tags: document.getElementById('post-tags')?.value.trim() || '',

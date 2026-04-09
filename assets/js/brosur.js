@@ -1,5 +1,5 @@
 /**
- * brosur.js – GoSembako Brosur Generator
+ * brosur.js – Paket Sembako Brosur Generator
  * PIN auth · fetch produk dari GAS API · render Canvas (featured/grid4/grid6) · export PNG · share WA
  */
 
@@ -1006,12 +1006,12 @@ async function drawLotteMart(canvas, highRes) {
     ctx.fillStyle = hGrad;
     ctx.fillRect(0, 0, W, headerH);
 
-    // Logo GoSembako (kiri)
+    // Logo Paket Sembako (kiri)
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 52px -apple-system, Arial, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🛒 GoSembako', 48, 72);
+    ctx.fillText('🛒 Paket Sembako', 48, 72);
 
     // Tagline (kiri bawah logo)
     ctx.font = '400 26px -apple-system, Arial, sans-serif';
@@ -1069,7 +1069,7 @@ async function drawLotteMart(canvas, highRes) {
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 28px -apple-system, Arial, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('GoSembako Reward Point  •  HEMAT LEBIH BANYAK!', 140, bannerY + bannerH / 2);
+    ctx.fillText('Paket Sembako Reward Point  •  HEMAT LEBIH BANYAK!', 140, bannerY + bannerH / 2);
 
     // ── PRODUCT GRID 2×2 ──
     const gridY = bannerY + bannerH + 28;
@@ -1259,7 +1259,7 @@ async function drawStory(canvas, highRes) {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 44px -apple-system, Arial, sans-serif';
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText('\uD83D\uDED2 GoSembako', 56, hdrH / 2);
+    ctx.fillText('\uD83D\uDED2 Paket Sembako', 56, hdrH / 2);
     ctx.font = '600 30px -apple-system, Arial, sans-serif';
     ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.fillText(`\uD83D\uDCF1 ${state.waNumber}`, W - 56, hdrH / 2);
@@ -1404,7 +1404,7 @@ async function drawBanner(canvas, highRes) {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 30px -apple-system, Arial, sans-serif';
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText('\uD83D\uDED2 GoSembako', 40, hdrH / 2);
+    ctx.fillText('\uD83D\uDED2 Paket Sembako', 40, hdrH / 2);
     ctx.font = '600 22px -apple-system, Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`\uD83D\uDCC5 ${formatDateRange(state.promoStart, state.promoEnd)}`, W / 2, hdrH / 2);
@@ -2379,7 +2379,7 @@ async function drawLogoHeader(ctx, W, headerH, ff, isPortrait) {
     ctx.font = `bold ${isPortrait ? 38 : 36}px ${ff}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('\uD83D\uDED2 GoSembako', 48, headerH / 2);
+    ctx.fillText('\uD83D\uDED2 Paket Sembako', 48, headerH / 2);
 }
 
 /** Versi drawLogoHeader yang menggunakan posisi dari drag (pos.x, pos.y dalam 0-1) */
@@ -2400,7 +2400,7 @@ async function drawLogoHeaderAt(ctx, W, H, headerH, ff, isPortrait, pos) {
     ctx.font = `bold ${isPortrait ? 38 : 36}px ${ff}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('\uD83D\uDED2 GoSembako', lx, ly + 12);
+    ctx.fillText('\uD83D\uDED2 Paket Sembako', lx, ly + 12);
 }
 
 function loadImage(src) {
@@ -2738,7 +2738,7 @@ function shareWhatsApp() {
     downloadBrosur();
     const waNum = state.waNumber.replace(/[^0-9]/g, '');
     const msg = encodeURIComponent(
-        `🛒 *Promo GoSembako*\n\n` +
+        `🛒 *Promo Paket Sembako*\n\n` +
         `${state.ctaText}\n\n` +
         `📅 ${formatDateRange(state.promoStart, state.promoEnd)}\n` +
         `📱 ${state.waNumber}\n` +

@@ -1,5 +1,5 @@
 /**
- * API Helper untuk GoSembako
+ * API Helper untuk Paket Sembako
  * Menggunakan URLSearchParams untuk menghindari CORS preflight
  * 
  * application/x-www-form-urlencoded adalah "simple content-type"
