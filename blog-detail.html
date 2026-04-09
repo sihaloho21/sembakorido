@@ -20,9 +20,11 @@
     <link rel="stylesheet" href="assets/css/style.min.css?v=20260308b">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
-        .hero-offset { padding-top: 80px; }
+        .hero-offset { padding-top: 86px; }
         .header-brand-name { color: #4a9465; font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em; }
-        .header-main-row { min-height: 72px; }
+        .header-main-row { min-height: 78px; }
+        .header-brand-image { height: 48px; width: auto; object-fit: contain; }
+        .footer-brand-image { height: 40px; width: auto; object-fit: contain; }
         /* Article Content Styles */
         .article-content { line-height: 1.85; color: #374151; }
         .article-content h2 { font-size: 1.5rem; font-weight: 700; color: #111827; margin: 2rem 0 1rem; }
@@ -46,6 +48,11 @@
         .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
         .progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, #16a34a, #1d4ed8); z-index: 9999; transition: width 0.1s ease; }
+        @media (min-width: 768px) {
+            .hero-offset { padding-top: 92px; }
+            .header-main-row { min-height: 82px; }
+            .header-brand-image { height: 54px; }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -58,7 +65,7 @@
         <div class="container mx-auto px-4">
             <div class="header-main-row flex items-center justify-between gap-4 py-3">
                 <a href="/" class="flex items-center gap-2 flex-shrink-0" aria-label="Paket Sembako - Halaman Utama">
-                    <img src="assets/img/logo.png" alt="Paket Sembako" class="h-10 w-auto" width="40" height="40">
+                    <img src="assets/img/logo.png" alt="Paket Sembako" class="header-brand-image">
                     <span class="header-brand-name">Paket Sembako</span>
                 </a>
                 <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
@@ -243,7 +250,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                 <div>
                     <div class="flex items-center gap-2 mb-3">
-                        <img src="assets/img/logo.png" alt="Paket Sembako" class="h-8 w-auto">
+                        <img src="assets/img/logo.png" alt="Paket Sembako" class="footer-brand-image">
                         <span class="font-extrabold text-green-400 text-lg">Paket Sembako</span>
                     </div>
                     <p class="text-gray-400 text-sm">Paket sembako murah dan lengkap untuk kebutuhan harian keluarga Anda.</p>

@@ -28,11 +28,11 @@
         }
         .header-inner {
             max-width: 1200px; margin: 0 auto;
-            padding: 0 20px; height: 64px;
+            padding: 0 20px; height: 68px;
             display: flex; align-items: center; justify-content: space-between; gap: 1rem;
         }
         .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
-        .brand img { height: 36px; width: auto; object-fit: contain; }
+        .brand img { height: 40px; width: auto; object-fit: contain; }
         .brand-name { color: #16a34a; font-size: 1rem; font-weight: 800; }
         .pk-nav { display: flex; align-items: center; gap: 1.5rem; }
         .pk-nav a { font-size: 0.875rem; font-weight: 600; color: #6b7280; text-decoration: none; transition: color 0.2s; }
@@ -273,6 +273,10 @@
             font-size: 0.8rem; margin-top: 64px;
         }
         .site-footer a { color: #4ade80; text-decoration: none; }
+        @media (min-width: 768px) {
+            .header-inner { height: 72px; }
+            .brand img { height: 44px; }
+        }
 
         @media (max-width: 520px) {
             .infographic { padding: 28px 16px 32px; border-radius: 20px; }
