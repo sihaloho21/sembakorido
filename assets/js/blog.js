@@ -1,5 +1,5 @@
 /**
- * Blog JavaScript – GoSembako
+ * Blog JavaScript – Paket Sembako
  * Mengelola halaman Blog publik: daftar artikel, detail, komentar, pencarian, filter kategori.
  * Menggunakan Google Apps Script (GAS) API via CONFIG.getMainApiUrl()
  */
@@ -219,7 +219,7 @@ const BlogListPage = {
                 slug: '5-tips-hemat-belanja-sembako-bulanan',
                 excerpt: 'Temukan cara cerdas mengatur anggaran belanja sembako agar lebih hemat tanpa mengorbankan kualitas bahan makanan keluarga.',
                 content: '<p>Belanja sembako adalah kebutuhan rutin setiap keluarga. Dengan strategi yang tepat, Anda bisa menghemat pengeluaran hingga 30% setiap bulannya.</p><h2>1. Buat Daftar Belanja</h2><p>Selalu buat daftar belanja sebelum pergi ke toko. Ini membantu Anda menghindari pembelian impulsif.</p><h2>2. Beli dalam Jumlah Besar</h2><p>Untuk bahan yang tahan lama seperti beras, minyak, dan gula, beli dalam jumlah besar untuk mendapatkan harga lebih murah.</p>',
-                author: 'Tim GoSembako',
+                author: 'Tim Paket Sembako',
                 published_at: '2026-03-20 10:00:00',
                 status: 'published',
                 image_url: '',
@@ -233,7 +233,7 @@ const BlogListPage = {
                 slug: 'resep-sayur-sop-sederhana-bergizi',
                 excerpt: 'Sayur sop adalah hidangan klasik yang mudah dibuat, bergizi tinggi, dan cocok untuk seluruh anggota keluarga.',
                 content: '<p>Sayur sop adalah salah satu masakan Indonesia yang paling digemari. Berikut resep mudah yang bisa Anda coba di rumah.</p><h2>Bahan-bahan</h2><ul><li>Wortel 2 buah</li><li>Kentang 2 buah</li><li>Kol 1/4 buah</li><li>Buncis 100 gram</li></ul>',
-                author: 'Chef GoSembako',
+                author: 'Chef Paket Sembako',
                 published_at: '2026-03-15 09:00:00',
                 status: 'published',
                 image_url: '',
@@ -247,7 +247,7 @@ const BlogListPage = {
                 slug: 'panduan-memilih-beras-berkualitas',
                 excerpt: 'Beras adalah makanan pokok utama masyarakat Indonesia. Pelajari cara memilih beras yang berkualitas dengan harga terjangkau.',
                 content: '<p>Memilih beras yang tepat sangat penting untuk kesehatan dan kepuasan makan keluarga. Berikut panduan lengkapnya.</p><h2>Jenis-jenis Beras</h2><p>Ada berbagai jenis beras di pasaran, mulai dari beras putih biasa, beras merah, hingga beras organik.</p>',
-                author: 'Tim GoSembako',
+                author: 'Tim Paket Sembako',
                 published_at: '2026-03-10 08:00:00',
                 status: 'published',
                 image_url: '',
@@ -425,7 +425,7 @@ const BlogListPage = {
                     <div class="flex items-center gap-4 text-xs text-gray-400 mt-auto">
                         <span class="flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                            ${escapeHtml(post.author || 'GoSembako')}
+                            ${escapeHtml(post.author || 'Paket Sembako')}
                         </span>
                         <span class="flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -554,7 +554,7 @@ const BlogDetailPage = {
 
         // Update page meta
         const title = post.title || 'Artikel';
-        document.title = `${title} – GoSembako`;
+        document.title = `${title} – Paket Sembako`;
         const metaDesc = document.getElementById('meta-description');
         const ogTitle = document.getElementById('og-title');
         const ogDesc = document.getElementById('og-description');
@@ -564,7 +564,7 @@ const BlogDetailPage = {
         if (ogTitle) ogTitle.content = title;
         if (ogDesc) ogDesc.content = post.meta_description || post.excerpt || title;
         if (ogImage && post.image_url) ogImage.content = post.image_url;
-        if (pageTitle) pageTitle.textContent = `${title} – GoSembako`;
+        if (pageTitle) pageTitle.textContent = `${title} – Paket Sembako`;
 
         // Breadcrumb
         const breadcrumb = document.getElementById('breadcrumb-title');
@@ -585,7 +585,7 @@ const BlogDetailPage = {
 
         // Author
         const authorEl = document.getElementById('article-author');
-        if (authorEl) authorEl.textContent = post.author || 'Tim GoSembako';
+        if (authorEl) authorEl.textContent = post.author || 'Tim Paket Sembako';
 
         // Date
         const dateEl = document.getElementById('article-date');
@@ -633,7 +633,7 @@ const BlogDetailPage = {
         const shareBtn = document.getElementById('share-btn');
         const copyLinkBtn = document.getElementById('copy-link-btn');
         const currentUrl = window.location.href;
-        const shareText = `Baca artikel menarik dari GoSembako: ${title}\n${currentUrl}`;
+        const shareText = `Baca artikel menarik dari Paket Sembako: ${title}\n${currentUrl}`;
 
         if (shareWa) shareWa.href = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 

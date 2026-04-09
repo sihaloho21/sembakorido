@@ -583,7 +583,7 @@ function getHeaderGreetingName() {
 
 function getHeaderAccountSubtitle() {
     const user = getStoredLoggedInUser();
-    if (!user) return 'Pelanggan GoSembako';
+    if (!user) return 'Pelanggan Paket Sembako';
 
     const email = String(user.email || user.mail || user.email_address || '').trim();
     if (email) {
@@ -596,7 +596,7 @@ function getHeaderAccountSubtitle() {
             : (user.whatsapp || user.phone || '')) || ''
     ).trim();
 
-    return phone || 'Pelanggan GoSembako';
+    return phone || 'Pelanggan Paket Sembako';
 }
 
 function syncHeaderGreeting() {
@@ -2392,12 +2392,12 @@ function showToast(message) {
 
 function getReceiptStoreName() {
     const title = String(document.title || '').trim();
-    if (!title) return 'GoSembako';
+    if (!title) return 'Paket Sembako';
 
-    // e.g. "GoSembako – Paket Sembako Murah" -> "GoSembako"
+    // e.g. "Paket Sembako – Paket Sembako Murah" -> "Paket Sembako"
     const parts = title.split('–');
     const primary = String(parts[0] || title).trim();
-    return primary || 'GoSembako';
+    return primary || 'Paket Sembako';
 }
 
 function formatReceiptIdr(amount) {
@@ -2507,7 +2507,7 @@ function buildReceiptText(receipt, options) {
     const lineWidth = Number.isFinite(width) && width > 10 ? width : 32;
     const dash = '-'.repeat(lineWidth);
 
-    const storeName = String((receipt && receipt.storeName) || getReceiptStoreName() || 'GoSembako').trim();
+    const storeName = String((receipt && receipt.storeName) || getReceiptStoreName() || 'Paket Sembako').trim();
     const storeUrlRaw = String((receipt && receipt.storeUrl) || 'https://paketsembako.com').trim();
     const storeUrl = storeUrlRaw.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
     const storeAddressRaw = String((receipt && receipt.storeAddress) || 'Jalan Nambo, Kaserangan, Ciruas,\nKab. Serang, Banten').trim();
@@ -2589,7 +2589,7 @@ function buildReceiptPrintHtml(receiptText, title) {
     } catch (e) {
         origin = '';
     }
-    const logoSrc = escapeHtml(`${origin}/assets/img/logo.webp`);
+    const logoSrc = escapeHtml(`${origin}/assets/img/logo-print.png`);
 
     return `<!doctype html>
 <html lang="id">
@@ -3899,7 +3899,7 @@ function renderOrderSummary() {
 }
 
 function shareProduct(name) {
-    const text = `Cek paket sembako murah "${name}" di GoSembako! Kualitas terjamin, harga bersahabat.`;
+    const text = `Cek paket sembako murah "${name}" di Paket Sembako! Kualitas terjamin, harga bersahabat.`;
     const url = window.location.href;
     const waUrl = `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`;
     const popup = window.open(waUrl, '_blank', 'noopener,noreferrer');

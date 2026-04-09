@@ -2103,7 +2103,7 @@ function buildAdminOrderReceiptText(order, options) {
     const lineWidth = Number.isFinite(width) && width > 10 ? width : 32;
     const dash = '-'.repeat(lineWidth);
 
-    const storeName = 'GoSembako';
+    const storeName = 'Paket Sembako';
     const storeUrl = 'paketsembako.com';
     const storeAddressLines = ['Jalan Nambo, Kaserangan, Ciruas,', 'Kab. Serang, Banten'];
     const storeWhatsapp = '085312846180';
@@ -2175,7 +2175,7 @@ function buildReceiptPrintHtml(receiptText, title) {
     } catch (e) {
         origin = '';
     }
-    const logoSrc = escapeHtml(`${origin}/assets/img/logo.webp`);
+    const logoSrc = escapeHtml(`${origin}/assets/img/logo-print.png`);
 
     return `<!doctype html>
 <html lang="id">
@@ -3482,7 +3482,7 @@ function buildPersonalOrderNotificationPayload(order, newStatus) {
     if (total > 0) {
         contentLines.push(`Total pesanan: Rp ${total.toLocaleString('id-ID')}.`);
     }
-    contentLines.push('Terima kasih sudah berbelanja di GoSembako.');
+    contentLines.push('Terima kasih sudah berbelanja di Paket Sembako.');
 
     const now = new Date().toISOString();
     return {

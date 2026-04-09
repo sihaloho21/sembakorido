@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Katalog promo GoSembako terbaru. Preview dan download katalog paket sembako pilihan dengan harga terjangkau.">
-    <link rel="icon" href="assets/img/logo.webp" type="image/webp">
-    <title>Promo Katalog - GoSembako</title>
+    <meta name="description" content="Katalog promo Paket Sembako terbaru. Preview dan download katalog paket sembako pilihan dengan harga terjangkau.">
+    <link rel="icon" href="assets/img/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="assets/img/favicon-32x32.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+    <title>Promo Katalog - Paket Sembako</title>
     <link rel="stylesheet" href="assets/css/tailwind-fallback.css">
     <link rel="stylesheet" href="assets/css/tailwind.min.css">
     <style>
@@ -366,9 +368,9 @@
     <!-- HEADER -->
     <header class="pk-header">
         <div class="pk-header-inner">
-            <a href="/" class="pk-logo" aria-label="GoSembako - Beranda">
-                <img src="assets/img/logo.webp" alt="GoSembako" onerror="this.style.display='none'">
-                <span class="pk-logo-text">GoSembako</span>
+            <a href="/" class="pk-logo" aria-label="Paket Sembako - Beranda">
+                <img src="assets/img/logo.png" alt="Paket Sembako" data-fallback-src="assets/img/logo.png">
+                <span class="pk-logo-text">Paket Sembako</span>
             </a>
             <nav class="pk-nav" aria-label="Navigasi utama" style="display:none;" id="desktop-nav">
                 <a href="/">Beranda</a>
@@ -395,7 +397,7 @@
                 </svg>
                 Diperbarui Maret 2026
             </div>
-            <h1>Promo Katalog GoSembako</h1>
+            <h1>Promo Katalog Paket Sembako</h1>
             <p>Preview dan download katalog promo terbaru. Temukan penawaran terbaik untuk kebutuhan pokok Anda setiap bulannya.</p>
             <div class="pk-hero-stats" role="list" aria-label="Statistik katalog">
                 <div class="pk-hero-stat" role="listitem">
@@ -484,7 +486,7 @@
 
     <!-- FOOTER -->
     <footer class="pk-footer">
-        <p>&copy; 2026 <a href="/">GoSembako</a> &mdash; Paket Sembako Murah &amp; Berkualitas. Semua Hak Dilindungi.</p>
+        <p>&copy; 2026 <a href="/">Paket Sembako</a> &mdash; Paket Sembako Murah &amp; Berkualitas. Semua Hak Dilindungi.</p>
     </footer>
 
     <!-- MODAL PDF PREVIEW -->
@@ -525,9 +527,13 @@
 
     <script src="assets/js/config.js"></script>
     <script src="assets/js/gas-actions.js"></script>
+    <script src="assets/js/sanitize.min.js"></script>
     <script>
     (function () {
         'use strict';
+        if (window.ensureImageFallbackHandler) {
+            window.ensureImageFallbackHandler();
+        }
 
         // ===== DATA KATALOG (diisi dari Google Sheets via GAS) =====
         var CATALOGS = [];
@@ -715,7 +721,7 @@
                     + '</div>'
                     + '<span class="pk-card-badge ' + c.badgeClass + '">' + c.badge + '</span>'
                     + '<span class="pk-status-dot ' + dc + '" title="' + statusLabel(s) + '" aria-label="Status: ' + statusLabel(s) + '"></span>'
-                    + '<div class="pk-cover-watermark">GoSembako</div>'
+                    + '<div class="pk-cover-watermark">Paket Sembako</div>'
                     + (s === 'ended' ? '<div class="pk-ended-overlay"><span class="pk-ended-label">BERAKHIR</span></div>' : '')
                     + '</div>'
                     + '<div class="pk-card-body">'

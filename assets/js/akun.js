@@ -1,5 +1,5 @@
 /**
- * Akun Pengguna - GoSembako
+ * Akun Pengguna - Paket Sembako
  * Handles user authentication and order history
  */
 
@@ -1183,7 +1183,7 @@ function buildReferralShareMessage(code, link) {
     const minOrderText = minOrder > 0 ? formatCurrency(minOrder) : 'sesuai ketentuan program';
 
     return [
-        'Halo, yuk daftar GoSembako pakai link referral saya.',
+        'Halo, yuk daftar Paket Sembako pakai link referral saya.',
         '',
         `Link: ${link}`,
         `Kode Referral: ${referralCode}`,
@@ -2561,7 +2561,7 @@ function formatCurrency(amount) {
  * Show register info (placeholder)
  */
 function showRegisterInfo() {
-    alert('Untuk mendaftar, silakan hubungi admin GoSembako melalui WhatsApp.\n\nAnda akan diberikan akun dengan nomor WhatsApp dan PIN untuk login.');
+    alert('Untuk mendaftar, silakan hubungi admin Paket Sembako melalui WhatsApp.\n\nAnda akan diberikan akun dengan nomor WhatsApp dan PIN untuk login.');
 }
 
 
