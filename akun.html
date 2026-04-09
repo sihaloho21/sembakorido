@@ -81,6 +81,11 @@
             top: 0;
             z-index: 40;
         }
+        .account-brand-logo {
+            height: 54px;
+            width: auto;
+            object-fit: contain;
+        }
         .account-main-shell {
             position: relative;
         }
@@ -317,6 +322,11 @@
             min-height: 0;
             overflow: hidden;
         }
+        @media (min-width: 768px) {
+            .account-brand-logo {
+                height: 58px;
+            }
+        }
         @media (max-width: 640px) {
             .account-main-shell::before {
                 display: none;
@@ -331,7 +341,7 @@
         <div class="container mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <a href="/" class="flex items-center gap-3 hover:opacity-80 transition">
-                    <img src="assets/img/logo.png" alt="Paket Sembako Logo" class="h-12 w-auto" data-fallback-src="assets/img/logo.png">
+                    <img src="assets/img/logo.png" alt="Paket Sembako Logo" class="account-brand-logo" data-fallback-src="assets/img/logo.png">
                     <h1 class="text-xl font-bold">Paket Sembako</h1>
                 </a>
             </div>

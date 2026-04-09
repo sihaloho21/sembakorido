@@ -23,14 +23,26 @@
     <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
     <title>Promo - Paket Sembako</title>
     <link rel="stylesheet" href="assets/css/tailwind-fallback.css">
-    <link rel="stylesheet" href="assets/css/tailwind.min.css">
-</head>
+	    <link rel="stylesheet" href="assets/css/tailwind.min.css">
+        <style>
+            .promo-brand-logo {
+                height: 54px;
+                width: auto;
+                object-fit: contain;
+            }
+            @media (min-width: 768px) {
+                .promo-brand-logo {
+                    height: 58px;
+                }
+            }
+        </style>
+	</head>
 <body class="bg-gray-50 ">
     <!-- Header -->
     <header class="bg-green-700 text-white py-4 shadow-md fixed top-0 left-0 right-0 z-50">
         <div class="container mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <img src="assets/img/logo.png" alt="Paket Sembako Logo" class="h-12 w-auto" data-fallback-src="assets/img/logo.png">
+	                <img src="assets/img/logo.png" alt="Paket Sembako Logo" class="promo-brand-logo" data-fallback-src="assets/img/logo.png">
                 <h1 class="text-xl font-bold">Paket Sembako</h1>
             </div>
             <a href="/" class="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition" aria-label="Kembali ke beranda">
