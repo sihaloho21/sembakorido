@@ -517,12 +517,37 @@
         .product-grid-skeleton .skeleton-line.short {
             width: 60%;
         }
+        .product-card-cart-slot {
+            min-height: 3.5rem;
+        }
+        .product-card-cart-count {
+            min-width: 1.75rem;
+            text-align: center;
+        }
+        .product-card-cart-control-enter {
+            animation: product-cart-control-in 220ms ease-out;
+        }
+        @keyframes product-cart-control-in {
+            0% {
+                opacity: 0;
+                transform: translateY(6px) scale(0.96);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
         @media (max-width: 768px) {
             .promo-banner-fallback-media {
                 aspect-ratio: 16 / 9;
             }
             #bundle-carousel-container {
                 min-height: 280px;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .product-card-cart-control-enter {
+                animation: none;
             }
         }
     </style>
