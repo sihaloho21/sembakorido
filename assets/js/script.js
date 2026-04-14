@@ -198,6 +198,128 @@ function getProductForCartItem(item) {
     return allProducts.find((p) => String(p.productId || p.id || '').trim() === targetId) || null;
 }
 
+function getItemReferenceValues(item) {
+    if (!item || typeof item !== 'object') return [];
+    return [item.productId, item.id, item.sku, item.slug]
+        .map((value) => String(value || '').trim())
+        .filter((value) => value !== '');
+}
+
+function findSimpleCartItemIndexByProductId(productId) {
+    const target = String(productId || '').trim();
+    if (!target) return -1;
+
+    return cart.findIndex((item) => (
+        !item.selectedVariation &&
+        getItemReferenceValues(item).includes(target)
+    ));
+}
+
+function getSimpleProductCartQty(productId) {
+    const itemIndex = findSimpleCartItemIndexByProductId(productId);
+    if (itemIndex < 0) return 0;
+    return Math.max(0, parseInt(cart[itemIndex].qty, 10) || 0);
+}
+
+function prefersReducedMotion() {
+    return Boolean(
+        window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    );
+}
+
+function getProductCardCartControlState(product) {
+    const productId = String(product && (product.productId || product.id || product.sku || product.slug) || '').trim();
+    const quantity = getSimpleProductCartQty(productId);
+    const maxStock = getItemMaxStock(product);
+
+    return {
+        productId,
+        quantity,
+        maxStock,
+        mode: quantity > 0 ? 'stepper' : 'button'
+    };
+}
+
+function renderProductCardCartControl(product) {
+    const state = getProductCardCartControlState(product);
+    const { productId, quantity, maxStock, mode } = state;
+    const isDisabled = maxStock <= 0;
+
+    if (mode === 'stepper' && quantity > 0) {
+        return `
+            <div class="product-card-cart-control flex items-center justify-between rounded-2xl bg-lime-100 px-3 py-2.5 shadow-sm ring-1 ring-lime-200">
+                <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="-1" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-green-700 shadow-sm ring-1 ring-green-200 transition hover:bg-white hover:scale-105 active:scale-95" aria-label="Kurangi jumlah produk">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M20 12H4"></path>
+                    </svg>
+                </button>
+                <span class="product-card-cart-count text-xl font-black text-green-800 tabular-nums" aria-live="polite" aria-atomic="true">${quantity}</span>
+                <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="1" ${quantity >= maxStock ? 'disabled aria-disabled="true"' : ''} class="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-green-700 shadow-sm ring-1 ring-green-200 transition hover:bg-white hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50" aria-label="Tambah jumlah produk">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                </button>
+            </div>
+        `;
+    }
+
+    return `
+        <button data-action="add-to-cart" data-product-id="${productId}" ${isDisabled ? 'disabled' : ''} class="product-card-cart-control w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            Tambah ke Keranjang
+        </button>
+    `;
+}
+
+function syncProductGridCartControls() {
+    const slots = document.querySelectorAll('[data-product-cart-slot]');
+    if (!slots.length) return;
+
+    slots.forEach((slot) => {
+        const productId = slot.getAttribute('data-product-id');
+        const product = findProductById(productId);
+        if (!product) return;
+
+        const nextState = getProductCardCartControlState(product);
+        const nextHtml = renderProductCardCartControl(product).trim();
+        const currentMode = slot.getAttribute('data-cart-mode') || '';
+        const currentQty = parseInt(slot.getAttribute('data-cart-qty') || '0', 10) || 0;
+        const currentHtml = slot.innerHTML.trim();
+
+        if (currentMode === nextState.mode && currentQty === nextState.quantity && currentHtml === nextHtml) {
+            return;
+        }
+
+        slot.innerHTML = nextHtml;
+        slot.setAttribute('data-cart-mode', nextState.mode);
+        slot.setAttribute('data-cart-qty', String(nextState.quantity));
+
+        const control = slot.firstElementChild;
+        if (control && !prefersReducedMotion()) {
+            control.classList.remove('product-card-cart-control-enter');
+            void control.offsetWidth;
+            control.classList.add('product-card-cart-control-enter');
+        }
+    });
+}
+
+function updateProductCardQty(productId, delta) {
+    const step = parseInt(delta, 10);
+    if (!Number.isFinite(step) || step === 0) return;
+
+    const cartIndex = findSimpleCartItemIndexByProductId(productId);
+    if (cartIndex < 0) {
+        if (step > 0) {
+            const product = findProductById(productId);
+            if (product) addToCart(product, null, step);
+        }
+        return;
+    }
+
+    updateQty(cartIndex, step);
+}
+
 function isCartItemUnavailable(item) {
     const product = getProductForCartItem(item);
     return Boolean(product && isProductInteractionLocked(product));
@@ -1826,6 +1948,9 @@ function renderProducts(products) {
             : 'absolute top-3 right-3 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition active:scale-95';
         const imageActionAttrs = isHiddenProd ? '' : `data-action="show-detail" data-product-id="${productId}"`;
         const imageInteractiveClass = isHiddenProd ? 'cursor-default' : 'cursor-pointer hover:opacity-90';
+        const inlineCartState = !isHiddenProd && !hasVariations
+            ? getProductCardCartControlState(p)
+            : null;
         cardsHtml += `
             <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300 relative${hiddenCardClass}" data-product-id="${productId}" aria-disabled="${isHiddenProd ? 'true' : 'false'}">
                 ${hiddenBanner}
@@ -1886,10 +2011,9 @@ function renderProducts(products) {
                         Pilih Variasi
                     </button>
                     ` : `
-                    <button data-action="add-to-cart" data-product-id="${productId}" ${p.stok === 0 ? 'disabled' : ''} class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 mb-3">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                        Tambah ke Keranjang
-                    </button>
+                    <div class="product-card-cart-slot mb-3" data-product-cart-slot data-product-id="${productId}" data-cart-mode="${inlineCartState.mode}" data-cart-qty="${inlineCartState.quantity}">
+                        ${renderProductCardCartControl(p)}
+                    </div>
                     `}
                     ${!isHiddenProd ? `
                     <div class="grid grid-cols-2 gap-2">
@@ -2241,6 +2365,14 @@ function proceedAddToCart(p, event, qty = 1) {
         showToast('Produk sedang tidak tersedia saat ini.');
         return;
     }
+
+    const triggerButton = event && event.currentTarget ? event.currentTarget : null;
+    const triggerCard = triggerButton
+        ? (triggerButton.closest('[data-product-id]') || triggerButton.closest('.bg-white') || document.getElementById('detail-modal'))
+        : document.getElementById('detail-modal');
+    const sourceImage = triggerCard ? triggerCard.querySelector('img') : null;
+    const cartBtn = getPrimaryCartButton();
+
     // If product has variations and none selected, show detail
     if (p.variations && p.variations.length > 0 && !selectedVariation) {
         showDetail(p);
@@ -2300,18 +2432,13 @@ function proceedAddToCart(p, event, qty = 1) {
     selectedVariation = null;
 
     // Fly to cart animation
-    if (event && event.currentTarget) {
-        const btn = event.currentTarget;
-        const card = btn.closest('.bg-white') || document.getElementById('detail-modal');
-        const img = card.querySelector('img');
-        const cartBtn = getPrimaryCartButton();
-        
-        if (img && cartBtn) {
-            const imgRect = img.getBoundingClientRect();
+    if (triggerButton) {
+        if (sourceImage && cartBtn) {
+            const imgRect = sourceImage.getBoundingClientRect();
             const cartRect = cartBtn.getBoundingClientRect();
             
             const flyImg = document.createElement('img');
-            flyImg.src = img.src;
+            flyImg.src = sourceImage.src;
             flyImg.className = 'fly-item';
             flyImg.style.top = `${imgRect.top}px`;
             flyImg.style.left = `${imgRect.left}px`;
@@ -2339,7 +2466,6 @@ function proceedAddToCart(p, event, qty = 1) {
         }
     } else {
         // Fallback if no event (e.g. from modal)
-        const cartBtn = getPrimaryCartButton();
         if (cartBtn) {
             cartBtn.classList.add('cart-pop');
             setTimeout(() => cartBtn.classList.remove('cart-pop'), 400);
@@ -2886,6 +3012,8 @@ function updateCartUI() {
             countEl.classList.add('hidden');
         }
     }
+
+    syncProductGridCartControls();
 
     const itemsContainer = document.getElementById('cart-items');
     const footer = document.getElementById('cart-footer');
@@ -3946,6 +4074,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'add-to-cart':
                     if (product) addToCart(product, event);
                     break;
+                case 'update-product-card-qty': {
+                    const delta = parseInt(actionEl.getAttribute('data-delta'), 10);
+                    if (productId && !Number.isNaN(delta)) updateProductCardQty(productId, delta);
+                    break;
+                }
                 case 'direct-order':
                     if (product) directOrder(product);
                     break;
