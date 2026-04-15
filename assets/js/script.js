@@ -248,7 +248,7 @@ function renderProductCardCartControl(product) {
 
     if (mode === 'stepper' && quantity > 0) {
         return `
-            <div class="product-card-cart-control flex items-center justify-between rounded-2xl bg-lime-100 px-3 py-2.5 shadow-sm ring-1 ring-lime-200">
+            <div class="product-card-cart-control flex h-full w-full items-center justify-between rounded-2xl bg-lime-100 px-3 py-2.5 shadow-sm ring-1 ring-lime-200">
                 <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="-1" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-green-700 shadow-sm ring-1 ring-green-200 transition hover:bg-white hover:scale-105 active:scale-95" aria-label="Kurangi jumlah produk">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M20 12H4"></path>
@@ -265,9 +265,9 @@ function renderProductCardCartControl(product) {
     }
 
     return `
-        <button data-action="add-to-cart" data-product-id="${productId}" ${isDisabled ? 'disabled' : ''} class="product-card-cart-control w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-            Tambah ke Keranjang
+        <button data-action="add-to-cart" data-product-id="${productId}" ${isDisabled ? 'disabled' : ''} class="product-card-cart-control flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 text-sm font-semibold text-green-700 transition hover:border-green-300 hover:bg-green-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 4h11.5M9 19.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm10 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path></svg>
+            + Keranjang
         </button>
     `;
 }
@@ -1997,29 +1997,30 @@ function renderProducts(products) {
                     </div>
                     ${grosirGridHtml}
                     ${isHiddenProd ? `
-                    <button disabled class="w-full bg-gray-200 text-gray-400 font-bold py-3 rounded-xl flex items-center justify-center gap-2 mb-3 cursor-not-allowed">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-                        Sedang Tidak Tersedia
-                    </button>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button disabled aria-disabled="true" tabindex="-1" class="bg-gray-100 text-gray-400 font-bold py-2 rounded-lg text-sm cursor-not-allowed">Rincian</button>
-                        <button disabled class="bg-gray-100 text-gray-300 font-bold py-2 rounded-lg text-sm cursor-not-allowed">Beli Sekarang</button>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <button disabled class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gray-200 text-sm font-semibold text-gray-400 cursor-not-allowed">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                            Sedang Tidak Tersedia
+                        </button>
+                        <button disabled class="h-11 w-full rounded-xl bg-gray-100 text-sm font-semibold text-gray-300 cursor-not-allowed">Beli</button>
                     </div>
-                    ` : hasVariations ? `
-                    <button data-action="show-detail" data-product-id="${productId}" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 mb-3">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                        Pilih Variasi
-                    </button>
+                    <button disabled aria-disabled="true" tabindex="-1" class="h-11 w-full rounded-xl bg-gray-100 text-sm font-semibold text-gray-400 cursor-not-allowed">Lihat Detail</button>
                     ` : `
-                    <div class="product-card-cart-slot mb-3" data-product-cart-slot data-product-id="${productId}" data-cart-mode="${inlineCartState.mode}" data-cart-qty="${inlineCartState.quantity}">
-                        ${renderProductCardCartControl(p)}
+                    <div class="grid grid-cols-2 gap-2 mb-2 items-stretch">
+                        ${hasVariations ? `
+                        <button data-action="show-detail" data-product-id="${productId}" class="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 text-sm font-semibold text-green-700 transition hover:border-green-300 hover:bg-green-100">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 4h11.5M9 19.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm10 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path></svg>
+                            + Keranjang
+                        </button>
+                        ` : `
+                        <div class="product-card-cart-slot h-full" data-product-cart-slot data-product-id="${productId}" data-cart-mode="${inlineCartState.mode}" data-cart-qty="${inlineCartState.quantity}">
+                            ${renderProductCardCartControl(p)}
+                        </div>
+                        `}
+                        <button data-action="direct-order" data-product-id="${productId}" ${p.stok === 0 ? 'disabled' : ''} class="h-11 w-full rounded-xl bg-green-600 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none">Beli</button>
                     </div>
+                    <button data-action="show-detail" data-product-id="${productId}" class="h-11 w-full rounded-xl bg-gray-100 text-sm font-semibold text-gray-700 transition hover:bg-gray-200">Lihat Detail</button>
                     `}
-                    ${!isHiddenProd ? `
-                    <div class="grid grid-cols-2 gap-2">
-                        <button data-action="show-detail" data-product-id="${productId}" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded-lg text-sm transition">Rincian</button>
-                        <button data-action="direct-order" data-product-id="${productId}" ${p.stok === 0 ? 'disabled' : ''} class="bg-green-100 hover:bg-green-200 text-green-700 font-bold py-2 rounded-lg text-sm transition">Beli Sekarang</button>
-                    </div>` : ''}
 
                 </div>
             </div>
