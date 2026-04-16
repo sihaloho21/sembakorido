@@ -1974,9 +1974,9 @@ function renderProducts(products) {
                     <div class="skeleton skeleton-product-image"></div>
                     <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="720" height="405" data-fallback-src="https://placehold.co/300x200?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
                 </div>
-                <div class="p-6">
+                <div class="p-2">
                     <div class="flex justify-between items-start mb-4">
-                        <h4 class="text-lg font-bold text-gray-800">${escapeHtml(p.nama)}</h4>
+                        <h4 class="text-[13px] font-bold text-gray-800">${escapeHtml(p.nama)}</h4>
                         ${stokLabel}
                     </div>
                     <div class="grid grid-cols-2 gap-4 mb-6">
