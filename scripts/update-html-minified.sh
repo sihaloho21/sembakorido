@@ -9,11 +9,9 @@ sed -i 's|assets/js/payment-logic.js|assets/js/payment-logic.min.js|g' index.htm
 sed -i 's|assets/js/tiered-pricing-logic.js|assets/js/tiered-pricing-logic.min.js|g' index.html
 sed -i 's|assets/js/image-slider.js|assets/js/image-slider.min.js|g' index.html
 sed -i 's|assets/js/promo-banner-carousel.js|assets/js/promo-banner-carousel.min.js|g' index.html
-sed -i 's|assets/js/banner-carousel.js|assets/js/banner-carousel.min.js|g' index.html
 sed -i 's|assets/js/script.js|assets/js/script.min.js|g' index.html
 
 sed -i 's|assets/css/style.css|assets/css/style.min.css|g' index.html
-sed -i 's|assets/css/banner-carousel.css|assets/css/banner-carousel.min.css|g' index.html
 sed -i 's|assets/css/promo-banner-carousel.css|assets/css/promo-banner-carousel.min.css|g' index.html
 sed -i 's|assets/css/skeleton-loading.css|assets/css/skeleton-loading.min.css|g' index.html
 
