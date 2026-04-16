@@ -113,13 +113,6 @@
         }
         .pk-chip:hover { border-color: #16a34a; color: #16a34a; }
         .pk-chip.active { background: linear-gradient(135deg, #16a34a, #1d4ed8); color: white; border-color: transparent; }
-        .pk-divider { width: 1px; height: 22px; background: #e5e7eb; flex-shrink: 0; }
-        .pk-sort-select {
-            padding: 0.35rem 0.75rem; border-radius: 0.5rem;
-            border: 1.5px solid #e5e7eb; font-size: 0.8rem; font-weight: 600;
-            color: #374151; background: white; cursor: pointer; outline: none;
-        }
-        .pk-sort-select:focus { border-color: #16a34a; }
         .pk-result-count { font-size: 0.78rem; color: #9ca3af; font-weight: 600; margin-left: auto; }
         /* ===== SECTION TITLE ===== */
         .pk-section-title {
@@ -381,16 +374,11 @@
         </div>
 
         <!-- Filter Bar -->
-        <div class="pk-filter-bar" role="toolbar" aria-label="Filter dan urutkan artikel">
+        <div class="pk-filter-bar" role="toolbar" aria-label="Filter artikel">
             <span class="pk-filter-label">Kategori:</span>
             <div class="pk-filter-chips" id="filter-chips" role="group" aria-label="Filter kategori">
                 <button class="pk-chip active" data-category="Semua">Semua</button>
             </div>
-            <div class="pk-divider" aria-hidden="true"></div>
-            <select class="pk-sort-select" id="sort-select" aria-label="Urutkan artikel">
-                <option value="terbaru">Terbaru</option>
-                <option value="terlama">Terlama</option>
-            </select>
             <span class="pk-result-count" id="result-count" aria-live="polite"></span>
         </div>
 
@@ -475,7 +463,6 @@
         var POSTS_PER_PAGE = 9;
         var currentCategory = 'Semua';
         var searchQuery = '';
-        var sortOrder = 'terbaru';
 
         // ============================================================
         // UTILS
@@ -596,7 +583,7 @@
         }
 
         // ============================================================
-        // FILTER & SORT
+        // FILTER
         // ============================================================
         function applyFilters() {
             var q = searchQuery.toLowerCase();
@@ -608,11 +595,7 @@
                     (p.tags || '').toLowerCase().indexOf(q) !== -1;
                 return matchCat && matchQ;
             });
-            if (sortOrder === 'terlama') {
-                filteredPosts.sort(function (a, b) { return new Date(a.published_at || a.created_at || 0) - new Date(b.published_at || b.created_at || 0); });
-            } else {
-                filteredPosts.sort(function (a, b) { return new Date(b.published_at || b.created_at || 0) - new Date(a.published_at || a.created_at || 0); });
-            }
+            filteredPosts.sort(function (a, b) { return new Date(b.published_at || b.created_at || 0) - new Date(a.published_at || a.created_at || 0); });
             var cnt = document.getElementById('result-count');
             if (cnt) cnt.textContent = filteredPosts.length + ' artikel';
             renderFeatured();
@@ -772,14 +755,6 @@
             if (searchEl) {
                 searchEl.addEventListener('input', function () {
                     searchQuery = this.value.trim().toLowerCase();
-                    currentPage = 0;
-                    applyFilters();
-                });
-            }
-            var sortEl = document.getElementById('sort-select');
-            if (sortEl) {
-                sortEl.addEventListener('change', function () {
-                    sortOrder = this.value;
                     currentPage = 0;
                     applyFilters();
                 });

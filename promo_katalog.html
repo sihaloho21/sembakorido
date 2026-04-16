@@ -162,13 +162,6 @@
         }
         .pk-chip:hover { border-color: #16a34a; color: #16a34a; }
         .pk-chip.active { background: linear-gradient(135deg, #16a34a, #1d4ed8); color: white; border-color: transparent; }
-        .pk-divider { width: 1px; height: 22px; background: #e5e7eb; flex-shrink: 0; }
-        .pk-sort-select {
-            padding: 0.35rem 0.75rem; border-radius: 0.5rem;
-            border: 1.5px solid #e5e7eb; font-size: 0.8rem; font-weight: 600;
-            color: #374151; background: white; cursor: pointer; outline: none;
-        }
-        .pk-sort-select:focus { border-color: #16a34a; }
         .pk-result-count { font-size: 0.78rem; color: #9ca3af; font-weight: 600; margin-left: auto; }
 
         /* ===== SECTION TITLE ===== */
@@ -435,7 +428,7 @@
         </div>
 
         <!-- Filter -->
-        <div class="pk-filter-bar" role="toolbar" aria-label="Filter dan urutkan katalog">
+        <div class="pk-filter-bar" role="toolbar" aria-label="Filter katalog">
             <span class="pk-filter-label">Filter:</span>
             <div class="pk-filter-chips" id="filter-chips" role="group" aria-label="Filter status">
                 <button class="pk-chip active" data-filter="semua">Semua</button>
@@ -443,11 +436,6 @@
                 <button class="pk-chip" data-filter="berakhir">Berakhir</button>
                 <button class="pk-chip" data-filter="segera">Segera Hadir</button>
             </div>
-            <div class="pk-divider" aria-hidden="true"></div>
-            <select class="pk-sort-select" id="sort-select" aria-label="Urutkan katalog">
-                <option value="terbaru">Terbaru</option>
-                <option value="terlama">Terlama</option>
-            </select>
             <span class="pk-result-count" id="result-count" aria-live="polite"></span>
         </div>
 
@@ -749,9 +737,8 @@
             }).join('');
         }
 
-        // ===== FILTER & SORT =====
+        // ===== FILTER =====
         var currentFilter = 'semua';
-        var currentSort = 'terbaru';
 
         function applyFilterSort() {
             var list = CATALOGS.slice();
@@ -761,7 +748,7 @@
             }
             list.sort(function(a,b){
                 var da = new Date(a.startDate), db = new Date(b.startDate);
-                return currentSort === 'terbaru' ? db - da : da - db;
+                return db - da;
             });
             renderGrid(list);
         }
@@ -772,11 +759,6 @@
             document.querySelectorAll('.pk-chip').forEach(function(c){ c.classList.remove('active'); });
             chip.classList.add('active');
             currentFilter = chip.dataset.filter;
-            applyFilterSort();
-        });
-
-        document.getElementById('sort-select').addEventListener('change', function() {
-            currentSort = this.value;
             applyFilterSort();
         });
 
