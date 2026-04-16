@@ -543,6 +543,30 @@
                 animation: none;
             }
         }
+        .detail-modal-shell {
+            display: flex;
+            flex-direction: column;
+            max-height: 95vh;
+            overflow: hidden;
+        }
+        .detail-modal-scroll {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        .detail-modal-sticky {
+            position: sticky;
+            bottom: 0;
+            z-index: 20;
+            border-top: 1px solid #e5e7eb;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, #ffffff 18%);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.08);
+        }
+        .detail-modal-sticky button {
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -924,14 +948,14 @@
     </div>
 
     <!-- Modal Rincian -->
-    <div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60]" role="dialog" aria-modal="true" aria-labelledby="modal-product-name" tabindex="-1" data-modal>
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[95vh] overflow-y-auto relative">
+    <div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-3" role="dialog" aria-modal="true" aria-labelledby="modal-product-name" tabindex="-1" data-modal>
+        <div class="detail-modal-shell bg-white rounded-2xl shadow-2xl w-full max-w-md relative">
             <!-- Close Button (X) -->
-            <button data-action="close-detail" class="absolute top-4 right-4 z-10 bg-white/80 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-gray-900 shadow-sm transition" aria-label="Tutup">
+            <button data-action="close-detail" class="absolute top-3 right-3 z-30 bg-white/90 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-gray-900 shadow-sm transition" aria-label="Tutup">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
 
-            <div id="modal-product-content">
+            <div id="modal-product-content" class="detail-modal-scroll">
                 <!-- Product Image Slider -->
                 <div class="slider-container relative h-64 w-full overflow-hidden rounded-t-2xl bg-white">
                     <div id="slider-skeleton" class="skeleton-loader absolute inset-0 z-10 bg-gray-200 animate-pulse"></div>
@@ -950,18 +974,18 @@
                     </button>
                 </div>
 
-                <div class="p-6 space-y-5">
+                <div class="p-4 space-y-4">
                     <!-- Header: Category & Title -->
-                    <div class="space-y-2">
+                    <div class="space-y-2 pr-10">
                         <div id="modal-badges" class="flex flex-wrap gap-2">
                             <!-- Category badge will be injected here -->
                         </div>
-                        <h3 id="modal-product-name" class="text-2xl font-bold text-gray-800 leading-tight">Rincian Produk</h3>
+                        <h3 id="modal-product-name" class="text-xl font-bold text-gray-800 leading-tight">Rincian Produk</h3>
                     </div>
 
                     <!-- Variations Section -->
                     <div id="modal-variation-container" class="hidden space-y-3">
-                        <h4 class="font-bold text-gray-700 flex items-center gap-2">
+                        <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                             <svg aria-hidden="true" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                             Pilih Variasi:
                         </h4>
@@ -1006,35 +1030,12 @@
 
                     <!-- Itemized List -->
                     <div class="space-y-3">
-                        <h4 class="font-bold text-gray-700 flex items-center gap-2">
+                        <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                             <svg aria-hidden="true" class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                             Deskripsi/Isi Paket:
                         </h4>
                         <div id="modal-items-list" class="grid grid-cols-1 gap-2">
                             <!-- Items with icons injected here -->
-                        </div>
-                    </div>
-
-                    <!-- Price Layout -->
-                    <div class="bg-gray-50 p-4 rounded-2xl grid grid-cols-2 gap-4 border border-gray-100">
-                        <div class="space-y-1">
-                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Harga Tunai</p>
-                            <p id="modal-cash-price" class="text-xl font-black text-green-700"></p>
-                        </div>
-                        <div class="space-y-1 border-l border-gray-200 pl-4">
-                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Bayar Gajian</p>
-                            <p id="modal-gajian-price" class="text-xl font-black text-blue-700"></p>
-                            <p id="modal-price-date" class="text-[8px] text-blue-400 mt-1"></p>
-                        </div>
-                    </div>
-
-                    <!-- Quantity Control -->
-                    <div class="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                        <p class="text-sm font-bold text-gray-700">Jumlah:</p>
-                        <div class="flex items-center gap-4">
-                            <button type="button" data-action="update-modal-qty" data-qty="-1" class="w-10 h-10 bg-white border-2 border-gray-200 rounded-xl flex items-center justify-center text-gray-600 hover:border-green-500 hover:text-green-600 transition shadow-sm">-</button>
-                            <input type="number" id="modal-qty" value="1" min="1" class="w-12 text-center bg-transparent font-bold text-lg outline-none" readonly>
-                            <button type="button" data-action="update-modal-qty" data-qty="1" class="w-10 h-10 bg-white border-2 border-gray-200 rounded-xl flex items-center justify-center text-gray-600 hover:border-green-500 hover:text-green-600 transition shadow-sm">+</button>
                         </div>
                     </div>
 
@@ -1047,15 +1048,37 @@
             </div>
 
             <!-- Footer Actions -->
-            <div class="p-6 pt-0 flex flex-col gap-3">
-                <button type="button" id="modal-buy-now" data-action="buy-now" class="flex-1 bg-green-100 hover:bg-green-200 text-green-700 font-bold py-4 rounded-xl transition">
-                    Beli
-                </button>
-                <button id="modal-add-cart" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-green-200 flex items-center justify-center gap-2">
-                    <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    + Keranjang
-                </button>
-
+            <div class="detail-modal-sticky p-3">
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="rounded-2xl border border-green-100 bg-green-50 px-3 py-2">
+                        <p class="text-[10px] text-green-700 font-bold uppercase tracking-wide">Harga Tunai</p>
+                        <p id="modal-cash-price" class="mt-1 text-base font-black leading-tight text-green-700"></p>
+                    </div>
+                    <div class="rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2">
+                        <p class="text-[10px] text-blue-700 font-bold uppercase tracking-wide">Bayar Gajian</p>
+                        <p id="modal-gajian-price" class="mt-1 text-base font-black leading-tight text-blue-700"></p>
+                        <p id="modal-price-date" class="mt-1 text-[10px] leading-tight text-blue-500"></p>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-stretch gap-2">
+                    <div class="shrink-0 rounded-2xl border border-gray-200 bg-gray-50 px-2 py-2">
+                        <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">Qty</p>
+                        <div class="flex items-center gap-1">
+                            <button type="button" data-action="update-modal-qty" data-qty="-1" class="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-sm font-bold text-gray-600 hover:border-green-500 hover:text-green-600 transition shadow-sm">-</button>
+                            <input type="number" id="modal-qty" value="1" min="1" class="w-10 text-center bg-transparent font-bold text-sm outline-none" readonly>
+                            <button type="button" data-action="update-modal-qty" data-qty="1" class="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-sm font-bold text-gray-600 hover:border-green-500 hover:text-green-600 transition shadow-sm">+</button>
+                        </div>
+                    </div>
+                    <div class="grid flex-1 grid-cols-2 gap-2">
+                        <button type="button" id="modal-buy-now" data-action="buy-now" class="bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold px-2 py-3 rounded-xl transition flex items-center justify-center">
+                            Beli
+                        </button>
+                        <button id="modal-add-cart" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-2 py-3 rounded-xl transition shadow-lg shadow-green-200 flex items-center justify-center gap-1">
+                            <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            Keranjang
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
