@@ -30,7 +30,6 @@
     <link rel="stylesheet" href="assets/css/tailwind-fallback.css">
     <link rel="stylesheet" href="assets/css/tailwind.min.css">
     <link rel="stylesheet" href="assets/css/style.min.css?v=20260308b">
-    <link rel="stylesheet" href="assets/css/banner-carousel.min.css">
     <link rel="stylesheet" href="assets/css/promo-banner-carousel.min.css">
     <link rel="stylesheet" href="assets/css/skeleton-loading.min.css">
     <style>
@@ -472,9 +471,6 @@
         #promo-banner-carousel-container {
             min-height: 220px;
         }
-        #bundle-carousel-container {
-            min-height: 320px;
-        }
         .promo-banner-fallback {
             border-radius: 1rem;
             overflow: hidden;
@@ -540,9 +536,6 @@
         @media (max-width: 768px) {
             .promo-banner-fallback-media {
                 aspect-ratio: 16 / 9;
-            }
-            #bundle-carousel-container {
-                min-height: 280px;
             }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -808,30 +801,6 @@
                 <div class="promo-banner-fallback" data-promo-fallback aria-hidden="true">
                     <div class="promo-banner-fallback-media">
                         <div class="promo-banner-placeholder"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Bundle Package Carousel -->
-            <div id="bundle-carousel-container" class="mb-8">
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
-                    <div class="product-grid-skeleton">
-                        <div class="skeleton skeleton-product-image"></div>
-                        <div class="skeleton skeleton-line"></div>
-                        <div class="skeleton skeleton-line short"></div>
-                        <div class="skeleton skeleton-product-button"></div>
-                    </div>
-                    <div class="product-grid-skeleton hidden md:flex">
-                        <div class="skeleton skeleton-product-image"></div>
-                        <div class="skeleton skeleton-line"></div>
-                        <div class="skeleton skeleton-line short"></div>
-                        <div class="skeleton skeleton-product-button"></div>
-                    </div>
-                    <div class="product-grid-skeleton hidden lg:flex">
-                        <div class="skeleton skeleton-product-image"></div>
-                        <div class="skeleton skeleton-line"></div>
-                        <div class="skeleton skeleton-line short"></div>
-                        <div class="skeleton skeleton-product-button"></div>
                     </div>
                 </div>
             </div>
@@ -2055,7 +2024,6 @@
     <script src="assets/js/tiered-pricing-logic.js"></script>
     <script src="assets/js/image-slider.js?v=20260308b"></script>
     <script src="assets/js/promo-banner-carousel.js"></script>
-    <script src="assets/js/banner-carousel.js"></script>
     <script src="assets/js/sanitize.min.js"></script>
     <script src="assets/js/script.js?v=20260326f"></script>
 
