@@ -2004,7 +2004,6 @@ function renderProducts(products) {
                         </button>
                         <button disabled class="h-11 w-full rounded-xl bg-gray-100 text-sm font-semibold text-gray-300 cursor-not-allowed">Beli</button>
                     </div>
-                    <button disabled aria-disabled="true" tabindex="-1" class="h-11 w-full rounded-xl bg-gray-100 text-sm font-semibold text-gray-400 cursor-not-allowed">Lihat Detail</button>
                     ` : `
                     <div class="grid grid-cols-2 gap-2 mb-2 items-stretch">
                         ${hasVariations ? `
@@ -2019,7 +2018,6 @@ function renderProducts(products) {
                         `}
                         <button data-action="direct-order" data-product-id="${productId}" ${p.stok === 0 ? 'disabled' : ''} class="h-11 w-full rounded-xl bg-green-600 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none">Beli</button>
                     </div>
-                    <button data-action="show-detail" data-product-id="${productId}" class="h-11 w-full rounded-xl bg-gray-100 text-sm font-semibold text-gray-700 transition hover:bg-gray-200">Lihat Detail</button>
                     `}
 
                 </div>
