@@ -190,10 +190,12 @@ function setupTouchNavigation() {
     }
 }
 
-/**
- * Fallback for slider initialization if images not provided
- * Used when initializeSlider is called but no images available
- */
+function setSliderSkeletonVisibility(isVisible) {
+    const skeletonLoader = document.getElementById('slider-skeleton');
+    if (!skeletonLoader) return;
+    skeletonLoader.classList.toggle('hidden', !isVisible);
+}
+
 function initializeSlider(images) {
     sliderImages = Array.isArray(images)
         ? images.filter((img) => img && img.trim() !== '')
@@ -208,7 +210,6 @@ function initializeSlider(images) {
     const sliderContainer = document.getElementById('modal-slider');
     const dotsContainer = document.getElementById('slider-dots');
     const thumbsContainer = document.getElementById('modal-slider-thumbs');
-    const skeletonLoader = document.getElementById('slider-skeleton');
     const prevButton = document.querySelector('#detail-modal [data-action="prev-slide"]');
     const nextButton = document.querySelector('#detail-modal [data-action="next-slide"]');
 
@@ -220,11 +221,14 @@ function initializeSlider(images) {
     sliderContainer.innerHTML = '';
     dotsContainer.innerHTML = '';
     if (thumbsContainer) thumbsContainer.innerHTML = '';
+    setSliderSkeletonVisibility(true);
 
     sliderImages.forEach((imgUrl, index) => {
         const imgEl = document.createElement('img');
-        imgEl.src = sanitizeUrl(imgUrl, 'https://placehold.co/300x200?text=Produk');
-        imgEl.setAttribute('data-fallback-src', 'https://placehold.co/300x200?text=Produk');
+        const fallbackSrc = 'https://placehold.co/300x200?text=Produk';
+        const safeImgUrl = typeof optimizeImageUrl === 'function'
+            ? optimizeImageUrl(sanitizeUrl(imgUrl, fallbackSrc), 900, 900)
+            : sanitizeUrl(imgUrl, fallbackSrc);
         imgEl.alt = `Slide ${index + 1}`;
         imgEl.className = `absolute inset-0 w-full h-full object-contain object-center bg-white transition-opacity duration-500 ${index === 0 ? 'opacity-100' : 'opacity-0'}`;
         imgEl.style.objectFit = 'contain';
@@ -232,10 +236,33 @@ function initializeSlider(images) {
         imgEl.style.backgroundColor = '#ffffff';
         imgEl.style.padding = '12px';
         imgEl.style.boxSizing = 'border-box';
+        imgEl.style.display = 'block';
+        imgEl.setAttribute('data-fallback-src', fallbackSrc);
         imgEl.onload = function () {
-            if (skeletonLoader) skeletonLoader.classList.add('hidden');
+            if (index === currentSlideIndex) {
+                setSliderSkeletonVisibility(false);
+            }
         };
+        imgEl.onerror = function () {
+            const fallbackUrl = imgEl.getAttribute('data-fallback-src') || fallbackSrc;
+            if (imgEl.src !== fallbackUrl) {
+                imgEl.src = fallbackUrl;
+                return;
+            }
+            if (index === currentSlideIndex) {
+                setSliderSkeletonVisibility(false);
+            }
+        };
+        imgEl.src = safeImgUrl;
         sliderContainer.appendChild(imgEl);
+
+        if (imgEl.complete && index === currentSlideIndex) {
+            if (imgEl.naturalWidth > 0) {
+                requestAnimationFrame(() => setSliderSkeletonVisibility(false));
+            } else if (safeImgUrl !== fallbackSrc) {
+                imgEl.src = fallbackSrc;
+            }
+        }
     });
 
     sliderImages.forEach((_, index) => {
@@ -358,6 +385,8 @@ function initializeSliderFallback() {
             >
         `;
     }
+
+    setSliderSkeletonVisibility(false);
 
     const counter = document.getElementById('slider-counter');
     if (counter) {

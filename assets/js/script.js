@@ -3419,9 +3419,60 @@ function renderModalDescriptionItems(product) {
     `).join('');
 }
 
+function getModalQtyInputs() {
+    return [
+        document.getElementById('modal-qty'),
+        document.getElementById('modal-qty-sticky')
+    ].filter(Boolean);
+}
+
+function getModalQuantityValue() {
+    const inputs = getModalQtyInputs();
+    for (let i = 0; i < inputs.length; i += 1) {
+        const parsedQty = parseInt(inputs[i].value, 10);
+        if (Number.isFinite(parsedQty) && parsedQty > 0) {
+            return parsedQty;
+        }
+    }
+    return 1;
+}
+
+function setModalQuantityValue(value) {
+    const safeQty = Math.max(1, parseInt(value, 10) || 1);
+    getModalQtyInputs().forEach((input) => {
+        input.value = safeQty;
+    });
+    return safeQty;
+}
+
+function changeModalQuantity(delta) {
+    const product = getCurrentModalProduct();
+    if (!product) return;
+
+    const maxStock = getCurrentModalMaxStock();
+    let nextQty = getModalQuantityValue() + delta;
+    if (nextQty < 1) nextQty = 1;
+
+    if (maxStock > 0 && nextQty > maxStock) {
+        nextQty = maxStock;
+        showToast(`Maksimal stok untuk produk ini: ${maxStock}`);
+    }
+
+    setModalQuantityValue(nextQty);
+    refreshDetailModal(product);
+}
+
+function addCurrentModalProductToCart(event) {
+    const product = getCurrentModalProduct();
+    if (!product) return;
+
+    const qty = getModalQuantityValue();
+    addToCart(product, event, qty);
+    closeDetailModal();
+}
+
 function buildModalState(product) {
-    const qtyInput = document.getElementById('modal-qty');
-    const quantity = Math.max(1, parseInt(qtyInput && qtyInput.value, 10) || 1);
+    const quantity = getModalQuantityValue();
     const activeSelection = selectedVariation || product;
     const basePrice = parseInt(activeSelection.harga, 10) || parseInt(product.harga, 10) || 0;
     const coretPrice = parseInt(activeSelection.harga_coret, 10) || parseInt(product.hargaCoret, 10) || 0;
@@ -3503,13 +3554,20 @@ function renderModalMeta(product, modalState) {
 function updateModalActionState(product, modalState) {
     const unavailable = isProductInteractionLocked(product) || modalState.stock <= 0;
     const unavailableLabel = isProductInteractionLocked(product) ? 'Tidak tersedia' : 'Stok habis';
-    const addCartBtn = document.getElementById('modal-add-cart');
-    const buyNowBtn = document.getElementById('modal-buy-now');
-    const qtyInput = document.getElementById('modal-qty');
+    const addCartButtons = [
+        document.getElementById('modal-add-cart'),
+        document.getElementById('modal-add-cart-sticky')
+    ].filter(Boolean);
+    const buyNowButtons = [
+        document.getElementById('modal-buy-now'),
+        document.getElementById('modal-buy-now-sticky')
+    ].filter(Boolean);
 
-    if (addCartBtn) {
-        addCartBtn.disabled = unavailable;
-        addCartBtn.innerHTML = unavailable
+    setModalQuantityValue(modalState.quantity);
+
+    addCartButtons.forEach((button) => {
+        button.disabled = unavailable;
+        button.innerHTML = unavailable
             ? unavailableLabel
             : `
                 <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3517,18 +3575,18 @@ function updateModalActionState(product, modalState) {
                 </svg>
                 Tambah ke keranjang
             `;
-    }
+    });
 
-    if (buyNowBtn) {
-        buyNowBtn.disabled = unavailable;
-        buyNowBtn.textContent = unavailable ? unavailableLabel : 'Beli sekarang';
-    }
+    buyNowButtons.forEach((button) => {
+        button.disabled = unavailable;
+        button.textContent = unavailable ? unavailableLabel : 'Beli sekarang';
+    });
 
-    if (qtyInput) {
-        qtyInput.disabled = unavailable;
-    }
+    getModalQtyInputs().forEach((input) => {
+        input.disabled = unavailable;
+    });
 
-    document.querySelectorAll('[data-action="update-modal-qty"]').forEach((button) => {
+    document.querySelectorAll('[data-action="update-modal-qty"], [data-action="update-modal-qty-sticky"]').forEach((button) => {
         button.disabled = unavailable;
     });
 }
@@ -3652,7 +3710,7 @@ function showDetail(p) {
     selectedVariation = null;
     const qtyInput = document.getElementById('modal-qty');
     if (qtyInput) {
-        qtyInput.value = 1;
+        setModalQuantityValue(1);
     }
 
     const nameEl = document.getElementById('modal-product-name');
@@ -3847,8 +3905,7 @@ function proceedDirectOrder(p) {
     }
 
     // Get quantity from modal input (default to 1 if not found)
-    const qtyInput = document.getElementById('modal-qty');
-    const requestedQty = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
+    const requestedQty = getModalQuantityValue();
     const quantity = Math.min(maxStock, Math.max(1, requestedQty));
     if (quantity < requestedQty) {
         showToast(`Qty disesuaikan ke stok maksimal: ${maxStock}`);
@@ -4725,13 +4782,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalAddCartBtn = document.getElementById('modal-add-cart');
     if (modalAddCartBtn) {
         modalAddCartBtn.addEventListener('click', (event) => {
-            const product = getCurrentModalProduct();
-            if (product) {
-                const qtyInput = document.getElementById('modal-qty');
-                const qty = qtyInput ? parseInt(qtyInput.value) : 1;
-                addToCart(product, event, qty);
-                closeDetailModal();
-            }
+            addCurrentModalProductToCart(event);
         });
     }
 
@@ -4804,6 +4855,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     event.preventDefault();
                     showDetail(product);
                 }
+                return;
+            }
+
+            if (action === 'add-to-cart-sticky') {
+                event.preventDefault();
+                addCurrentModalProductToCart(event);
+                return;
+            }
+
+            if (action === 'buy-now' || action === 'buy-now-sticky') {
+                event.preventDefault();
+                directOrderFromModal();
+                return;
+            }
+
+            if (action === 'update-modal-qty' || action === 'update-modal-qty-sticky') {
+                event.preventDefault();
+                const delta = parseInt(actionEl.getAttribute('data-qty'), 10);
+                if (!Number.isNaN(delta)) changeModalQuantity(delta);
                 return;
             }
 

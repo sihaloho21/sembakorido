@@ -594,11 +594,20 @@
             box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
         }
         .detail-modal-media-frame .slider-container {
+            position: relative;
             height: 100%;
             min-height: 340px;
             border-radius: 28px;
         }
+        .detail-modal-media-frame #modal-slider {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            min-height: inherit;
+        }
         .detail-modal-media-frame #modal-slider img {
+            display: block;
             padding: 1.75rem;
         }
         .detail-modal-media-frame .slider-counter {
@@ -824,6 +833,7 @@
         .detail-modal-cta-group {
             display: flex;
             flex: 1 1 360px;
+            min-width: 0;
             gap: 0.75rem;
         }
         .detail-modal-cta-primary,
@@ -866,6 +876,9 @@
             border-color: #e0e6eb;
             color: #98a2b3;
             box-shadow: none;
+        }
+        .detail-modal-mobile-actions {
+            display: none;
         }
         .detail-modal-specs,
         .detail-modal-description {
@@ -1115,6 +1128,16 @@
             filter: brightness(0.98);
         }
         @media (min-width: 1024px) {
+            .detail-modal-action-area {
+                flex-wrap: nowrap;
+            }
+            .detail-modal-cta-group {
+                flex: 1 1 auto;
+            }
+            .detail-modal-cta-primary,
+            .detail-modal-cta-secondary {
+                flex: 1 1 0;
+            }
             .detail-modal-layout {
                 padding: 2rem;
             }
@@ -1161,15 +1184,29 @@
             }
         }
         @media (max-width: 640px) {
+            .detail-modal-shell {
+                max-height: calc(100dvh - 0.5rem);
+                border-radius: 22px;
+            }
             .detail-modal-layout {
-                padding: 0.9rem;
-                gap: 1.1rem;
+                padding: 0.85rem;
+                gap: 0.85rem;
             }
             .detail-modal-main {
-                gap: 1rem;
+                gap: 0.85rem;
+            }
+            .detail-modal-gallery {
+                gap: 0.65rem;
+            }
+            .detail-modal-info {
+                gap: 0.85rem;
             }
             .detail-modal-header {
+                gap: 0.55rem;
                 padding-right: 2.8rem;
+            }
+            .detail-modal-price-panel {
+                gap: 0.7rem;
             }
             .detail-modal-media-frame {
                 min-height: 240px;
@@ -1177,11 +1214,30 @@
             .detail-modal-media-frame .slider-container {
                 min-height: 240px;
             }
+            .detail-modal-thumbs {
+                gap: 0.55rem;
+                padding-bottom: 0.2rem;
+            }
             .detail-modal-thumb {
                 flex-basis: 64px;
                 width: 64px;
                 height: 64px;
                 border-radius: 18px;
+            }
+            .detail-modal-secondary-price {
+                gap: 0.55rem;
+                border-radius: 16px;
+                padding: 0.7rem 0.8rem;
+            }
+            .detail-modal-secondary-price-label {
+                font-size: 0.64rem;
+            }
+            #modal-gajian-price {
+                font-size: 0.96rem;
+            }
+            #modal-price-date {
+                font-size: 0.7rem;
+                line-height: 1.35;
             }
             #modal-cash-price {
                 font-size: 2rem;
@@ -1190,13 +1246,146 @@
                 font-size: 1.1rem;
             }
             .detail-modal-action-area {
-                flex-direction: column;
+                display: none;
             }
-            .detail-modal-qty-box,
-            .detail-modal-cta-group {
-                width: 100%;
+            .detail-modal-mobile-actions {
+                display: block;
+                flex-shrink: 0;
+                border-top: 1px solid #edf2f4;
+                background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, #ffffff 34%);
+                padding: 0.65rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
+                box-shadow: 0 -14px 30px rgba(15, 23, 42, 0.08);
             }
-            .detail-modal-spec-grid,
+            .detail-modal-mobile-actions-inner {
+                display: grid;
+                grid-template-columns: minmax(86px, 94px) minmax(0, 1fr) minmax(0, 1fr);
+                gap: 0.45rem;
+                align-items: stretch;
+            }
+            .detail-modal-mobile-qty {
+                min-width: 0;
+                border: 1px solid #deebe5;
+                border-radius: 14px;
+                background: #f7faf8;
+                padding: 0.45rem;
+            }
+            .detail-modal-mobile-label {
+                font-size: 0.58rem;
+                font-weight: 900;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                color: #64748b;
+            }
+            .detail-modal-mobile-stepper {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.25rem;
+                margin-top: 0.32rem;
+            }
+            .detail-modal-mobile-stepper button {
+                width: 1.95rem;
+                height: 1.95rem;
+                border: 1px solid #d8e2e7;
+                border-radius: 12px;
+                background: #ffffff;
+                color: #455468;
+                font-size: 0.95rem;
+                font-weight: 800;
+            }
+            .detail-modal-mobile-stepper input {
+                width: 1.7rem;
+                border: 0;
+                background: transparent;
+                text-align: center;
+                font-size: 0.9rem;
+                font-weight: 800;
+                color: #23354d;
+            }
+            .detail-modal-mobile-actions .detail-modal-cta-primary,
+            .detail-modal-mobile-actions .detail-modal-cta-secondary {
+                min-height: 54px;
+                border-radius: 14px;
+                padding: 0.7rem 0.55rem;
+                font-size: 0.76rem;
+                line-height: 1.25;
+                white-space: normal;
+                text-align: center;
+            }
+            .detail-modal-mobile-actions .detail-modal-cta-primary svg {
+                width: 0.85rem;
+                height: 0.85rem;
+                flex-shrink: 0;
+            }
+            .detail-modal-specs,
+            .detail-modal-description {
+                border-radius: 18px;
+                padding: 0.9rem;
+            }
+            .detail-modal-section-title {
+                font-size: 0.7rem;
+                letter-spacing: 0.11em;
+            }
+            .detail-modal-meta-note {
+                font-size: 0.72rem;
+                line-height: 1.45;
+            }
+            .detail-modal-spec-grid {
+                grid-template-columns: 1fr;
+                gap: 0;
+                margin-top: 0.75rem;
+                border: 1px solid #eef2f6;
+                border-radius: 14px;
+                overflow: hidden;
+                background: #fbfcfc;
+            }
+            .detail-modal-spec-item {
+                display: grid;
+                grid-template-columns: 64px minmax(0, 1fr);
+                gap: 0.6rem;
+                align-items: start;
+                border-top: 1px solid #eef2f6;
+                padding: 0.62rem 0.72rem;
+            }
+            .detail-modal-spec-item:first-child {
+                border-top: 0;
+            }
+            .detail-modal-spec-label {
+                font-size: 0.56rem;
+                line-height: 1.35;
+                letter-spacing: 0.08em;
+            }
+            .detail-modal-spec-value {
+                margin-top: 0;
+                font-size: 0.78rem;
+                line-height: 1.4;
+            }
+            #modal-items-list {
+                gap: 0.55rem;
+                margin-top: 0.75rem;
+            }
+            .detail-modal-item {
+                gap: 0.5rem;
+                border-radius: 14px;
+                padding: 0.72rem 0.7rem;
+            }
+            .detail-modal-item-icon {
+                flex: 0 0 28px;
+                width: 28px;
+                height: 28px;
+                border-radius: 10px;
+            }
+            .detail-modal-item-icon svg {
+                width: 0.78rem;
+                height: 0.78rem;
+            }
+            .detail-modal-item-text {
+                font-size: 0.76rem;
+                line-height: 1.45;
+            }
+            .detail-modal-related {
+                padding-top: 1rem;
+            }
             .detail-modal-related-grid {
                 grid-template-columns: 1fr;
             }
@@ -1571,7 +1760,7 @@
     </div>
 
     <!-- Modal Rincian -->
-    <div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-product-name" tabindex="-1" data-modal>
+    <div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-2 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-product-name" tabindex="-1" data-modal>
         <div class="detail-modal-shell shadow-2xl">
             <button type="button" data-action="close-detail" data-modal-close class="detail-modal-close" aria-label="Tutup" title="Tutup rincian produk">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -1725,6 +1914,28 @@
                             <!-- Related products injected here -->
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="detail-modal-mobile-actions" aria-label="Aksi cepat produk">
+                <div class="detail-modal-mobile-actions-inner">
+                    <div class="detail-modal-mobile-qty">
+                        <p class="detail-modal-mobile-label">Qty</p>
+                        <div class="detail-modal-mobile-stepper">
+                            <button type="button" data-action="update-modal-qty-sticky" data-qty="-1" aria-label="Kurangi jumlah">-</button>
+                            <input type="number" id="modal-qty-sticky" value="1" min="1" readonly>
+                            <button type="button" data-action="update-modal-qty-sticky" data-qty="1" aria-label="Tambah jumlah">+</button>
+                        </div>
+                    </div>
+                    <button id="modal-add-cart-sticky" class="detail-modal-cta-primary" type="button" data-action="add-to-cart-sticky">
+                        <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.1" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.5 4h11.5M9 19.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm10 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path>
+                        </svg>
+                        Tambah ke keranjang
+                    </button>
+                    <button type="button" id="modal-buy-now-sticky" data-action="buy-now-sticky" class="detail-modal-cta-secondary">
+                        Beli sekarang
+                    </button>
                 </div>
             </div>
         </div>
@@ -2690,10 +2901,10 @@
     <script src="assets/js/payment-logic.js"></script>
     <script src="assets/js/paylater-logic.js"></script>
     <script src="assets/js/tiered-pricing-logic.js"></script>
-    <script src="assets/js/image-slider.js?v=20260308b"></script>
+    <script src="assets/js/image-slider.js?v=20260424a"></script>
     <script src="assets/js/promo-banner-carousel.js"></script>
     <script src="assets/js/sanitize.min.js"></script>
-    <script src="assets/js/script.js?v=20260417a"></script>
+    <script src="assets/js/script.js?v=20260424b"></script>
 
     <script>
         (function () {
