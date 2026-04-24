@@ -544,10 +544,17 @@
             }
         }
         .detail-modal-shell {
+            position: relative;
             display: flex;
             flex-direction: column;
-            max-height: 95vh;
+            width: min(1120px, 100%);
+            max-height: 94vh;
             overflow: hidden;
+            border: 1px solid #e7ecef;
+            border-radius: 28px;
+            background:
+                radial-gradient(circle at top left, rgba(238, 249, 243, 0.92), rgba(255, 255, 255, 1) 32%),
+                linear-gradient(180deg, #ffffff 0%, #f8fbfb 100%);
         }
         .detail-modal-scroll {
             flex: 1 1 auto;
@@ -555,17 +562,644 @@
             overflow-y: auto;
             overscroll-behavior: contain;
         }
-        .detail-modal-sticky {
-            position: sticky;
-            bottom: 0;
-            z-index: 20;
-            border-top: 1px solid #e5e7eb;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, #ffffff 18%);
-            backdrop-filter: blur(12px);
-            box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.08);
+        .detail-modal-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            padding: 1.25rem;
         }
-        .detail-modal-sticky button {
+        .detail-modal-main {
+            display: grid;
+            gap: 1.75rem;
+            grid-template-columns: 1fr;
+            grid-template-areas:
+                "gallery"
+                "info"
+                "specs"
+                "description";
+        }
+        .detail-modal-gallery {
+            grid-area: gallery;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .detail-modal-media-frame {
+            position: relative;
+            min-height: 340px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            border-radius: 28px;
+            background: linear-gradient(180deg, #ffffff 0%, #f7faf9 100%);
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+        }
+        .detail-modal-media-frame .slider-container {
+            height: 100%;
+            min-height: 340px;
+            border-radius: 28px;
+        }
+        .detail-modal-media-frame #modal-slider img {
+            padding: 1.75rem;
+        }
+        .detail-modal-media-frame .slider-counter {
+            top: 1rem;
+            left: 1rem;
+            border-radius: 999px;
+            background: rgba(31, 41, 55, 0.7);
+            padding: 0.35rem 0.7rem;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+        .detail-modal-media-frame #slider-dots {
+            display: none;
+        }
+        .detail-modal-media-frame .slider-arrow {
+            width: 2.5rem;
+            height: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.88);
+            color: #1f2937;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+        }
+        .detail-modal-thumbs {
+            display: flex;
+            gap: 0.75rem;
+            overflow-x: auto;
+            padding: 0.1rem 0.1rem 0.35rem;
+            scrollbar-width: none;
+        }
+        .detail-modal-thumbs::-webkit-scrollbar {
+            display: none;
+        }
+        .detail-modal-thumb {
+            flex: 0 0 74px;
+            width: 74px;
+            height: 74px;
+            border: 1px solid #d9e2e7;
+            border-radius: 20px;
+            background: #ffffff;
+            padding: 0.35rem;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .detail-modal-thumb:hover {
+            transform: translateY(-2px);
+        }
+        .detail-modal-thumb.is-active {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18), 0 16px 28px rgba(15, 23, 42, 0.12);
+        }
+        .detail-modal-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+            border-radius: 16px;
+            background: #ffffff;
+        }
+        .detail-modal-info {
+            grid-area: info;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            min-width: 0;
+        }
+        .detail-modal-header {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            padding-right: 4rem;
+        }
+        .detail-modal-title {
+            max-width: 16ch;
+            font-size: clamp(1.7rem, 2.4vw, 3rem);
+            line-height: 1.05;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            color: #23354d;
+        }
+        .detail-modal-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+        }
+        .detail-modal-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            padding: 0.38rem 0.8rem;
+            font-size: 0.74rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .detail-modal-price-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+        .detail-modal-price-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 0.8rem;
+            width: 100%;
+        }
+        .detail-modal-original-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.2rem;
+            margin-left: auto;
+            padding-bottom: 0.15rem;
+            text-align: right;
+        }
+        #modal-cash-price {
+            font-size: clamp(2.3rem, 3.6vw, 3.8rem);
+            line-height: 1;
+            font-weight: 900;
+            letter-spacing: -0.05em;
+            color: #16b87b;
+        }
+        #modal-original-price {
+            font-size: 1.55rem;
+            line-height: 1.15;
+            font-weight: 700;
+            color: #c3c8cf;
+            text-decoration: line-through;
+        }
+        #modal-discount-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            font-size: 0.66rem;
+            line-height: 1;
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            color: #f59e0b;
+            text-transform: uppercase;
+        }
+        .detail-modal-secondary-price {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.7rem;
+            border: 1px solid #e4edf9;
+            border-radius: 20px;
+            background: #f4f8ff;
+            padding: 0.8rem 1rem;
+        }
+        .detail-modal-secondary-price-label {
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #60708a;
+        }
+        #modal-gajian-price {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #2856a6;
+        }
+        #modal-price-date {
+            font-size: 0.8rem;
+            color: #667085;
+        }
+        .detail-modal-action-area {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch;
+            gap: 0.9rem;
+        }
+        .detail-modal-qty-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-width: 132px;
+            border: 1px solid #dfe7eb;
+            border-radius: 22px;
+            background: #fbfcfc;
+            padding: 0.85rem 0.95rem;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+        }
+        .detail-modal-qty-stepper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .detail-modal-qty-stepper button {
+            width: 2.35rem;
+            height: 2.35rem;
+            border: 1px solid #d8e2e7;
+            border-radius: 14px;
+            background: #ffffff;
+            color: #455468;
+            font-size: 1rem;
+            font-weight: 800;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.07);
+            transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+        .detail-modal-qty-stepper button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            border-color: #22c55e;
+            color: #15803d;
+        }
+        .detail-modal-qty-stepper button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+            box-shadow: none;
+        }
+        .detail-modal-qty-stepper input {
+            width: 3rem;
+            border: 0;
+            background: transparent;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #23354d;
+        }
+        .detail-modal-cta-group {
+            display: flex;
+            flex: 1 1 360px;
+            gap: 0.75rem;
+        }
+        .detail-modal-cta-primary,
+        .detail-modal-cta-secondary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.55rem;
+            min-height: 56px;
+            border-radius: 20px;
+            padding: 0.95rem 1.2rem;
+            font-size: 0.95rem;
+            font-weight: 800;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
             white-space: nowrap;
+        }
+        .detail-modal-cta-primary {
+            border: 1px solid #17b67b;
+            background: #1fb878;
+            color: #ffffff;
+            box-shadow: 0 16px 26px rgba(31, 184, 120, 0.24);
+        }
+        .detail-modal-cta-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            background: #17a96e;
+        }
+        .detail-modal-cta-secondary {
+            border: 1px solid #cde9db;
+            background: #eff8f3;
+            color: #1f7a57;
+        }
+        .detail-modal-cta-secondary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            background: #e3f3ea;
+        }
+        .detail-modal-cta-primary:disabled,
+        .detail-modal-cta-secondary:disabled {
+            cursor: not-allowed;
+            background: #eef1f4;
+            border-color: #e0e6eb;
+            color: #98a2b3;
+            box-shadow: none;
+        }
+        .detail-modal-specs,
+        .detail-modal-description {
+            min-width: 0;
+            border: 1px solid #e6ecef;
+            border-radius: 24px;
+            background: #ffffff;
+            padding: 1.25rem;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+        }
+        .detail-modal-specs {
+            grid-area: specs;
+        }
+        .detail-modal-description {
+            grid-area: description;
+        }
+        .detail-modal-section-title {
+            font-size: 0.8rem;
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+        .detail-modal-meta-note {
+            font-size: 0.84rem;
+            color: #7a8795;
+            line-height: 1.6;
+        }
+        .detail-modal-spec-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.9rem 1rem;
+            margin-top: 1rem;
+        }
+        .detail-modal-spec-item {
+            border-top: 1px solid #eef2f6;
+            padding-top: 0.8rem;
+        }
+        .detail-modal-spec-label {
+            font-size: 0.73rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+        .detail-modal-spec-value {
+            margin-top: 0.25rem;
+            color: #0f8b5b;
+            font-size: 0.98rem;
+            font-weight: 700;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        #modal-items-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.8rem;
+            margin-top: 1rem;
+        }
+        .detail-modal-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            min-height: 100%;
+            border: 1px solid #e8f2ee;
+            border-radius: 18px;
+            background: #f6faf8;
+            padding: 0.95rem 1rem;
+        }
+        .detail-modal-item-icon {
+            flex: 0 0 36px;
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: #dff7ea;
+            color: #14945f;
+        }
+        .detail-modal-item-text {
+            flex: 1 1 auto;
+            font-size: 0.94rem;
+            font-weight: 600;
+            line-height: 1.7;
+            color: #425466;
+        }
+        .detail-modal-related {
+            border-top: 1px solid #ebeff3;
+            padding-top: 1.5rem;
+        }
+        .detail-modal-related-head {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .detail-modal-related-title {
+            font-size: 1.55rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #23354d;
+        }
+        .detail-modal-related-caption {
+            margin-top: 0.3rem;
+            font-size: 0.95rem;
+            color: #7a8795;
+        }
+        .detail-modal-related-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+        }
+        .detail-related-card {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            border: 1px solid #e4eaee;
+            border-radius: 22px;
+            background: #ffffff;
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .detail-related-card:hover {
+            transform: translateY(-4px);
+            border-color: #bddfcf;
+            box-shadow: 0 18px 34px rgba(15, 23, 42, 0.1);
+        }
+        .detail-related-media {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 180px;
+            background: linear-gradient(180deg, #f8fbfa 0%, #ffffff 100%);
+            padding: 1rem;
+        }
+        .detail-related-media img {
+            width: 100%;
+            height: 100%;
+            max-height: 150px;
+            object-fit: contain;
+        }
+        .detail-related-badge {
+            position: absolute;
+            top: 0.85rem;
+            left: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: #1fb878;
+            color: #ffffff;
+            padding: 0.3rem 0.65rem;
+            font-size: 0.7rem;
+            font-weight: 800;
+            box-shadow: 0 8px 20px rgba(31, 184, 120, 0.22);
+        }
+        .detail-related-body {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            gap: 0.6rem;
+            padding: 1rem 1rem 1.1rem;
+        }
+        .detail-related-category {
+            font-size: 0.74rem;
+            color: #94a3b8;
+        }
+        .detail-related-name {
+            display: -webkit-box;
+            min-height: 2.9rem;
+            overflow: hidden;
+            color: #23354d;
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.45;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+        }
+        .detail-related-price-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 0.45rem;
+        }
+        .detail-related-price {
+            color: #17a96e;
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+        .detail-related-price-old {
+            color: #b1b8c1;
+            font-size: 0.8rem;
+            text-decoration: line-through;
+        }
+        .detail-related-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-top: auto;
+        }
+        .detail-related-stock {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #7a8795;
+        }
+        .detail-related-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            border: 1px solid #d1eee0;
+            background: #eaf8f1;
+            color: #158a5b;
+            padding: 0.65rem 0.9rem;
+            font-size: 0.85rem;
+            font-weight: 800;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .detail-related-link:hover {
+            background: #dff3e7;
+            border-color: #aedecc;
+        }
+        .detail-modal-close {
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: 45;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 54px;
+            height: 54px;
+            border: 0;
+            border-radius: 0 24px 0 18px;
+            background: #ffc857;
+            color: #1f2937;
+            box-shadow: 0 14px 28px rgba(255, 200, 87, 0.28);
+            transition: transform 0.2s ease, filter 0.2s ease;
+        }
+        .detail-modal-close:hover {
+            transform: translateY(1px);
+            filter: brightness(0.98);
+        }
+        @media (min-width: 1024px) {
+            .detail-modal-layout {
+                padding: 2rem;
+            }
+            .detail-modal-main {
+                grid-template-columns: minmax(0, 1.02fr) minmax(0, 1.18fr);
+                grid-template-areas:
+                    "gallery info"
+                    "specs description";
+                align-items: start;
+            }
+            .detail-modal-media-frame {
+                min-height: 420px;
+            }
+            .detail-modal-media-frame .slider-container {
+                min-height: 420px;
+            }
+        }
+        @media (max-width: 1023px) {
+            .detail-modal-shell {
+                max-height: 96vh;
+            }
+            .detail-modal-layout {
+                padding: 1rem;
+                gap: 1.35rem;
+            }
+            .detail-modal-header {
+                padding-right: 3.15rem;
+            }
+            .detail-modal-title {
+                max-width: none;
+                font-size: 1.9rem;
+            }
+            .detail-modal-media-frame {
+                min-height: 280px;
+            }
+            .detail-modal-media-frame .slider-container {
+                min-height: 280px;
+            }
+            .detail-modal-cta-group {
+                flex-direction: column;
+            }
+            .detail-modal-related-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 640px) {
+            .detail-modal-layout {
+                padding: 0.9rem;
+                gap: 1.1rem;
+            }
+            .detail-modal-main {
+                gap: 1rem;
+            }
+            .detail-modal-header {
+                padding-right: 2.8rem;
+            }
+            .detail-modal-media-frame {
+                min-height: 240px;
+            }
+            .detail-modal-media-frame .slider-container {
+                min-height: 240px;
+            }
+            .detail-modal-thumb {
+                flex-basis: 64px;
+                width: 64px;
+                height: 64px;
+                border-radius: 18px;
+            }
+            #modal-cash-price {
+                font-size: 2rem;
+            }
+            #modal-original-price {
+                font-size: 1.1rem;
+            }
+            .detail-modal-action-area {
+                flex-direction: column;
+            }
+            .detail-modal-qty-box,
+            .detail-modal-cta-group {
+                width: 100%;
+            }
+            .detail-modal-spec-grid,
+            .detail-modal-related-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -937,135 +1571,159 @@
     </div>
 
     <!-- Modal Rincian -->
-    <div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-3" role="dialog" aria-modal="true" aria-labelledby="modal-product-name" tabindex="-1" data-modal>
-        <div class="detail-modal-shell bg-white rounded-2xl shadow-2xl w-full max-w-md relative">
-            <!-- Close Button (X) -->
-            <button data-action="close-detail" class="absolute top-3 right-3 z-30 bg-white/90 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-gray-900 shadow-sm transition" aria-label="Tutup">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    <div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-product-name" tabindex="-1" data-modal>
+        <div class="detail-modal-shell shadow-2xl">
+            <button type="button" data-action="close-detail" data-modal-close class="detail-modal-close" aria-label="Tutup" title="Tutup rincian produk">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
             </button>
 
             <div id="modal-product-content" class="detail-modal-scroll">
-                <!-- Product Image Slider -->
-                <div class="slider-container relative h-64 w-full overflow-hidden rounded-t-2xl bg-white">
-                    <div id="slider-skeleton" class="skeleton-loader absolute inset-0 z-10 bg-gray-200 animate-pulse"></div>
-                    <div id="modal-slider" class="relative h-full w-full">
-                        <!-- Images are dynamically loaded here by JavaScript -->
-                    </div>
-                    <div class="slider-counter absolute top-4 left-4 z-20 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-lg" id="slider-counter">1 / 1</div>
-                    <div id="slider-dots" class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2 bg-black/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                        <!-- Dots are dynamically loaded here by JavaScript -->
-                    </div>
-                    <button type="button" data-action="prev-slide" class="slider-arrow prev absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-800 shadow-sm hover:bg-white transition" title="Gambar sebelumnya" aria-label="Gambar sebelumnya">
-                        <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                    </button>
-                    <button type="button" data-action="next-slide" class="slider-arrow next absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-800 shadow-sm hover:bg-white transition" title="Gambar berikutnya" aria-label="Gambar berikutnya">
-                        <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                    </button>
-                </div>
-
-                <div class="p-4 space-y-4">
-                    <!-- Header: Category & Title -->
-                    <div class="space-y-2 pr-10">
-                        <div id="modal-badges" class="flex flex-wrap gap-2">
-                            <!-- Category badge will be injected here -->
-                        </div>
-                        <h3 id="modal-product-name" class="text-xl font-bold text-gray-800 leading-tight">Rincian Produk</h3>
-                    </div>
-
-                    <!-- Variations Section -->
-                    <div id="modal-variation-container" class="hidden space-y-3">
-                        <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                            <svg aria-hidden="true" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                            Pilih Variasi:
-                        </h4>
-                        <div id="modal-variation-list" class="grid grid-cols-2 gap-2">
-                            <!-- Variations injected here -->
-                        </div>
-                    </div>
-
-                    <!-- Tiered Pricing UI -->
-                    <div id="tiered-pricing-ui" class="hidden space-y-4">
-                        <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-                            <div class="flex justify-between items-center mb-3">
-                                <h5 class="text-xs font-bold text-blue-800 uppercase tracking-wider">Harga Grosir Bertingkat</h5>
-                                <span id="current-tier-badge" class="hidden bg-blue-600 text-white text-[8px] px-2 py-0.5 rounded-full font-bold">Tier Aktif</span>
-                            </div>
-                            
-                            <!-- Progress Bar -->
-                            <div id="tier-progress-container" class="mb-4">
-                                <div class="flex justify-between items-end mb-1.5">
-                                    <p id="tier-progress-text" class="text-[10px] text-blue-700 font-medium">Beli <span class="font-bold">5 lagi</span> untuk harga lebih murah!</p>
-                                    <p id="tier-progress-percent" class="text-[10px] text-blue-400 font-bold">50%</p>
-                                </div>
-                                <div class="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
-                                    <div id="tier-progress-bar" class="h-full bg-blue-500 transition-all duration-500" style="width: 50%"></div>
+                <div class="detail-modal-layout">
+                    <div class="detail-modal-main">
+                        <div class="detail-modal-gallery">
+                            <div class="detail-modal-media-frame">
+                                <div class="slider-container relative h-full w-full overflow-hidden bg-white">
+                                    <div id="slider-skeleton" class="skeleton-loader absolute inset-0 z-10 bg-gray-200 animate-pulse"></div>
+                                    <div id="modal-slider" class="relative h-full w-full">
+                                        <!-- Images are dynamically loaded here by JavaScript -->
+                                    </div>
+                                    <div class="slider-counter absolute z-20 text-white" id="slider-counter">1 / 1</div>
+                                    <div id="slider-dots" class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2 bg-black/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                                        <!-- Dots are dynamically loaded here by JavaScript -->
+                                    </div>
+                                    <button type="button" data-action="prev-slide" class="slider-arrow prev absolute left-3 top-1/2 -translate-y-1/2 z-20 rounded-full flex items-center justify-center transition" title="Gambar sebelumnya" aria-label="Gambar sebelumnya">
+                                        <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                                    </button>
+                                    <button type="button" data-action="next-slide" class="slider-arrow next absolute right-3 top-1/2 -translate-y-1/2 z-20 rounded-full flex items-center justify-center transition" title="Gambar berikutnya" aria-label="Gambar berikutnya">
+                                        <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                    </button>
                                 </div>
                             </div>
 
-                            <!-- Price Tiers Table -->
-                            <div id="price-tiers-table" class="grid grid-cols-3 gap-2">
-                                <!-- Tiers will be injected here -->
+                            <div id="modal-slider-thumbs" class="detail-modal-thumbs" aria-label="Pilihan gambar produk">
+                                <!-- Thumbnail slider injected here -->
+                            </div>
+                        </div>
+
+                        <div class="detail-modal-info">
+                            <div class="detail-modal-header">
+                                <div id="modal-badges" class="detail-modal-badges">
+                                    <!-- Badges injected here -->
+                                </div>
+                                <h3 id="modal-product-name" class="detail-modal-title">Rincian Produk</h3>
+                            </div>
+
+                            <div class="detail-modal-price-panel">
+                                <div class="detail-modal-price-row">
+                                    <p id="modal-cash-price"></p>
+                                    <div class="detail-modal-original-wrap">
+                                        <span id="modal-discount-badge" class="hidden"></span>
+                                        <p id="modal-original-price" class="hidden"></p>
+                                    </div>
+                                </div>
+
+                                <div class="detail-modal-secondary-price">
+                                    <span class="detail-modal-secondary-price-label">Bayar gajian</span>
+                                    <p id="modal-gajian-price"></p>
+                                    <p id="modal-price-date"></p>
+                                </div>
+                            </div>
+
+                            <div id="modal-variation-container" class="hidden space-y-3">
+                                <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                                    <div>
+                                        <p class="detail-modal-section-title">Pilih Variasi</p>
+                                        <p class="detail-modal-meta-note">Pilih ukuran atau kemasan yang tersedia sebelum checkout.</p>
+                                    </div>
+                                </div>
+                                <div id="modal-variation-list" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                    <!-- Variations injected here -->
+                                </div>
+                            </div>
+
+                            <div class="detail-modal-action-area">
+                                <div class="detail-modal-qty-box">
+                                    <p class="detail-modal-section-title">Qty</p>
+                                    <div class="detail-modal-qty-stepper">
+                                        <button type="button" data-action="update-modal-qty" data-qty="-1" aria-label="Kurangi jumlah">-</button>
+                                        <input type="number" id="modal-qty" value="1" min="1" readonly>
+                                        <button type="button" data-action="update-modal-qty" data-qty="1" aria-label="Tambah jumlah">+</button>
+                                    </div>
+                                </div>
+
+                                <div class="detail-modal-cta-group">
+                                    <button id="modal-add-cart" class="detail-modal-cta-primary" type="button">
+                                        <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.1" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.5 4h11.5M9 19.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm10 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path>
+                                        </svg>
+                                        Tambah ke keranjang
+                                    </button>
+                                    <button type="button" id="modal-buy-now" data-action="buy-now" class="detail-modal-cta-secondary">
+                                        Beli sekarang
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="tiered-pricing-ui" class="hidden space-y-4">
+                                <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h5 class="text-xs font-bold text-blue-800 uppercase tracking-wider">Harga Grosir Bertingkat</h5>
+                                        <span id="current-tier-badge" class="hidden bg-blue-600 text-white text-[8px] px-2 py-0.5 rounded-full font-bold">Tier Aktif</span>
+                                    </div>
+
+                                    <div id="tier-progress-container" class="mb-4">
+                                        <div class="flex justify-between items-end mb-1.5">
+                                            <p id="tier-progress-text" class="text-[10px] text-blue-700 font-medium">Beli <span class="font-bold">5 lagi</span> untuk harga lebih murah!</p>
+                                            <p id="tier-progress-percent" class="text-[10px] text-blue-400 font-bold">50%</p>
+                                        </div>
+                                        <div class="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
+                                            <div id="tier-progress-bar" class="h-full bg-blue-500 transition-all duration-500" style="width: 50%"></div>
+                                        </div>
+                                    </div>
+
+                                    <div id="price-tiers-table" class="grid grid-cols-3 gap-2">
+                                        <!-- Tiers will be injected here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="savings-highlight" class="hidden">
+                                <div class="bg-orange-50 border border-orange-100 text-orange-700 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+                                    <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <span>Hemat <span id="savings-amount" class="font-bold"></span> dibanding harga standar.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detail-modal-specs">
+                            <p class="detail-modal-section-title">Spesifikasi Ringkas</p>
+                            <p class="detail-modal-meta-note mt-1">Informasi cepat sebelum produk masuk checkout.</p>
+                            <div id="modal-meta-list" class="detail-modal-spec-grid">
+                                <!-- Metadata injected here -->
+                            </div>
+                        </div>
+
+                        <div class="detail-modal-description">
+                            <p class="detail-modal-section-title">Isi Produk</p>
+                            <p class="detail-modal-meta-note mt-1">Rincian paket dan catatan singkat produk.</p>
+                            <div id="modal-items-list">
+                                <!-- Item list injected here -->
                             </div>
                         </div>
                     </div>
 
-                    <!-- Savings Highlight -->
-                    <div id="savings-highlight" class="hidden">
-                        <div class="bg-orange-50 border border-orange-100 text-orange-700 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-                            <svg aria-hidden="true" class="w-4 h-4 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            <span>Hemat <span id="savings-amount" class="font-bold"></span> dibanding harga pasar</span>
+                    <div id="modal-related-section" class="detail-modal-related hidden">
+                        <div class="detail-modal-related-head">
+                            <div>
+                                <h4 class="detail-modal-related-title">Produk terkait</h4>
+                                <p class="detail-modal-related-caption">Pilihan lain dari kategori serupa yang bisa Anda cek tanpa keluar dari modal.</p>
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- Itemized List -->
-                    <div class="space-y-3">
-                        <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                            <svg aria-hidden="true" class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                            Deskripsi/Isi Paket:
-                        </h4>
-                        <div id="modal-items-list" class="grid grid-cols-1 gap-2">
-                            <!-- Items with icons injected here -->
+                        <div id="modal-related-products" class="detail-modal-related-grid">
+                            <!-- Related products injected here -->
                         </div>
-                    </div>
-
-                    <!-- Shipping Info -->
-                   <!-- <div class="flex items-center gap-2 text-xs text-gray-500 bg-blue-50/50 p-3 rounded-xl">
-                        <svg aria-hidden="true" class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <p>Tersedia untuk antar Nikomas & Ambil di Tempat</p>
-                    </div>-->
-                </div>
-            </div>
-
-            <!-- Footer Actions -->
-            <div class="detail-modal-sticky p-3">
-                <div class="grid grid-cols-2 gap-2">
-                    <div class="rounded-2xl border border-green-100 bg-green-50 px-3 py-2">
-                        <p class="text-[10px] text-green-700 font-bold uppercase tracking-wide">Harga Tunai</p>
-                        <p id="modal-cash-price" class="mt-1 text-base font-black leading-tight text-green-700"></p>
-                    </div>
-                    <div class="rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2">
-                        <p class="text-[10px] text-blue-700 font-bold uppercase tracking-wide">Bayar Gajian</p>
-                        <p id="modal-gajian-price" class="mt-1 text-base font-black leading-tight text-blue-700"></p>
-                        <p id="modal-price-date" class="mt-1 text-[10px] leading-tight text-blue-500"></p>
-                    </div>
-                </div>
-                <div class="mt-2 flex items-stretch gap-2">
-                    <div class="shrink-0 rounded-2xl border border-gray-200 bg-gray-50 px-2 py-2">
-                        <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">Qty</p>
-                        <div class="flex items-center gap-1">
-                            <button type="button" data-action="update-modal-qty" data-qty="-1" class="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-sm font-bold text-gray-600 hover:border-green-500 hover:text-green-600 transition shadow-sm">-</button>
-                            <input type="number" id="modal-qty" value="1" min="1" class="w-10 text-center bg-transparent font-bold text-sm outline-none" readonly>
-                            <button type="button" data-action="update-modal-qty" data-qty="1" class="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-sm font-bold text-gray-600 hover:border-green-500 hover:text-green-600 transition shadow-sm">+</button>
-                        </div>
-                    </div>
-                    <div class="grid flex-1 grid-cols-2 gap-2">
-                        <button type="button" id="modal-buy-now" data-action="buy-now" class="bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold px-2 py-3 rounded-xl transition flex items-center justify-center">
-                            Beli
-                        </button>
-                        <button id="modal-add-cart" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-2 py-3 rounded-xl transition shadow-lg shadow-green-200 flex items-center justify-center gap-1">
-                            <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                            Keranjang
-                        </button>
                     </div>
                 </div>
             </div>
@@ -2035,7 +2693,7 @@
     <script src="assets/js/image-slider.js?v=20260308b"></script>
     <script src="assets/js/promo-banner-carousel.js"></script>
     <script src="assets/js/sanitize.min.js"></script>
-    <script src="assets/js/script.js?v=20260326f"></script>
+    <script src="assets/js/script.js?v=20260417a"></script>
 
     <script>
         (function () {

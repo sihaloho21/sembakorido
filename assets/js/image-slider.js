@@ -9,6 +9,7 @@ var sanitizeUrl = (window.FrontendSanitize && window.FrontendSanitize.sanitizeUr
 let currentSlideIndex = 0;
 let totalSlides = 0;
 let sliderImages = [];
+let sliderKeyHandler = null;
 
 /**
  * Initialize image slider dengan array gambar
@@ -193,6 +194,155 @@ function setupTouchNavigation() {
  * Fallback for slider initialization if images not provided
  * Used when initializeSlider is called but no images available
  */
+function initializeSlider(images) {
+    sliderImages = Array.isArray(images)
+        ? images.filter((img) => img && img.trim() !== '')
+        : [];
+    if (sliderImages.length === 0) {
+        sliderImages = ['https://placehold.co/600x600?text=Produk'];
+    }
+
+    totalSlides = sliderImages.length;
+    currentSlideIndex = 0;
+
+    const sliderContainer = document.getElementById('modal-slider');
+    const dotsContainer = document.getElementById('slider-dots');
+    const thumbsContainer = document.getElementById('modal-slider-thumbs');
+    const skeletonLoader = document.getElementById('slider-skeleton');
+    const prevButton = document.querySelector('#detail-modal [data-action="prev-slide"]');
+    const nextButton = document.querySelector('#detail-modal [data-action="next-slide"]');
+
+    if (!sliderContainer || !dotsContainer) {
+        console.error('Slider containers not found');
+        return;
+    }
+
+    sliderContainer.innerHTML = '';
+    dotsContainer.innerHTML = '';
+    if (thumbsContainer) thumbsContainer.innerHTML = '';
+
+    sliderImages.forEach((imgUrl, index) => {
+        const imgEl = document.createElement('img');
+        imgEl.src = sanitizeUrl(imgUrl, 'https://placehold.co/300x200?text=Produk');
+        imgEl.setAttribute('data-fallback-src', 'https://placehold.co/300x200?text=Produk');
+        imgEl.alt = `Slide ${index + 1}`;
+        imgEl.className = `absolute inset-0 w-full h-full object-contain object-center bg-white transition-opacity duration-500 ${index === 0 ? 'opacity-100' : 'opacity-0'}`;
+        imgEl.style.objectFit = 'contain';
+        imgEl.style.objectPosition = 'center';
+        imgEl.style.backgroundColor = '#ffffff';
+        imgEl.style.padding = '12px';
+        imgEl.style.boxSizing = 'border-box';
+        imgEl.onload = function () {
+            if (skeletonLoader) skeletonLoader.classList.add('hidden');
+        };
+        sliderContainer.appendChild(imgEl);
+    });
+
+    sliderImages.forEach((_, index) => {
+        const dot = document.createElement('button');
+        dot.className = `w-2 h-2 rounded-full transition-all ${index === 0 ? 'bg-white w-6' : 'bg-white/50 hover:bg-white/75'}`;
+        dot.onclick = () => goToSlide(index);
+        dot.title = `Go to slide ${index + 1}`;
+        dotsContainer.appendChild(dot);
+    });
+
+    if (thumbsContainer) {
+        sliderImages.forEach((imgUrl, index) => {
+            const thumb = document.createElement('button');
+            thumb.type = 'button';
+            thumb.className = `detail-modal-thumb${index === 0 ? ' is-active' : ''}`;
+            thumb.setAttribute('aria-label', `Pilih gambar ${index + 1}`);
+            thumb.setAttribute('title', `Gambar ${index + 1}`);
+            thumb.innerHTML = `
+                <img src="${sanitizeUrl(imgUrl, 'https://placehold.co/120x120?text=Produk')}" alt="Thumbnail ${index + 1}" data-fallback-src="https://placehold.co/120x120?text=Produk">
+            `;
+            thumb.addEventListener('click', () => goToSlide(index));
+            thumbsContainer.appendChild(thumb);
+        });
+    }
+
+    if (prevButton) prevButton.style.display = totalSlides > 1 ? '' : 'none';
+    if (nextButton) nextButton.style.display = totalSlides > 1 ? '' : 'none';
+
+    updateSliderCounter();
+    setupKeyboardNavigation();
+    setupTouchNavigation();
+}
+
+function goToSlide(index) {
+    if (index < 0 || index >= totalSlides) return;
+
+    const images = document.querySelectorAll('#modal-slider img');
+    const dots = document.querySelectorAll('#slider-dots button');
+    const thumbs = document.querySelectorAll('#modal-slider-thumbs .detail-modal-thumb');
+
+    images.forEach((img, imageIndex) => {
+        img.classList.toggle('opacity-100', imageIndex === index);
+        img.classList.toggle('opacity-0', imageIndex !== index);
+    });
+
+    dots.forEach((dot, dotIndex) => {
+        if (dotIndex === index) {
+            dot.classList.add('bg-white', 'w-6');
+            dot.classList.remove('bg-white/50', 'hover:bg-white/75');
+        } else {
+            dot.classList.remove('bg-white', 'w-6');
+            dot.classList.add('bg-white/50', 'hover:bg-white/75');
+        }
+    });
+
+    thumbs.forEach((thumb, thumbIndex) => {
+        thumb.classList.toggle('is-active', thumbIndex === index);
+    });
+
+    currentSlideIndex = index;
+    updateSliderCounter();
+}
+
+function setupKeyboardNavigation() {
+    if (sliderKeyHandler) {
+        document.removeEventListener('keydown', sliderKeyHandler);
+    }
+
+    sliderKeyHandler = (event) => {
+        if (event.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (event.key === 'ArrowRight') {
+            nextSlide();
+        }
+    };
+
+    document.addEventListener('keydown', sliderKeyHandler);
+}
+
+function setupTouchNavigation() {
+    const sliderContainer = document.getElementById('modal-slider');
+    if (!sliderContainer) return;
+    if (sliderContainer.dataset.touchBound === 'true') return;
+    sliderContainer.dataset.touchBound = 'true';
+
+    let startX = 0;
+    let endX = 0;
+
+    sliderContainer.addEventListener('touchstart', (event) => {
+        startX = event.changedTouches[0].clientX;
+    });
+
+    sliderContainer.addEventListener('touchend', (event) => {
+        endX = event.changedTouches[0].clientX;
+        const diff = startX - endX;
+        const threshold = 50;
+
+        if (Math.abs(diff) <= threshold) return;
+
+        if (diff > 0) {
+            nextSlide();
+        } else {
+            prevSlide();
+        }
+    });
+}
+
 function initializeSliderFallback() {
     const sliderContainer = document.getElementById('modal-slider');
     const imageEl = document.querySelector('#modal-slider img');

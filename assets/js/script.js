@@ -3142,6 +3142,9 @@ function showDetail(p) {
     const savingsHighlight = document.getElementById('savings-highlight');
     const savingsAmount = document.getElementById('savings-amount');
     const variationContainer = document.getElementById('modal-variation-container');
+    const modalContentEl = document.getElementById('modal-product-content');
+
+    if (modalContentEl) modalContentEl.scrollTop = 0;
 
     if (nameEl) nameEl.innerText = p.nama;
     
@@ -3308,13 +3311,496 @@ function updateModalPrices(cash, gajian, coret) {
     }
 }
 
+function getModalDescriptionItems(product) {
+    const normalizedDescription = String((product && product.deskripsi) || '')
+        .replace(/\r\n?/g, '\n')
+        .replace(/\\r\\n/g, '\n')
+        .replace(/\\n/g, '\n');
+
+    return normalizedDescription
+        .split('\n')
+        .map((item) => String(item || '').trim())
+        .filter((item) => item !== '' && !/^isi paket\s*:?\s*$/i.test(item))
+        .map((item) => item.replace(/^[\-\*\u2022]+\s*/, '').trim())
+        .filter((item) => item !== '');
+}
+
+function formatModalCurrency(amount) {
+    const value = Number(amount);
+    const safeValue = Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
+    return `Rp ${safeValue.toLocaleString('id-ID')}`;
+}
+
+function getModalPriceDateText() {
+    return `Harga per ${new Date().toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+    })}`;
+}
+
+function parseModalWholesaleTiers(value) {
+    if (!value) return [];
+    try {
+        const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function getModalSku(product, variation) {
+    const directSku = String((variation && variation.sku) || product.sku || '').trim();
+    if (directSku) return directSku;
+
+    const baseId = String(product.productId || product.id || product.slug || '').trim();
+    if (!baseId) return '-';
+
+    return `SKU-${baseId.slice(-6).toUpperCase()}`;
+}
+
+function getModalImageList(product, variation) {
+    const preferredSource = (variation && variation.gambar) || product.gambar || '';
+    let images = String(preferredSource || '')
+        .split(',')
+        .map((image) => String(image || '').trim())
+        .filter(Boolean);
+
+    if (images.length === 0 && variation && variation.gambar !== product.gambar) {
+        images = String(product.gambar || '')
+            .split(',')
+            .map((image) => String(image || '').trim())
+            .filter(Boolean);
+    }
+
+    return images.length > 0 ? images : ['https://placehold.co/600x600?text=Produk'];
+}
+
+function getModalStockLabel(stock) {
+    const safeStock = Math.max(0, parseInt(stock, 10) || 0);
+    if (safeStock <= 0) return 'Stok habis';
+    if (safeStock <= 5) return `Sisa ${safeStock}`;
+    if (safeStock <= 12) return `Stok terbatas (${safeStock})`;
+    return `${safeStock} tersedia`;
+}
+
+function getModalStockBadgeHtml(stock) {
+    const safeStock = Math.max(0, parseInt(stock, 10) || 0);
+    if (safeStock <= 0) {
+        return '<span class="detail-modal-badge bg-red-100 text-red-700">Stok habis</span>';
+    }
+    if (safeStock <= 5) {
+        return `<span class="detail-modal-badge bg-orange-100 text-orange-700">Sisa ${safeStock}</span>`;
+    }
+    if (safeStock <= 12) {
+        return `<span class="detail-modal-badge bg-amber-100 text-amber-700">Stok terbatas ${safeStock}</span>`;
+    }
+    return `<span class="detail-modal-badge bg-emerald-100 text-emerald-700">${safeStock} tersedia</span>`;
+}
+
+function renderModalDescriptionItems(product) {
+    const itemsListEl = document.getElementById('modal-items-list');
+    if (!itemsListEl) return;
+
+    const items = getModalDescriptionItems(product);
+    const fallbackItems = items.length > 0
+        ? items
+        : ['Informasi detail produk belum tersedia. Anda tetap bisa langsung menambahkannya ke keranjang.'];
+
+    itemsListEl.innerHTML = fallbackItems.map((item) => `
+        <div class="detail-modal-item">
+            <span class="detail-modal-item-icon" aria-hidden="true">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </span>
+            <span class="detail-modal-item-text">${escapeHtml(item)}</span>
+        </div>
+    `).join('');
+}
+
+function buildModalState(product) {
+    const qtyInput = document.getElementById('modal-qty');
+    const quantity = Math.max(1, parseInt(qtyInput && qtyInput.value, 10) || 1);
+    const activeSelection = selectedVariation || product;
+    const basePrice = parseInt(activeSelection.harga, 10) || parseInt(product.harga, 10) || 0;
+    const coretPrice = parseInt(activeSelection.harga_coret, 10) || parseInt(product.hargaCoret, 10) || 0;
+    const grosirData = activeSelection.grosir || product.grosir || '';
+    const stock = Math.max(0, parseInt(activeSelection.stok, 10) || 0);
+    const effectivePricePerUnit = typeof calculateTieredPrice === 'function'
+        ? calculateTieredPrice(basePrice, quantity, grosirData)
+        : basePrice;
+    const totalCashPrice = effectivePricePerUnit * quantity;
+    const gajianInfo = typeof calculateGajianPrice === 'function'
+        ? calculateGajianPrice(effectivePricePerUnit)
+        : { price: effectivePricePerUnit, daysLeft: 0, markupPercent: 0 };
+    const totalGajianPrice = (parseInt(gajianInfo.price, 10) || 0) * quantity;
+
+    return {
+        quantity,
+        activeSelection,
+        basePrice,
+        coretPrice,
+        grosirData,
+        stock,
+        effectivePricePerUnit,
+        totalCashPrice,
+        totalGajianPrice,
+        gajianInfo
+    };
+}
+
+function renderModalBadges(product, modalState) {
+    const badgesEl = document.getElementById('modal-badges');
+    if (!badgesEl) return;
+
+    const badges = [];
+    if (modalState.coretPrice > modalState.basePrice) {
+        const percent = Math.round(((modalState.coretPrice - modalState.basePrice) / modalState.coretPrice) * 100);
+        badges.push(`<span class="detail-modal-badge bg-rose-100 text-rose-700">Sale ${percent}%</span>`);
+    }
+
+    badges.push(`<span class="detail-modal-badge bg-emerald-50 text-emerald-700">${escapeHtml(product.category || product.kategori || 'Produk Pilihan')}</span>`);
+
+    const wholesaleTiers = parseModalWholesaleTiers(modalState.grosirData);
+    if (wholesaleTiers.length > 0) {
+        badges.push(`<span class="detail-modal-badge bg-cyan-100 text-cyan-700">${wholesaleTiers.length} level grosir</span>`);
+    }
+
+    badges.push(getModalStockBadgeHtml(modalState.stock));
+    badgesEl.innerHTML = badges.join('');
+}
+
+function renderModalMeta(product, modalState) {
+    const metaListEl = document.getElementById('modal-meta-list');
+    if (!metaListEl) return;
+
+    const wholesaleTiers = parseModalWholesaleTiers(modalState.grosirData);
+    const rewardPoints = typeof calculateRewardPoints === 'function'
+        ? calculateRewardPoints(modalState.totalCashPrice, product.nama)
+        : 0;
+    const variationName = selectedVariation && selectedVariation.nama
+        ? selectedVariation.nama
+        : (Array.isArray(product.variations) && product.variations.length > 0 ? 'Belum dipilih' : 'Tidak ada variasi');
+
+    const metaItems = [
+        { label: 'Kategori', value: product.category || product.kategori || 'Produk' },
+        { label: 'Varian', value: variationName },
+        { label: 'SKU', value: getModalSku(product, selectedVariation) },
+        { label: 'Stok', value: getModalStockLabel(modalState.stock) },
+        { label: 'Reward', value: `+${Number(rewardPoints || 0).toFixed(1)} poin` },
+        { label: 'Grosir', value: wholesaleTiers.length > 0 ? `${wholesaleTiers.length} level harga` : 'Tidak tersedia' }
+    ];
+
+    metaListEl.innerHTML = metaItems.map((item) => `
+        <div class="detail-modal-spec-item">
+            <p class="detail-modal-spec-label">${escapeHtml(item.label)}</p>
+            <p class="detail-modal-spec-value">${escapeHtml(item.value)}</p>
+        </div>
+    `).join('');
+}
+
+function updateModalActionState(product, modalState) {
+    const unavailable = isProductInteractionLocked(product) || modalState.stock <= 0;
+    const unavailableLabel = isProductInteractionLocked(product) ? 'Tidak tersedia' : 'Stok habis';
+    const addCartBtn = document.getElementById('modal-add-cart');
+    const buyNowBtn = document.getElementById('modal-buy-now');
+    const qtyInput = document.getElementById('modal-qty');
+
+    if (addCartBtn) {
+        addCartBtn.disabled = unavailable;
+        addCartBtn.innerHTML = unavailable
+            ? unavailableLabel
+            : `
+                <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.1" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.5 4h11.5M9 19.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm10 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path>
+                </svg>
+                Tambah ke keranjang
+            `;
+    }
+
+    if (buyNowBtn) {
+        buyNowBtn.disabled = unavailable;
+        buyNowBtn.textContent = unavailable ? unavailableLabel : 'Beli sekarang';
+    }
+
+    if (qtyInput) {
+        qtyInput.disabled = unavailable;
+    }
+
+    document.querySelectorAll('[data-action="update-modal-qty"]').forEach((button) => {
+        button.disabled = unavailable;
+    });
+}
+
+function syncModalSliderImages(product) {
+    const images = getModalImageList(product, selectedVariation);
+    if (typeof initializeSlider === 'function') {
+        initializeSlider(images);
+    }
+}
+
+function renderModalRelatedProducts(product) {
+    const relatedSection = document.getElementById('modal-related-section');
+    const relatedProductsEl = document.getElementById('modal-related-products');
+    if (!relatedSection || !relatedProductsEl) return;
+
+    const productId = String(product.productId || product.id || product.sku || product.slug || '').trim();
+    const currentCategoryValue = normalizeCategoryLabel(product.category || product.kategori || '');
+    const visibleProducts = allProducts.filter((item) => (
+        item &&
+        String(item.productId || item.id || item.sku || item.slug || '').trim() !== productId &&
+        !isProductInteractionLocked(item)
+    ));
+
+    const sameCategory = visibleProducts.filter((item) => (
+        normalizeCategoryLabel(item.category || item.kategori || '') === currentCategoryValue
+    ));
+    const fallbackProducts = visibleProducts.filter((item) => (
+        normalizeCategoryLabel(item.category || item.kategori || '') !== currentCategoryValue
+    ));
+    const relatedProducts = sameCategory.concat(fallbackProducts).slice(0, 3);
+
+    if (relatedProducts.length === 0) {
+        relatedSection.classList.add('hidden');
+        relatedProductsEl.innerHTML = '';
+        return;
+    }
+
+    relatedProductsEl.innerHTML = relatedProducts.map((item) => {
+        const itemImages = getModalImageList(item, null);
+        const mainImage = optimizeImageUrl(sanitizeUrl(itemImages[0], 'https://placehold.co/300x300?text=Produk'), 480, 480);
+        const stockLabel = getModalStockLabel(item.stok);
+        const hasDiscount = item.hargaCoret > item.harga;
+        const discountPercent = hasDiscount
+            ? Math.round(((item.hargaCoret - item.harga) / item.hargaCoret) * 100)
+            : 0;
+
+        return `
+            <article class="detail-related-card">
+                <div class="detail-related-media">
+                    ${hasDiscount ? `<span class="detail-related-badge">${discountPercent}%</span>` : ''}
+                    <img src="${mainImage}" alt="${escapeHtml(item.nama)}" data-fallback-src="https://placehold.co/300x300?text=Produk">
+                </div>
+                <div class="detail-related-body">
+                    <p class="detail-related-category">${escapeHtml(item.category || item.kategori || 'Produk')}</p>
+                    <h5 class="detail-related-name">${escapeHtml(item.nama)}</h5>
+                    <div class="detail-related-price-row">
+                        <span class="detail-related-price">${formatModalCurrency(item.harga)}</span>
+                        ${hasDiscount ? `<span class="detail-related-price-old">${formatModalCurrency(item.hargaCoret)}</span>` : ''}
+                    </div>
+                    <div class="detail-related-footer">
+                        <span class="detail-related-stock">${escapeHtml(stockLabel)}</span>
+                        <button type="button" data-action="show-related-product" data-product-id="${escapeHtml(item.productId)}" class="detail-related-link">
+                            Lihat detail
+                        </button>
+                    </div>
+                </div>
+            </article>
+        `;
+    }).join('');
+
+    relatedSection.classList.remove('hidden');
+}
+
+function refreshDetailModal(product) {
+    if (!product) return;
+
+    const modalState = buildModalState(product);
+    const priceDateEl = document.getElementById('modal-price-date');
+
+    if (priceDateEl) {
+        const gajianText = modalState.gajianInfo && Number.isFinite(Number(modalState.gajianInfo.daysLeft))
+            ? `${getModalPriceDateText()} | jatuh tempo ${modalState.gajianInfo.daysLeft} hari`
+            : getModalPriceDateText();
+        priceDateEl.textContent = gajianText;
+    }
+
+    renderModalBadges(product, modalState);
+    renderModalMeta(product, modalState);
+    updateModalActionState(product, modalState);
+    updateModalPrices(
+        modalState.totalCashPrice,
+        modalState.totalGajianPrice,
+        modalState.coretPrice * modalState.quantity
+    );
+
+    if (typeof updateTieredPricingUI === 'function') {
+        updateTieredPricingUI({
+            ...product,
+            harga: modalState.basePrice,
+            grosir: modalState.grosirData
+        }, modalState.quantity);
+    }
+}
+
+function showDetail(p) {
+    closeWishlistModal();
+
+    const resolvedProduct = resolveProductForModal(p);
+    if (resolvedProduct) {
+        p = resolvedProduct;
+    }
+
+    console.log('showDetail called for product:', p.nama);
+    const modal = document.getElementById('detail-modal');
+    if (!modal) return;
+
+    currentModalProduct = p;
+    modal.dataset.productId = String(p.productId || p.id || p.sku || p.slug || '');
+
+    selectedVariation = null;
+    const qtyInput = document.getElementById('modal-qty');
+    if (qtyInput) {
+        qtyInput.value = 1;
+    }
+
+    const nameEl = document.getElementById('modal-product-name');
+    const variationContainer = document.getElementById('modal-variation-container');
+    const modalContentEl = document.getElementById('modal-product-content');
+
+    if (modalContentEl) {
+        modalContentEl.scrollTop = 0;
+    }
+
+    if (nameEl) {
+        nameEl.textContent = p.nama;
+    }
+
+    renderModalDescriptionItems(p);
+    renderModalRelatedProducts(p);
+    syncModalSliderImages(p);
+
+    if (qtyInput) {
+        qtyInput.oninput = (event) => {
+            let nextQty = parseInt(event.target.value, 10) || 1;
+            if (nextQty < 1) nextQty = 1;
+
+            const maxStock = getCurrentModalMaxStock();
+            if (maxStock > 0 && nextQty > maxStock) {
+                nextQty = maxStock;
+                showToast(`Maksimal stok untuk produk ini: ${maxStock}`);
+            }
+
+            event.target.value = nextQty;
+            refreshDetailModal(p);
+        };
+    }
+
+    if (variationContainer) {
+        if (Array.isArray(p.variations) && p.variations.length > 0) {
+            variationContainer.classList.remove('hidden');
+            const variationList = document.getElementById('modal-variation-list');
+            if (variationList) {
+                variationList.innerHTML = p.variations.map((variation, index) => {
+                    const variationStock = Math.max(0, parseInt(variation.stok, 10) || 0);
+                    const isDisabled = variationStock <= 0;
+                    return `
+                        <button
+                            type="button"
+                            data-action="select-variation"
+                            data-index="${index}"
+                            ${isDisabled ? 'disabled aria-disabled="true"' : ''}
+                            class="variation-btn border-2 border-gray-200 rounded-2xl p-3 text-left transition focus:outline-none ${isDisabled ? 'cursor-not-allowed opacity-50 bg-gray-50' : 'hover:border-green-500 hover:bg-green-50/60'}"
+                        >
+                            <p class="text-sm font-bold text-gray-800">${escapeHtml(variation.nama)}</p>
+                            <div class="mt-2 flex items-center justify-between gap-2">
+                                <p class="text-xs text-green-600 font-bold">${formatModalCurrency(variation.harga)}</p>
+                                <span class="text-[10px] font-bold ${variationStock > 0 ? 'text-emerald-600' : 'text-red-500'}">
+                                    ${variationStock > 0 ? `${variationStock} stok` : 'Stok habis'}
+                                </span>
+                            </div>
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            const firstAvailableIndex = p.variations.findIndex((variation) => (parseInt(variation.stok, 10) || 0) > 0);
+            const defaultVariationIndex = firstAvailableIndex >= 0 ? firstAvailableIndex : 0;
+            selectVariation(p.variations[defaultVariationIndex], defaultVariationIndex);
+        } else {
+            variationContainer.classList.add('hidden');
+            refreshDetailModal(p);
+        }
+    } else {
+        refreshDetailModal(p);
+    }
+
+    modal.classList.remove('hidden');
+    document.body.classList.add('modal-active');
+}
+
+function selectVariation(v, index) {
+    selectedVariation = v;
+
+    document.querySelectorAll('.variation-btn').forEach((button, buttonIndex) => {
+        if (buttonIndex === index) {
+            button.classList.add('border-green-500', 'bg-green-50');
+            button.classList.remove('border-gray-200');
+        } else {
+            button.classList.remove('border-green-500', 'bg-green-50');
+            button.classList.add('border-gray-200');
+        }
+    });
+
+    if (currentModalProduct) {
+        syncModalSliderImages(currentModalProduct);
+        refreshDetailModal(currentModalProduct);
+    }
+}
+
+function updateModalPrices(cash, gajian, coret) {
+    const cashPriceEl = document.getElementById('modal-cash-price');
+    const gajianPriceEl = document.getElementById('modal-gajian-price');
+    const originalPriceEl = document.getElementById('modal-original-price');
+    const discountBadgeEl = document.getElementById('modal-discount-badge');
+    const savingsHighlight = document.getElementById('savings-highlight');
+    const savingsAmount = document.getElementById('savings-amount');
+
+    if (cashPriceEl) cashPriceEl.textContent = formatModalCurrency(cash);
+    if (gajianPriceEl) gajianPriceEl.textContent = formatModalCurrency(gajian);
+
+    if (coret > cash) {
+        const discountPercent = Math.round(((coret - cash) / coret) * 100);
+
+        if (originalPriceEl) {
+            originalPriceEl.textContent = formatModalCurrency(coret);
+            originalPriceEl.classList.remove('hidden');
+        }
+        if (discountBadgeEl) {
+            discountBadgeEl.textContent = `${discountPercent}% OFF`;
+            discountBadgeEl.classList.remove('hidden');
+        }
+        if (savingsHighlight) savingsHighlight.classList.remove('hidden');
+        if (savingsAmount) savingsAmount.textContent = formatModalCurrency(coret - cash);
+    } else {
+        if (originalPriceEl) {
+            originalPriceEl.textContent = '';
+            originalPriceEl.classList.add('hidden');
+        }
+        if (discountBadgeEl) {
+            discountBadgeEl.textContent = '';
+            discountBadgeEl.classList.add('hidden');
+        }
+        if (savingsHighlight) savingsHighlight.classList.add('hidden');
+    }
+}
+
 function closeDetailModal() {
     const modal = document.getElementById('detail-modal');
+    const content = document.getElementById('modal-product-content');
+    const skeletonLoader = document.getElementById('slider-skeleton');
+    const hasOtherOpenModal = Array.from(document.querySelectorAll('[data-modal]'))
+        .some((item) => item !== modal && !item.classList.contains('hidden'));
     if (modal) {
         modal.classList.add('hidden');
-        document.body.classList.remove('modal-active');
+        delete modal.dataset.productId;
     }
+    if (content) content.scrollTop = 0;
+    if (skeletonLoader) skeletonLoader.classList.remove('hidden');
+    document.body.classList.toggle('modal-active', hasOtherOpenModal);
     selectedVariation = null;
+    currentModalProduct = null;
 }
 
 function directOrder(p) {
@@ -4296,8 +4782,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailModal = document.getElementById('detail-modal');
     if (detailModal) {
         detailModal.addEventListener('click', (event) => {
-            const actionEl = event.target.closest('[data-action="select-variation"]');
+            if (event.target === detailModal) {
+                closeDetailModal();
+                return;
+            }
+
+            const actionEl = event.target.closest('[data-action]');
             if (!actionEl || actionEl.disabled) return;
+
+            const action = actionEl.getAttribute('data-action');
+            if (action === 'close-detail') {
+                event.preventDefault();
+                closeDetailModal();
+                return;
+            }
+
+            if (action === 'show-related-product') {
+                const productId = actionEl.getAttribute('data-product-id');
+                const product = findProductById(productId);
+                if (product) {
+                    event.preventDefault();
+                    showDetail(product);
+                }
+                return;
+            }
+
+            if (action !== 'select-variation') return;
+
             const index = parseInt(actionEl.getAttribute('data-index'), 10);
             if (!currentModalProduct || !currentModalProduct.variations || Number.isNaN(index)) return;
             const variation = currentModalProduct.variations[index];
