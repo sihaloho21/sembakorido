@@ -1630,13 +1630,7 @@
 
     <main id="main-content">
     <!-- Hero Section -->
-    <section class="hero-offset bg-green-700 text-white pb-0">
-        <div class="container mx-auto px-4 text-center">
-            <h2 class="text-4xl font-bold mb-4">Paket Sembako Murah & Lengkap</h2>
-            <p class="text-xl mb-8 pb-[1rem]">Kebutuhan pokok keluarga Anda, kami sediakan dengan harga terbaik.</p>
-            <!-- Lihat Katalog removed -->
-        </div>
-    </section>
+
 
     <!-- Katalog Section -->
     <section id="katalog" class="pt-0 pb-16">
@@ -1662,9 +1656,9 @@
                     </button>
                     
                     <!-- Carousel Container with padding for arrows -->
-                    <div id="category-filters" class="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2 md:px-12" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                    <div id="category-filters" class="flex gap-2 md:gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2 md:px-12" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
                         <!-- Categories will be dynamically loaded here -->
-                        <button type="button" data-action="set-category" data-category="Semua" class="filter-btn active snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-green-500 bg-green-50 text-green-700 text-sm font-bold transition hover:border-green-600 hover:bg-green-100">Semua</button>
+                        <button type="button" data-action="set-category" data-category="Semua" class="filter-btn active snap-start flex-shrink-0 px-4 py-1.5 md:px-6 md:py-2 rounded-full border-2 border-green-500 bg-green-50 text-green-700 text-xs md:text-sm font-bold transition hover:border-green-600 hover:bg-green-100">Semua</button>
                     </div>
                     
                     <!-- Right Arrow Button -->
@@ -1684,19 +1678,19 @@
                 <!-- Search desktop dipindahkan ke header -->
             </div>
 
-            <div id="product-grid" class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div id="product-grid" class="grid grid-cols-2 gap-2 md:gap-6 lg:grid-cols-4">
                 <!-- Products will be loaded here -->
-                <div class="product-grid-skeleton">
-                    <div class="skeleton skeleton-product-image"></div>
-                    <div class="skeleton skeleton-line"></div>
-                    <div class="skeleton skeleton-line short"></div>
-                    <div class="skeleton skeleton-product-button"></div>
+                <div class="product-grid-skeleton bg-white rounded-lg p-2 shadow-sm">
+                    <div class="skeleton skeleton-product-image mb-2"></div>
+                    <div class="skeleton h-4 w-3/4 mb-2"></div>
+                    <div class="skeleton h-6 w-1/2 mb-3"></div>
+                    <div class="skeleton h-10 w-full rounded-lg"></div>
                 </div>
-                <div class="product-grid-skeleton">
-                    <div class="skeleton skeleton-product-image"></div>
-                    <div class="skeleton skeleton-line"></div>
-                    <div class="skeleton skeleton-line short"></div>
-                    <div class="skeleton skeleton-product-button"></div>
+                <div class="product-grid-skeleton bg-white rounded-lg p-2 shadow-sm">
+                    <div class="skeleton skeleton-product-image mb-2"></div>
+                    <div class="skeleton h-4 w-3/4 mb-2"></div>
+                    <div class="skeleton h-6 w-1/2 mb-3"></div>
+                    <div class="skeleton h-10 w-full rounded-lg"></div>
                 </div>
                 <div class="product-grid-skeleton hidden lg:flex">
                     <div class="skeleton skeleton-product-image"></div>

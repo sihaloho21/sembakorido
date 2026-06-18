@@ -655,8 +655,8 @@ function renderCategoryFilters() {
     
     // Keep "Semua" button and add dynamic categories with carousel styling
     const allBtnClass = currentCategory === 'Semua'
-        ? 'filter-btn active snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-green-500 bg-green-50 text-green-700 text-sm font-bold transition hover:border-green-600 hover:bg-green-100'
-        : 'filter-btn snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-gray-300 bg-white text-gray-700 text-sm font-bold transition hover:border-green-500 hover:bg-green-50';
+        ? 'filter-btn active snap-start flex-shrink-0 px-4 py-1.5 md:px-6 md:py-2 rounded-full border-2 border-green-500 bg-green-50 text-green-700 text-xs md:text-sm font-bold transition hover:border-green-600 hover:bg-green-100'
+        : 'filter-btn snap-start flex-shrink-0 px-4 py-1.5 md:px-6 md:py-2 rounded-full border-2 border-gray-300 bg-white text-gray-700 text-xs md:text-sm font-bold transition hover:border-green-500 hover:bg-green-50';
     let html = `<button type="button" data-action="set-category" data-category="Semua" class="${allBtnClass}">Semua</button>`;
     
     categories.forEach(cat => {
@@ -1952,42 +1952,40 @@ function renderProducts(products) {
             ? getProductCardCartControlState(p)
             : null;
         cardsHtml += `
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300 relative${hiddenCardClass}" data-product-id="${productId}" aria-disabled="${isHiddenProd ? 'true' : 'false'}">
+            <div class="bg-white rounded-lg md:rounded-xl shadow-md md:shadow-lg overflow-hidden hover:shadow-xl transition duration-300 relative${hiddenCardClass}" data-product-id="${productId}" aria-disabled="${isHiddenProd ? 'true' : 'false'}">
                 ${hiddenBanner}
                 <!-- Wishlist Heart Button -->
                 <button id="wishlist-btn-${productId}" ${wishlistButtonAttrs} class="${wishlistButtonClass}" aria-label="${wishlistLabel}" title="${wishlistLabel}">
                     ${heartIcon}
                 </button>
-                <div class="absolute top-3 left-3 z-10 flex flex-col gap-2">
-                    <div class="bg-amber-300 text-amber-900 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                <div class="absolute top-2 left-2 md:top-3 md:left-3 z-10 flex flex-col gap-1 md:gap-2">
+                    <div class="bg-amber-300 text-amber-900 text-[8px] md:text-[10px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg shadow-sm flex items-center gap-1">
+                        <svg class="w-2.5 h-2.5 md:w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
                         +${rewardPoints} Poin
                     </div>
                     ${hasGrosir ? `
-                    <div class="bg-green-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7c.78.78.78 2.047 0 2.828l-7 7c-.78.78-2.047.78-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
-                        Harga Grosir Tersedia
+                    <div class="bg-green-600 text-white text-[8px] md:text-[10px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg shadow-sm flex items-center gap-1">
+                        <svg class="w-2.5 h-2.5 md:w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7c.78.78.78 2.047 0 2.828l-7 7c-.78.78-2.047.78-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                        Grosir
                     </div>
                     ` : ''}
                 </div>
-                <div class="lazy-image-wrapper bg-white" style="aspect-ratio: 16 / 9;">
+                <div class="lazy-image-wrapper bg-white" style="aspect-ratio: 1 / 1;">
                     <div class="skeleton skeleton-product-image"></div>
-                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="720" height="405" data-fallback-src="https://placehold.co/300x200?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="https://placehold.co/500x500?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
                 </div>
-                <div class="p-2">
-                    <div class="flex justify-between items-start mb-4">
-                        <h4 class="text-[13px] font-bold text-gray-800">${escapeHtml(p.nama)}</h4>
+                <div class="p-2 md:p-3">
+                    <div class="flex flex-col mb-2">
+                        <h4 class="text-[12px] md:text-[14px] font-medium text-gray-800 line-clamp-2 mb-1 min-h-[32px] md:min-h-[40px]">${escapeHtml(p.nama)}</h4>
                         ${stokLabel}
                     </div>
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <div class="bg-green-50 p-3 rounded-lg">
-                            <p class="text-[10px] text-green-600 font-bold uppercase">Harga Cash</p>
-                            <div class="flex flex-col">
-                                ${hargaCoretHtml}
-                                <p class="text-lg font-bold text-green-700">Rp ${p.harga.toLocaleString('id-ID')}</p>
-                            </div>
+                    <div class="flex flex-col mb-3">
+                        <div class="flex flex-col">
+                            ${hargaCoretHtml}
+                            <p class="text-[16px] md:text-lg font-bold text-green-700">Rp ${p.harga.toLocaleString('id-ID')}</p>
                         </div>
-                        <div class="bg-blue-50 p-3 rounded-lg">
+                        <!-- Bayar Gajian Section Hidden as requested -->
+                        <div class="hidden bg-blue-50 p-2 md:p-3 rounded-lg mt-2">
                             <p class="text-[10px] text-blue-600 font-bold uppercase">Bayar Gajian</p>
                             <div class="flex flex-col">
                                 <p class="text-[8px] text-blue-700 mb-0.5">Harga Per Tgl ${new Date().toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'}).replace(/\//g, '-')}</p>
