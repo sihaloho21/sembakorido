@@ -264,6 +264,21 @@
     border-radius: 0.75rem;
 }
 
+@media (max-width: 768px) {
+    .promo-carousel-dot {
+        width: 0.5rem;
+        height: 0.5rem;
+    }
+    .promo-carousel-dot.active {
+        width: 1.25rem;
+        border-radius: 0.25rem;
+    }
+    .promo-carousel-dots {
+        gap: 0.35rem;
+        margin-top: 0.75rem;
+    }
+}
+
 /* Animations */
 @keyframes fadeInUp {
     from {

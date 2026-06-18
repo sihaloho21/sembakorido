@@ -143,6 +143,8 @@ class PromotionalBannerCarousel {
                 ` : ''}
             </div>
             
+
+
             ${showNavigation ? `
             <div class="promo-carousel-dots" id="promo-carousel-dots">
                 ${this.banners.map((_, index) => `
