@@ -248,11 +248,11 @@ function renderProductCardCartControl(product) {
 
     if (mode === 'stepper' && quantity > 0) {
         return `
-            <div class="product-card-cart-control flex items-center justify-between rounded-full bg-green-600 px-0.5 py-0.5 shadow-md text-white min-w-[70px] md:min-w-[80px]">
+            <div class="product-card-cart-control flex items-center justify-between rounded-full bg-green-600 px-1 py-1 shadow-md text-white min-w-[70px] md:min-w-[80px]">
                 <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="-1" class="flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-full hover:bg-green-700 transition active:scale-90" aria-label="Kurangi">
                     <svg class="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"></path></svg>
                 </button>
-                <span class="product-card-cart-count px-0.5 font-black tabular-nums text-[11px] md:text-sm">${quantity}</span>
+                <span class="product-card-cart-count px-1 font-black tabular-nums text-[11px] md:text-sm">${quantity}</span>
                 <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="1" ${quantity >= maxStock ? 'disabled opacity-50' : ''} class="flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-full hover:bg-green-700 transition active:scale-90" aria-label="Tambah">
                     <svg class="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
                 </button>
@@ -1866,15 +1866,15 @@ function renderProducts(products) {
 
         let stokLabel = '';
         if (isHiddenProd) {
-            stokLabel = `<span class="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold">Sedang Tidak Tersedia Saat Ini</span>`;
+            stokLabel = `<span class="bg-gray-100 text-gray-500 text-[10px] px-2 py-1 rounded-full font-bold">Sedang Tidak Tersedia Saat Ini</span>`;
         } else if (p.stok > 10) {
             stokLabel = '';
         } else if (p.stok > 5) {
-            stokLabel = `<span class="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Stok Menipis (${p.stok})</span>`;
+            stokLabel = `<span class="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-1 rounded-full font-bold">Stok Menipis (${p.stok})</span>`;
         } else if (p.stok > 0) {
-            stokLabel = `<span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Hanya sisa ${p.stok}</span>`;
+            stokLabel = `<span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded-full font-bold">Hanya sisa ${p.stok}</span>`;
         } else {
-            stokLabel = `<span class="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Stok Habis</span>`;
+            stokLabel = `<span class="bg-red-100 text-red-700 text-[10px] px-2 py-1 rounded-full font-bold">Stok Habis</span>`;
         }
 
         const images = p.gambar ? p.gambar.split(',') : [];
@@ -1894,7 +1894,7 @@ function renderProducts(products) {
                     hasGrosir = true;
                     const sortedTiers = [...tiers].sort((a, b) => a.min_qty - b.min_qty);
                     const gridItems = sortedTiers.map(t => `
-                        <div class="bg-green-50 border border-green-100 rounded-lg p-1.5 text-center">
+                        <div class="bg-green-50 border border-green-100 rounded-lg p-2 text-center">
                             <p class="text-[8px] text-green-600 font-bold uppercase leading-tight">Min. ${t.min_qty}</p>
                             <p class="text-[10px] text-green-700 font-black">Rp ${t.price.toLocaleString('id-ID')}</p>
                         </div>
@@ -1914,9 +1914,9 @@ function renderProducts(products) {
         if (p.hargaCoret > p.harga) {
             const diskon = Math.round(((p.hargaCoret - p.harga) / p.hargaCoret) * 100);
             hargaCoretHtml = `
-                <div class="flex items-center gap-1 mb-0.5">
+                <div class="flex items-center gap-1 mb-1">
                     <span class="text-[10px] text-gray-600 line-through">Rp ${p.hargaCoret.toLocaleString('id-ID')}</span>
-                    <span class="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded font-bold">-${diskon}%</span>
+                    <span class="bg-red-500 text-white text-[8px] px-2 py-1 rounded font-bold">-${diskon}%</span>
                 </div>
             `;
         }
@@ -1939,29 +1939,29 @@ function renderProducts(products) {
             ? 'disabled aria-disabled="true" tabindex="-1"'
             : `data-action="toggle-wishlist" data-product-id="${productId}"`;
         const wishlistButtonClass = isHiddenProd
-            ? 'absolute top-1 right-1 md:top-2 md:right-2 z-20 p-1 md:p-1.5 bg-white/90 rounded-full shadow-md transition opacity-60 cursor-not-allowed'
-            : 'absolute top-1 right-1 md:top-2 md:right-2 z-20 p-1 md:p-1.5 bg-white/90 hover:bg-white rounded-full shadow-md transition active:scale-95';
+            ? 'absolute top-2 right-1 md:top-2 md:right-3 z-20 p-2 bg-white/90 rounded-full shadow-md transition opacity-60 cursor-not-allowed'
+            : 'absolute top-2 right-1 md:top-2 md:right-3 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition active:scale-95';
         const imageActionAttrs = isHiddenProd ? '' : `data-action="show-detail" data-product-id="${productId}"`;
         const imageInteractiveClass = isHiddenProd ? 'cursor-default' : 'cursor-pointer hover:opacity-90';
         const inlineCartState = !isHiddenProd && !hasVariations
             ? getProductCardCartControlState(p)
             : null;
         cardsHtml += `
-	            <div class="bg-white rounded-lg md:rounded-xl shadow-md md:shadow-lg overflow-hidden hover:shadow-xl transition duration-300 relative${hiddenCardClass}" data-product-id="${productId}" aria-disabled="${isHiddenProd ? 'true' : 'false'}">
+	            <div class="bg-white rounded-lg md:rounded-xl shadow-md md:shadow-lg hover:shadow-xl transition duration-300 relative${hiddenCardClass}" data-product-id="${productId}" aria-disabled="${isHiddenProd ? 'true' : 'false'}">
 	                ${hiddenBanner}
-	                <div class="absolute top-1 left-1 md:top-3 md:left-3 z-10 flex flex-col gap-0.5 md:gap-1">
-	                    <div class="bg-amber-300 text-amber-900 text-[6px] md:text-[10px] font-bold px-0.5 py-0.5 md:px-2 md:py-1 rounded md:rounded-lg shadow-sm flex items-center gap-0.5 md:gap-1">
-	                        <svg class="w-1.5 h-1.5 md:w-3 md:h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+	                                <div class="absolute top-1 left-1 md:top-3 md:left-3 z-10 flex flex-col gap-1 md:gap-1">
+                    <div class="bg-amber-300 text-amber-900 text-[8px] md:text-[10px] font-bold px-1 py-1 md:px-2 md:py-1 rounded md:rounded-lg shadow-sm flex items-center gap-1 md:gap-1">
+                        <svg class="w-3 h-3 md:w-3 md:h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
 	                        +${rewardPoints}
 	                    </div>
 	                    ${hasGrosir ? `
-	                    <div class="bg-green-600 text-white text-[6px] md:text-[10px] font-bold px-0.5 py-0.5 md:px-2 md:py-1 rounded md:rounded-lg shadow-sm flex items-center gap-0.5 md:gap-1">
-	                        <svg class="w-1.5 h-1.5 md:w-3 md:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7c.78.78.78 2.047 0 2.828l-7 7c-.78.78-2.047.78-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+	                                        <div class="bg-green-600 text-white text-[8px] md:text-[10px] font-bold px-1 py-1 md:px-2 md:py-1 rounded md:rounded-lg shadow-sm flex items-center gap-1 md:gap-1">
+                        <svg class="w-3 h-3 md:w-3 md:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7c.78.78.78 2.047 0 2.828l-7 7c-.78.78-2.047.78-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
 	                        Grosir
 	                    </div>
 	                    ` : ''}
 	                </div>
-	                <div class="lazy-image-wrapper bg-white relative" style="aspect-ratio: 1 / 1;">
+	                <div class="lazy-image-wrapper bg-white relative" style="aspect-ratio: 4 / 3;">
 	                    <div class="skeleton skeleton-product-image"></div>
 	                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="https://placehold.co/500x500?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
 	                    
@@ -1970,9 +1970,9 @@ function renderProducts(products) {
 	                        ${heartIcon}
 	                    </button>
 	                </div>
-	                <div class="p-1.5 md:p-3">
+                    <div class="p-2 md:p-3">
 	                    <div class="flex flex-col mb-1 md:mb-2">
-	                        <h4 class="text-[11px] md:text-[14px] font-medium text-gray-800 line-clamp-2 mb-0.5 md:mb-1 min-h-[28px] md:min-h-[40px] leading-tight">${escapeHtml(p.nama)}</h4>
+	                        <h4 class="text-[11px] md:text-[14px] font-medium text-gray-800 line-clamp-2 mb-1 md:mb-1 min-h-[28px] md:min-h-[40px] leading-tight">${escapeHtml(p.nama)}</h4>
 	                        ${stokLabel}
 	                    </div>
 	                    <div class="flex flex-col mb-2 md:mb-3">
@@ -1984,14 +1984,14 @@ function renderProducts(products) {
                         <div class="hidden bg-blue-50 p-2 md:p-3 rounded-lg mt-2">
                             <p class="text-[10px] text-blue-600 font-bold uppercase">Bayar Gajian</p>
                             <div class="flex flex-col">
-                                <p class="text-[8px] text-blue-700 mb-0.5">Harga Per Tgl ${new Date().toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'}).replace(/\//g, '-')}</p>
+                                <p class="text-[8px] text-blue-700 mb-1">Harga Per Tgl ${new Date().toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'}).replace(/\//g, '-')}</p>
                                 <p class="text-lg font-bold text-blue-700">Rp ${p.hargaGajian.toLocaleString('id-ID')}</p>
                             </div>
                         </div>
                     </div>
                     ${grosirGridHtml}
                     ${!isHiddenProd ? `
-                    <div class="absolute bottom-1.5 right-1.5 md:bottom-3 md:right-3 z-20">
+                    <div class="flex items-center justify-end mt-1 md:absolute md:bottom-4 md:right-4 md:mt-0">
                         ${hasVariations ? `
                         <button data-action="show-detail" data-product-id="${productId}" class="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-green-600 text-white shadow-md hover:bg-green-700 transition active:scale-95" aria-label="Lihat Pilihan">
                             <svg class="w-4 h-4 md:w-5 md:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
