@@ -122,7 +122,7 @@
 /* Image wrapper for lazy loading */
 .lazy-image-wrapper {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .lazy-image-wrapper img {
