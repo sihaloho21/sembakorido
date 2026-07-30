@@ -99,9 +99,6 @@
             font: inherit;
             padding: 0;
         }
-        .header-mobile-menu {
-            display: inline-flex;
-        }
         .header-main-row {
             min-height: 76px;
         }
@@ -427,9 +424,6 @@
             .header-desktop-search {
                 display: flex;
             }
-            .header-mobile-menu {
-                display: none;
-            }
             .hero-offset {
                 padding-top: 128px;
             }
@@ -458,8 +452,7 @@
                 padding: 0 0.75rem;
             }
             .header-search-active .header-actions,
-            .header-search-active .header-logo,
-            .header-search-active .header-mobile-menu {
+            .header-search-active .header-logo {
                 display: none;
             }
             .header-search-active .header-search {
@@ -1428,12 +1421,6 @@
         </div>
         <div class="bg-white/95 backdrop-blur">
             <div class="container mx-auto flex items-center gap-3 px-4 md:gap-4 header-main-row">
-                <button type="button" class="header-mobile-menu items-center justify-center rounded-2xl border border-gray-200 p-2 text-gray-700 transition hover:border-green-300 hover:bg-green-50" data-action="open-category" aria-label="Buka kategori">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16"></path>
-                    </svg>
-                </button>
-
                 <button type="button" class="header-logo flex shrink-0 items-center gap-3 text-left" data-action="logo-click" aria-label="Logo Paket Sembako">
                     <img src="assets/img/logo.png" alt="Paket Sembako Logo" class="header-brand-image" data-fallback-src="assets/img/logo.png">
                     <h1 class="header-brand-name hidden sm:block">Paket Sembako</h1>
