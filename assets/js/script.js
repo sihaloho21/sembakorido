@@ -1995,26 +1995,22 @@ function renderProducts(products) {
                     </div>
                     ${grosirGridHtml}
                     ${isHiddenProd ? `
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                        <button disabled class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gray-200 text-sm font-semibold text-gray-400 cursor-not-allowed">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-                            Sedang Tidak Tersedia
-                        </button>
-                        <button disabled class="h-11 w-full rounded-xl bg-gray-100 text-sm font-semibold text-gray-300 cursor-not-allowed">Beli</button>
-                    </div>
+                    <button disabled class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gray-200 text-sm font-semibold text-gray-400 cursor-not-allowed mb-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                        Sedang Tidak Tersedia
+                    </button>
                     ` : `
-                    <div class="grid grid-cols-2 gap-2 mb-2 items-stretch">
+                    <div class="flex mb-2">
                         ${hasVariations ? `
                         <button data-action="show-detail" data-product-id="${productId}" class="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 text-sm font-semibold text-green-700 transition hover:border-green-300 hover:bg-green-100">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 4h11.5M9 19.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm10 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path></svg>
                             + Keranjang
                         </button>
                         ` : `
-                        <div class="product-card-cart-slot h-full" data-product-cart-slot data-product-id="${productId}" data-cart-mode="${inlineCartState.mode}" data-cart-qty="${inlineCartState.quantity}">
+                        <div class="product-card-cart-slot w-full" data-product-cart-slot data-product-id="${productId}" data-cart-mode="${inlineCartState.mode}" data-cart-qty="${inlineCartState.quantity}">
                             ${renderProductCardCartControl(p)}
                         </div>
                         `}
-                        <button data-action="direct-order" data-product-id="${productId}" ${p.stok === 0 ? 'disabled' : ''} class="h-11 w-full rounded-xl bg-green-600 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none">Beli</button>
                     </div>
                     `}
 
