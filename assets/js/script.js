@@ -1939,20 +1939,16 @@ function renderProducts(products) {
             ? 'disabled aria-disabled="true" tabindex="-1"'
             : `data-action="toggle-wishlist" data-product-id="${productId}"`;
         const wishlistButtonClass = isHiddenProd
-            ? 'absolute top-2 right-2 md:top-3 md:right-3 z-20 p-1.5 bg-white/90 rounded-full shadow-md transition opacity-60 cursor-not-allowed'
-            : 'absolute top-2 right-2 md:top-3 md:right-3 z-20 p-1.5 bg-white/90 hover:bg-white rounded-full shadow-md transition active:scale-95';
+            ? 'absolute bottom-2 right-2 md:bottom-3 md:right-3 z-20 p-1.5 bg-white/90 rounded-full shadow-md transition opacity-60 cursor-not-allowed'
+            : 'absolute bottom-2 right-2 md:bottom-3 md:right-3 z-20 p-1.5 bg-white/90 hover:bg-white rounded-full shadow-md transition active:scale-95';
         const imageActionAttrs = isHiddenProd ? '' : `data-action="show-detail" data-product-id="${productId}"`;
         const imageInteractiveClass = isHiddenProd ? 'cursor-default' : 'cursor-pointer hover:opacity-90';
         const inlineCartState = !isHiddenProd && !hasVariations
             ? getProductCardCartControlState(p)
             : null;
         cardsHtml += `
-            <div class="bg-white rounded-lg md:rounded-xl shadow-md md:shadow-lg overflow-hidden hover:shadow-xl transition duration-300 relative${hiddenCardClass}" data-product-id="${productId}" aria-disabled="${isHiddenProd ? 'true' : 'false'}">
-                ${hiddenBanner}
-                <!-- Wishlist Heart Button -->
-                <button id="wishlist-btn-${productId}" ${wishlistButtonAttrs} class="${wishlistButtonClass}" aria-label="${wishlistLabel}" title="${wishlistLabel}">
-                    ${heartIcon}
-                </button>
+	            <div class="bg-white rounded-lg md:rounded-xl shadow-md md:shadow-lg overflow-hidden hover:shadow-xl transition duration-300 relative${hiddenCardClass}" data-product-id="${productId}" aria-disabled="${isHiddenProd ? 'true' : 'false'}">
+	                ${hiddenBanner}
 	                <div class="absolute top-1.5 left-1.5 md:top-3 md:left-3 z-10 flex flex-col gap-1">
 	                    <div class="bg-amber-300 text-amber-900 text-[7px] md:text-[10px] font-bold px-1 py-0.5 md:px-2 md:py-1 rounded md:rounded-lg shadow-sm flex items-center gap-0.5 md:gap-1">
 	                        <svg class="w-2 h-2 md:w-3 md:h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
@@ -1965,10 +1961,15 @@ function renderProducts(products) {
 	                    </div>
 	                    ` : ''}
 	                </div>
-                <div class="lazy-image-wrapper bg-white" style="aspect-ratio: 1 / 1;">
-                    <div class="skeleton skeleton-product-image"></div>
-                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="https://placehold.co/500x500?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
-                </div>
+	                <div class="lazy-image-wrapper bg-white relative" style="aspect-ratio: 1 / 1;">
+	                    <div class="skeleton skeleton-product-image"></div>
+	                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="https://placehold.co/500x500?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+	                    
+	                    <!-- Wishlist Heart Button -->
+	                    <button id="wishlist-btn-${productId}" ${wishlistButtonAttrs} class="${wishlistButtonClass}" aria-label="${wishlistLabel}" title="${wishlistLabel}">
+	                        ${heartIcon}
+	                    </button>
+	                </div>
 	                <div class="p-1.5 md:p-3">
 	                    <div class="flex flex-col mb-1 md:mb-2">
 	                        <h4 class="text-[11px] md:text-[14px] font-medium text-gray-800 line-clamp-2 mb-0.5 md:mb-1 min-h-[28px] md:min-h-[40px] leading-tight">${escapeHtml(p.nama)}</h4>
