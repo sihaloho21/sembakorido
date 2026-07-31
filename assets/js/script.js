@@ -1991,7 +1991,7 @@ function renderProducts(products) {
                     </div>
                     ${grosirGridHtml}
                     ${!isHiddenProd ? `
-                    <div class="absolute bottom-2 right-2 md:bottom-4 md:right-4">
+                    <div class="flex items-center justify-end px-2 pt-1 pb-2 md:px-3 md:pb-3">
                         ${hasVariations ? `
                         <button data-action="show-detail" data-product-id="${productId}" class="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-green-600 text-white shadow-md hover:bg-green-700 transition active:scale-95" aria-label="Lihat Pilihan">
                             <svg class="w-4 h-4 md:w-5 md:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
