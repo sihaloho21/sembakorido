@@ -3333,18 +3333,38 @@ function handleUseCurrentLocation() {
         (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-            const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
             
-            // Set to add mode
-            document.getElementById('address-index').value = '-1';
+            // Update button text to show progress
+            btn.innerHTML = '<span class="text-sm italic">Mencari alamat...</span>';
             
-            // Open form with pre-filled address
-            openAddressFormModal();
-            document.getElementById('addr-detail').value = mapsUrl;
-            document.getElementById('addr-label').value = 'Lokasi Saat Ini';
-            
-            btn.disabled = false;
-            btn.innerHTML = originalContent;
+            // Gunakan Nominatim (OpenStreetMap) untuk reverse geocoding agar mendapatkan alamat teks
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+                .then(response => response.json())
+                .then(data => {
+                    const address = data.display_name || `Lat: ${lat}, Lng: ${lng}`;
+                    
+                    // Set ke mode tambah baru
+                    document.getElementById('address-index').value = '-1';
+                    // Buka form dengan alamat yang sudah terisi
+                    openAddressFormModal();
+                    document.getElementById('addr-detail').value = address;
+                    document.getElementById('addr-label').value = 'Lokasi Saat Ini';
+                    
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                })
+                .catch(error => {
+                    console.error('Reverse geocoding error:', error);
+                    // Fallback ke koordinat jika gagal
+                    const fallbackAddr = `Lokasi (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+                    document.getElementById('address-index').value = '-1';
+                    openAddressFormModal();
+                    document.getElementById('addr-detail').value = fallbackAddr;
+                    document.getElementById('addr-label').value = 'Lokasi Saat Ini';
+                    
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                });
         },
         (error) => {
             showToast('Gagal mengambil lokasi. Pastikan izin lokasi aktif.');
