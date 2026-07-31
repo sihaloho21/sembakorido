@@ -1584,8 +1584,9 @@ function showDashboard(user) {
     
     // Display user info
     document.getElementById('user-name').textContent = user.nama;
-    document.getElementById('user-whatsapp').textContent = displayPhone(user.whatsapp);
-    
+        document.getElementById('user-whatsapp').textContent = displayPhone(user.whatsapp);
+    // Sync address display
+    if (typeof updateProfileAddress === 'function') updateProfileAddress();
     // Load loyalty points from user_points sheet
     loadLoyaltyPoints(user);
 
@@ -3943,3 +3944,327 @@ showLogin = function() {
         bottomNav.classList.remove('hidden');
     }
 };
+
+/**
+ * Address Management for Akun Page
+ */
+function getStoredAddresses() {
+    try {
+        const stored = localStorage.getItem('user_addresses');
+        return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveStoredAddresses(addresses) {
+    localStorage.setItem('user_addresses', JSON.stringify(addresses.slice(0, 3)));
+}
+
+function updateProfileAddress() {
+    const container = document.getElementById('user-address-container');
+    const labelEl = document.getElementById('user-address-label');
+    const detailEl = document.getElementById('user-address-detail');
+    if (!container || !labelEl || !detailEl) return;
+
+    const addresses = getStoredAddresses();
+    const selectedIndex = parseInt(localStorage.getItem('selected_address_index') || '0', 10);
+    
+    if (addresses.length > 0 && addresses[selectedIndex]) {
+        const addr = addresses[selectedIndex];
+        labelEl.textContent = addr.label || 'Home';
+        detailEl.textContent = addr.detail;
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+    }
+}
+
+function openLocationPickerModal() {
+    const modal = document.getElementById('location-picker-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.body.classList.add('modal-active');
+        renderAddressList();
+        if (!modal.dataset.backdropInit) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeLocationPickerModal();
+            });
+            modal.dataset.backdropInit = 'true';
+        }
+    }
+}
+
+function closeLocationPickerModal() {
+    const modal = document.getElementById('location-picker-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        const visibleModals = Array.from(document.querySelectorAll('[data-modal]')).filter(m => !m.classList.contains('hidden'));
+        if (visibleModals.length === 0) {
+            document.body.classList.remove('modal-active');
+        }
+    }
+}
+
+function renderAddressList() {
+    const listContainer = document.getElementById('address-list');
+    if (!listContainer) return;
+    const addresses = getStoredAddresses();
+    const selectedIndex = parseInt(localStorage.getItem('selected_address_index') || '0', 10);
+    if (addresses.length === 0) {
+        listContainer.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <p class="text-sm">Belum ada alamat tersimpan.</p>
+            </div>
+        `;
+        return;
+    }
+    const escapeHtml = (str) => {
+        const t = document.createElement("div");
+        return t.textContent = str, t.innerHTML;
+    };
+    listContainer.innerHTML = addresses.map((addr, index) => {
+        const isSelected = index === selectedIndex;
+        return `
+            <div class="flex items-start gap-3 group cursor-pointer" onclick="selectAddress(${index})">
+                <div class="mt-1 ${isSelected ? 'text-blue-600' : 'text-gray-400'} flex-shrink-0">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3L4 9v12h5v-7h6v7h5V9l-8-6z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0 border-b border-gray-100 pb-4">
+                    <div class="flex items-center gap-2 mb-1">
+                        <p class="text-sm font-bold text-gray-800 truncate">${escapeHtml(addr.label)}, ${escapeHtml(addr.name)}</p>
+                        ${isSelected ? '<span class="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded font-bold">Terpilih</span>' : ''}
+                    </div>
+                    <p class="text-xs text-gray-600 line-clamp-2">${escapeHtml(addr.detail)}</p>
+                    ${addr.note ? `<p class="text-xs text-gray-400 mt-1">${escapeHtml(addr.note)}</p>` : ''}
+                </div>
+                <div class="flex items-center gap-1">
+                    <button type="button" onclick="event.stopPropagation(); openEditAddressForm(${index})" class="text-gray-400 hover:text-blue-600 p-1.5 transition rounded-lg hover:bg-blue-50" title="Edit Alamat">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </button>
+                    <button type="button" onclick="event.stopPropagation(); confirmDeleteAddress(${index})" class="text-gray-400 hover:text-red-600 p-1.5 transition rounded-lg hover:bg-red-50" title="Hapus Alamat">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function selectAddress(index) {
+    const addresses = getStoredAddresses();
+    if (addresses[index]) {
+        localStorage.setItem('selected_address_index', index);
+        localStorage.setItem('cart_recipient_name', addresses[index].name);
+        localStorage.setItem('cart_delivery_address', addresses[index].detail);
+        localStorage.setItem('cart_address_note', addresses[index].note || '');
+        closeLocationPickerModal();
+        updateProfileAddress();
+        showToast('Alamat tujuan pengiriman berhasil diperbarui.');
+    }
+}
+
+function openAddressFormModal() {
+    const addresses = getStoredAddresses();
+    const index = parseInt(document.getElementById('address-index').value, 10);
+    if (index === -1 && addresses.length >= 3) {
+        showToast('Maksimal 3 alamat tersimpan. Silakan edit atau hapus alamat yang ada.');
+        return;
+    }
+    const modal = document.getElementById('address-form-modal');
+    const form = document.getElementById('address-form');
+    if (modal && form) {
+        if (index === -1) {
+            form.reset();
+            document.getElementById('address-form-title').textContent = 'Tambah Alamat Baru';
+            const user = getLoggedInUser();
+            if (user) {
+                const name = user.name || user.full_name || user.fullname || user.nama || '';
+                if (name) document.getElementById('addr-name').value = name;
+            }
+        }
+        modal.classList.remove('hidden');
+        document.body.classList.add('modal-active');
+        if (!modal.dataset.backdropInit) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeAddressFormModal();
+            });
+            modal.dataset.backdropInit = 'true';
+        }
+    }
+}
+
+function openEditAddressForm(index) {
+    const addresses = getStoredAddresses();
+    const addr = addresses[index];
+    if (!addr) return;
+    const modal = document.getElementById('address-form-modal');
+    if (modal) {
+        document.getElementById('addr-label').value = addr.label;
+        document.getElementById('addr-name').value = addr.name;
+        document.getElementById('addr-detail').value = addr.detail;
+        document.getElementById('addr-note').value = addr.note || '';
+        document.getElementById('address-index').value = index;
+        document.getElementById('address-form-title').textContent = 'Edit Alamat';
+        modal.classList.remove('hidden');
+    }
+}
+
+let addressIndexToDelete = null;
+function confirmDeleteAddress(index) {
+    addressIndexToDelete = index;
+    const modal = document.getElementById('delete-address-confirm-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.body.classList.add('modal-active');
+    }
+}
+
+function closeDeleteAddressModal() {
+    const modal = document.getElementById('delete-address-confirm-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        const visibleModals = Array.from(document.querySelectorAll('[data-modal]')).filter(m => !m.classList.contains('hidden'));
+        if (visibleModals.length === 0) {
+            document.body.classList.remove('modal-active');
+        }
+    }
+    addressIndexToDelete = null;
+}
+
+function handleDeleteAddress() {
+    if (addressIndexToDelete === null) return;
+    let addresses = getStoredAddresses();
+    const selectedIndex = parseInt(localStorage.getItem('selected_address_index') || '0', 10);
+    addresses.splice(addressIndexToDelete, 1);
+    saveStoredAddresses(addresses);
+    if (addressIndexToDelete === selectedIndex) {
+        localStorage.setItem('selected_address_index', '0');
+    } else if (addressIndexToDelete < selectedIndex) {
+        localStorage.setItem('selected_address_index', selectedIndex - 1);
+    }
+    closeDeleteAddressModal();
+    renderAddressList();
+    updateProfileAddress();
+    showToast('Alamat berhasil dihapus.');
+}
+
+function closeAddressFormModal() {
+    const modal = document.getElementById('address-form-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        const visibleModals = Array.from(document.querySelectorAll('[data-modal]')).filter(m => !m.classList.contains('hidden'));
+        if (visibleModals.length === 0) {
+            document.body.classList.remove('modal-active');
+        }
+    }
+}
+
+function handleUseCurrentLocation() {
+    const addresses = getStoredAddresses();
+    if (addresses.length >= 3) {
+        showToast('Maksimal 3 alamat tersimpan.');
+        return;
+    }
+    if (!navigator.geolocation) {
+        showToast('Browser tidak mendukung akses lokasi.');
+        return;
+    }
+    const btn = document.querySelector('[data-action="use-current-location"]');
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="text-sm italic">Mengambil lokasi...</span>';
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            btn.innerHTML = '<span class="text-sm italic">Mencari alamat...</span>';
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+                .then(response => response.json())
+                .then(data => {
+                    const address = data.display_name || `Lat: ${lat}, Lng: ${lng}`;
+                    document.getElementById('address-index').value = '-1';
+                    openAddressFormModal();
+                    document.getElementById('addr-detail').value = address;
+                    document.getElementById('addr-label').value = 'Lokasi Saat Ini';
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                })
+                .catch(error => {
+                    console.error('Reverse geocoding error:', error);
+                    const fallbackAddr = `Lokasi (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+                    document.getElementById('address-index').value = '-1';
+                    openAddressFormModal();
+                    document.getElementById('addr-detail').value = fallbackAddr;
+                    document.getElementById('addr-label').value = 'Lokasi Saat Ini';
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                });
+        },
+        (error) => {
+            showToast('Gagal mengambil lokasi. Pastikan izin lokasi aktif.');
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
+}
+
+function initAddressFormAkun() {
+    const addressForm = document.getElementById('address-form');
+    if (addressForm) {
+        addressForm.onsubmit = (e) => {
+            e.preventDefault();
+            const index = parseInt(document.getElementById('address-index').value, 10);
+            const newAddr = {
+                label: document.getElementById('addr-label').value.trim(),
+                name: document.getElementById('addr-name').value.trim(),
+                detail: document.getElementById('addr-detail').value.trim(),
+                note: document.getElementById('addr-note').value.trim()
+            };
+            let addresses = getStoredAddresses();
+            if (index === -1) {
+                addresses.push(newAddr);
+                localStorage.setItem('selected_address_index', addresses.length - 1);
+            } else {
+                addresses[index] = newAddr;
+            }
+            saveStoredAddresses(addresses);
+            localStorage.setItem('cart_recipient_name', newAddr.name);
+            localStorage.setItem('cart_delivery_address', newAddr.detail);
+            localStorage.setItem('cart_address_note', newAddr.note || '');
+            closeAddressFormModal();
+            closeLocationPickerModal();
+            updateProfileAddress();
+            showToast(index === -1 ? 'Alamat baru berhasil ditambahkan.' : 'Alamat berhasil diperbarui.');
+        };
+    }
+}
+
+// Bind address actions
+document.addEventListener('DOMContentLoaded', () => {
+    const bind = (selector, handler) => {
+        const el = document.querySelector(selector);
+        if (el) el.addEventListener('click', handler);
+    };
+    const bindAll = (selector, handler) => {
+        document.querySelectorAll(selector).forEach((el) => {
+            el.addEventListener('click', handler);
+        });
+    };
+
+    bindAll('[data-action="open-location-picker"]', () => openLocationPickerModal());
+    bindAll('[data-action="close-location-picker"]', () => closeLocationPickerModal());
+    bindAll('[data-action="use-current-location"]', () => handleUseCurrentLocation());
+    bindAll('[data-action="open-address-form"]', () => {
+        document.getElementById('address-index').value = '-1';
+        openAddressFormModal();
+    });
+    bindAll('[data-action="close-address-form"]', () => closeAddressFormModal());
+    bindAll('[data-action="close-delete-address"]', () => closeDeleteAddressModal());
+    
+    const confirmDeleteBtn = document.getElementById('confirm-delete-address-btn');
+    if (confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', () => handleDeleteAddress());
+    
+    initAddressFormAkun();
+});
