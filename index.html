@@ -2039,10 +2039,36 @@
             
                         <div class="space-y-6">
                 <!-- Shipping Address Section -->
-                <div id="order-shipping-address-container" class="order-form-section">
+                <div id="order-shipping-address-container" class="order-form-section space-y-4">
                     <div id="order-shipping-address-placeholder">
                         <!-- Will be populated via JS -->
                     </div>
+                    <fieldset class="grid grid-cols-2 gap-3">
+                        <legend class="sr-only">Metode Pengiriman</legend>
+                        <label class="radio-card relative cursor-pointer">
+                            <input type="radio" name="ship-method" value="Antar Nikomas" onchange="toggleLocationField()" class="absolute opacity-0">
+                            <div class="radio-label p-3 rounded-xl flex items-center gap-3 transition">
+                                <div class="radio-dot w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
+                                <div>
+                                    <p class="font-bold text-gray-800 text-[10px]">Diantar Nikomas</p>
+                                    <p class="text-[9px] text-gray-500">Area Nikomas • Gratis</p>
+                                    <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
+                                </div>
+                            </div>
+                        </label>
+                        <label class="radio-card relative cursor-pointer">
+                            <input type="radio" name="ship-method" value="Ambil Ditempat" onchange="toggleLocationField()" class="absolute opacity-0">
+                            <div class="radio-label p-3 rounded-xl flex items-center gap-3 transition">
+                                <div class="radio-dot w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
+                                <div>
+                                    <p class="font-bold text-gray-800 text-[10px]">Ambil di Tempat</p>
+                                    <p class="text-[9px] text-gray-500">Ambil di Toko • Gratis</p>
+                                    <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
+                                </div>
+                            </div>
+                        </label>
+                    </fieldset>
+                    <p id="shipping-method-error" class="hidden text-[10px] font-semibold text-red-600" aria-live="polite"></p>
                 </div>
 
                 <!-- Hidden Customer Info Fields (Keep for WA logic) -->
@@ -2072,41 +2098,8 @@
                     <div id="order-shipping" class="hidden"></div>
                 </div>
 
-                <!-- Section 3: Metode Pengiriman -->
-                <div class="order-form-section order-form-section--shipping space-y-4">
-                    <h4 class="order-form-section__title text-sm font-bold text-gray-700 flex items-center gap-2">
-                        <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        Metode Pengiriman
-                    </h4>
-                    <fieldset class="grid grid-cols-1 gap-3">
-                        <legend class="sr-only">Metode Pengiriman</legend>
-                        <label class="radio-card relative cursor-pointer">
-                            <input type="radio" name="ship-method" value="Antar Nikomas" onchange="toggleLocationField()" class="absolute opacity-0">
-                            <div class="radio-label p-3  rounded-xl flex items-center gap-3 transition">
-                                <div class="radio-dot w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
-                                <div>
-                                    <p class="font-bold text-gray-800 text-xs">Diantar Nikomas</p>
-                                    <p class="text-[10px] text-gray-500">Khusus area PT Nikomas Gemilang • Gratis</p>
-                                    <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
-                                </div>
-                            </div>
-                        </label>
-                        <label class="radio-card relative cursor-pointer">
-                            <input type="radio" name="ship-method" value="Ambil Ditempat" onchange="toggleLocationField()" class="absolute opacity-0">
-                            <div class="radio-label p-3  rounded-xl flex items-center gap-3 transition">
-                                <div class="radio-dot w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
-                                <div>
-                                    <p class="font-bold text-gray-800 text-xs">Ambil di Tempat</p>
-                                    <p class="text-[10px] text-gray-500">Ambil langsung di toko kami • Gratis</p>
-                                    <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
-                                </div>
-                            </div>
-                        </label>
-                    </fieldset>
-                    <p id="shipping-method-error" class="hidden text-[10px] font-semibold text-red-600" aria-live="polite"></p>
-
-                    <!-- Location Field (Conditional) -->
-                    <div id="location-field" class="hidden order-form-section__subpanel space-y-3">
+                                <!-- Location Field (Conditional) -->
+                <div id="location-field" class="hidden order-form-section order-form-section--shipping space-y-3 pt-0">
                         <label class="block text-xs font-bold text-blue-700 uppercase">Lokasi Pengiriman / Pengambilan</label>
                     
                     <!-- UI for Delivery -->
