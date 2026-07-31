@@ -3067,6 +3067,191 @@ function openCartModal() {
     if (modal) {
         modal.classList.remove('hidden');
         document.body.classList.add('modal-active');
+        populateCartShippingInfo();
+    }
+}
+
+function populateCartShippingInfo() {
+    // Populate recipient name from stored user data
+    const nameEl = document.getElementById('cart-recipient-name');
+    const addressEl = document.getElementById('cart-delivery-address');
+    if (!nameEl || !addressEl) return;
+
+    const user = getStoredLoggedInUser();
+    if (user) {
+        const storedName = user.name || user.full_name || user.fullname || user.nama || '';
+        if (storedName) {
+            nameEl.textContent = storedName;
+        } else {
+            // Check localStorage for previously edited name
+            const savedName = localStorage.getItem('cart_recipient_name');
+            nameEl.textContent = savedName || '-';
+        }
+        // Pre-fill address: user stored address > localStorage saved address
+        const storedAddress = user.alamat || user.address || user.delivery_address || user.alamat_pengiriman || '';
+        const savedAddress = localStorage.getItem('cart_delivery_address') || '';
+        if (storedAddress) {
+            addressEl.value = storedAddress;
+        } else if (savedAddress) {
+            addressEl.value = savedAddress;
+        }
+    } else {
+        // Check localStorage for previously edited name
+        const savedName = localStorage.getItem('cart_recipient_name');
+        nameEl.textContent = savedName || '-';
+        // If not logged in, show placeholder or saved address
+        const savedAddress = localStorage.getItem('cart_delivery_address') || '';
+        if (savedAddress) {
+            addressEl.value = savedAddress;
+        } else {
+            addressEl.placeholder = 'Masukkan alamat pengiriman...';
+        }
+    }
+}
+
+function handleCartUseMyLocation() {
+    const btn = document.getElementById('cart-use-my-location-btn');
+    const addressEl = document.getElementById('cart-delivery-address');
+    const statusEl = document.getElementById('cart-location-status');
+
+    if (!navigator.geolocation) {
+        if (statusEl) {
+            statusEl.textContent = 'Browser ini tidak mendukung akses lokasi. Silakan isi alamat manual.';
+            statusEl.classList.remove('hidden');
+        }
+        return;
+    }
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Mengambil lokasi...';
+    }
+
+    if (statusEl) {
+        statusEl.textContent = 'Sedang mengambil lokasi Anda...';
+        statusEl.classList.remove('hidden');
+        statusEl.className = 'text-[10px] text-blue-600 italic text-center';
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+            if (addressEl) {
+                addressEl.value = mapsUrl;
+            }
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> Lokasi Terambil';
+                btn.classList.remove('bg-blue-500');
+                btn.classList.add('bg-green-600');
+            }
+            if (statusEl) {
+                statusEl.textContent = 'Lokasi Maps berhasil dibagikan!';
+                statusEl.className = 'text-[10px] text-green-600 italic text-center';
+            }
+            // Save to localStorage for future use
+            saveCartDeliveryAddress(addressEl ? addressEl.value : '');
+        },
+        (error) => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> Gunakan Lokasi Saya';
+            }
+            if (statusEl) {
+                let msg = 'Gagal mengambil lokasi.';
+                if (error.code === 1) msg = 'Mohon izinkan akses lokasi di pengaturan browser.';
+                if (error.code === 3) msg = 'Waktu habis, silakan coba lagi.';
+                statusEl.textContent = msg;
+                statusEl.className = 'text-[10px] text-red-500 italic text-center';
+            }
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+}
+
+function handleCartShareLocation() {
+    const addressEl = document.getElementById('cart-delivery-address');
+    const statusEl = document.getElementById('cart-location-status');
+
+    const currentAddress = addressEl ? addressEl.value.trim() : '';
+    if (!currentAddress) {
+        if (statusEl) {
+            statusEl.textContent = 'Masukkan alamat terlebih dahulu.';
+            statusEl.classList.remove('hidden');
+            statusEl.className = 'text-[10px] text-red-500 italic text-center';
+        }
+        return;
+    }
+
+    // Try Web Share API first, fallback to copy
+    const shareData = {
+        text: `Alamat Pengiriman: ${currentAddress}`
+    };
+
+    if (navigator.share) {
+        navigator.share(shareData).then(() => {
+            if (statusEl) {
+                statusEl.textContent = 'Lokasi berhasil dibagikan!';
+                statusEl.className = 'text-[10px] text-green-600 italic text-center';
+            }
+        }).catch(() => {
+            copyAddressToClipboard(addressEl, statusEl);
+        });
+    } else {
+        copyAddressToClipboard(addressEl, statusEl);
+    }
+}
+
+function copyAddressToClipboard(addressEl, statusEl) {
+    const text = addressEl ? addressEl.value.trim() : '';
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        if (statusEl) {
+            statusEl.textContent = 'Alamat berhasil disalin!';
+            statusEl.className = 'text-[10px] text-green-600 italic text-center';
+        }
+        saveCartDeliveryAddress(text);
+    }).catch(() => {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (statusEl) {
+            statusEl.textContent = 'Alamat berhasil disalin!';
+            statusEl.className = 'text-[10px] text-green-600 italic text-center';
+        }
+        saveCartDeliveryAddress(text);
+    });
+}
+
+function saveCartDeliveryAddress(address) {
+    try {
+        localStorage.setItem('cart_delivery_address', address);
+    } catch (e) {
+        // Ignore storage errors
+    }
+}
+
+function openCartEditNameModal() {
+    const nameEl = document.getElementById('cart-recipient-name');
+    if (!nameEl) return;
+    const currentName = nameEl.textContent || '';
+    const newName = prompt('Masukkan nama penerima:', currentName === '-' ? '' : currentName);
+    if (newName !== null && newName.trim()) {
+        nameEl.textContent = newName.trim();
+        // Save to localStorage
+        try {
+            localStorage.setItem('cart_recipient_name', newName.trim());
+        } catch (e) {
+            // Ignore storage errors
+        }
     }
 }
 
