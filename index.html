@@ -3019,7 +3019,11 @@
             bindAll('[data-action="cart-use-my-location"]', () => handleCartUseMyLocation());
             bindAll('[data-action="cart-share-location"]', () => handleCartShareLocation());
             bindAll('[data-action="cart-edit-name"]', () => openCartEditNameModal());
-            bindAll('[data-action="cart-edit-address"]', () => openCartEditAddressModal());
+            bindAll('[data-action="cart-edit-address"]', () => openLocationPickerModal());
+            bindAll('[data-action="close-location-picker"]', () => closeLocationPickerModal());
+            bindAll('[data-action="use-current-location"]', () => handleUseCurrentLocation());
+            bindAll('[data-action="open-address-form"]', () => openAddressFormModal());
+            bindAll('[data-action="close-address-form"]', () => closeAddressFormModal());
             bindAll('[data-action="open-order"]', () => openOrderModal());
             bindAll('[data-action="close-order"]', () => closeOrderModal());
             bindAll('[data-action="close-detail"]', () => closeDetailModal());
@@ -3117,3 +3121,74 @@
     
 </body>
 </html>
+
+    <!-- Modal Pilih Lokasi -->
+    <div id="location-picker-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[70]" role="dialog" aria-modal="true" aria-labelledby="location-picker-title" tabindex="-1" data-modal>
+        <div class="bg-white w-full max-w-md mx-4 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="p-4 flex items-center gap-4 border-b">
+                <button data-action="close-location-picker" class="text-gray-600 hover:text-gray-800" aria-label="Kembali">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <h3 id="location-picker-title" class="text-lg font-bold text-gray-800 flex-1 text-center pr-10">Pilih Lokasi</h3>
+            </div>
+
+            <!-- Current Location Button -->
+            <div class="p-4">
+                <button type="button" data-action="use-current-location" class="w-full flex items-center gap-3 p-3 text-gray-800 hover:bg-gray-50 rounded-xl transition group">
+                    <div class="text-gray-500 group-hover:text-blue-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    </div>
+                    <span class="font-bold text-sm">Gunakan lokasi saya saat ini</span>
+                </button>
+            </div>
+
+            <div class="h-2 bg-gray-100"></div>
+
+            <!-- Address List Container -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <button type="button" data-action="open-address-form" class="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full text-xs font-bold text-gray-600 hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+                    Tambah Alamat
+                </button>
+
+                <div id="address-list" class="space-y-6 pt-2">
+                    <!-- Address items will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Form Alamat -->
+    <div id="address-form-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[80]" role="dialog" aria-modal="true" aria-labelledby="address-form-title" tabindex="-1" data-modal>
+        <div class="bg-white w-full max-w-md mx-4 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="p-4 flex items-center justify-between border-b">
+                <h3 id="address-form-title" class="text-lg font-bold text-gray-800">Detail Alamat</h3>
+                <button data-action="close-address-form" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form id="address-form" class="p-6 space-y-4">
+                <input type="hidden" id="address-index" value="-1">
+                <div>
+                    <label for="addr-label" class="block text-xs font-bold text-gray-500 uppercase mb-1">Label Alamat (e.g. Home, Kantor)</label>
+                    <input type="text" id="addr-label" placeholder="Home" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 outline-none transition text-sm" required>
+                </div>
+                <div>
+                    <label for="addr-name" class="block text-xs font-bold text-gray-500 uppercase mb-1">Nama Penerima</label>
+                    <input type="text" id="addr-name" placeholder="Nama Lengkap" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 outline-none transition text-sm" required>
+                </div>
+                <div>
+                    <label for="addr-detail" class="block text-xs font-bold text-gray-500 uppercase mb-1">Alamat Lengkap</label>
+                    <textarea id="addr-detail" rows="3" placeholder="Jalan, No. Rumah, RT/RW, Kelurahan, Kecamatan" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 outline-none transition text-sm resize-none" required></textarea>
+                </div>
+                <div>
+                    <label for="addr-note" class="block text-xs font-bold text-gray-500 uppercase mb-1">Catatan (Patokan, Warna Rumah)</label>
+                    <input type="text" id="addr-note" placeholder="Depan indomaret" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 outline-none transition text-sm">
+                </div>
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg mt-2">
+                    Simpan Alamat
+                </button>
+            </form>
+        </div>
+    </div>
