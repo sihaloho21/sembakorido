@@ -4499,7 +4499,6 @@ function openOrderModal() {
         }, 1500);
         return;
     }
-
     if (Array.isArray(allProducts) && allProducts.length > 0) {
         syncCartWithStockLimits();
     }
@@ -4508,6 +4507,14 @@ function openOrderModal() {
         return;
     }
     closeCartModal();
+
+    // Clone shipping address from cart to order modal
+    const cartAddressSection = document.getElementById('cart-shipping-address');
+    const orderAddressPlaceholder = document.getElementById('order-shipping-address-placeholder');
+    if (cartAddressSection && orderAddressPlaceholder) {
+        orderAddressPlaceholder.innerHTML = cartAddressSection.innerHTML;
+    }
+
     resetOrderValidationState();
     syncPaylaterAvailability();
     prefillCustomerInfo();
@@ -4986,32 +4993,63 @@ function getOrderSnapshot(payMethod, shipMethod) {
 
 function renderOrderSummary() {
     const summaryEl = document.getElementById('order-summary');
-    if (!summaryEl) return;
-
+    const photosEl = document.getElementById('order-summary-photos');
+    const detailContentEl = document.getElementById('order-detail-content');
+    
+    if (!summaryEl || !photosEl) return;
+    
     const payMethod = getSelectedPayMethodValue();
     const shipMethod = getSelectedShipMethodValue();
     const snapshot = getOrderSnapshot(payMethod, shipMethod);
-
+    
     if (!snapshot.items.length) {
         summaryEl.innerHTML = '<p class="text-sm text-gray-500">Keranjang Anda masih kosong.</p>';
+        photosEl.innerHTML = '';
         return;
     }
 
-    const activeMethodChips = [];
-    if (snapshot.paymentMeta.label) {
-        activeMethodChips.push(`Bayar: ${snapshot.paymentMeta.label}`);
-    }
-    if (snapshot.shipMeta.label) {
-        activeMethodChips.push(`Kirim: ${snapshot.shipMeta.label}`);
-    }
+    // Render Photos Gallery (max 4 per row, with +N for overflow)
+    const maxVisible = 4;
+    const items = snapshot.items;
+    let photosHtml = '';
+    
+    items.slice(0, maxVisible).forEach((entry, idx) => {
+        const item = entry.item;
+        const isLastVisible = idx === maxVisible - 1 && items.length > maxVisible;
+        
+        photosHtml += `
+            <div class="relative w-12 h-12 rounded-lg border border-gray-200 overflow-hidden bg-white">
+                <img src="${item.foto}" alt="${escapeHtml(item.nama)}" class="w-full h-full object-cover">
+                ${isLastVisible ? `
+                    <div class="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold">
+                        +${items.length - (maxVisible - 1)}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+    photosEl.innerHTML = photosHtml;
 
+    // Render Hidden Summary for script compatibility
     summaryEl.innerHTML = snapshot.items.map((entry) => {
         const item = entry.item;
-        return `
-                <div class="flex justify-between items-center py-1">
-                    <div class="flex flex-col">
-                        <span class="font-medium">${escapeHtml(item.nama)}${item.selectedVariation ? ' (' + escapeHtml(item.selectedVariation.nama) + ')' : ''} (x${item.qty})</span>
-                        <div class="flex items-center gap-2">
+        return `<div class="flex justify-between items-center py-1">
+                    <span>${escapeHtml(item.nama)} (x${item.qty})</span>
+                    <span>${formatOrderCurrency(entry.itemTotal)}</span>
+                </div>`;
+    }).join('');
+
+    // Prepare Detail Content
+    if (detailContentEl) {
+        detailContentEl.innerHTML = snapshot.items.map((entry) => {
+            const item = entry.item;
+            return `
+                <div class="flex gap-3 items-center border-b border-gray-100 pb-3 last:border-0">
+                    <img src="${item.foto}" class="w-16 h-16 rounded-lg object-cover border border-gray-100" alt="${escapeHtml(item.nama)}">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-bold text-gray-800 text-sm truncate">${escapeHtml(item.nama)}${item.selectedVariation ? ' (' + escapeHtml(item.selectedVariation.nama) + ')' : ''}</p>
+                        <p class="text-xs text-gray-500">${item.qty} x ${formatOrderCurrency(entry.effectivePrice)}</p>
+                        <div class="flex items-center gap-2 mt-1">
                             <span class="text-[10px] text-amber-600 font-bold flex items-center gap-1">
                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
                                 +${entry.itemPoints.toFixed(1)} Poin
@@ -5019,37 +5057,23 @@ function renderOrderSummary() {
                             ${entry.isGrosir ? '<span class="bg-green-100 text-green-700 text-[8px] px-1 rounded font-bold">Harga Grosir</span>' : ''}
                         </div>
                     </div>
-                    <div class="flex flex-col items-end">
-                        ${entry.isGrosir ? `<span class="text-[10px] text-gray-400 line-through">${formatOrderCurrency(entry.basePrice * item.qty)}</span>` : ''}
-                        <span class="font-bold">${formatOrderCurrency(entry.itemTotal)}</span>
+                    <div class="text-right">
+                        <p class="font-bold text-green-700 text-sm">${formatOrderCurrency(entry.itemTotal)}</p>
                     </div>
                 </div>
             `;
-    }).join('');
-
-    if (activeMethodChips.length > 0) {
-        const chipsContainer = document.createElement('div');
-        chipsContainer.className = 'flex flex-wrap gap-2 border-t border-dashed border-gray-200 mt-2 pt-2';
-
-        activeMethodChips.forEach((chipLabel) => {
-            const chipEl = document.createElement('span');
-            chipEl.className = 'inline-flex items-center rounded-full bg-white border border-green-100 px-2.5 py-1 text-[10px] font-semibold text-green-700';
-            chipEl.textContent = chipLabel;
-            chipsContainer.appendChild(chipEl);
-        });
-
-        summaryEl.appendChild(chipsContainer);
+        }).join('');
     }
+}
 
-    summaryEl.innerHTML += `
-            <div class="border-t border-dashed border-gray-200 mt-2 pt-2 flex justify-between items-center">
-                <span class="text-xs font-bold text-amber-700">Total Poin Didapat:</span>
-                <span class="text-sm font-black text-amber-700 flex items-center gap-1">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-                    ${escapeHtml(snapshot.totalPoints.toFixed(1))} Poin
-                </span>
-            </div>
-        `;
+function toggleOrderDetailModal() {
+    const modal = document.getElementById('order-detail-modal');
+    if (modal) {
+        modal.classList.toggle('hidden');
+        if (!modal.classList.contains('hidden')) {
+            modal.focus();
+        }
+    }
 }
 
 function startNotificationLoop() {

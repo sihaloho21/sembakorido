@@ -2028,52 +2028,39 @@
                 </button>
             </div>
             
-            <div class="space-y-6">
+                        <div class="space-y-6">
+                <!-- Shipping Address Section -->
+                <div id="order-shipping-address-container" class="order-form-section">
+                    <div id="order-shipping-address-placeholder">
+                        <!-- Will be populated via JS -->
+                    </div>
+                </div>
+
+                <!-- Hidden Customer Info Fields (Keep for WA logic) -->
+                <div class="hidden">
+                    <input type="text" id="customer-name">
+                    <input type="tel" id="customer-phone">
+                </div>
+
                 <!-- Section 1: Ringkasan Pesanan -->
-                <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-100">
-                    <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <div class="order-form-section order-form-section--summary space-y-4">
+                    <h4 class="order-form-section__title text-sm font-bold text-gray-700 flex items-center gap-2">
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                         Ringkasan Pesanan
                     </h4>
-                    <div id="order-summary" class="text-sm text-gray-600 space-y-2">
-                        <!-- Summary items injected here -->
-                    </div>
-                    <div class="mt-3 space-y-2 bg-white/80 border border-green-100 rounded-lg px-3 py-2 text-xs text-gray-700">
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold">Subtotal</span>
-                            <span id="order-subtotal">Rp 0</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold">Ongkir</span>
-                            <span id="order-shipping">Rp 0</span>
+                    <div class="bg-green-50 rounded-2xl p-4 border border-green-100 cursor-pointer hover:bg-green-100 transition-colors" data-action="toggle-order-detail">
+                        <div id="order-summary-photos" class="flex flex-wrap gap-2 mb-3">
+                            <!-- Product photos will be rendered here -->
                         </div>
                         <div class="flex items-center justify-between border-t border-green-100 pt-2">
                             <span class="font-bold uppercase text-[11px]">Total Bayar</span>
                             <span id="order-summary-total" class="text-lg font-black text-green-700">Rp 0</span>
                         </div>
                     </div>
-                </div>
-
-                <!-- Section 2: Informasi Pelanggan -->
-                <div class="order-form-section order-form-section--customer space-y-4">
-                    <h4 class="order-form-section__title text-sm font-bold text-gray-700 flex items-center gap-2">
-                        <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        Informasi Pelanggan
-                    </h4>
-                    <div class="grid grid-cols-1 gap-4">
-                        <div class="space-y-1.5">
-                            <label for="customer-name" class="block text-xs font-bold text-gray-500 uppercase">Nama Lengkap <span class="text-red-500">*</span></label>
-                            <input type="text" id="customer-name" placeholder="Masukkan nama Anda" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:bg-white outline-none transition text-sm" required data-autofocus aria-describedby="customer-name-help customer-name-error">
-                            <p id="customer-name-help" class="text-[10px] text-gray-400">Wajib diisi.</p>
-                            <p id="customer-name-error" class="hidden text-[10px] font-semibold text-red-600" aria-live="polite"></p>
-                        </div>
-                        <div class="space-y-1.5">
-                            <label for="customer-phone" class="block text-xs font-bold text-gray-500 uppercase">No. WhatsApp <span class="text-red-500">*</span></label>
-                            <input type="tel" id="customer-phone" placeholder="Contoh: 08123456789" onblur="this.value = normalizePhone(this.value)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:bg-white outline-none transition text-sm" required aria-describedby="customer-phone-help customer-phone-error" inputmode="numeric" autocomplete="tel">
-                            <p id="customer-phone-help" class="text-[10px] text-gray-400">Wajib diisi.</p>
-                            <p id="customer-phone-error" class="hidden text-[10px] font-semibold text-red-600" aria-live="polite"></p>
-                        </div>
-                    </div>
+                    <!-- Hidden elements for script compatibility -->
+                    <div id="order-summary" class="hidden"></div>
+                    <div id="order-subtotal" class="hidden"></div>
+                    <div id="order-shipping" class="hidden"></div>
                 </div>
 
                 <!-- Section 3: Metode Pengiriman -->
@@ -2091,17 +2078,6 @@
                                 <div>
                                     <p class="font-bold text-gray-800 text-xs">Diantar Nikomas</p>
                                     <p class="text-[10px] text-gray-500">Khusus area PT Nikomas Gemilang • Gratis</p>
-                                    <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
-                                </div>
-                            </div>
-                        </label>
-                        <label class="radio-card relative cursor-pointer">
-                            <input type="radio" name="ship-method" value="Antar Kerumah" onchange="toggleLocationField()" class="absolute opacity-0">
-                            <div class="radio-label p-3 border-2 border-gray-100 rounded-xl flex items-center gap-3 transition">
-                                <div class="radio-dot w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
-                                <div>
-                                    <p class="font-bold text-gray-800 text-xs">Diantar Kerumah</p>
-                                    <p class="text-[10px] text-gray-500">Area Serang & sekitarnya • Ongkir Rp 2.000</p>
                                     <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
                                 </div>
                             </div>
@@ -3022,6 +2998,20 @@
     <script src="assets/js/image-slider.js?v=20260424a"></script>
     <script src="assets/js/promo-banner-carousel.js"></script>
     <script src="assets/js/sanitize.min.js"></script>
+    <!-- Modal Detail Pesanan -->
+    <div id="order-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[110]" role="dialog" aria-modal="true" aria-labelledby="order-detail-title" tabindex="-1" data-modal>
+        <div class="bg-white w-full max-w-md mx-4 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+            <div class="p-4 flex items-center justify-between border-b">
+                <h3 id="order-detail-title" class="text-lg font-bold text-gray-800">Detail Pesanan</h3>
+                <button onclick="toggleOrderDetailModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div id="order-detail-content" class="p-4 overflow-y-auto space-y-4">
+                <!-- Detailed items will be rendered here -->
+            </div>
+        </div>
+    </div>
     <script src="assets/js/script.js?v=20260731b"></script>
 
     <script>
@@ -3119,6 +3109,7 @@
             document.getElementById('confirm-delete-address-btn')?.addEventListener('click', () => handleDeleteAddress());
             bindAll('[data-action="open-order"]', () => openOrderModal());
             bindAll('[data-action="close-order"]', () => closeOrderModal());
+            bindAll('[data-action="toggle-order-detail"]', () => toggleOrderDetailModal());
             bindAll('[data-action="close-detail"]', () => closeDetailModal());
             bindAll('[data-action="close-lightbox"]', () => closeLightbox());
             bindAll('[data-action="lightbox-prev"]', () => lightboxPrev());
