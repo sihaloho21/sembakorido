@@ -5083,9 +5083,12 @@ function renderOrderSummary() {
 function toggleOrderDetailModal() {
     const modal = document.getElementById('order-detail-modal');
     if (modal) {
+        const isOpening = modal.classList.contains('hidden');
         modal.classList.toggle('hidden');
-        if (!modal.classList.contains('hidden')) {
+        if (isOpening) {
             modal.focus();
+            // Ensure it's on top of other modals
+            modal.style.zIndex = '10000';
         }
     }
 }
