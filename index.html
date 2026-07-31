@@ -2924,6 +2924,23 @@
         </div>
     </footer>
 
+    <!-- Modal Konfirmasi Hapus Alamat -->
+    <div id="delete-address-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[100]" role="dialog" aria-modal="true" aria-labelledby="delete-address-title" tabindex="-1" data-modal>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 animate-in fade-in zoom-in-95 duration-200">
+            <div class="flex justify-center mb-4">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </div>
+            </div>
+            <h3 id="delete-address-title" class="text-lg font-bold text-center text-gray-800 mb-2">Hapus Alamat?</h3>
+            <p class="text-center text-sm text-gray-500 mb-6">Apakah Anda yakin ingin menghapus alamat ini? Tindakan ini tidak dapat dibatalkan.</p>
+            <div class="flex gap-3">
+                <button type="button" data-action="close-delete-address" class="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition">Batal</button>
+                <button type="button" id="confirm-delete-address-btn" class="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition shadow-lg">Hapus</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Pilih Lokasi -->
     <div id="location-picker-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[70]" role="dialog" aria-modal="true" aria-labelledby="location-picker-title" tabindex="-1" data-modal>
         <div class="bg-white w-full max-w-md mx-4 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -3098,6 +3115,8 @@
                 openAddressFormModal();
             });
             bindAll('[data-action="close-address-form"]', () => closeAddressFormModal());
+            bindAll('[data-action="close-delete-address"]', () => closeDeleteAddressModal());
+            document.getElementById('confirm-delete-address-btn')?.addEventListener('click', () => handleDeleteAddress());
             bindAll('[data-action="open-order"]', () => openOrderModal());
             bindAll('[data-action="close-order"]', () => closeOrderModal());
             bindAll('[data-action="close-detail"]', () => closeDetailModal());
