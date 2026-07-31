@@ -3075,38 +3075,96 @@ function populateCartShippingInfo() {
     // Populate recipient name from stored user data
     const nameEl = document.getElementById('cart-recipient-name');
     const addressEl = document.getElementById('cart-delivery-address');
+    const addressDisplayEl = document.getElementById('cart-delivery-address-display');
+    const addressNoteEl = document.getElementById('cart-address-note');
+    
     if (!nameEl || !addressEl) return;
 
     const user = getStoredLoggedInUser();
+    let name = '-';
+    let address = '';
+    let note = '';
+
     if (user) {
-        const storedName = user.name || user.full_name || user.fullname || user.nama || '';
-        if (storedName) {
-            nameEl.textContent = storedName;
-        } else {
-            // Check localStorage for previously edited name
-            const savedName = localStorage.getItem('cart_recipient_name');
-            nameEl.textContent = savedName || '-';
+        name = user.name || user.full_name || user.fullname || user.nama || '';
+        if (!name) {
+            name = localStorage.getItem('cart_recipient_name') || '-';
         }
-        // Pre-fill address: user stored address > localStorage saved address
-        const storedAddress = user.alamat || user.address || user.delivery_address || user.alamat_pengiriman || '';
-        const savedAddress = localStorage.getItem('cart_delivery_address') || '';
-        if (storedAddress) {
-            addressEl.value = storedAddress;
-        } else if (savedAddress) {
-            addressEl.value = savedAddress;
+        
+        address = user.alamat || user.address || user.delivery_address || user.alamat_pengiriman || '';
+        if (!address) {
+            address = localStorage.getItem('cart_delivery_address') || '';
+        }
+        
+        note = user.catatan_alamat || user.address_note || '';
+        if (!note) {
+            note = localStorage.getItem('cart_address_note') || '';
         }
     } else {
-        // Check localStorage for previously edited name
-        const savedName = localStorage.getItem('cart_recipient_name');
-        nameEl.textContent = savedName || '-';
-        // If not logged in, show placeholder or saved address
-        const savedAddress = localStorage.getItem('cart_delivery_address') || '';
-        if (savedAddress) {
-            addressEl.value = savedAddress;
+        name = localStorage.getItem('cart_recipient_name') || '-';
+        address = localStorage.getItem('cart_delivery_address') || '';
+        note = localStorage.getItem('cart_address_note') || '';
+    }
+
+    nameEl.textContent = name;
+    addressEl.value = address;
+    
+    if (addressDisplayEl) {
+        addressDisplayEl.textContent = address || 'Belum ada alamat pengiriman';
+    }
+    
+    if (addressNoteEl) {
+        if (note) {
+            addressNoteEl.textContent = note;
+            addressNoteEl.classList.remove('hidden');
         } else {
-            addressEl.placeholder = 'Masukkan alamat pengiriman...';
+            addressNoteEl.classList.add('hidden');
         }
     }
+}
+
+function openCartEditAddressModal() {
+    const nameEl = document.getElementById('cart-recipient-name');
+    const addressEl = document.getElementById('cart-delivery-address');
+    const addressNoteEl = document.getElementById('cart-address-note');
+    
+    if (!nameEl || !addressEl) return;
+    
+    const currentName = nameEl.textContent === '-' ? '' : nameEl.textContent;
+    const currentAddress = addressEl.value;
+    const currentNote = addressNoteEl ? (addressNoteEl.classList.contains('hidden') ? '' : addressNoteEl.textContent) : '';
+    
+    const newName = prompt('Nama Penerima:', currentName);
+    if (newName === null) return;
+    
+    const newAddress = prompt('Alamat Pengiriman (Jalan, No, Kel/Kec):', currentAddress);
+    if (newAddress === null) return;
+    
+    const newNote = prompt('Catatan Tambahan (Patokan/Warna Rumah):', currentNote);
+    
+    if (newName.trim()) {
+        nameEl.textContent = newName.trim();
+        localStorage.setItem('cart_recipient_name', newName.trim());
+    }
+    
+    addressEl.value = newAddress.trim();
+    localStorage.setItem('cart_delivery_address', newAddress.trim());
+    
+    if (newNote !== null) {
+        localStorage.setItem('cart_address_note', newNote.trim());
+    }
+    
+    // Update manual-address in order modal if it exists
+    const manualAddressInput = document.getElementById('manual-address');
+    if (manualAddressInput) {
+        let combinedAddress = newAddress.trim();
+        if (newNote && newNote.trim()) {
+            combinedAddress += ` (${newNote.trim()})`;
+        }
+        manualAddressInput.value = combinedAddress;
+    }
+    
+    populateCartShippingInfo();
 }
 
 function handleCartUseMyLocation() {
@@ -3153,6 +3211,7 @@ function handleCartUseMyLocation() {
             }
             // Save to localStorage for future use
             saveCartDeliveryAddress(addressEl ? addressEl.value : '');
+            populateCartShippingInfo();
         },
         (error) => {
             if (btn) {
