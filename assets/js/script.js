@@ -3072,23 +3072,33 @@ function openCartModal() {
 }
 
 function populateCartShippingInfo() {
+    const user = getStoredLoggedInUser();
+    const shippingSection = document.getElementById('cart-shipping-address');
+    
+    // Jika tidak login, sembunyikan bagian alamat
+    if (!user) {
+        if (shippingSection) shippingSection.classList.add('hidden');
+        return;
+    }
+    
+    // Jika login, tampilkan dan isi data
+    if (shippingSection) shippingSection.classList.remove('hidden');
+
     // Populate recipient name from stored user data
     const nameEl = document.getElementById('cart-recipient-name');
     const addressEl = document.getElementById('cart-delivery-address');
     const addressDisplayEl = document.getElementById('cart-delivery-address-display');
     const addressNoteEl = document.getElementById('cart-address-note');
     const addressLabelEl = document.getElementById('cart-address-label');
-    
     if (!nameEl || !addressEl) return;
-
+    
     const addresses = getStoredAddresses();
     const selectedIndex = parseInt(localStorage.getItem('selected_address_index') || '0', 10);
-    
     let name = '-';
     let address = '';
     let note = '';
     let label = 'Home';
-
+    
     if (addresses.length > 0 && addresses[selectedIndex]) {
         const addr = addresses[selectedIndex];
         name = addr.name;
@@ -3097,16 +3107,9 @@ function populateCartShippingInfo() {
         label = addr.label || 'Home';
     } else {
         // Fallback to legacy storage
-        const user = getStoredLoggedInUser();
-        if (user) {
-            name = user.name || user.full_name || user.fullname || user.nama || localStorage.getItem('cart_recipient_name') || '-';
-            address = user.alamat || user.address || user.delivery_address || user.alamat_pengiriman || localStorage.getItem('cart_delivery_address') || '';
-            note = user.catatan_alamat || user.address_note || localStorage.getItem('cart_address_note') || '';
-        } else {
-            name = localStorage.getItem('cart_recipient_name') || '-';
-            address = localStorage.getItem('cart_delivery_address') || '';
-            note = localStorage.getItem('cart_address_note') || '';
-        }
+        name = user.name || user.full_name || user.fullname || user.nama || localStorage.getItem('cart_recipient_name') || '-';
+        address = user.alamat || user.address || user.delivery_address || user.alamat_pengiriman || localStorage.getItem('cart_delivery_address') || '';
+        note = user.catatan_alamat || user.address_note || localStorage.getItem('cart_address_note') || '';
         
         // Migrate to new address system if we have data but no addresses array
         if (address && addresses.length === 0) {
@@ -3121,10 +3124,9 @@ function populateCartShippingInfo() {
             label = 'Home';
         }
     }
-
+    
     nameEl.textContent = name;
     addressEl.value = address;
-    
     if (addressLabelEl) {
         addressLabelEl.innerHTML = `${escapeHtml(label)}, <span id="cart-recipient-name">${escapeHtml(name)}</span>`;
     }
@@ -4489,6 +4491,15 @@ function closeStoreWarningModal() {
 }
 
 function openOrderModal() {
+    const user = getStoredLoggedInUser();
+    if (!user) {
+        showToast('Silakan Login atau Daftar terlebih dahulu untuk melanjutkan pemesanan.');
+        setTimeout(() => {
+            window.location.href = 'akun.html';
+        }, 1500);
+        return;
+    }
+
     if (Array.isArray(allProducts) && allProducts.length > 0) {
         syncCartWithStockLimits();
     }
@@ -4496,17 +4507,13 @@ function openOrderModal() {
         showToast('Keranjang kosong atau produk sedang tidak tersedia untuk dipesan.');
         return;
     }
-    
     closeCartModal();
     resetOrderValidationState();
     syncPaylaterAvailability();
-
     prefillCustomerInfo();
     updateDeliveryLocationHint();
-    
     updateOrderTotal();
     updateOrderCTAState();
-
     const modal = document.getElementById('order-modal');
     if (modal) {
         modal.classList.remove('hidden');
