@@ -5017,9 +5017,16 @@ function renderOrderSummary() {
         const item = entry.item;
         const isLastVisible = idx === maxVisible - 1 && items.length > maxVisible;
         
+        const images = item.gambar ? item.gambar.split(',') : [];
+        let mainImage = images[0] || 'https://placehold.co/100x100?text=Produk';
+        if (item.selectedVariation && item.selectedVariation.gambar) {
+            mainImage = item.selectedVariation.gambar;
+        }
+        const safeImage = sanitizeUrl(mainImage, 'https://placehold.co/100x100?text=Produk');
+
         photosHtml += `
             <div class="relative w-12 h-12 rounded-lg border border-gray-200 overflow-hidden bg-white">
-                <img src="${item.foto}" alt="${escapeHtml(item.nama)}" class="w-full h-full object-cover">
+                <img src="${safeImage}" alt="${escapeHtml(item.nama)}" class="w-full h-full object-cover">
                 ${isLastVisible ? `
                     <div class="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold">
                         +${items.length - (maxVisible - 1)}
@@ -5043,9 +5050,16 @@ function renderOrderSummary() {
     if (detailContentEl) {
         detailContentEl.innerHTML = snapshot.items.map((entry) => {
             const item = entry.item;
+            const images = item.gambar ? item.gambar.split(',') : [];
+            let mainImage = images[0] || 'https://placehold.co/100x100?text=Produk';
+            if (item.selectedVariation && item.selectedVariation.gambar) {
+                mainImage = item.selectedVariation.gambar;
+            }
+            const safeImage = sanitizeUrl(mainImage, 'https://placehold.co/100x100?text=Produk');
+
             return `
                 <div class="flex gap-3 items-center border-b border-gray-100 pb-3 last:border-0">
-                    <img src="${item.foto}" class="w-16 h-16 rounded-lg object-cover border border-gray-100" alt="${escapeHtml(item.nama)}">
+                    <img src="${safeImage}" class="w-16 h-16 rounded-lg object-cover border border-gray-100" alt="${escapeHtml(item.nama)}">
                     <div class="flex-1 min-w-0">
                         <p class="font-bold text-gray-800 text-sm truncate">${escapeHtml(item.nama)}${item.selectedVariation ? ' (' + escapeHtml(item.selectedVariation.nama) + ')' : ''}</p>
                         <p class="text-xs text-gray-500">${item.qty} x ${formatOrderCurrency(entry.effectivePrice)}</p>
