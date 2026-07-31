@@ -3162,6 +3162,14 @@ function openLocationPickerModal() {
         modal.classList.remove('hidden');
         document.body.classList.add('modal-active');
         renderAddressList();
+        
+        // Add backdrop click listener once
+        if (!modal.dataset.backdropInit) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeLocationPickerModal();
+            });
+            modal.dataset.backdropInit = 'true';
+        }
     }
 }
 
@@ -3169,7 +3177,9 @@ function closeLocationPickerModal() {
     const modal = document.getElementById('location-picker-modal');
     if (modal) {
         modal.classList.add('hidden');
-        if (!document.querySelector('[data-modal]:not(.hidden)')) {
+        // Only remove modal-active if no other modal is visible
+        const visibleModals = Array.from(document.querySelectorAll('[data-modal]')).filter(m => !m.classList.contains('hidden'));
+        if (visibleModals.length === 0) {
             document.body.classList.remove('modal-active');
         }
     }
@@ -3237,7 +3247,10 @@ function selectAddress(index) {
 
 function openAddressFormModal() {
     const addresses = getStoredAddresses();
-    if (addresses.length >= 3) {
+    const index = parseInt(document.getElementById('address-index').value, 10);
+    
+    // Only limit if adding new (index -1)
+    if (index === -1 && addresses.length >= 3) {
         showToast('Maksimal 3 alamat tersimpan. Silakan edit atau hapus alamat yang ada.');
         return;
     }
@@ -3245,10 +3258,28 @@ function openAddressFormModal() {
     const modal = document.getElementById('address-form-modal');
     const form = document.getElementById('address-form');
     if (modal && form) {
-        form.reset();
-        document.getElementById('address-index').value = '-1';
-        document.getElementById('address-form-title').textContent = 'Tambah Alamat Baru';
+        if (index === -1) {
+            form.reset();
+            document.getElementById('address-form-title').textContent = 'Tambah Alamat Baru';
+            
+            // Pre-fill name if available from user profile
+            const user = getStoredLoggedInUser();
+            if (user) {
+                const name = user.name || user.full_name || user.fullname || user.nama || '';
+                if (name) document.getElementById('addr-name').value = name;
+            }
+        }
+        
         modal.classList.remove('hidden');
+        document.body.classList.add('modal-active');
+
+        // Add backdrop click listener once
+        if (!modal.dataset.backdropInit) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeAddressFormModal();
+            });
+            modal.dataset.backdropInit = 'true';
+        }
     }
 }
 
@@ -3273,10 +3304,21 @@ function closeAddressFormModal() {
     const modal = document.getElementById('address-form-modal');
     if (modal) {
         modal.classList.add('hidden');
+        // Only remove modal-active if no other modal is visible
+        const visibleModals = Array.from(document.querySelectorAll('[data-modal]')).filter(m => !m.classList.contains('hidden'));
+        if (visibleModals.length === 0) {
+            document.body.classList.remove('modal-active');
+        }
     }
 }
 
 function handleUseCurrentLocation() {
+    const addresses = getStoredAddresses();
+    if (addresses.length >= 3) {
+        showToast('Maksimal 3 alamat tersimpan.');
+        return;
+    }
+
     if (!navigator.geolocation) {
         showToast('Browser tidak mendukung akses lokasi.');
         return;
@@ -3293,6 +3335,9 @@ function handleUseCurrentLocation() {
             const lng = position.coords.longitude;
             const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
             
+            // Set to add mode
+            document.getElementById('address-index').value = '-1';
+            
             // Open form with pre-filled address
             openAddressFormModal();
             document.getElementById('addr-detail').value = mapsUrl;
@@ -3302,7 +3347,7 @@ function handleUseCurrentLocation() {
             btn.innerHTML = originalContent;
         },
         (error) => {
-            showToast('Gagal mengambil lokasi.');
+            showToast('Gagal mengambil lokasi. Pastikan izin lokasi aktif.');
             btn.disabled = false;
             btn.innerHTML = originalContent;
         },
