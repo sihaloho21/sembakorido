@@ -5002,6 +5002,16 @@ function renderOrderSummary() {
     const shipMethod = getSelectedShipMethodValue();
     const snapshot = getOrderSnapshot(payMethod, shipMethod);
     
+    // Update order summary title with total quantity
+    const titleEl = document.getElementById('order-summary-title-text');
+    if (titleEl) {
+        if (!snapshot.items.length) {
+            titleEl.textContent = 'Ringkasan Pesanan';
+        } else {
+            titleEl.textContent = `Ringkasan Pesanan ( ${snapshot.totalQty} Produk )`;
+        }
+    }
+    
     if (!snapshot.items.length) {
         summaryEl.innerHTML = '<p class="text-sm text-gray-500">Keranjang Anda masih kosong.</p>';
         photosEl.innerHTML = '';
