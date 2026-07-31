@@ -2234,6 +2234,43 @@
                     </div>
                 </div>
 
+                <!-- Section: Ringkasan Pembayaran -->
+                <div class="order-form-section order-form-section--payment-summary bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                    <h4 class="order-form-section__title text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                        <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        Ringkasan Pembayaran
+                    </h4>
+                    <div class="space-y-3">
+                        <!-- Subtotal -->
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Subtotal <span id="payment-summary-qty" class="text-xs text-gray-500">(0 Produk)</span></span>
+                            <span id="payment-summary-subtotal" class="text-sm font-bold text-gray-800">Rp 0</span>
+                        </div>
+                        <!-- Biaya Kemasan -->
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Biaya Kemasan</span>
+                            <span id="payment-summary-packaging" class="text-sm font-bold text-green-600">Gratis!</span>
+                        </div>
+                        <!-- Ongkos Kirim -->
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Ongkos Kirim</span>
+                            <span id="payment-summary-shipping" class="text-sm font-bold text-gray-800">Rp 0</span>
+                        </div>
+                        <!-- Poin Reward -->
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Poin Reward</span>
+                            <span id="payment-summary-points" class="text-sm font-bold text-amber-600">+0 Poin</span>
+                        </div>
+                        <!-- Divider -->
+                        <div class="border-t border-gray-200 my-2"></div>
+                        <!-- Total Pembayaran -->
+                        <div class="flex justify-between items-center">
+                            <span class="text-base font-bold text-gray-800">Total Pembayaran</span>
+                            <span id="payment-summary-total" class="text-xl font-black text-green-700">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Final Total Display -->
                 <div class="bg-green-50 p-4 rounded-xl border border-green-100 flex flex-col gap-1">
                     <span class="text-green-800 font-bold text-sm uppercase">Total Bayar</span>

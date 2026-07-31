@@ -6159,6 +6159,55 @@ async function refreshPaylaterCheckoutState(force) {
     }
 }
 
+function renderPaymentSummary(snapshot) {
+    const qtyEl = document.getElementById('payment-summary-qty');
+    const subtotalEl = document.getElementById('payment-summary-subtotal');
+    const packagingEl = document.getElementById('payment-summary-packaging');
+    const shippingEl = document.getElementById('payment-summary-shipping');
+    const pointsEl = document.getElementById('payment-summary-points');
+    const totalEl = document.getElementById('payment-summary-total');
+
+    if (!subtotalEl || !shippingEl || !totalEl) return;
+
+    const totalQty = snapshot.totalQty !== undefined ? snapshot.totalQty : 0;
+    const subtotal = snapshot.subtotal !== undefined ? snapshot.subtotal : 0;
+    const shippingFee = snapshot.shippingFee !== undefined ? snapshot.shippingFee : 0;
+    const totalPoints = snapshot.totalPoints !== undefined ? snapshot.totalPoints : 0;
+    const total = subtotal + shippingFee;
+
+    // Subtotal with qty
+    if (qtyEl) qtyEl.textContent = `( ${totalQty} Produk )`;
+    if (subtotalEl) subtotalEl.textContent = formatOrderCurrency(subtotal);
+
+    // Biaya Kemasan - Gratis
+    if (packagingEl) {
+        packagingEl.textContent = 'Gratis!';
+        packagingEl.className = 'text-sm font-bold text-green-600';
+    }
+
+    // Ongkos Kirim - Gratis jika total >= 100.000, else 5.000
+    if (shippingEl) {
+        if (total >= 100000) {
+            shippingEl.textContent = 'Gratis!';
+            shippingEl.className = 'text-sm font-bold text-green-600';
+        } else {
+            shippingEl.textContent = formatOrderCurrency(shippingFee > 0 ? shippingFee : 5000);
+            shippingEl.className = 'text-sm font-bold text-gray-800';
+        }
+    }
+
+    // Poin Reward
+    if (pointsEl) {
+        pointsEl.textContent = `+${totalPoints.toFixed(1)} Poin`;
+        pointsEl.className = 'text-sm font-bold text-amber-600';
+    }
+
+    // Total Pembayaran
+    const effectiveShipping = total >= 100000 ? 0 : (shippingFee > 0 ? shippingFee : 5000);
+    const effectiveTotal = subtotal + effectiveShipping;
+    if (totalEl) totalEl.textContent = formatOrderCurrency(effectiveTotal);
+}
+
 function updateOrderTotal() {
     const payMethod = getSelectedPayMethodValue();
     const shipMethod = getSelectedShipMethodValue();
@@ -6182,6 +6231,9 @@ function updateOrderTotal() {
     const shippingEl = document.getElementById('order-shipping');
     if (subtotalEl) subtotalEl.innerText = formatOrderCurrency(subtotal);
     if (shippingEl) shippingEl.innerText = formatShippingFeeText(shippingFee);
+
+    // Render Ringkasan Pembayaran section
+    renderPaymentSummary(snapshot);
 
     updateOrderCTAState();
     if (isPaylaterSelected()) {
