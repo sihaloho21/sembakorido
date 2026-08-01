@@ -86,6 +86,13 @@
             outline: 2px solid #16a34a;
             outline-offset: 2px;
         }
+        .cart-footer-sticky {
+            position: sticky;
+            bottom: 0;
+            background: #ffffff;
+            padding-bottom: env(safe-area-inset-bottom);
+            z-index: 10;
+        }
         .account-desktop,
         .header-desktop-search {
             display: none;
@@ -2054,11 +2061,11 @@
                 </div>
             </div>
 
-            <div id="cart-items" class="flex-1 overflow-y-auto space-y-3 mb-4">
+            <div id="cart-items" class="flex-1 overflow-y-auto space-y-3 mb-4 pb-1">
                 <!-- Cart items will be here -->
             </div>
 
-            <div id="cart-footer" class="border-t pt-3 hidden">
+            <div id="cart-footer" class="cart-footer-sticky border-t pt-3 pb-1 hidden">
                 <div class="flex justify-between items-center mb-3">
                     <span class="text-gray-600 font-medium">Total Estimasi (Cash):</span>
                     <span id="cart-total" class="text-xl font-bold text-green-700">Rp 0</span>
