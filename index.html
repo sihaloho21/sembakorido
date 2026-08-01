@@ -90,8 +90,10 @@
             position: sticky;
             bottom: 0;
             background: #ffffff;
-            padding-bottom: env(safe-area-inset-bottom);
-            z-index: 10;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+            padding-top: 0.75rem;
+            border-top: 1px solid #e5e7eb;
+            z-index: 60;
         }
         .account-desktop,
         .header-desktop-search {
@@ -2065,7 +2067,7 @@
                 <!-- Cart items will be here -->
             </div>
 
-            <div id="cart-footer" class="cart-footer-sticky border-t pt-3 pb-1 hidden">
+            <div id="cart-footer" class="cart-footer-sticky hidden">
                 <div class="flex justify-between items-center mb-3">
                     <span class="text-gray-600 font-medium">Total Estimasi (Cash):</span>
                     <span id="cart-total" class="text-xl font-bold text-green-700">Rp 0</span>
