@@ -3071,6 +3071,20 @@ function openCartModal() {
     }
 }
 
+function toggleCartShipOption() {
+    const deliverySection = document.getElementById('cart-delivery-section');
+    const pickupSection = document.getElementById('cart-pickup-section');
+    const selectedOption = document.querySelector('input[name="cart-ship-option"]:checked');
+    
+    if (selectedOption && selectedOption.value === 'pickup') {
+        if (deliverySection) deliverySection.classList.add('hidden');
+        if (pickupSection) pickupSection.classList.remove('hidden');
+    } else {
+        if (deliverySection) deliverySection.classList.remove('hidden');
+        if (pickupSection) pickupSection.classList.add('hidden');
+    }
+}
+
 function populateCartShippingInfo() {
     const user = getStoredLoggedInUser();
     const shippingSection = document.getElementById('cart-shipping-address');
@@ -3611,6 +3625,12 @@ function closeCartModal() {
     if (modal) {
         modal.classList.add('hidden');
         document.body.classList.remove('modal-active');
+    }
+    // Reset cart ship option to delivery when closing cart
+    const deliveryRadio = document.querySelector('input[name="cart-ship-option"][value="delivery"]');
+    if (deliveryRadio) {
+        deliveryRadio.checked = true;
+        toggleCartShipOption();
     }
 }
 
@@ -4513,6 +4533,13 @@ function openOrderModal() {
     const orderAddressPlaceholder = document.getElementById('order-shipping-address-placeholder');
     if (cartAddressSection && orderAddressPlaceholder) {
         orderAddressPlaceholder.innerHTML = cartAddressSection.innerHTML;
+    }
+
+    // Sync cart ship option to order modal if selected pickup
+    const cartPickupOption = document.querySelector('input[name="cart-ship-option"][value="pickup"]');
+    const orderPickupRadio = document.querySelector('input[name="ship-method"][value="Ambil Ditempat"]');
+    if (cartPickupOption && cartPickupOption.checked && orderPickupRadio) {
+        orderPickupRadio.checked = true;
     }
 
     resetOrderValidationState();
