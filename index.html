@@ -1984,8 +1984,8 @@
 
     <!-- Modal Cart -->
     <div id="cart-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title" tabindex="-1" data-modal>
-        <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[95vh] flex flex-col">
-            <div class="flex justify-between items-center mb-4">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[95vh] flex flex-col min-h-0 overflow-hidden">
+            <div class="flex justify-between items-center mb-4 shrink-0">
                 <h3 id="cart-modal-title" class="text-2xl font-bold text-gray-800">Keranjang Belanja</h3>
                 <button data-action="close-cart" class="text-gray-400 hover:text-gray-600" aria-label="Tutup">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -1993,7 +1993,7 @@
             </div>
 
             <!-- Shipping Address Section -->
-            <div id="cart-shipping-address" class="mb-4">
+            <div id="cart-shipping-address" class="mb-4 shrink-0">
                 <h4 class="text-sm font-bold text-gray-800 mb-2">Tujuan Pengiriman</h4>
                 
                 <!-- Opsi Pengiriman -->
@@ -2063,11 +2063,11 @@
                 </div>
             </div>
 
-            <div id="cart-items" class="flex-1 overflow-y-auto space-y-3 mb-4 pb-1">
+            <div id="cart-items" class="flex-1 min-h-0 overflow-y-auto space-y-3 mb-4 pb-1">
                 <!-- Cart items will be here -->
             </div>
 
-            <div id="cart-footer" class="cart-footer-sticky hidden">
+            <div id="cart-footer" class="cart-footer-sticky hidden shrink-0">
                 <div class="flex justify-between items-center mb-3">
                     <span class="text-gray-600 font-medium">Total Estimasi (Cash):</span>
                     <span id="cart-total" class="text-xl font-bold text-green-700">Rp 0</span>

@@ -4526,6 +4526,11 @@ function openOrderModal() {
         showToast('Keranjang kosong atau produk sedang tidak tersedia untuk dipesan.');
         return;
     }
+
+    // Capture the Cart selection before closing it. closeCartModal() resets
+    // the Cart radio buttons to delivery for the next time it is opened.
+    const cartShipOption = document.querySelector('input[name="cart-ship-option"]:checked');
+    const isPickupOrder = cartShipOption?.value === 'pickup';
     closeCartModal();
 
     // Clone shipping address from cart to order modal
@@ -4533,13 +4538,50 @@ function openOrderModal() {
     const orderAddressPlaceholder = document.getElementById('order-shipping-address-placeholder');
     if (cartAddressSection && orderAddressPlaceholder) {
         orderAddressPlaceholder.innerHTML = cartAddressSection.innerHTML;
+
+        // The Cart address block is reused as the Order shipping selector.
+        // Normalize its cloned radios so Order validation, totals, and submit
+        // logic can read the same `ship-method` values everywhere.
+        const orderShipRadios = orderAddressPlaceholder.querySelectorAll('input[name="cart-ship-option"]');
+        orderShipRadios.forEach((radio) => {
+            radio.name = 'ship-method';
+            radio.value = radio.value === 'pickup' ? 'Ambil Ditempat' : 'Antar Kerumah';
+            radio.checked = radio.value === (isPickupOrder ? 'Ambil Ditempat' : 'Antar Kerumah');
+            radio.removeAttribute('onchange');
+            radio.addEventListener('change', () => {
+                const isPickup = radio.value === 'Ambil Ditempat';
+                const deliverySection = orderAddressPlaceholder.querySelector('#cart-delivery-section');
+                const pickupSection = orderAddressPlaceholder.querySelector('#cart-pickup-section');
+                deliverySection?.classList.toggle('hidden', isPickup);
+                pickupSection?.classList.toggle('hidden', !isPickup);
+
+                markOrderFieldTouched('shipping');
+                if (getSelectedShipMethodValue() === 'Antar Kerumah') {
+                    markOrderFieldTouched('deliveryAddress');
+                }
+                updateDeliveryLocationHint();
+                updateOrderTotal();
+                updateOrderCTAState({ showInlineErrors: true });
+            });
+        });
+
+        const selectedOrderShip = orderAddressPlaceholder.querySelector(
+            `input[name="ship-method"][value="${isPickupOrder ? 'Ambil Ditempat' : 'Antar Kerumah'}"]`
+        );
+        const orderDeliverySection = orderAddressPlaceholder.querySelector('#cart-delivery-section');
+        const orderPickupSection = orderAddressPlaceholder.querySelector('#cart-pickup-section');
+        orderDeliverySection?.classList.toggle('hidden', isPickupOrder);
+        orderPickupSection?.classList.toggle('hidden', !isPickupOrder);
+        selectedOrderShip?.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    // Sync cart ship option to order modal if selected pickup
-    const cartPickupOption = document.querySelector('input[name="cart-ship-option"][value="pickup"]');
-    const orderPickupRadio = document.querySelector('input[name="ship-method"][value="Ambil Ditempat"]');
-    if (cartPickupOption && cartPickupOption.checked && orderPickupRadio) {
-        orderPickupRadio.checked = true;
+    // Sync Cart shipping choice to the matching Order radio.
+    const orderShipRadio = document.querySelector(
+        `input[name="ship-method"][value="${isPickupOrder ? 'Ambil Ditempat' : 'Antar Kerumah'}"]`
+    );
+    if (orderShipRadio) {
+        orderShipRadio.checked = true;
+        orderShipRadio.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     resetOrderValidationState();
