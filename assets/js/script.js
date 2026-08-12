@@ -3072,18 +3072,16 @@ function openCartModal() {
 }
 
 function toggleCartShipOption() {
-    const deliverySection = document.getElementById('cart-delivery-section');
-    const pickupSection = document.getElementById('cart-pickup-section');
-    const selectedOption = document.querySelector('input[name="cart-ship-option"]:checked');
-    
-    if (selectedOption && selectedOption.value === 'pickup') {
-        if (deliverySection) deliverySection.classList.add('hidden');
-        if (pickupSection) pickupSection.classList.remove('hidden');
-    } else {
-        if (deliverySection) deliverySection.classList.remove('hidden');
-        if (pickupSection) pickupSection.classList.add('hidden');
-    }
+    const cartModal = document.getElementById('cart-modal');
+    const deliverySection = cartModal?.querySelector('#cart-delivery-section');
+    const pickupSection = cartModal?.querySelector('#cart-pickup-section');
+    const selectedOption = cartModal?.querySelector('input[name="cart-ship-option"]:checked');
+    const isPickup = selectedOption?.value === 'pickup';
+
+    deliverySection?.classList.toggle('hidden', isPickup);
+    pickupSection?.classList.toggle('hidden', !isPickup);
 }
+
 
 function populateCartShippingInfo() {
     const user = getStoredLoggedInUser();
@@ -3157,6 +3155,15 @@ function populateCartShippingInfo() {
             addressNoteEl.classList.add('hidden');
         }
     }
+
+    // Keep the pickup destination explicit and independent from the user's address.
+    const pickupAddressEl = document.getElementById('cart-pickup-address-display');
+    if (pickupAddressEl) {
+        pickupAddressEl.textContent = DEFAULT_PICKUP_ADDRESS;
+    }
+
+    // Apply the selected option after the user address has been populated.
+    toggleCartShipOption();
 }
 
 function getStoredAddresses() {
