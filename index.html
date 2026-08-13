@@ -75,38 +75,268 @@
         .radio-card input:checked + .radio-label .radio-check {
             opacity: 1;
         }
-        .cart-ship-option-label {
-            border: 2px solid #e5e7eb;
+        /* Redesain Modal Cart */
+        #cart-modal {
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.58);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
         }
-        input[name="cart-ship-option"]:checked + .cart-ship-option-label {
-            border-color: #16a34a;
-            background-color: #f0fdf4;
-        }
-        input[name="cart-ship-option"]:focus-visible + .cart-ship-option-label {
-            outline: 2px solid #16a34a;
-            outline-offset: 2px;
-        }
-        .cart-destination-section {
-            border: 2px solid transparent;
-            border-radius: 0.75rem;
-            padding: 0.75rem;
-            transition: border-color 150ms ease, background-color 150ms ease;
-        }
-        .cart-destination-section.is-selected {
-            border-color: #16a34a;
-            background-color: #f0fdf4;
-        }
-        .cart-footer-sticky {
-            position: sticky;
-            bottom: 0;
-            flex: 0 0 auto;
-            margin-top: auto;
+        .cart-dialog {
+            width: min(100%, 34rem);
+            max-height: min(90dvh, 48rem);
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
             background: #ffffff;
-            padding-top: 0.75rem;
-            padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
-            border-top: 1px solid #e5e7eb;
-            box-shadow: 0 -8px 18px rgba(15, 23, 42, 0.08);
-            z-index: 60;
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            border-radius: 1.5rem;
+            box-shadow: 0 24px 70px rgba(15, 23, 42, 0.30);
+        }
+        #cart-modal:not(.hidden) .cart-dialog {
+            animation: cart-dialog-enter 240ms cubic-bezier(0.23, 1, 0.32, 1) both;
+        }
+        @keyframes cart-dialog-enter {
+            from { opacity: 0; transform: translateY(16px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .cart-dialog__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.125rem 1.25rem 1rem;
+            border-bottom: 1px solid #e8edf0;
+            background: linear-gradient(135deg, #f8fdf9 0%, #ffffff 72%);
+        }
+        .cart-dialog__title-group {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            gap: 0.75rem;
+        }
+        .cart-dialog__title-icon {
+            display: grid;
+            width: 2.5rem;
+            height: 2.5rem;
+            flex: 0 0 auto;
+            place-items: center;
+            color: #ffffff;
+            background: linear-gradient(145deg, #1f9a4f, #157a3c);
+            border-radius: 0.9rem;
+            box-shadow: 0 8px 18px rgba(22, 163, 74, 0.24);
+        }
+        .cart-dialog__eyebrow {
+            margin: 0 0 0.1rem;
+            color: #6b7280;
+            font-size: 0.65rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+        .cart-dialog__title {
+            margin: 0;
+            color: #172033;
+            font-size: 1.125rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
+        }
+        .cart-dialog__count {
+            display: inline-flex;
+            align-items: center;
+            min-height: 1.35rem;
+            margin-top: 0.28rem;
+            padding: 0.1rem 0.5rem;
+            color: #16763d;
+            background: #eaf8ee;
+            border-radius: 999px;
+            font-size: 0.67rem;
+            font-weight: 800;
+        }
+        .cart-close-button {
+            display: grid;
+            width: 2.25rem;
+            height: 2.25rem;
+            flex: 0 0 auto;
+            place-items: center;
+            color: #6b7280;
+            background: #f5f7f6;
+            border-radius: 999px;
+            transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 160ms ease, color 160ms ease;
+        }
+        .cart-close-button:hover { color: #1f2937; background: #e9efeb; }
+        .cart-close-button:active { transform: scale(0.94); }
+        .cart-close-button:focus-visible { outline: 3px solid rgba(22, 163, 74, 0.35); outline-offset: 2px; }
+        .cart-dialog__body {
+            display: flex;
+            flex: 1 1 auto;
+            min-height: 0;
+            flex-direction: column;
+            padding: 1rem 1.25rem 0;
+        }
+        .cart-shipping-card {
+            flex: 0 0 auto;
+            padding: 0.9rem;
+            background: #f7fbf8;
+            border: 1px solid #deeee3;
+            border-radius: 1rem;
+        }
+        .cart-section-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .cart-section-heading h4 {
+            margin: 0;
+            color: #263445;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+        }
+        .cart-section-heading span {
+            color: #6b7280;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+        .cart-ship-options {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .cart-ship-option { position: relative; display: block; cursor: pointer; }
+        .cart-ship-option input { position: absolute; opacity: 0; pointer-events: none; }
+        .cart-ship-option-label {
+            display: flex;
+            align-items: center;
+            min-height: 4rem;
+            gap: 0.55rem;
+            padding: 0.65rem;
+            color: #4b5563;
+            background: #ffffff;
+            border: 1px solid #dce5df;
+            border-radius: 0.85rem;
+            transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .cart-ship-option-label:hover { border-color: #8bcda1; transform: translateY(-1px); }
+        .cart-ship-option__icon {
+            display: grid;
+            width: 1.85rem;
+            height: 1.85rem;
+            flex: 0 0 auto;
+            place-items: center;
+            color: #257a45;
+            background: #eaf8ee;
+            border-radius: 0.6rem;
+        }
+        .cart-ship-option__title { display: block; color: #263445; font-size: 0.7rem; font-weight: 800; line-height: 1.2; }
+        .cart-ship-option__subtitle { display: block; margin-top: 0.16rem; color: #7b8591; font-size: 0.6rem; font-weight: 600; line-height: 1.2; }
+        input[name="cart-ship-option"]:checked + .cart-ship-option-label {
+            color: #176e3a;
+            background: #ffffff;
+            border-color: #20a352;
+            box-shadow: 0 0 0 3px rgba(32, 163, 82, 0.12);
+        }
+        input[name="cart-ship-option"]:checked + .cart-ship-option-label .cart-ship-option__icon { color: #ffffff; background: #1e944a; }
+        input[name="cart-ship-option"]:focus-visible + .cart-ship-option-label { outline: 3px solid rgba(22, 163, 74, 0.35); outline-offset: 2px; }
+        .cart-destination-section {
+            border: 1px solid transparent;
+            border-radius: 0.85rem;
+            transition: border-color 160ms ease, background-color 160ms ease;
+        }
+        .cart-destination-section.is-selected { border-color: #cdebd6; background: #ffffff; }
+        .cart-destination-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.58rem 0.7rem 0.3rem;
+        }
+        .cart-destination-label h5 { margin: 0; color: #4b5563; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.02em; }
+        .cart-address-change { color: #17723b; font-size: 0.65rem; font-weight: 800; text-decoration: none; }
+        .cart-address-change:hover { color: #0f5e2e; text-decoration: underline; }
+        .cart-address-card {
+            overflow: hidden;
+            cursor: pointer;
+            background: #ffffff;
+            border: 1px solid #dbe8df;
+            border-radius: 0.8rem;
+            box-shadow: 0 5px 12px rgba(22, 71, 42, 0.04);
+            transition: border-color 160ms ease, box-shadow 160ms ease;
+        }
+        .cart-address-card:hover { border-color: #86c99e; box-shadow: 0 8px 18px rgba(22, 71, 42, 0.08); }
+        .cart-address-card__body { display: flex; align-items: flex-start; gap: 0.65rem; padding: 0.75rem; }
+        .cart-address-card__icon { display: grid; width: 1.9rem; height: 1.9rem; flex: 0 0 auto; place-items: center; color: #1b8d45; background: #eaf8ee; border-radius: 0.6rem; }
+        .cart-address-card__title { margin: 0; color: #263445; font-size: 0.72rem; font-weight: 800; line-height: 1.25; }
+        .cart-address-card__detail { display: -webkit-box; margin: 0.22rem 0 0; overflow: hidden; color: #6b7280; font-size: 0.65rem; line-height: 1.38; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+        .cart-address-card__note { margin: 0.3rem 0 0; color: #77818a; font-size: 0.6rem; font-style: italic; }
+        .cart-address-card__edit { display: grid; width: 1.7rem; height: 1.7rem; flex: 0 0 auto; place-items: center; color: #667085; background: #f7f9f8; border-radius: 0.5rem; }
+        .cart-delivery-notice { padding: 0.48rem 0.65rem; color: #946508; background: #fffbeb; border-top: 1px solid #f8e9bb; font-size: 0.58rem; font-weight: 600; line-height: 1.35; }
+        .cart-pickup-card { padding: 0.82rem; color: #1d4f91; background: #eff7ff; border: 1px solid #c8e0f8; border-radius: 0.8rem; }
+        .cart-pickup-card h5 { margin: 0 0 0.28rem; color: #1d4f91; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.02em; text-transform: uppercase; }
+        .cart-pickup-card p { display: flex; gap: 0.4rem; margin: 0 0 0.65rem; color: #34618e; font-size: 0.65rem; line-height: 1.4; }
+        .cart-pickup-card a { display: flex; align-items: center; justify-content: center; gap: 0.36rem; min-height: 2.25rem; color: #ffffff; background: #2676bd; border-radius: 0.65rem; font-size: 0.68rem; font-weight: 800; transition: background-color 160ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+        .cart-pickup-card a:hover { background: #1e63a3; }
+        .cart-pickup-card a:active { transform: scale(0.98); }
+        .cart-items-area { display: flex; flex: 1 1 auto; min-height: 0; flex-direction: column; margin-top: 1rem; }
+        .cart-items-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.55rem; }
+        .cart-items-heading h4 { margin: 0; color: #344152; font-size: 0.73rem; font-weight: 800; }
+        .cart-items-heading span { color: #85909b; font-size: 0.62rem; font-weight: 600; }
+        #cart-items { display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; gap: 0.65rem; padding: 0.1rem 0.1rem 0.8rem; overflow-y: auto; }
+        #cart-items::-webkit-scrollbar { width: 5px; }
+        #cart-items::-webkit-scrollbar-thumb { background: #c8d9cd; border-radius: 999px; }
+        .cart-item { display: grid; grid-template-columns: 4rem minmax(0, 1fr); gap: 0.7rem; padding: 0.75rem; background: #ffffff; border: 1px solid #e4ebe6; border-radius: 1rem; box-shadow: 0 6px 16px rgba(16, 65, 38, 0.05); }
+        .cart-item__media { width: 4rem; height: 4rem; overflow: hidden; background: #f4f7f5; border-radius: 0.75rem; }
+        .cart-item__media img { width: 100%; height: 100%; object-fit: cover; }
+        .cart-item__content { min-width: 0; }
+        .cart-item__topline { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+        .cart-item__name { margin: 0; overflow: hidden; color: #273445; font-size: 0.73rem; font-weight: 800; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+        .cart-item__remove { display: grid; width: 1.7rem; height: 1.7rem; flex: 0 0 auto; place-items: center; color: #b76a6a; background: #fff5f5; border-radius: 0.5rem; transition: color 160ms ease, background-color 160ms ease, transform 160ms ease; }
+        .cart-item__remove:hover { color: #c24141; background: #feeaea; }
+        .cart-item__remove:active { transform: scale(0.94); }
+        .cart-item__price-row { display: flex; align-items: baseline; gap: 0.35rem; min-width: 0; margin-top: 0.26rem; }
+        .cart-item__price { color: #188546; font-size: 0.7rem; font-weight: 800; }
+        .cart-item__old-price { color: #98a1aa; font-size: 0.58rem; text-decoration: line-through; }
+        .cart-item__badge { padding: 0.08rem 0.3rem; color: #17733c; background: #e5f7eb; border-radius: 999px; font-size: 0.52rem; font-weight: 800; }
+        .cart-item__bottom { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.54rem; }
+        .cart-quantity-control { display: inline-flex; align-items: center; gap: 0.15rem; padding: 0.15rem; background: #f3f7f4; border-radius: 0.62rem; }
+        .cart-quantity-control button { display: grid; width: 1.55rem; height: 1.55rem; place-items: center; color: #39704d; background: #ffffff; border: 1px solid #dce9e0; border-radius: 0.45rem; font-size: 1rem; font-weight: 700; line-height: 1; transition: background-color 160ms ease, color 160ms ease, transform 160ms ease; }
+        .cart-quantity-control button:hover { color: #ffffff; background: #238b49; border-color: #238b49; }
+        .cart-quantity-control button:active { transform: scale(0.93); }
+        .cart-quantity-control span { min-width: 1.3rem; color: #263445; font-size: 0.68rem; font-weight: 800; text-align: center; }
+        .cart-item__subtotal { color: #263445; font-size: 0.68rem; font-weight: 800; text-align: right; }
+        .cart-item__subtotal-label { display: block; margin-bottom: 0.08rem; color: #89939d; font-size: 0.52rem; font-weight: 700; }
+        .cart-footer-sticky { flex: 0 0 auto; margin-top: auto; padding: 0.9rem 1.25rem calc(env(safe-area-inset-bottom) + 1.05rem); background: #ffffff; border-top: 1px solid #e6ece8; box-shadow: 0 -10px 24px rgba(15, 50, 30, 0.06); }
+        .cart-total-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.75rem; }
+        .cart-total-row span:first-child { color: #6b7280; font-size: 0.68rem; font-weight: 700; }
+        .cart-total-row #cart-total { color: #177a3d; font-size: 1.15rem; font-weight: 900; letter-spacing: -0.03em; }
+        .cart-checkout-button { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; min-height: 3rem; color: #ffffff; background: linear-gradient(135deg, #209a4d 0%, #14753a 100%); border-radius: 0.85rem; box-shadow: 0 10px 18px rgba(23, 122, 61, 0.2); font-size: 0.78rem; font-weight: 800; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 160ms ease, filter 160ms ease; }
+        .cart-checkout-button:hover { filter: brightness(1.04); box-shadow: 0 13px 22px rgba(23, 122, 61, 0.27); }
+        .cart-checkout-button:active { transform: scale(0.98); }
+        .cart-empty-state { display: none; flex: 1 1 auto; align-items: center; justify-content: center; min-height: 14rem; padding: 1.4rem 0.6rem 2rem; text-align: center; }
+        .cart-empty-state:not(.hidden) { display: flex; }
+        .cart-empty-state__inner { max-width: 15rem; }
+        .cart-empty-state img { width: min(100%, 9.5rem); height: auto; margin: 0 auto 0.75rem; }
+        .cart-empty-state p { margin: 0; color: #6f7a84; font-size: 0.72rem; font-weight: 600; line-height: 1.45; }
+        .cart-empty-state button { margin-top: 0.85rem; padding: 0.55rem 0.85rem; color: #177a3d; background: #eaf8ee; border-radius: 0.65rem; font-size: 0.68rem; font-weight: 800; transition: background-color 160ms ease, transform 160ms ease; }
+        .cart-empty-state button:hover { background: #d9f2e1; }
+        .cart-empty-state button:active { transform: scale(0.97); }
+        @media (max-width: 639px) {
+            #cart-modal { align-items: flex-end !important; padding: 0; }
+            .cart-dialog { width: 100%; max-height: min(92dvh, 48rem); border-right: 0; border-bottom: 0; border-left: 0; border-radius: 1.35rem 1.35rem 0 0; }
+            #cart-modal:not(.hidden) .cart-dialog { animation-name: cart-dialog-enter-mobile; }
+            @keyframes cart-dialog-enter-mobile { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+            .cart-dialog__header { padding: 0.95rem 1rem 0.85rem; }
+            .cart-dialog__body { padding: 0.85rem 1rem 0; }
+            .cart-footer-sticky { padding-right: 1rem; padding-left: 1rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #cart-modal:not(.hidden) .cart-dialog { animation: none; }
+            .cart-close-button, .cart-ship-option-label, .cart-address-card, .cart-pickup-card a, .cart-item__remove, .cart-quantity-control button, .cart-checkout-button, .cart-empty-state button { transition: none; }
         }
         .account-desktop,
         .header-desktop-search {
@@ -1440,6 +1670,180 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Redesain Modal Order */
+        #order-modal {
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.62);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        .order-dialog {
+            display: flex;
+            width: min(100%, 37rem);
+            max-height: min(91dvh, 50rem);
+            flex-direction: column;
+            overflow: hidden;
+            background: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.75);
+            border-radius: 1.5rem;
+            box-shadow: 0 26px 72px rgba(15, 23, 42, 0.32);
+        }
+        #order-modal:not(.hidden) .order-dialog {
+            animation: order-dialog-enter 240ms cubic-bezier(0.23, 1, 0.32, 1) both;
+        }
+        @keyframes order-dialog-enter {
+            from { opacity: 0; transform: translateY(16px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .order-dialog__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.125rem 1.25rem 1rem;
+            border-bottom: 1px solid #e8edf0;
+            background: linear-gradient(135deg, #f7fcf8 0%, #ffffff 72%);
+        }
+        .order-dialog__title-group { display: flex; min-width: 0; align-items: center; gap: 0.75rem; }
+        .order-dialog__title-icon {
+            display: grid;
+            width: 2.5rem;
+            height: 2.5rem;
+            flex: 0 0 auto;
+            place-items: center;
+            color: #ffffff;
+            background: linear-gradient(145deg, #1f9a4f, #157a3c);
+            border-radius: 0.9rem;
+            box-shadow: 0 8px 18px rgba(22, 163, 74, 0.24);
+        }
+        .order-dialog__eyebrow {
+            margin: 0 0 0.1rem;
+            color: #6b7280;
+            font-size: 0.65rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+        .order-dialog__title {
+            margin: 0;
+            color: #172033;
+            font-size: 1.125rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
+        }
+        .order-close-button {
+            display: grid;
+            width: 2.25rem;
+            height: 2.25rem;
+            flex: 0 0 auto;
+            place-items: center;
+            color: #6b7280;
+            background: #f5f7f6;
+            border-radius: 999px;
+            transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 160ms ease, color 160ms ease;
+        }
+        .order-close-button:hover { color: #1f2937; background: #e9efeb; }
+        .order-close-button:active { transform: scale(0.94); }
+        .order-close-button:focus-visible { outline: 3px solid rgba(22, 163, 74, 0.35); outline-offset: 2px; }
+        .order-dialog__body {
+            display: flex;
+            min-height: 0;
+            flex: 1 1 auto;
+            flex-direction: column;
+            gap: 0.85rem;
+            padding: 1rem 1.25rem;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        .order-dialog__body::-webkit-scrollbar { width: 5px; }
+        .order-dialog__body::-webkit-scrollbar-thumb { background: #c8d9cd; border-radius: 999px; }
+        #order-modal .order-form-section {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        .order-field-error { margin: 0.6rem 0 0; color: #dc2626; font-size: 0.66rem; font-weight: 700; line-height: 1.4; }
+        #order-modal .order-form-section--summary {
+            padding: 0.9rem !important;
+            background: #fbfcfc !important;
+            border: 1px solid #e6ece9 !important;
+            border-radius: 1rem !important;
+        }
+        #order-modal .order-form-section--summary .order-form-section__title { margin: 0; color: #334155; font-size: 0.75rem; }
+        #order-modal .order-form-section--summary .bg-green-50 {
+            padding: 0.72rem;
+            background: #ffffff;
+            border: 1px solid #e5ece8;
+            border-radius: 0.8rem;
+        }
+        #order-modal .order-form-section--payment {
+            padding: 0.9rem !important;
+            background: #f7faff !important;
+            border: 1px solid #dce7fb !important;
+            border-radius: 1rem !important;
+        }
+        #order-modal .order-form-section--payment .order-form-section__title { margin: 0; color: #315d97; font-size: 0.75rem; }
+        #order-modal .order-form-section--payment fieldset { margin: 0; }
+        #order-modal .order-form-section--payment .radio-label {
+            min-height: 4.8rem;
+            padding: 0.62rem;
+            background: #ffffff;
+            border: 1px solid #dce7f8;
+            border-radius: 0.8rem;
+        }
+        #order-modal .order-form-section--payment .radio-card input:checked + .radio-label {
+            border-color: #3182ce;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.12);
+        }
+        #order-modal .order-form-section--payment-summary {
+            padding: 0.9rem !important;
+            background: linear-gradient(135deg, #f7fcf8, #ffffff) !important;
+            border: 1px solid #dcece1 !important;
+            border-radius: 1rem !important;
+            box-shadow: none !important;
+        }
+        #order-modal .order-form-section--payment-summary .order-form-section__title { margin-top: 0; color: #334155; font-size: 0.75rem; }
+        .order-dialog__footer {
+            padding: 0.85rem 1.25rem 1rem;
+            border-top: 1px solid #e8edf0;
+            background: #ffffff;
+        }
+        .order-dialog__submit {
+            display: flex;
+            width: 100%;
+            min-height: 3rem;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            color: #ffffff;
+            background: linear-gradient(135deg, #198b46, #14743a);
+            border-radius: 0.85rem;
+            box-shadow: 0 10px 20px rgba(22, 132, 65, 0.2);
+            font-size: 0.8rem;
+            font-weight: 800;
+            transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), filter 160ms ease, box-shadow 160ms ease;
+        }
+        .order-dialog__submit:hover:not(:disabled) { filter: brightness(1.04); box-shadow: 0 13px 24px rgba(22, 132, 65, 0.27); }
+        .order-dialog__submit:active:not(:disabled) { transform: scale(0.98); }
+        .order-dialog__submit:focus-visible { outline: 3px solid rgba(22, 163, 74, 0.35); outline-offset: 2px; }
+        .order-dialog__footer p { margin: 0.55rem 0 0; color: #7b8591; font-size: 0.6rem; font-weight: 600; text-align: center; }
+        @media (max-width: 480px) {
+            #order-modal { align-items: flex-end; padding: 0; }
+            .order-dialog { width: 100%; max-height: 93dvh; border-radius: 1.35rem 1.35rem 0 0; }
+            .order-dialog__header { padding: 1rem 1rem 0.9rem; }
+            .order-dialog__body { gap: 0.75rem; padding: 0.85rem 1rem; }
+            .order-dialog__footer { padding: 0.75rem 1rem max(0.9rem, env(safe-area-inset-bottom)); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #order-modal:not(.hidden) .order-dialog { animation: none; }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -1996,131 +2400,168 @@
     </div>
 
     <!-- Modal Cart -->
-    <div id="cart-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title" tabindex="-1" data-modal>
-        <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[95vh] flex flex-col min-h-0 overflow-hidden">
-            <div class="flex justify-between items-center mb-4 shrink-0">
-                <h3 id="cart-modal-title" class="text-2xl font-bold text-gray-800">Keranjang Belanja</h3>
-                <button data-action="close-cart" class="text-gray-400 hover:text-gray-600" aria-label="Tutup">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    <div id="cart-modal" class="fixed inset-0 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title" tabindex="-1" data-modal>
+        <div class="cart-dialog flex flex-col min-h-0">
+            <header class="cart-dialog__header shrink-0">
+                <div class="cart-dialog__title-group">
+                    <span class="cart-dialog__title-icon" aria-hidden="true">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13 5.4 5M7 13l-1.6 1.6a2 2 0 0 0 1.4 3.4h10M17 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM9 19a2 2 0 1 0-4 0 2 2 0 0 0 4 0Z"></path></svg>
+                    </span>
+                    <div class="min-w-0">
+                        <p class="cart-dialog__eyebrow">Siap untuk checkout</p>
+                        <h3 id="cart-modal-title" class="cart-dialog__title">Keranjang Belanja</h3>
+                        <span id="cart-modal-count" class="cart-dialog__count">0 produk</span>
+                    </div>
+                </div>
+                <button data-action="close-cart" class="cart-close-button" aria-label="Tutup keranjang">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18 18 6M6 6l12 12"></path></svg>
                 </button>
-            </div>
+            </header>
 
-            <!-- Shipping Address Section -->
-            <div id="cart-shipping-address" class="mb-4 shrink-0">
-                <h4 class="text-sm font-bold text-gray-800 mb-2">Tujuan Pengiriman</h4>
-                
-                <!-- Opsi Pengiriman -->
-                <div class="grid grid-cols-2 gap-2 mb-3">
-                    <label class="cursor-pointer">
-                        <input type="radio" name="cart-ship-option" value="delivery" checked onchange="toggleCartShipOption()" class="absolute opacity-0">
-                        <div class="cart-ship-option-label p-3 rounded-xl border-2 border-gray-200 text-center transition hover:border-green-400">
-                            <p class="font-bold text-gray-800 text-[11px]">Kirim ke Alamat</p>
-                            <p class="text-[9px] text-gray-500">Diantar ke rumah</p>
-                        </div>
-                    </label>
-                    <label class="cursor-pointer">
-                        <input type="radio" name="cart-ship-option" value="pickup" onchange="toggleCartShipOption()" class="absolute opacity-0">
-                        <div class="cart-ship-option-label p-3 rounded-xl border-2 border-gray-200 text-center transition hover:border-green-400">
-                            <p class="font-bold text-gray-800 text-[11px]">Ambil di Toko</p>
-                            <p class="text-[9px] text-gray-500">Pick up • Gratis</p>
-                        </div>
-                    </label>
-                </div>
-
-                <!-- Section: Alamat Pengiriman (tampil saat pilih Kirim ke Alamat) -->
-                <div id="cart-delivery-section" class="cart-destination-section is-selected">
-                    <div class="flex justify-between items-center mb-2">
-                        <h5 class="text-xs font-semibold text-gray-700">Alamat Pengiriman</h5>
-                        <button type="button" data-action="cart-edit-address" class="text-blue-600 text-xs font-semibold hover:underline">Ganti Alamat</button>
+            <div class="cart-dialog__body">
+                <!-- Shipping Address Section -->
+                <section id="cart-shipping-address" class="cart-shipping-card">
+                    <div class="cart-section-heading">
+                        <h4>Metode penerimaan</h4>
+                        <span>Pilih yang paling nyaman</span>
                     </div>
-                    <div class="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm cursor-pointer hover:border-blue-300 transition-colors" data-action="cart-edit-address">
-                        <div class="p-4 flex items-start gap-3 relative">
-                            <div class="mt-1 text-orange-500 flex-shrink-0">
-                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3L4 9v12h5v-7h6v7h5V9l-8-6z"/></svg>
+
+                    <!-- Opsi Pengiriman -->
+                    <div class="cart-ship-options">
+                        <label class="cart-ship-option">
+                            <input type="radio" name="cart-ship-option" value="delivery" checked onchange="toggleCartShipOption()">
+                            <span class="cart-ship-option-label">
+                                <span class="cart-ship-option__icon" aria-hidden="true">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z"></path></svg>
+                                </span>
+                                <span>
+                                    <span class="cart-ship-option__title">Kirim ke alamat</span>
+                                    <span class="cart-ship-option__subtitle">Diantar ke rumah</span>
+                                </span>
+                            </span>
+                        </label>
+                        <label class="cart-ship-option">
+                            <input type="radio" name="cart-ship-option" value="pickup" onchange="toggleCartShipOption()">
+                            <span class="cart-ship-option-label">
+                                <span class="cart-ship-option__icon" aria-hidden="true">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M6 7l1 13h10l1-13M9 7V4h6v3M9 12h6"></path></svg>
+                                </span>
+                                <span>
+                                    <span class="cart-ship-option__title">Ambil di toko</span>
+                                    <span class="cart-ship-option__subtitle">Pick up tanpa biaya</span>
+                                </span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <!-- Section: Alamat Pengiriman (tampil saat pilih Kirim ke Alamat) -->
+                    <div id="cart-delivery-section" class="cart-destination-section is-selected">
+                        <div class="cart-destination-label">
+                            <h5>Alamat pengiriman</h5>
+                            <button type="button" data-action="cart-edit-address" class="cart-address-change">Ubah</button>
+                        </div>
+                        <div class="cart-address-card" data-action="cart-edit-address">
+                            <div class="cart-address-card__body">
+                                <span class="cart-address-card__icon" aria-hidden="true">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21s7-5.2 7-12A7 7 0 0 0 5 9c0 6.8 7 12 7 12Z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"></path></svg>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="cart-address-card__title" id="cart-address-label">Home, <span id="cart-recipient-name">-</span></p>
+                                    <p class="cart-address-card__detail" id="cart-delivery-address-display">-</p>
+                                    <p class="cart-address-card__note hidden" id="cart-address-note"></p>
+                                </div>
+                                <button type="button" data-action="cart-edit-address" class="cart-address-card__edit" aria-label="Ubah alamat">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 2.651 2.651M5 19l3.4-.708L19.513 7.18a1.875 1.875 0 0 0-2.651-2.651L5.75 15.642 5 19Z"></path></svg>
+                                </button>
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-bold text-gray-800 truncate" id="cart-address-label">Home, <span id="cart-recipient-name">-</span></p>
-                                <p class="text-xs text-gray-600 mt-1 line-clamp-2" id="cart-delivery-address-display">-</p>
-                                <p class="text-xs text-gray-500 mt-1 italic hidden" id="cart-address-note"></p>
-                            </div>
-                            <button type="button" data-action="cart-edit-address" class="text-gray-400 hover:text-gray-600 flex-shrink-0">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                            </button>
-                        </div>
-                        <div id="cart-delivery-warning" class="bg-orange-50 p-2.5 border-t border-orange-100">
-                            <p class="text-[10px] text-gray-700 text-center">Alamat ini tujuan Pengiriman. Pastikan Alamat Sudah Benar, ya.</p>
+                            <p id="cart-delivery-warning" class="cart-delivery-notice">Pastikan alamat tujuan sudah benar agar pesanan dapat diantar dengan lancar.</p>
                         </div>
                     </div>
-                </div>
 
-                <!-- Section: Ambil di Toko (tampil saat pilih Ambil di Toko) -->
-                <div id="cart-pickup-section" class="cart-destination-section hidden">
-                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                        <h5 class="text-xs font-black text-blue-800 uppercase mb-2">Pengambilan di Toko</h5>
-                        <p class="text-xs text-blue-700 mb-3">
-                            <span class="text-blue-500">&#128205;</span> <span id="cart-pickup-address-display">Jl. Nambo, Kaserangan, Kec. Ciruas, Kabupaten Serang</span>
-                        </p>
-                        <a href="https://maps.app.goo.gl/JExkrRvR5PBah9oaA" target="_blank" rel="noopener noreferrer" class="block w-full p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-center text-sm transition">
-                            <span class="text-blue-300">&#128205;</span> Lihat di Google Maps
-                        </a>
+                    <!-- Section: Ambil di Toko (tampil saat pilih Ambil di Toko) -->
+                    <div id="cart-pickup-section" class="cart-destination-section hidden">
+                        <div class="cart-pickup-card">
+                            <h5>Pengambilan di toko</h5>
+                            <p>
+                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21s7-5.2 7-12A7 7 0 0 0 5 9c0 6.8 7 12 7 12Z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"></path></svg>
+                                <span id="cart-pickup-address-display">Jl. Nambo, Kaserangan, Kec. Ciruas, Kabupaten Serang</span>
+                            </p>
+                            <a href="https://maps.app.goo.gl/JExkrRvR5PBah9oaA" target="_blank" rel="noopener noreferrer">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h6m0 0v6m0-6-8 8-4-4-4 4"></path></svg>
+                                Lihat lokasi toko
+                            </a>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Hidden fields for compatibility with existing JS -->
-                <textarea id="cart-delivery-address" class="hidden"></textarea>
-                <div class="hidden">
-                    <button type="button" id="cart-edit-name-btn" data-action="cart-edit-name"></button>
-                    <button type="button" id="cart-use-my-location-btn" data-action="cart-use-my-location"></button>
-                    <button type="button" id="cart-share-location-btn" data-action="cart-share-location"></button>
-                    <p id="cart-location-status"></p>
+                    <!-- Hidden fields for compatibility with existing JS -->
+                    <textarea id="cart-delivery-address" class="hidden"></textarea>
+                    <div class="hidden">
+                        <button type="button" id="cart-edit-name-btn" data-action="cart-edit-name"></button>
+                        <button type="button" id="cart-use-my-location-btn" data-action="cart-use-my-location"></button>
+                        <button type="button" id="cart-share-location-btn" data-action="cart-share-location"></button>
+                        <p id="cart-location-status"></p>
+                    </div>
+                </section>
+
+                <section id="cart-items-area" class="cart-items-area">
+                    <div class="cart-items-heading">
+                        <h4>Belanjaan Anda</h4>
+                        <span id="cart-item-count">0 produk</span>
+                    </div>
+                    <div id="cart-items">
+                        <!-- Cart items will be here -->
+                    </div>
+                </section>
+
+                <div id="cart-empty" class="cart-empty-state">
+                    <div class="cart-empty-state__inner">
+                        <img src="assets/images/empty_basket.webp" alt="Keranjang kosong" data-fallback-src="assets/images/empty_basket.webp">
+                        <p>Keranjang Anda masih kosong. Temukan kebutuhan harian Anda sekarang.</p>
+                        <button data-action="close-cart">Mulai Belanja</button>
+                    </div>
                 </div>
             </div>
 
-            <div id="cart-items" class="flex-1 min-h-0 overflow-y-auto space-y-3 mb-4 pb-1">
-                <!-- Cart items will be here -->
-            </div>
-
-            <div id="cart-footer" class="cart-footer-sticky hidden shrink-0">
-                <div class="flex justify-between items-center mb-3">
-                    <span class="text-gray-600 font-medium">Total Estimasi (Cash):</span>
-                    <span id="cart-total" class="text-xl font-bold text-green-700">Rp 0</span>
+            <footer id="cart-footer" class="cart-footer-sticky hidden">
+                <div class="cart-total-row">
+                    <span>Total estimasi</span>
+                    <span id="cart-total">Rp 0</span>
                 </div>
-                <button data-action="open-order" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
-                    Lanjut ke Pemesanan
+                <button data-action="open-order" class="cart-checkout-button">
+                    Lanjut ke pemesanan
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 5l7 7-7 7"></path></svg>
                 </button>
-            </div>
-            <div id="cart-empty" class="text-center py-10 text-gray-500">
-                <img src="assets/images/empty_basket.webp" alt="Keranjang kosong" class="w-full max-w-[260px] h-auto mx-auto mb-4" data-fallback-src="assets/images/empty_basket.webp">
-                <p>Keranjang Anda saat ini masih kosong.</p>
-                <button data-action="close-cart" class="mt-4 text-green-600 font-bold">Belanja Sekarang</button>
-            </div>
+            </footer>
         </div>
     </div>
 
-    <!-- Modal Order (Pilihan Metode) -->
+    <!-- Modal Order -->
     <div id="order-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60]" role="dialog" aria-modal="true" aria-labelledby="order-modal-title" tabindex="-1" data-modal>
-        <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[95vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-6">
-                <h3 id="order-modal-title" class="text-2xl font-bold text-gray-800">Lengkapi Pesanan</h3>
-                <button data-action="close-order" class="text-gray-400 hover:text-gray-600" aria-label="Tutup">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-            
-                        <div class="space-y-6">
-                <!-- Shipping Address Section -->
-                <div id="order-shipping-address-container" class="order-form-section space-y-4">
-                    <div id="order-shipping-address-placeholder">
-                        <!-- Will be populated via JS -->
+        <div class="order-dialog">
+            <header class="order-dialog__header">
+                <div class="order-dialog__title-group">
+                    <span class="order-dialog__title-icon" aria-hidden="true">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 5a2 2 0 002 2h2a2 2 0 002-2m-6 8l2 2 4-4"></path></svg>
+                    </span>
+                    <div>
+                        <p class="order-dialog__eyebrow">Checkout aman</p>
+                        <h3 id="order-modal-title" class="order-dialog__title">Lengkapi pesanan</h3>
                     </div>
-
                 </div>
+                <button type="button" data-action="close-order" class="order-close-button" aria-label="Tutup modal pemesanan">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </header>
 
-                <!-- Hidden Customer Info Fields (Keep for WA logic) -->
-                <div class="hidden">
+            <div class="order-dialog__body">
+                <!-- Data pelanggan tetap tersedia untuk alur WhatsApp, tanpa ditampilkan di modal. -->
+                <div class="hidden" aria-hidden="true">
                     <input type="text" id="customer-name">
                     <input type="tel" id="customer-phone">
                 </div>
+
+                <!-- Metode penerimaan dipilih pada Modal Cart dan disimpan untuk checkout. -->
+                <input type="hidden" id="order-ship-method" value="Antar Kerumah">
 
                 <!-- Section 1: Ringkasan Pesanan -->
                 <div class="order-form-section order-form-section--summary space-y-4">
@@ -2139,35 +2580,6 @@
                     <div id="order-shipping" class="hidden"></div>
                 </div>
 
-                                <!-- Location Field (Conditional) -->
-                <div id="location-field" class="hidden order-form-section order-form-section--shipping space-y-3 pt-0">
-                        <label class="block text-xs font-bold text-blue-700 uppercase">Lokasi Pengiriman / Pengambilan</label>
-                    
-                    <!-- UI for Delivery -->
-                    <div id="delivery-location-ui" class="hidden space-y-3">
-                        <button type="button" id="get-location-btn" data-action="get-location" class="w-full p-3 bg-white border-2 border-blue-200 text-blue-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition text-sm">
-                            <span>📍 Bagikan Lokasi Saya</span>
-                        </button>
-                        <p id="location-share-status" class="text-[10px] text-blue-700 italic text-center">Bagikan lokasi Maps. Jika tidak bisa, isi alamat manual di bawah.</p>
-                        <div class="space-y-1.5">
-                            <label for="manual-address" class="block text-[10px] font-bold text-blue-700 uppercase">Alamat Manual</label>
-                            <textarea id="manual-address" rows="3" class="w-full p-3 bg-white border border-blue-200 rounded-xl outline-none transition text-sm focus:border-blue-500" placeholder="Contoh: Perumahan..., Blok..., dekat mushola..., rumah warna..."></textarea>
-                            <p id="manual-address-help" class="text-[10px] text-blue-700">Isi jika titik Maps belum dibagikan. Salah satu wajib: lokasi Maps atau alamat manual yang jelas.</p>
-                            <p id="manual-address-error" class="hidden text-[10px] font-semibold text-red-600" aria-live="polite"></p>
-                        </div>
-                    </div>
-
-                    <!-- UI for Pickup -->
-                    <div id="pickup-location-ui" class="hidden">
-                        <p class="text-[10px] text-blue-800 mb-2">📍Jl. Nambo, Kaserangan, Kec. Ciruas, Kabupaten Serang</p>
-                        <a href="https://maps.app.goo.gl/JExkrRvR5PBah9oaA" target="_blank" rel="noopener noreferrer" class="w-full p-2 bg-blue-600 text-white rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition text-xs">
-                            <span>📍 Lihat di Google Maps</span>
-                        </a>
-                    </div>
-
-                        <input type="hidden" id="location-link">
-                    </div>
-                </div>
 
                 <!-- Section 4: Metode Pembayaran -->
                 <div class="order-form-section order-form-section--payment space-y-4">
@@ -2315,13 +2727,14 @@
                         </div>
                     </div>
                 </div>
-
-                <button id="send-order-btn" type="button" data-action="send-wa" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed" disabled>
+            </div>
+            <footer class="order-dialog__footer">
+                <button id="send-order-btn" type="button" data-action="send-wa" class="order-dialog__submit disabled:opacity-60 disabled:cursor-not-allowed" disabled>
                     <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.631 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                     Kirim Pesanan ke WhatsApp
                 </button>
-                <p class="text-[10px] text-gray-500 text-center">Pesanan dikirim ke WhatsApp untuk konfirmasi.</p>
-            </div>
+                <p>Pesanan akan diteruskan ke WhatsApp untuk konfirmasi.</p>
+            </footer>
         </div>
     </div>
 
@@ -3085,7 +3498,7 @@
             </div>
         </div>
     </div>
-    <script src="assets/js/script.js?v=20260731b"></script>
+    <script src="assets/js/script.js?v=20260813d"></script>
 
     <script>
         (function () {
@@ -3194,7 +3607,6 @@
             bindAll('[data-action="prev-slide"]', () => prevSlide());
             bindAll('[data-action="next-slide"]', () => nextSlide());
             bindAll('[data-action="buy-now"]', () => directOrderFromModal());
-            bindAll('[data-action="get-location"]', () => getCurrentLocation());
             bindAll('[data-action="send-wa"]', () => sendToWA());
             bindAll('[data-action="cancel-tukar"]', () => cancelTukarModal());
             bindAll('[data-action="proceed-name-input"]', () => proceedToNameInput());
