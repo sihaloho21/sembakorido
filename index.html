@@ -1802,6 +1802,141 @@
             background: #ffffff;
             box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.12);
         }
+        #order-modal .order-form-section--payment .payment-method-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.48rem;
+            width: 100%;
+        }
+        #order-modal .order-form-section--payment .payment-method-card {
+            position: relative;
+            display: block;
+            min-width: 0;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #order-modal .order-form-section--payment .payment-method-card__surface {
+            position: relative;
+            display: flex;
+            min-height: 5.55rem;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.16rem;
+            overflow: hidden;
+            padding: 0.56rem 0.25rem;
+            text-align: center;
+            background: #ffffff;
+            border: 1px solid #dce7f8;
+            border-radius: 0.85rem;
+            box-shadow: 0 8px 18px -18px rgba(30, 64, 175, 0.42);
+            transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
+            animation: payment-method-enter 440ms both cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        #order-modal .order-form-section--payment .payment-method-card:nth-of-type(2) .payment-method-card__surface { animation-delay: 45ms; }
+        #order-modal .order-form-section--payment .payment-method-card:nth-of-type(3) .payment-method-card__surface { animation-delay: 90ms; }
+        #order-modal .order-form-section--payment .payment-method-card:nth-of-type(4) .payment-method-card__surface { animation-delay: 135ms; }
+        #order-modal .order-form-section--payment .payment-method-card__surface::before {
+            position: absolute;
+            inset: 0;
+            content: '';
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.9), transparent 58%);
+            opacity: 0;
+            transition: opacity 180ms ease;
+        }
+        #order-modal .order-form-section--payment .payment-method-card__icon {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            width: 2rem;
+            height: 2rem;
+            place-items: center;
+            margin-bottom: 0.05rem;
+            border-radius: 0.66rem;
+            transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease, color 180ms ease;
+        }
+        #order-modal .order-form-section--payment .payment-method-card__icon svg { width: 1.08rem; height: 1.08rem; }
+        #order-modal .order-form-section--payment .payment-method-card strong,
+        #order-modal .order-form-section--payment .payment-method-card small {
+            position: relative;
+            z-index: 1;
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            color: #25344d;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #order-modal .order-form-section--payment .payment-method-card strong { font-size: 0.62rem; font-weight: 800; line-height: 1.15; }
+        #order-modal .order-form-section--payment .payment-method-card small { color: #7b8797; font-size: 0.49rem; font-weight: 600; line-height: 1.2; }
+        #order-modal .order-form-section--payment .payment-method-card .radio-check {
+            position: absolute;
+            z-index: 2;
+            top: 0.34rem;
+            right: 0.34rem;
+            display: grid;
+            width: 0.92rem;
+            height: 0.92rem;
+            place-items: center;
+            color: #ffffff;
+            background: var(--payment-accent, #2563eb);
+            border-radius: 999px;
+            opacity: 0;
+            transform: scale(0.35);
+            transition: opacity 160ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        #order-modal .order-form-section--payment .payment-method-card .radio-check svg { width: 0.62rem; height: 0.62rem; }
+        #order-modal .order-form-section--payment .payment-method-card--cash { --payment-accent: #d97706; }
+        #order-modal .order-form-section--payment .payment-method-card--qris { --payment-accent: #2563eb; }
+        #order-modal .order-form-section--payment .payment-method-card--gajian { --payment-accent: #7c3aed; }
+        #order-modal .order-form-section--payment .payment-method-card--paylater { --payment-accent: #be185d; }
+        #order-modal .order-form-section--payment .payment-method-card--cash .payment-method-card__icon { color: #d97706; background: #fff6df; }
+        #order-modal .order-form-section--payment .payment-method-card--qris .payment-method-card__icon { color: #2563eb; background: #eaf2ff; }
+        #order-modal .order-form-section--payment .payment-method-card--gajian .payment-method-card__icon { color: #7c3aed; background: #f2ecff; }
+        #order-modal .order-form-section--payment .payment-method-card--paylater .payment-method-card__icon { color: #be185d; background: #fff0f6; }
+        #order-modal .order-form-section--payment .payment-method-card:hover .payment-method-card__surface { transform: translateY(-2px); border-color: #a8c5ed; box-shadow: 0 14px 24px -20px rgba(37, 99, 235, 0.65); }
+        #order-modal .order-form-section--payment .payment-method-card:active .payment-method-card__surface { transform: scale(0.97); }
+        #order-modal .order-form-section--payment .payment-method-card input:checked + .payment-method-card__surface { animation: payment-method-select 420ms cubic-bezier(0.22, 1, 0.36, 1); }
+        #order-modal .order-form-section--payment .payment-method-card input:checked + .payment-method-card__surface::before { opacity: 1; }
+        #order-modal .order-form-section--payment .payment-method-card input:checked + .payment-method-card__surface .payment-method-card__icon { animation: payment-icon-pop 420ms cubic-bezier(0.22, 1, 0.36, 1); }
+        #order-modal .order-form-section--payment .payment-method-card input:checked + .payment-method-card__surface .radio-check { opacity: 1; transform: scale(1); animation: payment-check-in 300ms 70ms both cubic-bezier(0.22, 1, 0.36, 1); }
+        #order-modal .order-form-section--payment .payment-method-card--cash input:checked + .payment-method-card__surface { color: #d97706; border-color: #f0b451; background: #fffcf5; box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.12); }
+        #order-modal .order-form-section--payment .payment-method-card--qris input:checked + .payment-method-card__surface { color: #2563eb; border-color: #7ca8f7; background: #f8fbff; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+        #order-modal .order-form-section--payment .payment-method-card--gajian input:checked + .payment-method-card__surface { color: #7c3aed; border-color: #b69af7; background: #fbfaff; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12); }
+        #order-modal .order-form-section--payment .payment-method-card--paylater input:checked + .payment-method-card__surface { color: #be185d; border-color: #ef9abb; background: #fff9fb; box-shadow: 0 0 0 3px rgba(190, 24, 93, 0.12); }
+        #order-modal .order-form-section--payment .payment-method-card input:checked + .payment-method-card__surface strong,
+        #order-modal .order-form-section--payment .payment-method-card input:checked + .payment-method-card__surface small { color: currentColor; }
+        @keyframes payment-method-enter {
+            from { opacity: 0; transform: translateY(0.55rem) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes payment-method-select {
+            0% { transform: scale(1); }
+            46% { transform: translateY(-2px) scale(1.035); }
+            100% { transform: translateY(0) scale(1); }
+        }
+        @keyframes payment-icon-pop {
+            0% { transform: scale(1); }
+            48% { transform: rotate(-8deg) scale(1.18); }
+            100% { transform: rotate(0) scale(1); }
+        }
+        @keyframes payment-check-in {
+            from { opacity: 0; transform: scale(0.25) rotate(-35deg); }
+            to { opacity: 1; transform: scale(1) rotate(0); }
+        }
+        @media (max-width: 420px) {
+            #order-modal .order-form-section--payment .payment-method-grid { gap: 0.34rem; }
+            #order-modal .order-form-section--payment .payment-method-card__surface { min-height: 5.1rem; padding: 0.48rem 0.15rem; border-radius: 0.72rem; }
+            #order-modal .order-form-section--payment .payment-method-card__icon { width: 1.78rem; height: 1.78rem; }
+            #order-modal .order-form-section--payment .payment-method-card strong { font-size: 0.54rem; }
+            #order-modal .order-form-section--payment .payment-method-card small { font-size: 0.44rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #order-modal .order-form-section--payment .payment-method-card__surface,
+            #order-modal .order-form-section--payment .payment-method-card__icon,
+            #order-modal .order-form-section--payment .payment-method-card .radio-check { animation: none !important; transition-duration: 0.01ms; }
+        }
         #order-modal .order-form-section--payment-summary {
             padding: 0.9rem !important;
             background: linear-gradient(135deg, #f7fcf8, #ffffff) !important;
@@ -1810,6 +1945,66 @@
             box-shadow: none !important;
         }
         #order-modal .order-form-section--payment-summary .order-form-section__title { margin-top: 0; color: #334155; font-size: 0.75rem; }
+        #order-modal .order-form-section--payment-summary.payment-summary-card {
+            --payment-summary-accent: #15803d;
+            --payment-summary-accent-rgb: 21, 128, 61;
+            position: relative;
+            overflow: hidden;
+            border-color: rgba(var(--payment-summary-accent-rgb), 0.18) !important;
+            background: linear-gradient(135deg, rgba(var(--payment-summary-accent-rgb), 0.09), #ffffff 64%) !important;
+            transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+        }
+        #order-modal .order-form-section--payment-summary.payment-summary-card[data-payment-method="cash"] { --payment-summary-accent: #d97706; --payment-summary-accent-rgb: 217, 119, 6; }
+        #order-modal .order-form-section--payment-summary.payment-summary-card[data-payment-method="qris"] { --payment-summary-accent: #2563eb; --payment-summary-accent-rgb: 37, 99, 235; }
+        #order-modal .order-form-section--payment-summary.payment-summary-card[data-payment-method="gajian"] { --payment-summary-accent: #7c3aed; --payment-summary-accent-rgb: 124, 58, 237; }
+        #order-modal .order-form-section--payment-summary.payment-summary-card[data-payment-method="paylater"] { --payment-summary-accent: #be185d; --payment-summary-accent-rgb: 190, 24, 93; }
+        #order-modal .payment-summary-card::after {
+            position: absolute;
+            inset: 0;
+            content: '';
+            pointer-events: none;
+            border: 1px solid rgba(var(--payment-summary-accent-rgb), 0.45);
+            border-radius: inherit;
+            opacity: 0;
+            transform: scale(0.985);
+        }
+        #order-modal .payment-summary-card.is-summary-refresh { animation: payment-summary-refresh 280ms cubic-bezier(0.23, 1, 0.32, 1); box-shadow: 0 16px 30px -24px rgba(var(--payment-summary-accent-rgb), 0.85) !important; }
+        #order-modal .payment-summary-card.is-summary-refresh::after { animation: payment-summary-outline 280ms cubic-bezier(0.23, 1, 0.32, 1); }
+        #order-modal .payment-summary-card #payment-summary-subtotal,
+        #order-modal .payment-summary-card #payment-summary-shipping,
+        #order-modal .payment-summary-card #payment-summary-points,
+        #order-modal .payment-summary-card #payment-summary-total {
+            display: inline-block;
+            transform-origin: right center;
+        }
+        #order-modal .payment-summary-card #payment-summary-total {
+            color: var(--payment-summary-accent);
+            text-shadow: 0 0 0 rgba(var(--payment-summary-accent-rgb), 0);
+            transition: color 180ms ease, text-shadow 180ms ease;
+        }
+        #order-modal .payment-summary-card.is-summary-refresh #payment-summary-subtotal,
+        #order-modal .payment-summary-card.is-summary-refresh #payment-summary-shipping,
+        #order-modal .payment-summary-card.is-summary-refresh #payment-summary-points { animation: payment-summary-value 240ms cubic-bezier(0.23, 1, 0.32, 1); }
+        #order-modal .payment-summary-card.is-summary-refresh #payment-summary-total { animation: payment-summary-total 300ms cubic-bezier(0.23, 1, 0.32, 1); text-shadow: 0 5px 16px rgba(var(--payment-summary-accent-rgb), 0.26); }
+        @keyframes payment-summary-refresh {
+            0% { transform: translateY(0) scale(1); }
+            45% { transform: translateY(-2px) scale(1.012); }
+            100% { transform: translateY(0) scale(1); }
+        }
+        @keyframes payment-summary-outline {
+            0% { opacity: 0; transform: scale(0.985); }
+            45% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.012); }
+        }
+        @keyframes payment-summary-value {
+            0% { opacity: 0.58; transform: translateY(4px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes payment-summary-total {
+            0% { opacity: 0.6; transform: scale(0.94); }
+            55% { opacity: 1; transform: scale(1.08); }
+            100% { opacity: 1; transform: scale(1); }
+        }
         .order-dialog__footer {
             padding: 0.85rem 1.25rem 1rem;
             border-top: 1px solid #e8edf0;
@@ -1842,7 +2037,189 @@
             .order-dialog__footer { padding: 0.75rem 1rem max(0.9rem, env(safe-area-inset-bottom)); }
         }
         @media (prefers-reduced-motion: reduce) {
-            #order-modal:not(.hidden) .order-dialog { animation: none; }
+            #order-modal:not(.hidden) .order-dialog,
+            #order-modal .payment-summary-card,
+            #order-modal .payment-summary-card::after,
+            #order-modal .payment-summary-card #payment-summary-subtotal,
+            #order-modal .payment-summary-card #payment-summary-shipping,
+            #order-modal .payment-summary-card #payment-summary-points,
+            #order-modal .payment-summary-card #payment-summary-total { animation: none !important; transition-duration: 0.01ms; }
+        }
+
+        /* Konfirmasi alamat, status tombol kirim, dan ringkasan pembayaran responsif */
+        .order-dialog__submit {
+            position: relative;
+            isolation: isolate;
+            overflow: hidden;
+            transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1), background-color 180ms ease, box-shadow 180ms ease;
+        }
+        .order-dialog__submit.is-submitting {
+            color: #ffffff;
+            background: linear-gradient(120deg, #15803d, #22a65a, #15803d);
+            background-size: 200% 100%;
+            box-shadow: 0 10px 22px rgba(21, 128, 61, 0.26);
+            animation: order-submit-loading-sheen 1.25s linear infinite;
+        }
+        .order-dialog__submit.is-submitting::after {
+            position: absolute;
+            inset: 0;
+            z-index: -1;
+            content: '';
+            background: rgba(255, 255, 255, 0.12);
+            animation: order-submit-loading-pulse 1.1s ease-in-out infinite;
+        }
+        .order-submit-spinner {
+            width: 1.1rem;
+            height: 1.1rem;
+            flex: 0 0 auto;
+            border: 2px solid rgba(255, 255, 255, 0.38);
+            border-top-color: #ffffff;
+            border-radius: 999px;
+            animation: order-submit-spinner 700ms linear infinite;
+        }
+        @keyframes order-submit-spinner { to { transform: rotate(360deg); } }
+        @keyframes order-submit-loading-sheen { to { background-position: -200% 0; } }
+        @keyframes order-submit-loading-pulse { 50% { opacity: 0.25; } }
+
+        .payment-summary-card { min-width: 0; }
+        .payment-summary-details { display: grid; gap: 0.72rem; }
+        .payment-summary-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) max-content;
+            align-items: center;
+            gap: 0.9rem;
+            min-width: 0;
+        }
+        .payment-summary-label { min-width: 0; line-height: 1.35; }
+        .payment-summary-value {
+            min-width: 0;
+            overflow: hidden;
+            font-variant-numeric: tabular-nums;
+            text-align: right;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .payment-summary-total-row {
+            align-items: center;
+            margin-top: 0.15rem;
+            padding: 0.82rem 0.9rem;
+            background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+            border: 1px solid #d1fae5;
+            border-radius: 0.95rem;
+        }
+
+        #delivery-address-confirmation-modal {
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.62);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        .delivery-address-confirm-dialog {
+            width: min(100%, 25rem);
+            overflow: hidden;
+            background: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.88);
+            border-radius: 1.25rem;
+            box-shadow: 0 24px 64px rgba(15, 23, 42, 0.34);
+        }
+        #delivery-address-confirmation-modal:not(.hidden) .delivery-address-confirm-dialog {
+            animation: delivery-address-confirm-enter 260ms cubic-bezier(0.23, 1, 0.32, 1) both;
+        }
+        @keyframes delivery-address-confirm-enter {
+            from { opacity: 0; transform: translateY(14px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .delivery-address-confirm__close {
+            display: grid;
+            width: 2rem;
+            height: 2rem;
+            margin-left: auto;
+            place-items: center;
+            color: #4b5563;
+            background: #f8fafc;
+            border-radius: 999px;
+            transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+        }
+        .delivery-address-confirm__close:hover { color: #111827; background: #eef2f7; }
+        .delivery-address-confirm__close:active { transform: scale(0.94); }
+        .delivery-address-confirm__body { padding: 0.1rem 1.25rem 1.25rem; text-align: center; }
+        .delivery-address-confirm__icon {
+            display: grid;
+            width: 3.85rem;
+            height: 3.85rem;
+            margin: 0 auto 0.75rem;
+            place-items: center;
+            color: #ffffff;
+            background: linear-gradient(145deg, #60a5fa, #2563eb);
+            border: 5px solid #eff6ff;
+            border-radius: 1.2rem;
+            box-shadow: 0 9px 20px rgba(37, 99, 235, 0.2);
+        }
+        .delivery-address-confirm__title { margin: 0; color: #172033; font-size: 1.1rem; font-weight: 850; letter-spacing: -0.02em; }
+        .delivery-address-confirm__copy { margin: 0.32rem 0 0.95rem; color: #6b7280; font-size: 0.74rem; line-height: 1.45; }
+        .delivery-address-confirm__card {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.72rem;
+            padding: 0.85rem;
+            color: #344152;
+            text-align: left;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.9rem;
+        }
+        .delivery-address-confirm__pin {
+            display: grid;
+            width: 2rem;
+            height: 2rem;
+            flex: 0 0 auto;
+            place-items: center;
+            color: #e74c68;
+            background: #fff1f2;
+            border-radius: 0.65rem;
+        }
+        .delivery-address-confirm__meta { min-width: 0; }
+        .delivery-address-confirm__label { margin: 0; color: #64748b; font-size: 0.61rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+        .delivery-address-confirm__recipient { margin: 0.2rem 0 0; color: #334155; font-size: 0.72rem; font-weight: 800; line-height: 1.35; }
+        .delivery-address-confirm__detail { margin: 0.18rem 0 0; color: #64748b; font-size: 0.7rem; line-height: 1.45; }
+        .delivery-address-confirm__note { margin: 0.25rem 0 0; color: #94a3b8; font-size: 0.64rem; font-style: italic; line-height: 1.4; }
+        .delivery-address-confirm__actions { display: grid; grid-template-columns: 1fr 1.25fr; gap: 0.6rem; margin-top: 1rem; }
+        .delivery-address-confirm__secondary, .delivery-address-confirm__primary {
+            display: inline-flex;
+            min-height: 2.7rem;
+            align-items: center;
+            justify-content: center;
+            gap: 0.42rem;
+            border-radius: 0.72rem;
+            font-size: 0.72rem;
+            font-weight: 800;
+            transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 160ms ease, box-shadow 160ms ease;
+        }
+        .delivery-address-confirm__secondary { color: #475569; background: #ffffff; border: 1px solid #dbe4ee; }
+        .delivery-address-confirm__primary { color: #ffffff; background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2); }
+        .delivery-address-confirm__secondary:hover { background: #f8fafc; }
+        .delivery-address-confirm__primary:hover { background: #1d4ed8; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.28); }
+        .delivery-address-confirm__secondary:active, .delivery-address-confirm__primary:active { transform: scale(0.97); }
+        .delivery-address-confirm__secondary:focus-visible, .delivery-address-confirm__primary:focus-visible, .delivery-address-confirm__close:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.3); outline-offset: 2px; }
+
+        @media (max-width: 480px) {
+            .payment-summary-card { padding: 0.9rem !important; border-radius: 1rem; }
+            .payment-summary-card .order-form-section__title { margin-bottom: 0.72rem; font-size: 0.78rem; }
+            .payment-summary-details { gap: 0.62rem; }
+            .payment-summary-row { gap: 0.55rem; }
+            .payment-summary-label { font-size: 0.73rem !important; }
+            .payment-summary-label #payment-summary-qty { display: block; margin-top: 0.12rem; font-size: 0.64rem !important; }
+            .payment-summary-value { max-width: 52vw; font-size: 0.74rem !important; }
+            .payment-summary-total-row { padding: 0.7rem 0.75rem; }
+            .payment-summary-total-row .payment-summary-label { font-size: 0.82rem !important; }
+            .payment-summary-total-row .payment-summary-value { max-width: 55vw; font-size: 1.08rem !important; }
+            .delivery-address-confirm__body { padding-right: 1rem; padding-left: 1rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .order-dialog__submit.is-submitting,
+            .order-dialog__submit.is-submitting::after,
+            .order-submit-spinner,
+            #delivery-address-confirmation-modal:not(.hidden) .delivery-address-confirm-dialog { animation: none; }
         }
     </style>
 </head>
@@ -2587,39 +2964,59 @@
                         <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                         Metode Pembayaran
                     </h4>
-                    <fieldset class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <fieldset class="payment-method-grid">
                         <legend class="sr-only">Metode Pembayaran</legend>
-                        <label class="radio-card relative cursor-pointer">
+                        <label class="radio-card payment-method-card payment-method-card--cash">
                             <input type="radio" name="pay-method" value="Cash / Transfer" onchange="updatePaymentMethodInfo('tunai'); updateOrderTotal()" class="absolute opacity-0">
-                            <div class="radio-label p-2  rounded-xl text-center transition">
-                                <p class="font-bold text-gray-800 text-[10px]">Tunai/COD</p>
-                                <p class="text-[9px] text-gray-500">Bayar saat terima</p>
-                                <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
-                            </div>
+                            <span class="radio-label payment-method-card__surface">
+                                <span class="payment-method-card__icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5A2.5 2.5 0 015.5 5h13A2.5 2.5 0 0121 7.5v9a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 16.5v-9zM3 9h18M7 14h3"></path></svg>
+                                </span>
+                                <strong>Tunai/COD</strong>
+                                <small>Bayar saat terima</small>
+                                <span class="radio-check" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.2 4L19 7.5"></path></svg>
+                                </span>
+                            </span>
                         </label>
-                        <label class="radio-card relative cursor-pointer">
+                        <label class="radio-card payment-method-card payment-method-card--qris">
                             <input type="radio" name="pay-method" value="QRIS" onchange="updatePaymentMethodInfo('qris'); updateOrderTotal();" class="absolute opacity-0">
-                            <div class="radio-label p-2  rounded-xl text-center transition">
-                                <p class="font-bold text-gray-800 text-[10px]">QRIS</p>
-                                <p class="text-[9px] text-gray-500">Scan & bayar</p>
-                                <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
-                            </div>
+                            <span class="radio-label payment-method-card__surface">
+                                <span class="payment-method-card__icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 9V5a1 1 0 011-1h4M15 4h4a1 1 0 011 1v4M20 15v4a1 1 0 01-1 1h-4M9 20H5a1 1 0 01-1-1v-4M8 8h2v2H8zM14 8h2v2h-2zM8 14h2v2H8zM14 14h2v2h-2z"></path></svg>
+                                </span>
+                                <strong>QRIS</strong>
+                                <small>Scan &amp; bayar</small>
+                                <span class="radio-check" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.2 4L19 7.5"></path></svg>
+                                </span>
+                            </span>
                         </label>
-                        <label class="radio-card relative cursor-pointer">
+                        <label class="radio-card payment-method-card payment-method-card--gajian">
                             <input type="radio" name="pay-method" value="Bayar Gajian" onchange="updatePaymentMethodInfo('gajian'); updateOrderTotal()" class="absolute opacity-0">
-                            <div class="radio-label p-2  rounded-xl text-center transition">
-                                <p class="font-bold text-gray-800 text-[10px]">Bayar Gajian</p>
-                                <p class="text-[9px] text-gray-500">Bayar tgl 6–7</p>
-                                <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
-                            </div>
+                            <span class="radio-label payment-method-card__surface">
+                                <span class="payment-method-card__icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path stroke-linecap="round" d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h5"></path></svg>
+                                </span>
+                                <strong>Bayar Gajian</strong>
+                                <small>Bayar tgl 6–7</small>
+                                <span class="radio-check" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.2 4L19 7.5"></path></svg>
+                                </span>
+                            </span>
                         </label>
-                        <label class="radio-card relative cursor-pointer">
+                        <label class="radio-card payment-method-card payment-method-card--paylater">
                             <input type="radio" id="paylater-method" name="pay-method" value="PayLater" onchange="updatePaymentMethodInfo('paylater'); updateOrderTotal()" class="absolute opacity-0">
-                            <div id="paylater-method-card" class="radio-label p-2  rounded-xl text-center transition">
-                                <p class="font-bold text-gray-800 text-[10px]">PayLater</p>
-                                <p id="paylater-method-subtitle" class="text-[9px] text-gray-500">Bayar bertahap</p>
-                                <span class="radio-check block text-[9px] font-semibold text-green-700 mt-1 opacity-0">Dipilih</span>
-                            </div>
+                            <span id="paylater-method-card" class="radio-label payment-method-card__surface">
+                                <span class="payment-method-card__icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7.5A2.5 2.5 0 016.5 5h11A2.5 2.5 0 0120 7.5v9a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 16.5v-9zM4 9h16M8 14h3"></path><path stroke-linecap="round" d="M17.5 17.5l1.2 1.2 2.3-2.7"></path></svg>
+                                </span>
+                                <strong>PayLater</strong>
+                                <small id="paylater-method-subtitle">Bayar bertahap</small>
+                                <span class="radio-check" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.2 4L19 7.5"></path></svg>
+                                </span>
+                            </span>
                         </label>
                     </fieldset>
                     <p id="payment-method-error" class="hidden text-[10px] font-semibold text-red-600" aria-live="polite"></p>
@@ -2692,49 +3089,76 @@
                 </div>
 
                 <!-- Section: Ringkasan Pembayaran -->
-                <div class="order-form-section order-form-section--payment-summary bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <div class="order-form-section order-form-section--payment-summary payment-summary-card bg-white rounded-2xl p-5 shadow-sm border border-gray-100" data-payment-method="default">
                     <h4 class="order-form-section__title text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
-                        <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        <svg aria-hidden="true" class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 002 2v14a2 2 0 002 2z"></path></svg>
                         Ringkasan Pembayaran
                     </h4>
-                    <div class="space-y-3">
-                        <!-- Subtotal -->
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-gray-600">Subtotal <span id="payment-summary-qty" class="text-xs text-gray-500">(0 Produk)</span></span>
-                            <span id="payment-summary-subtotal" class="text-sm font-bold text-gray-800">Rp 0</span>
+                    <div class="payment-summary-details">
+                        <div class="payment-summary-row">
+                            <span class="payment-summary-label text-sm text-gray-600">Subtotal <span id="payment-summary-qty" class="text-xs text-gray-500">(0 Produk)</span></span>
+                            <span id="payment-summary-subtotal" class="payment-summary-value text-sm font-bold text-gray-800">Rp 0</span>
                         </div>
-                        <!-- Biaya Kemasan -->
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-gray-600">Biaya Kemasan</span>
-                            <span id="payment-summary-packaging" class="text-sm font-bold text-green-600">Gratis!</span>
+                        <div class="payment-summary-row">
+                            <span class="payment-summary-label text-sm text-gray-600">Biaya Kemasan</span>
+                            <span id="payment-summary-packaging" class="payment-summary-value text-sm font-bold text-green-600">Gratis!</span>
                         </div>
-                        <!-- Ongkos Kirim -->
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-gray-600">Ongkos Kirim</span>
-                            <span id="payment-summary-shipping" class="text-sm font-bold text-gray-800">Rp 0</span>
+                        <div class="payment-summary-row">
+                            <span class="payment-summary-label text-sm text-gray-600">Ongkos Kirim</span>
+                            <span id="payment-summary-shipping" class="payment-summary-value text-sm font-bold text-gray-800">Rp 0</span>
                         </div>
-                        <!-- Poin Reward -->
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-gray-600">Poin Reward</span>
-                            <span id="payment-summary-points" class="text-sm font-bold text-amber-600">+0 Poin</span>
+                        <div class="payment-summary-row">
+                            <span class="payment-summary-label text-sm text-gray-600">Poin Reward</span>
+                            <span id="payment-summary-points" class="payment-summary-value text-sm font-bold text-amber-600">+0 Poin</span>
                         </div>
-                        <!-- Divider -->
                         <div class="border-t border-gray-200 my-2"></div>
-                        <!-- Total Pembayaran -->
-                        <div class="flex justify-between items-center">
-                            <span class="text-base font-bold text-gray-800">Total Pembayaran</span>
-                            <span id="payment-summary-total" class="text-xl font-black text-green-700">Rp 0</span>
+                        <div class="payment-summary-row payment-summary-total-row">
+                            <span class="payment-summary-label text-base font-bold text-gray-800">Total Pembayaran</span>
+                            <span id="payment-summary-total" class="payment-summary-value text-xl font-black text-green-700">Rp 0</span>
                         </div>
                     </div>
                 </div>
             </div>
             <footer class="order-dialog__footer">
-                <button id="send-order-btn" type="button" data-action="send-wa" class="order-dialog__submit disabled:opacity-60 disabled:cursor-not-allowed" disabled>
+                <button id="send-order-btn" type="button" data-action="send-wa" class="order-dialog__submit disabled:opacity-60 disabled:cursor-not-allowed" data-default-label="Kirim Pesanan ke WhatsApp" aria-busy="false" disabled>
                     <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.631 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                     Kirim Pesanan ke WhatsApp
                 </button>
                 <p>Pesanan akan diteruskan ke WhatsApp untuk konfirmasi.</p>
             </footer>
+        </div>
+    </div>
+
+    <!-- Modal konfirmasi alamat sebelum pesanan antar dikirim ke WhatsApp -->
+    <div id="delivery-address-confirmation-modal" class="fixed inset-0 hidden z-[70] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="delivery-address-confirmation-title" tabindex="-1" data-modal>
+        <div class="delivery-address-confirm-dialog">
+            <div class="px-3 pt-3">
+                <button type="button" class="delivery-address-confirm__close" data-action="cancel-address-confirmation" data-modal-close aria-label="Tutup konfirmasi alamat">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M6 18 18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="delivery-address-confirm__body">
+                <div class="delivery-address-confirm__icon" aria-hidden="true">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21s7-5.2 7-12A7 7 0 0 0 5 9c0 6.8 7 12 7 12Z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"></path></svg>
+                </div>
+                <h3 id="delivery-address-confirmation-title" class="delivery-address-confirm__title">Alamatnya sudah tepat?</h3>
+                <p class="delivery-address-confirm__copy">Mohon periksa kembali alamat tujuan sebelum pesanan diteruskan ke WhatsApp.</p>
+                <div class="delivery-address-confirm__card">
+                    <span class="delivery-address-confirm__pin" aria-hidden="true">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 21s7-5.2 7-12A7 7 0 0 0 5 9c0 6.8 7 12 7 12Z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"></path></svg>
+                    </span>
+                    <div class="delivery-address-confirm__meta">
+                        <p class="delivery-address-confirm__label" id="delivery-address-confirm-label">Alamat pengiriman</p>
+                        <p class="delivery-address-confirm__recipient" id="delivery-address-confirm-recipient">-</p>
+                        <p class="delivery-address-confirm__detail" id="delivery-address-confirm-detail">-</p>
+                        <p class="delivery-address-confirm__note hidden" id="delivery-address-confirm-note"></p>
+                    </div>
+                </div>
+                <div class="delivery-address-confirm__actions">
+                    <button type="button" class="delivery-address-confirm__secondary" data-action="edit-address-from-confirmation">Ganti alamat</button>
+                    <button type="button" id="confirm-delivery-address-btn" class="delivery-address-confirm__primary" data-action="confirm-address-and-send">Ya, alamat tepat</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -3498,7 +3922,7 @@
             </div>
         </div>
     </div>
-    <script src="assets/js/script.js?v=20260813d"></script>
+    <script src="assets/js/script.js?v=20260813e"></script>
 
     <script>
         (function () {
@@ -3595,6 +4019,9 @@
             document.getElementById('confirm-delete-address-btn')?.addEventListener('click', () => handleDeleteAddress());
             bindAll('[data-action="open-order"]', () => openOrderModal());
             bindAll('[data-action="close-order"]', () => closeOrderModal());
+            bindAll('[data-action="cancel-address-confirmation"]', () => closeDeliveryAddressConfirmation());
+            bindAll('[data-action="edit-address-from-confirmation"]', () => openCartAddressEditorFromConfirmation());
+            bindAll('[data-action="confirm-address-and-send"]', () => confirmDeliveryAddressAndSend());
             bindAll('[data-action="toggle-order-detail"]', () => toggleOrderDetailModal());
             bindAll('[data-action="close-detail"]', () => closeDetailModal());
             bindAll('[data-action="close-lightbox"]', () => closeLightbox());
