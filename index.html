@@ -808,23 +808,85 @@
             display: flex;
             align-items: center;
             justify-content: flex-end;
+            min-height: 2rem;
         }
+        .product-card-cart-control {
+            transform-origin: center;
+            will-change: transform, opacity;
+        }
+        .product-card-cart-add-button {
+            position: relative;
+            overflow: hidden;
+            transition: transform 170ms cubic-bezier(0.23, 1, 0.32, 1), background-color 170ms ease, box-shadow 170ms ease;
+        }
+        .product-card-cart-add-button::after {
+            position: absolute;
+            width: 140%;
+            height: 140%;
+            border: 2px solid rgba(255, 255, 255, 0.52);
+            border-radius: inherit;
+            content: '';
+            opacity: 0;
+            transform: scale(0.55);
+        }
+        .product-card-cart-add-button:hover:not(:disabled) { box-shadow: 0 7px 14px rgba(22, 163, 74, 0.3); transform: translateY(-1px); }
+        .product-card-cart-add-button:active:not(:disabled)::after { animation: product-cart-add-ripple 320ms ease-out; }
+        .product-card-cart-add-button:active:not(:disabled) svg { animation: product-cart-icon-turn 220ms ease-out; }
+        .product-card-cart-stepper {
+            overflow: hidden;
+            transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 180ms ease;
+        }
+        .product-card-cart-stepper:hover { box-shadow: 0 7px 14px rgba(22, 163, 74, 0.3); transform: translateY(-1px); }
+        .product-card-cart-step-button {
+            transition: background-color 150ms ease, transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .product-card-cart-step-button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.16); }
+        .product-card-cart-step-button:active:not(:disabled) { transform: scale(0.82); }
+        .product-card-cart-step-button--increment:active:not(:disabled) svg { animation: product-cart-icon-turn 220ms ease-out; }
+        .product-card-cart-step-button--decrement:active:not(:disabled) svg { animation: product-cart-icon-nudge 220ms ease-out; }
         .product-card-cart-count {
             min-width: 1.5rem;
             text-align: center;
+            transform-origin: center;
         }
+        .product-card-cart-count--increase { animation: product-cart-count-up 260ms cubic-bezier(0.23, 1, 0.32, 1); }
+        .product-card-cart-count--decrease { animation: product-cart-count-down 260ms cubic-bezier(0.23, 1, 0.32, 1); }
         .product-card-cart-control-enter {
-            animation: product-cart-control-in 220ms ease-out;
+            animation: product-cart-control-in 260ms cubic-bezier(0.23, 1, 0.32, 1);
         }
         @keyframes product-cart-control-in {
             0% {
                 opacity: 0;
-                transform: translateY(6px) scale(0.96);
+                transform: translateY(7px) scale(0.82);
             }
+            68% { transform: translateY(-1px) scale(1.04); }
             100% {
                 opacity: 1;
                 transform: translateY(0) scale(1);
             }
+        }
+        @keyframes product-cart-count-up {
+            0% { opacity: 0.42; transform: translateY(5px) scale(0.75); }
+            65% { opacity: 1; transform: translateY(-1px) scale(1.18); }
+            100% { transform: translateY(0) scale(1); }
+        }
+        @keyframes product-cart-count-down {
+            0% { opacity: 0.42; transform: translateY(-5px) scale(0.75); }
+            65% { opacity: 1; transform: translateY(1px) scale(1.18); }
+            100% { transform: translateY(0) scale(1); }
+        }
+        @keyframes product-cart-icon-turn {
+            0% { transform: rotate(0deg) scale(1); }
+            65% { transform: rotate(90deg) scale(1.16); }
+            100% { transform: rotate(90deg) scale(1); }
+        }
+        @keyframes product-cart-icon-nudge {
+            0%, 100% { transform: scaleX(1); }
+            45% { transform: scaleX(0.65); }
+        }
+        @keyframes product-cart-add-ripple {
+            0% { opacity: 0.65; transform: scale(0.55); }
+            100% { opacity: 0; transform: scale(1.25); }
         }
         @media (max-width: 768px) {
             .promo-banner-fallback-media {
@@ -832,8 +894,15 @@
             }
         }
         @media (prefers-reduced-motion: reduce) {
-            .product-card-cart-control-enter {
+            .product-card-cart-control,
+            .product-card-cart-control-enter,
+            .product-card-cart-count--increase,
+            .product-card-cart-count--decrease,
+            .product-card-cart-add-button:active:not(:disabled)::after,
+            .product-card-cart-add-button:active:not(:disabled) svg,
+            .product-card-cart-step-button:active:not(:disabled) svg {
                 animation: none;
+                transition: none;
             }
         }
         .detail-modal-shell {

@@ -248,12 +248,12 @@ function renderProductCardCartControl(product) {
 
     if (mode === 'stepper' && quantity > 0) {
         return `
-            <div class="product-card-cart-control flex items-center justify-between rounded-full bg-green-600 px-1 py-1 shadow-md text-white min-w-[70px] md:min-w-[80px]">
-                <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="-1" class="flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-full hover:bg-green-700 transition active:scale-90" aria-label="Kurangi">
+            <div class="product-card-cart-control product-card-cart-stepper flex items-center justify-between rounded-full bg-green-600 px-1 py-1 shadow-md text-white min-w-[70px] md:min-w-[80px]">
+                <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="-1" class="product-card-cart-step-button product-card-cart-step-button--decrement flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-full" aria-label="Kurangi">
                     <svg class="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"></path></svg>
                 </button>
-                <span class="product-card-cart-count px-1 font-black tabular-nums text-[11px] md:text-sm">${quantity}</span>
-                <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="1" ${quantity >= maxStock ? 'disabled opacity-50' : ''} class="flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-full hover:bg-green-700 transition active:scale-90" aria-label="Tambah">
+                <span class="product-card-cart-count px-1 font-black tabular-nums text-[11px] md:text-sm" aria-live="polite">${quantity}</span>
+                <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="1" ${quantity >= maxStock ? 'disabled opacity-50' : ''} class="product-card-cart-step-button product-card-cart-step-button--increment flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-full" aria-label="Tambah">
                     <svg class="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
                 </button>
             </div>
@@ -261,7 +261,7 @@ function renderProductCardCartControl(product) {
     }
 
     return `
-        <button data-action="add-to-cart" data-product-id="${productId}" ${isDisabled ? 'disabled' : ''} class="product-card-cart-control flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-green-600 text-white shadow-md hover:bg-green-700 transition active:scale-95 disabled:bg-gray-300 disabled:cursor-not-allowed" aria-label="Tambah ke Keranjang">
+        <button data-action="add-to-cart" data-product-id="${productId}" ${isDisabled ? 'disabled' : ''} class="product-card-cart-control product-card-cart-add-button flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-green-600 text-white shadow-md hover:bg-green-700 transition active:scale-95 disabled:bg-gray-300 disabled:cursor-not-allowed" aria-label="Tambah ke Keranjang">
             <svg class="w-4 h-4 md:w-5 md:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
         </button>
     `;
@@ -295,6 +295,18 @@ function syncProductGridCartControls() {
             control.classList.remove('product-card-cart-control-enter');
             void control.offsetWidth;
             control.classList.add('product-card-cart-control-enter');
+
+            if (currentMode === 'stepper' && nextState.mode === 'stepper' && currentQty !== nextState.quantity) {
+                const count = control.querySelector('.product-card-cart-count');
+                if (count) {
+                    const directionClass = nextState.quantity > currentQty
+                        ? 'product-card-cart-count--increase'
+                        : 'product-card-cart-count--decrease';
+                    count.classList.remove('product-card-cart-count--increase', 'product-card-cart-count--decrease');
+                    void count.offsetWidth;
+                    count.classList.add(directionClass);
+                }
+            }
         }
     });
 }
