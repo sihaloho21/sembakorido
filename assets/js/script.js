@@ -3094,6 +3094,8 @@ function toggleCartShipOption() {
 
     deliverySection?.classList.toggle('hidden', isPickup);
     pickupSection?.classList.toggle('hidden', !isPickup);
+    deliverySection?.classList.toggle('is-selected', !isPickup);
+    pickupSection?.classList.toggle('is-selected', isPickup);
 }
 
 
