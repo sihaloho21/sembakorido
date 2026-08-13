@@ -3062,11 +3062,25 @@ function removeItem(index) {
     updateCartUI();
 }
 
+function setMobileBottomNavigationHidden(isHidden) {
+    const navigation = document.getElementById('mobile-bottom-navigation');
+    if (!navigation) return;
+
+    navigation.classList.toggle('hidden', isHidden);
+    navigation.setAttribute('aria-hidden', isHidden ? 'true' : 'false');
+    if (isHidden) {
+        navigation.setAttribute('inert', '');
+    } else {
+        navigation.removeAttribute('inert');
+    }
+}
+
 function openCartModal() {
     const modal = document.getElementById('cart-modal');
     if (modal) {
         modal.classList.remove('hidden');
         document.body.classList.add('modal-active');
+        setMobileBottomNavigationHidden(true);
         populateCartShippingInfo();
     }
 }
@@ -3633,6 +3647,7 @@ function closeCartModal() {
         modal.classList.add('hidden');
         document.body.classList.remove('modal-active');
     }
+    setMobileBottomNavigationHidden(false);
     // Reset cart ship option to delivery when closing cart
     const deliveryRadio = document.querySelector('input[name="cart-ship-option"][value="delivery"]');
     if (deliveryRadio) {

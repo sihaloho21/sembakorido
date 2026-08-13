@@ -89,10 +89,13 @@
         .cart-footer-sticky {
             position: sticky;
             bottom: 0;
+            flex: 0 0 auto;
+            margin-top: auto;
             background: #ffffff;
-            padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
             padding-top: 0.75rem;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
             border-top: 1px solid #e5e7eb;
+            box-shadow: 0 -8px 18px rgba(15, 23, 42, 0.08);
             z-index: 60;
         }
         .account-desktop,
@@ -2786,7 +2789,7 @@
     <!-- /Modal: Tentang Paket Sembako -->
 
     <!-- Mobile Bottom Navigation -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+    <nav id="mobile-bottom-navigation" class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
         <div class="flex justify-around items-center h-16">
             <!-- Home -->
             <a href="/" class="flex flex-col items-center justify-center flex-1 text-green-600" title="Home" aria-label="Home" aria-current="page">
