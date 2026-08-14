@@ -2326,17 +2326,26 @@ function getPrimaryCartButton() {
     const cartButtons = Array.from(document.querySelectorAll('[data-action="open-cart"]'));
     return cartButtons.find((button) => button.offsetParent !== null) || cartButtons[0] || null;
 }
-
+function resolveCartActionTrigger(event) {
+    if (!event) return null;
+    const target = event.target instanceof Element ? event.target : null;
+    const currentTarget = event.currentTarget instanceof Element ? event.currentTarget : null;
+    return currentTarget?.matches('[data-action="add-to-cart"]')
+        ? currentTarget
+        : target?.closest('[data-action="add-to-cart"]') || null;
+}
 function proceedAddToCart(p, event, qty = 1) {
     if (isProductInteractionLocked(p)) {
         showToast('Produk sedang tidak tersedia saat ini.');
         return;
     }
 
-    const triggerButton = event && event.currentTarget ? event.currentTarget : null;
-    const triggerCard = triggerButton
-        ? (triggerButton.closest('[data-product-id]') || triggerButton.closest('.bg-white') || document.getElementById('detail-modal'))
-        : document.getElementById('detail-modal');
+    const triggerButton = resolveCartActionTrigger(event);
+    const productGrid = triggerButton?.closest('#product-grid');
+    const gridCard = productGrid
+        ? Array.from(productGrid.children).find((card) => card.contains(triggerButton))
+        : null;
+    const triggerCard = gridCard || triggerButton?.closest('#detail-modal') || triggerButton?.closest('.bg-white') || document.getElementById('detail-modal');
     const sourceImage = triggerCard ? triggerCard.querySelector('img') : null;
     const cartBtn = getPrimaryCartButton();
 
