@@ -106,6 +106,15 @@
         return Math.max(0, Math.round(normal * (1 - pct / 100)));
     }
 
+    function apiErrorMessage(payload, fallback) {
+        const raw = payload && (payload.message || payload.error || payload.status);
+        const text = String(raw || '').trim();
+        if (/invalid sheet/i.test(text) || /catalog promo pop/i.test(text)) {
+            return 'Backend GAS belum mengenali sheet promo_flyers. Terapkan source docs/gas_v63_blog_support.gs terbaru dan perbarui deployment Web App.';
+        }
+        return text || fallback;
+    }
+
     async function fetchProducts() {
         const url = new URL(CONFIG.getMainApiUrl());
         url.searchParams.set('sheet', 'products');
@@ -130,7 +139,7 @@
         const response = await fetch(url.toString(), { cache: 'no-store' });
         if (!response.ok) throw new Error('Campaign tidak dapat dimuat');
         const payload = await response.json();
-        if (payload && payload.error) throw new Error(payload.message || payload.error);
+        if (payload && payload.error) throw new Error(apiErrorMessage(payload, 'Campaign tidak dapat dimuat'));
         state.campaigns = readArrayResponse(payload);
         renderCampaigns();
     }
@@ -365,7 +374,7 @@
             resetForm();
             await fetchCampaigns();
         } catch (error) {
-            setStatus(error.message || 'Gagal menyimpan campaign.', 'error');
+            setStatus(apiErrorMessage({ error: error.message }, 'Gagal menyimpan campaign.'), 'error');
         } finally {
             state.busy = false;
         }
@@ -379,7 +388,7 @@
             setStatus(currentStatus === 'published' ? 'Campaign di-unpublish.' : 'Campaign berhasil dipublikasikan.', 'success');
             await fetchCampaigns();
         } catch (error) {
-            setStatus(error.message || 'Gagal mengubah status campaign.', 'error');
+            setStatus(apiErrorMessage({ error: error.message }, 'Gagal mengubah status campaign.'), 'error');
         } finally {
             state.busy = false;
         }
@@ -392,7 +401,7 @@
             setStatus('Campaign dihapus.', 'success');
             await fetchCampaigns();
         } catch (error) {
-            setStatus(error.message || 'Gagal menghapus campaign.', 'error');
+            setStatus(apiErrorMessage({ error: error.message }, 'Gagal menghapus campaign.'), 'error');
         }
     }
 
@@ -414,7 +423,7 @@
             setStatus('Schema backend diperiksa. Sheet promo_flyers siap digunakan.', 'success');
             await fetchCampaigns();
         } catch (error) {
-            setStatus(error.message || 'Gagal menyiapkan schema backend.', 'error');
+            setStatus(apiErrorMessage({ error: error.message }, 'Gagal menyiapkan schema backend.'), 'error');
         }
     }
 
