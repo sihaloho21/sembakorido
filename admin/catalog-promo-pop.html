@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <base href="/admin/">
+    <title>Catalog Promo POP – Admin</title>
+    <link rel="icon" href="../assets/img/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="../assets/css/tailwind-fallback.css">
+    <link rel="stylesheet" href="../assets/css/tailwind.min.css">
+    <link rel="stylesheet" href="css/admin-style.css">
+    <style>
+        :root { --pop-orange: #f97316; --pop-ink: #172033; }
+        body { background: #f4f7fb; color: var(--pop-ink); }
+        .pop-shell { max-width: 1500px; margin: 0 auto; padding: 28px; }
+        .pop-header { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:22px; }
+        .pop-title { display:flex; align-items:center; gap:14px; }
+        .pop-mark { width:52px; height:52px; display:grid; place-items:center; border-radius:17px; background:linear-gradient(135deg,#fb923c,#ef4444); color:#fff; font-size:25px; box-shadow:0 12px 25px rgba(249,115,22,.22); }
+        .pop-card { background:#fff; border:1px solid #e5eaf1; border-radius:22px; box-shadow:0 16px 42px rgba(15,23,42,.06); }
+        .pop-grid { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(330px,.65fr); gap:20px; align-items:start; }
+        .pop-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+        .pop-field { display:flex; flex-direction:column; gap:6px; }
+        .pop-field.full { grid-column:1/-1; }
+        .pop-label { font-size:12px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:.04em; }
+        .pop-input, .pop-select, .pop-textarea { width:100%; border:1px solid #dbe2ea; border-radius:12px; padding:10px 12px; outline:none; background:#fff; color:#172033; transition:border-color .18s, box-shadow .18s; }
+        .pop-input:focus, .pop-select:focus, .pop-textarea:focus { border-color:#fb923c; box-shadow:0 0 0 3px rgba(251,146,60,.16); }
+        .pop-textarea { min-height:82px; resize:vertical; }
+        .pop-product-list { max-height:510px; overflow:auto; border:1px solid #e5eaf1; border-radius:16px; }
+        .promo-product-row, .selected-product-row, .campaign-row { display:flex; align-items:center; gap:10px; padding:11px 12px; border-bottom:1px solid #eef2f7; }
+        .promo-product-row:last-child, .selected-product-row:last-child, .campaign-row:last-child { border-bottom:0; }
+        .promo-product-thumb { width:42px; height:42px; border-radius:12px; background:#fff7ed; color:#c2410c; display:grid; place-items:center; overflow:hidden; flex:none; font-size:10px; font-weight:900; }
+        .promo-product-thumb img, .flyer-item-image img { width:100%; height:100%; object-fit:cover; }
+        .promo-price-input { width:100px; border:1px solid #e2e8f0; border-radius:9px; padding:7px 8px; font-size:12px; text-align:right; }
+        .promo-select-button, .small-action { border:1px solid #fdba74; background:#fff7ed; color:#c2410c; border-radius:9px; padding:7px 10px; font-size:12px; font-weight:800; cursor:pointer; }
+        .promo-select-button.is-selected { color:#fff; background:#f97316; border-color:#f97316; }
+        .selected-number { width:24px; height:24px; display:grid; place-items:center; flex:none; border-radius:50%; background:#ffedd5; color:#c2410c; font-size:11px; font-weight:900; }
+        .primary-action { border:0; border-radius:12px; padding:11px 16px; background:#f97316; color:#fff; font-weight:900; cursor:pointer; box-shadow:0 8px 18px rgba(249,115,22,.2); }
+        .secondary-action { border:1px solid #dbe2ea; border-radius:12px; padding:10px 14px; background:#fff; color:#475569; font-weight:800; cursor:pointer; }
+        .small-action.warning { color:#92400e; border-color:#fcd34d; background:#fffbeb; }
+        .small-action.success { color:#047857; border-color:#a7f3d0; background:#ecfdf5; }
+        .small-action.danger { color:#b91c1c; border-color:#fecaca; background:#fef2f2; }
+        .status-badge { padding:4px 8px; border-radius:999px; font-size:10px; font-weight:900; text-transform:uppercase; }
+        .status-draft { background:#f1f5f9; color:#475569; } .status-published { background:#dcfce7; color:#166534; } .status-archived { background:#fee2e2; color:#991b1b; }
+        .campaign-color { width:8px; min-height:50px; align-self:stretch; border-radius:999px; background:#f97316; }
+        .theme-blue { background:#2563eb; } .theme-green { background:#16a34a; } .theme-purple { background:#9333ea; }
+        .flyer-preview { border-radius:20px; overflow:hidden; border:1px solid #e5eaf1; background:#fff; }
+        .flyer-preview-hero { min-height:190px; background:linear-gradient(135deg,#fb923c,#dc2626); background-size:cover; background-position:center; padding:24px; color:#fff; position:relative; display:flex; align-items:end; }
+        .flyer-overlay { position:absolute; inset:0; background:linear-gradient(180deg,rgba(15,23,42,.04),rgba(15,23,42,.74)); }
+        .flyer-kicker { font-size:10px; font-weight:900; letter-spacing:.14em; opacity:.85; }
+        .flyer-preview-hero h3 { font-size:30px; line-height:1.05; font-weight:1000; margin-top:10px; }
+        .flyer-preview-hero p { margin-top:8px; font-size:13px; opacity:.92; }
+        .flyer-preview-items { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding:14px; }
+        .flyer-layout-bento .flyer-item:first-child, .flyer-layout-featured-spotlight .flyer-item:first-child { grid-column:span 2; grid-row:span 2; }
+        .flyer-layout-mosaic-grid .flyer-item:nth-child(4n+1) { grid-column:span 2; }
+        .flyer-layout-filmstrip .flyer-preview-items { display:flex; overflow-x:auto; }
+        .flyer-layout-filmstrip .flyer-item { flex:0 0 150px; }
+        .flyer-item { border:1px solid #f1f5f9; border-radius:13px; padding:9px; min-width:0; }
+        .flyer-item-image { height:86px; display:grid; place-items:center; border-radius:10px; overflow:hidden; background:#fff7ed; color:#c2410c; font-weight:900; font-size:11px; margin-bottom:8px; }
+        .flyer-theme-blue .flyer-preview-hero { background:linear-gradient(135deg,#2563eb,#1d4ed8); } .flyer-theme-green .flyer-preview-hero { background:linear-gradient(135deg,#16a34a,#047857); } .flyer-theme-purple .flyer-preview-hero { background:linear-gradient(135deg,#9333ea,#6b21a8); }
+        .flyer-theme-retail-impact .flyer-preview-hero { background:linear-gradient(135deg,#dc2626,#991b1b); }
+        .flyer-theme-modern-minimalist .flyer-preview-hero { background:linear-gradient(135deg,#475569,#1e293b); }
+        .flyer-theme-seasonal-festive .flyer-preview-hero { background:linear-gradient(135deg,#d97706,#92400e); }
+        .flyer-theme-flash-sale-neon .flyer-preview-hero { background:linear-gradient(135deg,#7c3aed,#1e1b4b); }
+        .flyer-theme-fresh-organic .flyer-preview-hero { background:linear-gradient(135deg,#16a34a,#14532d); }
+        .flyer-theme-retro-pasar .flyer-preview-hero { background:linear-gradient(135deg,#78350f,#451a03); }
+        .flyer-theme-cyber-grosir .flyer-preview-hero { background:linear-gradient(135deg,#15803d,#052e16); }
+        .flyer-theme-carnival-pesta .flyer-preview-hero { background:linear-gradient(135deg,#1d4ed8,#ca8a04); }
+        .flyer-theme-luxury-gold .flyer-preview-hero { background:linear-gradient(135deg,#b45309,#1e3a5f); }
+        .flyer-theme-pastel-korean .flyer-preview-hero { background:linear-gradient(135deg,#ec4899,#f9a8d4); }
+        .flyer-preview-meta, .flyer-preview-footer { display:flex; justify-content:space-between; gap:10px; padding:10px 14px; color:#64748b; font-size:11px; }
+        .flyer-preview-meta { border-bottom:1px solid #f1f5f9; }
+        .flyer-preview-meta strong, .flyer-item-badge { color:#fff; background:#dc2626; border-radius:999px; padding:4px 7px; font-size:10px; font-weight:900; }
+        .flyer-item-image { position:relative; }
+        .flyer-item-badge { position:absolute; left:5px; top:5px; max-width:calc(100% - 10px); line-height:1.1; }
+        .promo-badge-input { width:90px; border:1px solid #e2e8f0; border-radius:9px; padding:5px 7px; font-size:11px; }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior:auto !important; transition-duration:0.01ms !important; animation-duration:0.01ms !important; animation-iteration-count:1 !important; } }
+        @media (max-width: 980px) { .pop-grid { grid-template-columns:1fr; } }
+        @media (max-width: 640px) { .pop-shell { padding:16px; } .pop-header { align-items:flex-start; flex-direction:column; } .pop-form-grid { grid-template-columns:1fr; } .pop-field.full { grid-column:auto; } .flyer-preview-items { grid-template-columns:repeat(2,minmax(0,1fr)); } .promo-product-row { align-items:flex-start; flex-wrap:wrap; } .promo-product-row > .flex.items-center { width:100%; justify-content:flex-end; } }
+    </style>
+</head>
+<body>
+    <main class="pop-shell">
+        <header class="pop-header">
+            <div class="pop-title"><div class="pop-mark">🔥</div><div><div class="text-xs uppercase tracking-widest font-black text-orange-600">Admin only</div><h1 class="text-2xl md:text-3xl font-black text-slate-900">Catalog Promo POP</h1><p class="text-sm text-slate-500 mt-1">Buat, simpan, dan publikasikan flyer promo produk.</p></div></div>
+            <div class="flex flex-wrap gap-2"><a class="secondary-action" href="index.html">Kembali ke Dashboard</a><a class="secondary-action" href="../promo.html" target="_blank" rel="noopener">Lihat /promo.html</a></div>
+        </header>
+        <div id="promo-pop-status" class="mb-5 text-sm rounded-xl px-4 py-3 bg-slate-50 text-slate-600 border border-slate-200">Memeriksa sesi admin...</div>
+        <section class="pop-grid">
+            <div class="space-y-5">
+                <section class="pop-card p-5 md:p-6">
+                    <div class="flex items-center justify-between gap-3 mb-5"><div><h2 class="text-lg font-black">Detail campaign</h2><p class="text-sm text-slate-500">Harga promo disimpan sebagai snapshot untuk flyer.</p></div><button id="promo-pop-new" type="button" class="secondary-action">Campaign Baru</button></div>
+                    <form id="promo-pop-form" class="space-y-5">
+                        <div class="pop-form-grid">
+                            <label class="pop-field"><span class="pop-label">Judul</span><input id="promo-pop-title" class="pop-input" required placeholder="Promo Hemat Mingguan"></label>
+                            <label class="pop-field"><span class="pop-label">Slug</span><input id="promo-pop-slug" class="pop-input" placeholder="promo-hemat-mingguan"></label>
+                            <label class="pop-field"><span class="pop-label">Subjudul</span><input id="promo-pop-subtitle" class="pop-input" placeholder="Harga terbaik untuk kebutuhan harian"></label>
+                            <label class="pop-field"><span class="pop-label">Tema visual</span><select id="promo-pop-theme" class="pop-select"><option value="retail-impact">Alfamidi Retail</option><option value="modern-minimalist">Modern Sleek</option><option value="seasonal-festive">Seasonal Festive</option><option value="flash-sale-neon">Midnight Flash</option><option value="fresh-organic">Fresh Organic</option><option value="retro-pasar">Warung Kelontong</option><option value="cyber-grosir">Cyberpunk Grosir</option><option value="carnival-pesta">Pasar Kaget Pesta</option><option value="luxury-gold">Wholesale VIP Gold</option><option value="pastel-korean">K-Mart Aesthetic</option></select></label>
+                            <label class="pop-field"><span class="pop-label">Layout produk</span><select id="promo-pop-layout" class="pop-select"><option value="auto">Auto Adaptive Grid</option><option value="custom-flexible">Studio Flexible Grid</option><option value="bento">Bento Box Highlight</option><option value="diagonal">Diagonal Split Showcase</option><option value="magazine-asymmetric">Magazine Asymmetric</option><option value="mosaic-grid">Mosaic Masonry Grid</option><option value="featured-spotlight">Dual Spotlight Hero</option><option value="zigzag-tier">Zig-Zag Staggered</option><option value="starburst">Explosive Starburst</option><option value="filmstrip">Horizontal Filmstrip</option></select></label>
+                            <label class="pop-field full"><span class="pop-label">Deskripsi</span><textarea id="promo-pop-description" class="pop-textarea" placeholder="Informasi singkat campaign..."></textarea></label>
+                            <label class="pop-field"><span class="pop-label">Nama toko / headline</span><input id="promo-pop-store" class="pop-input" value="Paket Sembako" placeholder="Paket Sembako"></label>
+                            <label class="pop-field"><span class="pop-label">Label badge</span><input id="promo-pop-badge" class="pop-input" value="DISKON SPESIAL" placeholder="DISKON SPESIAL"></label>
+                            <label class="pop-field full"><span class="pop-label">URL gambar hero (opsional)</span><input id="promo-pop-hero" class="pop-input" type="url" placeholder="https://..."></label>
+                            <label class="pop-field"><span class="pop-label">URL QR / katalog (opsional)</span><input id="promo-pop-qr" class="pop-input" type="url" placeholder="https://... atau URL promo"></label>
+                            <label class="pop-field"><span class="pop-label">Teks periode</span><input id="promo-pop-period" class="pop-input" placeholder="Berlaku 16–31 Agustus 2026"></label>
+                            <label class="pop-field"><span class="pop-label">Catatan footer</span><input id="promo-pop-footer" class="pop-input" placeholder="Stok terbatas. Syarat dan ketentuan berlaku."></label>
+                            <label class="pop-field"><span class="pop-label">Teks watermark (opsional)</span><input id="promo-pop-watermark-text" class="pop-input" placeholder="Paket Sembako"></label>
+                            <label class="pop-field flex items-center gap-2 pt-6"><input id="promo-pop-watermark" type="checkbox" class="h-4 w-4 accent-orange-600"><span class="pop-label">Tampilkan watermark</span></label>
+                            <label class="pop-field"><span class="pop-label">Mulai</span><input id="promo-pop-start" class="pop-input" type="datetime-local"></label>
+                            <label class="pop-field"><span class="pop-label">Berakhir</span><input id="promo-pop-end" class="pop-input" type="datetime-local"></label>
+                            <label class="pop-field"><span class="pop-label">Urutan</span><input id="promo-pop-sort" class="pop-input" type="number" value="0" min="0"></label>
+                        </div>
+                        <div class="flex justify-end"><button class="primary-action" type="submit">Simpan sebagai Draft</button></div>
+                    </form>
+                </section>
+                <section class="pop-card p-5 md:p-6">
+                    <div class="flex items-center justify-between gap-3 mb-4"><div><h2 class="text-lg font-black">Pilih produk</h2><p id="promo-pop-selected-count" class="text-sm text-slate-500">0 produk dipilih</p></div><button id="promo-pop-prepare-backend" type="button" class="secondary-action">Siapkan Schema</button></div>
+                    <input id="promo-pop-product-search" class="pop-input mb-3" placeholder="Cari nama atau ID produk...">
+                    <div id="promo-pop-product-list" class="pop-product-list"></div>
+                </section>
+                <section class="pop-card p-5 md:p-6">
+                            <div class="flex flex-wrap items-center justify-between gap-3 mb-4"><div><h2 class="text-lg font-black">Diskon massal</h2><p class="text-sm text-slate-500">Terapkan persentase atau potongan rupiah ke semua produk yang dipilih.</p></div><span id="promo-pop-bulk-result" class="text-xs font-bold text-emerald-600"></span></div>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <select id="promo-pop-bulk-type" class="pop-select" aria-label="Jenis diskon massal"><option value="percentage">Persentase (%)</option><option value="fixed">Potongan rupiah</option></select>
+                                <input id="promo-pop-bulk-value" class="pop-input" type="number" min="0" step="1" value="20" placeholder="20" aria-label="Nilai diskon massal">
+                                <input id="promo-pop-bulk-badge" class="pop-input" value="DISKON" placeholder="Prefix badge" aria-label="Prefix badge diskon">
+                                <button id="promo-pop-bulk-apply" type="button" class="primary-action">Terapkan Massal</button>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mt-3"><span class="text-xs font-bold text-slate-400 self-center">Preset:</span><button type="button" class="small-action" data-bulk-preset="10">10%</button><button type="button" class="small-action" data-bulk-preset="20">20%</button><button type="button" class="small-action" data-bulk-preset="30">30%</button><button type="button" class="small-action" data-bulk-preset="50">50%</button><button id="promo-pop-bulk-reset" type="button" class="small-action warning">Reset harga</button></div>
+                        </section>
+                        <section class="pop-card p-5 md:p-6"><h2 class="text-lg font-black mb-4">Produk dalam flyer</h2><div id="promo-pop-selected-list"></div></section>
+            </div>
+            <aside class="space-y-5">
+                <section class="pop-card p-4 md:p-5"><div class="flex flex-wrap items-center justify-between gap-3 mb-3"><div><h2 class="text-lg font-black">Live preview</h2><span class="text-xs font-bold text-slate-400">POP Flyer</span></div><div class="flex flex-wrap gap-2"><button id="promo-pop-print" type="button" class="small-action">Cetak</button><button id="promo-pop-share" type="button" class="small-action success">Share WA</button></div></div><div id="promo-pop-preview" class="flyer-preview"></div></section>
+                <section class="pop-card p-4 md:p-5"><div class="flex items-center justify-between mb-3"><h2 class="text-lg font-black">Campaign tersimpan</h2><a href="../promo.html" target="_blank" class="text-xs font-bold text-orange-600 hover:underline">Buka publik</a></div><div id="promo-pop-campaign-list" class="divide-y divide-slate-100"></div></section>
+            </aside>
+        </section>
+    </main>
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/api-service.js"></script>
+    <script src="../assets/js/gas-actions.js"></script>
+    <script src="js/admin-auth.js"></script>
+    <script src="js/catalog-promo-pop.js?v=20260816b"></script>
+</body>
+</html>
