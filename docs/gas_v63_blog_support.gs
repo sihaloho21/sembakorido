@@ -63,7 +63,8 @@ const SHEET_WHITELIST = [
   'credit_accounts', 'credit_invoices', 'credit_ledger', 'paylater_postmortem_logs',
   'runtime_error_logs', 'notifications', 'notification_reads',
   'blog_posts', 'blog_comments',
-  'katalog_promo'  // Sheet untuk manajemen katalog promo
+  'katalog_promo',  // Sheet untuk manajemen katalog promo
+  'promo_flyers'    // Campaign Catalog Promo POP
 ];
 
 const LOCK_TIMEOUT_MS = 30000;
@@ -110,7 +111,8 @@ const SENSITIVE_GET_SHEETS = {
   paylater_postmortem_logs: true,
   runtime_error_logs: true,
   notifications: true,
-  notification_reads: true
+  notification_reads: true,
+  promo_flyers: true
 };
 
 const PUBLIC_POST_RULES = {
@@ -204,6 +206,14 @@ const SCHEMA_REQUIREMENTS = {
     'id', 'post_id', 'user_name', 'content', 'status',
     'created_at', 'updated_at'
   ],
+  promo_flyers: [
+    'id', 'title', 'slug', 'subtitle', 'description', 'status', 'theme', 'layout',
+    'store_name', 'badge_text', 'hero_image', 'items_json', 'start_at', 'end_at',
+    'published_at', 'created_at', 'updated_at', 'created_by', 'sort_order',
+    'share_image_url', 'pdf_url', 'qr_url', 'period_text', 'footer_note',
+    'show_watermark', 'watermark_text', 'show_qr_code', 'banner_config_json',
+    'grid_config_json'
+  ],
   notification_reads: [
     'id', 'notification_id', 'phone', 'read_at', 'created_at', 'updated_at'
   ]
@@ -263,6 +273,9 @@ function doGet(e) {
   }
   if (action === 'public_paylater_config') {
     return jsonOutput(handlePublicPaylaterConfig(params));
+  }
+  if (action === 'public_promo_flyers') {
+    return jsonOutput(handlePublicPromoFlyers(params));
   }
 
   if (!sheetName || SHEET_WHITELIST.indexOf(sheetName) === -1) {
@@ -1640,6 +1653,16 @@ function doPost(e) {
 
     if (action === 'get_paylater_postmortem_logs') {
       return jsonOutput(handleGetPaylaterPostmortemLogs(data));
+    }
+
+    if (action === 'promo_flyer_publish' || action === 'promo_flyer_unpublish') {
+      return jsonOutput(withScriptLock(function() {
+        return handlePromoFlyerSetStatus({
+          id: id || (data && data.id),
+          status: action === 'promo_flyer_publish' ? 'published' : 'draft',
+          actor: (data && data.actor) || adminRole || 'admin'
+        });
+      }));
     }
 
     const sheet = getSheet(sheetName);
@@ -4851,7 +4874,9 @@ function getRequiredRoleForAction(actionKey, sheetName) {
   const normalizedSheet = String(sheetName || '').trim();
 
   if (key === 'delete' && normalizedSheet === 'notifications') return 'manager';
+  if (key === 'delete' && normalizedSheet === 'promo_flyers') return 'manager';
   if (key === 'delete') return 'superadmin';
+  if ((key === 'promo_flyer_publish' || key === 'promo_flyer_unpublish') && normalizedSheet === 'promo_flyers') return 'manager';
   if (key === 'upsert_setting') return 'superadmin';
   if (key === 'ensure_schema') return 'superadmin';
   if (key === 'install_paylater_limit_scheduler') return 'superadmin';
@@ -6505,4 +6530,126 @@ function processLoyaltyPoints() {
     Logger.log('Error in processLoyaltyPoints: ' + error.toString());
     return { error: error.toString() };
   }
+}
+
+
+// ========================================
+// CATALOG PROMO POP
+// ========================================
+
+function normalizePromoFlyerStatus(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'published' || normalized === 'active') return 'published';
+  if (normalized === 'archived') return 'archived';
+  return 'draft';
+}
+
+function parsePromoFlyerItems(value) {
+  if (Array.isArray(value)) return value;
+  const raw = String(value || '').trim();
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function promoFlyerDateValue(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const timestamp = new Date(raw).getTime();
+  return isNaN(timestamp) ? null : timestamp;
+}
+
+function isPromoFlyerCurrentlyActive(row, nowMs) {
+  if (normalizePromoFlyerStatus(row.status) !== 'published') return false;
+  const current = nowMs || Date.now();
+  const start = promoFlyerDateValue(row.start_at);
+  const end = promoFlyerDateValue(row.end_at);
+  if (start !== null && current < start) return false;
+  if (end !== null && current > end) return false;
+  return true;
+}
+
+function normalizePromoFlyerForPublic(row) {
+  const result = {};
+  Object.keys(row || {}).forEach(function(key) {
+    result[key] = row[key];
+  });
+  result.status = normalizePromoFlyerStatus(row.status);
+  result.items = parsePromoFlyerItems(row.items_json);
+  delete result.items_json;
+  return result;
+}
+
+function handlePublicPromoFlyers(params) {
+  try {
+    const sheet = getSheet('promo_flyers');
+    const values = sheet.getDataRange().getValues();
+    if (!values || values.length < 2) return [];
+
+    const headers = values[0];
+    const nowMs = Date.now();
+    const requestedSlug = String((params && params.slug) || '').trim().toLowerCase();
+    const requestedId = String((params && params.id) || '').trim();
+    const rows = values.slice(1).map(function(row) {
+      return toObject(headers, row);
+    }).filter(function(row) {
+      if (!isPromoFlyerCurrentlyActive(row, nowMs)) return false;
+      if (requestedSlug && String(row.slug || '').trim().toLowerCase() !== requestedSlug) return false;
+      if (requestedId && String(row.id || '').trim() !== requestedId) return false;
+      return true;
+    }).map(normalizePromoFlyerForPublic);
+
+    rows.sort(function(a, b) {
+      const sortA = Number(a.sort_order || 0);
+      const sortB = Number(b.sort_order || 0);
+      if (sortA !== sortB) return sortA - sortB;
+      return promoFlyerDateValue(b.start_at) - promoFlyerDateValue(a.start_at);
+    });
+    return rows;
+  } catch (error) {
+    logRuntimeError('handlePublicPromoFlyers', error, { action: 'public_promo_flyers' });
+    return [];
+  }
+}
+
+function handlePromoFlyerSetStatus(input) {
+  const payload = input || {};
+  const flyerId = String(payload.id || '').trim();
+  const nextStatus = normalizePromoFlyerStatus(payload.status);
+  if (!flyerId) return { success: false, error: 'PROMO_FLYER_ID_REQUIRED' };
+  if (nextStatus !== 'published' && nextStatus !== 'draft') {
+    return { success: false, error: 'PROMO_FLYER_STATUS_INVALID' };
+  }
+
+  const sheet = getSheet('promo_flyers');
+  const values = sheet.getDataRange().getValues();
+  if (!values || values.length < 1) return { success: false, error: 'PROMO_FLYER_SCHEMA_INVALID' };
+  const headers = values[0];
+  const idIndex = headers.indexOf('id');
+  if (idIndex === -1) return { success: false, error: 'PROMO_FLYER_ID_COLUMN_MISSING' };
+
+  const rows = values.slice(1);
+  const rowIndex = rows.findIndex(function(row) {
+    return String(row[idIndex] || '').trim() === flyerId;
+  });
+  if (rowIndex === -1) return { success: false, error: 'PROMO_FLYER_NOT_FOUND' };
+
+  const actualRow = rowIndex + 2;
+  const timestamp = nowIso();
+  setCellIfColumnExists(sheet, headers, actualRow, 'status', nextStatus);
+  setCellIfColumnExists(sheet, headers, actualRow, 'updated_at', timestamp);
+  setCellIfColumnExists(sheet, headers, actualRow, 'published_at', nextStatus === 'published' ? timestamp : '');
+  setCellIfColumnExists(sheet, headers, actualRow, 'created_by', payload.actor || 'admin');
+
+  const updatedValues = sheet.getRange(actualRow, 1, 1, headers.length).getValues()[0];
+  return {
+    success: true,
+    affected: 1,
+    status: nextStatus,
+    flyer: normalizePromoFlyerForPublic(toObject(headers, updatedValues))
+  };
 }

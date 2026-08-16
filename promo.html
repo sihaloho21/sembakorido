@@ -35,6 +35,59 @@
                     height: 58px;
                 }
             }
+            .promo-pop-public-section { margin: 0 0 2rem; }
+            .promo-pop-public-list { display: grid; gap: 1.5rem; }
+            .promo-pop-public-campaign { overflow: hidden; border: 1px solid #fed7aa; border-radius: 1.5rem; background: #fff; box-shadow: 0 18px 45px rgba(15,23,42,.08); }
+            .promo-pop-public-hero { min-height: 220px; padding: 2rem; display: flex; align-items: flex-end; color: #fff; position: relative; background: linear-gradient(135deg,#fb923c,#dc2626); background-size: cover; background-position: center; }
+            .promo-pop-public-overlay { position: absolute; inset: 0; background: linear-gradient(180deg,rgba(15,23,42,.05),rgba(15,23,42,.78)); }
+            .promo-pop-public-kicker { font-size: .7rem; font-weight: 900; letter-spacing: .14em; opacity: .88; }
+            .promo-pop-public-hero h3 { margin-top: .65rem; font-size: clamp(1.75rem, 4vw, 2.6rem); line-height: 1.05; font-weight: 900; }
+            .promo-pop-public-hero p { margin-top: .6rem; font-size: .95rem; opacity: .94; }
+            .promo-pop-public-period { display: inline-flex; margin-top: .85rem; padding: .35rem .65rem; border-radius: 999px; background: rgba(255,255,255,.18); font-size: .72rem; font-weight: 700; }
+            .promo-pop-public-campaign-badge { position: absolute; top: 1rem; right: 1rem; padding: .45rem .7rem; border-radius: 999px; background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.4); font-size: .68rem; font-weight: 900; letter-spacing: .05em; }
+            .promo-pop-public-description { padding: 1rem 1.25rem 0; color: #475569; font-size: .9rem; }
+            .promo-pop-public-meta { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 1rem 1.25rem 0; color: #64748b; font-size: .75rem; font-weight: 700; }
+            .promo-pop-public-meta a { color: #ea580c; text-decoration: underline; text-underline-offset: 3px; }
+            .promo-pop-public-items { display: grid; grid-template-columns: repeat(var(--promo-pop-columns, 4), minmax(0, 1fr)); gap: .75rem; padding: 1.25rem; }
+            .promo-pop-public-item { min-width: 0; padding: .75rem; border: 1px solid #f1f5f9; border-radius: 1rem; background: #fff; transition: transform .2s ease, box-shadow .2s ease; }
+            .promo-pop-public-item:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(15,23,42,.08); }
+            .promo-pop-public-image { height: 130px; display: grid; place-items: center; overflow: hidden; border-radius: .75rem; background: #fff7ed; color: #c2410c; font-size: .75rem; font-weight: 900; position: relative; }
+            .promo-pop-public-image img { width: 100%; height: 100%; object-fit: cover; }
+            .promo-pop-public-badge { position: absolute; left: .45rem; top: .45rem; max-width: calc(100% - .9rem); padding: .28rem .45rem; border-radius: 999px; background: #dc2626; color: #fff; font-size: .62rem; font-weight: 900; line-height: 1.1; }
+            .promo-pop-public-item h4 { margin-top: .65rem; color: #1f2937; font-size: .9rem; font-weight: 800; line-height: 1.25; }
+            .promo-pop-public-unit { margin-top: .2rem; color: #94a3b8; font-size: .72rem; }
+            .promo-pop-public-normal { margin-top: .5rem; color: #94a3b8; font-size: .72rem; text-decoration: line-through; }
+            .promo-pop-public-price { margin-top: .15rem; color: #ea580c; font-size: 1rem; font-weight: 900; }
+            .promo-pop-public-footer { display: flex; justify-content: space-between; gap: .75rem; padding: .9rem 1.25rem 1.1rem; border-top: 1px solid #f1f5f9; color: #64748b; font-size: .72rem; }
+            .promo-pop-public-footer small { font-size: .65rem; opacity: .75; }
+            .promo-pop-public-theme-retail-impact .promo-pop-public-hero { background: linear-gradient(135deg,#dc2626,#991b1b); }
+            .promo-pop-public-theme-modern-minimalist .promo-pop-public-hero { background: linear-gradient(135deg,#475569,#1e293b); }
+            .promo-pop-public-theme-seasonal-festive .promo-pop-public-hero { background: linear-gradient(135deg,#d97706,#92400e); }
+            .promo-pop-public-theme-flash-sale-neon .promo-pop-public-hero { background: linear-gradient(135deg,#7c3aed,#1e1b4b); }
+            .promo-pop-public-theme-fresh-organic .promo-pop-public-hero { background: linear-gradient(135deg,#16a34a,#14532d); }
+            .promo-pop-public-theme-retro-pasar .promo-pop-public-hero { background: linear-gradient(135deg,#78350f,#451a03); }
+            .promo-pop-public-theme-cyber-grosir .promo-pop-public-hero { background: linear-gradient(135deg,#15803d,#052e16); }
+            .promo-pop-public-theme-carnival-pesta .promo-pop-public-hero { background: linear-gradient(135deg,#1d4ed8,#ca8a04); }
+            .promo-pop-public-theme-luxury-gold .promo-pop-public-hero { background: linear-gradient(135deg,#b45309,#1e3a5f); }
+            .promo-pop-public-theme-pastel-korean .promo-pop-public-hero { background: linear-gradient(135deg,#ec4899,#f9a8d4); }
+            .promo-pop-public-theme-blue .promo-pop-public-hero { background: linear-gradient(135deg,#2563eb,#1d4ed8); }
+            .promo-pop-public-theme-green .promo-pop-public-hero { background: linear-gradient(135deg,#16a34a,#047857); }
+            .promo-pop-public-theme-purple .promo-pop-public-hero { background: linear-gradient(135deg,#9333ea,#6b21a8); }
+            .promo-pop-public-layout-bento .promo-pop-public-item:first-child, .promo-pop-public-layout-featured-spotlight .promo-pop-public-item:first-child { grid-column: span 2; grid-row: span 2; }
+            .promo-pop-public-layout-bento .promo-pop-public-item:first-child .promo-pop-public-image, .promo-pop-public-layout-featured-spotlight .promo-pop-public-item:first-child .promo-pop-public-image { height: 210px; }
+            .promo-pop-public-layout-diagonal .promo-pop-public-item:nth-child(even) { transform: translateY(.6rem) rotate(-1deg); }
+            .promo-pop-public-layout-magazine-asymmetric .promo-pop-public-item:nth-child(3n+1) { grid-row: span 2; }
+            .promo-pop-public-layout-mosaic-grid .promo-pop-public-item:nth-child(4n+1) { grid-column: span 2; }
+            .promo-pop-public-layout-zigzag-tier .promo-pop-public-item:nth-child(even) { transform: translateY(.75rem); }
+            .promo-pop-public-layout-starburst .promo-pop-public-item:nth-child(3n+1) { border-color: #fbbf24; box-shadow: 0 0 0 3px #fef3c7; }
+            .promo-pop-public-layout-filmstrip .promo-pop-public-items { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; }
+            .promo-pop-public-layout-filmstrip .promo-pop-public-item { flex: 0 0 min(220px, 70vw); scroll-snap-align: start; }
+            .promo-pop-public-loading, .promo-pop-public-empty { padding: 2.5rem 1.25rem; border: 1px dashed #cbd5e1; border-radius: 1.25rem; background: #fff; color: #64748b; text-align: center; }
+            .promo-pop-spinner { width: 1.3rem; height: 1.3rem; display: inline-block; margin-right: .5rem; vertical-align: -.35rem; border: 3px solid #fed7aa; border-top-color: #f97316; border-radius: 999px; animation: promo-pop-spin .8s linear infinite; }
+            @keyframes promo-pop-spin { to { transform: rotate(360deg); } }
+            @media (max-width: 900px) { .promo-pop-public-items { grid-template-columns: repeat(3, minmax(0, 1fr)); } .promo-pop-public-layout-bento .promo-pop-public-item:first-child, .promo-pop-public-layout-featured-spotlight .promo-pop-public-item:first-child { grid-column: span 2; } }
+            @media (max-width: 640px) { .promo-pop-public-hero { min-height: 190px; padding: 1.25rem; } .promo-pop-public-campaign-badge { top: .75rem; right: .75rem; max-width: 45%; } .promo-pop-public-meta, .promo-pop-public-footer { align-items: flex-start; flex-direction: column; } .promo-pop-public-items { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .85rem; } .promo-pop-public-image { height: 105px; } .promo-pop-public-layout-bento .promo-pop-public-item:first-child, .promo-pop-public-layout-featured-spotlight .promo-pop-public-item:first-child, .promo-pop-public-layout-mosaic-grid .promo-pop-public-item:nth-child(4n+1) { grid-column: span 2; } }
+            @media (prefers-reduced-motion: reduce) { .promo-pop-spinner { animation: none; } .promo-pop-public-item, .promo-pop-public-layout-diagonal .promo-pop-public-item:nth-child(even), .promo-pop-public-layout-zigzag-tier .promo-pop-public-item:nth-child(even) { transition: none; transform: none; } }
         </style>
 	</head>
 <body class="bg-gray-50 ">
@@ -92,8 +145,8 @@
                     </div>
                 </a>
 
-                <!-- Promo Produk Card (Coming Soon) -->
-                <div class="relative bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 opacity-70">
+                <!-- Promo Produk Card -->
+                <a href="#promo-pop-public-section" class="group relative bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all p-6 border-2 border-transparent hover:border-orange-500">
                     <div class="flex items-start gap-4">
                         <div class="w-16 h-16 bg-gradient-to-br from-orange-100 to-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
                             <svg class="w-8 h-8 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
@@ -101,14 +154,14 @@
                             </svg>
                         </div>
                         <div class="flex-1">
-                            <h3 class="text-xl font-bold text-gray-800 mb-2">Promo Produk</h3>
-                            <p class="text-gray-600 text-sm mb-3">Produk pilihan dengan harga spesial</p>
-                            <div class="inline-block bg-gradient-to-r from-orange-500 to-red-600 text-white px-3 py-1 rounded-full font-bold text-xs">
-                                🚀 Segera Hadir
+                            <h3 class="text-xl font-bold text-gray-800 mb-2 group-hover:text-orange-600 transition-colors">Promo Produk</h3>
+                            <p class="text-gray-600 text-sm mb-3">Produk pilihan dengan harga spesial dari Catalog Promo POP</p>
+                            <div class="inline-flex items-center gap-1 bg-gradient-to-r from-orange-500 to-red-600 text-white px-3 py-1 rounded-full font-bold text-xs">
+                                Lihat Promo Aktif <span aria-hidden="true">→</span>
                             </div>
                         </div>
                     </div>
-                </div>
+                </a>
 
                 <!-- Flash Sale Card (Coming Soon) -->
                 <div class="relative bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 opacity-70">
@@ -147,6 +200,18 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Catalog Promo POP aktif -->
+            <section id="promo-pop-public-section" class="promo-pop-public-section" aria-labelledby="promo-pop-public-title">
+                <div class="flex items-end justify-between gap-4 mb-4">
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-widest text-orange-600">Catalog Promo POP</p>
+                        <h2 id="promo-pop-public-title" class="text-2xl font-black text-gray-800 mt-1">Promo Produk Aktif</h2>
+                        <p class="text-sm text-gray-600 mt-1">Penawaran pilihan yang sedang dipublikasikan oleh admin.</p>
+                    </div>
+                </div>
+                <div id="promo-pop-public-list" class="promo-pop-public-list" aria-live="polite"></div>
+            </section>
 
             <!-- Back Button -->
             <div class="text-center">
@@ -208,5 +273,7 @@
     <!-- Footer Spacer for Mobile -->
     <div class="h-20 md:hidden"></div>
     <script src="assets/js/sanitize.min.js"></script>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/public-promo-pop.js?v=20260816a"></script>
 </body>
 </html>
