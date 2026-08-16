@@ -277,28 +277,35 @@ function syncProductGridCartControls() {
         if (!product) return;
 
         const nextState = getProductCardCartControlState(product);
-        const nextHtml = renderProductCardCartControl(product).trim();
         const currentMode = slot.getAttribute('data-cart-mode') || '';
         const currentQty = parseInt(slot.getAttribute('data-cart-qty') || '0', 10) || 0;
-        const currentHtml = slot.innerHTML.trim();
+        const control = slot.firstElementChild;
+        const isCurrentStepper = currentMode === 'stepper' && nextState.mode === 'stepper' && control;
+        const updateIncrementAvailability = () => {
+            const increment = control?.querySelector('[data-action="update-product-card-qty"][data-delta="1"]');
+            if (!increment) return;
+            const atMaxStock = nextState.quantity >= nextState.maxStock;
+            increment.disabled = atMaxStock;
+            increment.classList.toggle('opacity-50', atMaxStock);
+        };
 
-        if (currentMode === nextState.mode && currentQty === nextState.quantity && currentHtml === nextHtml) {
+        // Keep an unchanged stepper in place. This prevents the minus button
+        // from being replaced or re-animated when only another card changes.
+        if (currentMode === nextState.mode && currentQty === nextState.quantity) {
+            if (isCurrentStepper) updateIncrementAvailability();
             return;
         }
 
-        slot.innerHTML = nextHtml;
-        slot.setAttribute('data-cart-mode', nextState.mode);
-        slot.setAttribute('data-cart-qty', String(nextState.quantity));
+        // For +/- changes within the same stepper, update only the count and
+        // preserve both buttons so the clicked minus button remains stable.
+        if (isCurrentStepper) {
+            const count = control.querySelector('.product-card-cart-count');
+            if (count) {
+                count.textContent = String(nextState.quantity);
+                updateIncrementAvailability();
+                slot.setAttribute('data-cart-qty', String(nextState.quantity));
 
-        const control = slot.firstElementChild;
-        if (control && !prefersReducedMotion()) {
-            control.classList.remove('product-card-cart-control-enter');
-            void control.offsetWidth;
-            control.classList.add('product-card-cart-control-enter');
-
-            if (currentMode === 'stepper' && nextState.mode === 'stepper' && currentQty !== nextState.quantity) {
-                const count = control.querySelector('.product-card-cart-count');
-                if (count) {
+                if (!prefersReducedMotion()) {
                     const directionClass = nextState.quantity > currentQty
                         ? 'product-card-cart-count--increase'
                         : 'product-card-cart-count--decrease';
@@ -306,7 +313,20 @@ function syncProductGridCartControls() {
                     void count.offsetWidth;
                     count.classList.add(directionClass);
                 }
+                return;
             }
+        }
+
+        const nextHtml = renderProductCardCartControl(product).trim();
+        slot.innerHTML = nextHtml;
+        slot.setAttribute('data-cart-mode', nextState.mode);
+        slot.setAttribute('data-cart-qty', String(nextState.quantity));
+
+        const nextControl = slot.firstElementChild;
+        if (nextControl && !prefersReducedMotion()) {
+            nextControl.classList.remove('product-card-cart-control-enter');
+            void nextControl.offsetWidth;
+            nextControl.classList.add('product-card-cart-control-enter');
         }
     });
 }
