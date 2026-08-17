@@ -21,7 +21,8 @@ const CONFIG = {
         PAYLATER_CONFIG: 'sembako_paylater_config',
         STORE_CLOSED: 'sembako_store_closed',
         MARGIN_ALERT: 'sembako_margin_alert',
-        BUNDLE_DISCOUNT: 'sembako_bundle_discount'
+        BUNDLE_DISCOUNT: 'sembako_bundle_discount',
+        PUBLIC_CATALOG_API: 'sembako_public_catalog_api_url'
     },
     
 
@@ -43,6 +44,23 @@ const CONFIG = {
     /**
      * Mendapatkan URL API untuk halaman admin
      * Priority: localStorage (manual) > default
+     * @returns {string} URL API
+     */
+    getPublicCatalogApiUrl() {
+        const configured = localStorage.getItem(this.STORAGE_KEYS.PUBLIC_CATALOG_API);
+        return configured || 'https://paket-sembako-online-943127658752.asia-southeast1.run.app';
+    },
+
+    setPublicCatalogApiUrl(url) {
+        if (url && url.trim()) {
+            localStorage.setItem(this.STORAGE_KEYS.PUBLIC_CATALOG_API, url.trim().replace(/\/$/, ''));
+            return true;
+        }
+        return false;
+    },
+
+    /**
+     * Mendapatkan URL API untuk halaman admin
      * @returns {string} URL API
      */
     getAdminApiUrl() {
@@ -283,6 +301,7 @@ const CONFIG = {
         return {
             mainApi: this.getMainApiUrl(),
             adminApi: this.getAdminApiUrl(),
+            publicCatalogApi: this.getPublicCatalogApiUrl(),
             gajian: this.getGajianConfig(),
             reward: this.getRewardConfig(),
             paylater: this.getPaylaterConfig(),
