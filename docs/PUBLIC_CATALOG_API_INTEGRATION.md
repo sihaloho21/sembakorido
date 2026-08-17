@@ -1,66 +1,77 @@
-# Integrasi Public Catalog API
+# Integrasi Katalog Tanpa CORS
 
-Repositori `fitur-sembako-gemini` menyediakan API katalog read-only yang dapat dipanggil dari website lain. API ini bersifat publik sesuai kebutuhan integrasi, sehingga **jangan mengirim data pribadi, PIN, token, atau operasi admin** melalui endpoint ini.
+Integrasi menggunakan pola **server-to-server**. Browser website kedua hanya memanggil endpoint lokal milik website tersebut, yaitu `/api/products`. Backend sembakorido kemudian mengambil data dari aplikasi fitur-sembako-gemini. Karena request lintas domain berlangsung antarserver, browser tidak memerlukan CORS.
 
-## Base URL
+## Alur koneksi
 
 ```text
-https://paket-sembako-online-943127658752.asia-southeast1.run.app
+Browser website kedua
+        |
+        | GET /api/products
+        v
+Backend website kedua / sembakorido
+        |
+        | GET ke API fitur-sembako-gemini
+        v
+fitur-sembako-gemini
 ```
 
-## Endpoint
+## Endpoint frontend yang sederhana
 
-| Method | Endpoint | Kegunaan |
-|---|---|---|
-| `GET` | `/api` | Melihat metadata dan daftar endpoint |
-| `GET` | `/api/health` | Memeriksa status layanan |
-| `GET` | `/api/catalog/categories` | Mengambil daftar kategori |
-| `GET` | `/api/catalog/products` | Mengambil katalog produk |
-| `GET` | `/api/catalog/products/:id` | Mengambil satu produk berdasarkan ID |
-| `GET` | `/api/catalog/store` | Mengambil konfigurasi publik toko |
+```text
+GET /api/products
+GET /api/products?q=beras
+GET /api/products?category=Beras&limit=20&offset=0
+```
 
-## Contoh respons katalog
+Endpoint tersebut melakukan proxy ke:
+
+```text
+https://paket-sembako-online-943127658752.asia-southeast1.run.app/api/catalog/products
+```
+
+Frontend cukup menggunakan:
+
+```javascript
+const response = await fetch('/api/products?q=beras&limit=20');
+const payload = await response.json();
+const products = payload.data.items;
+```
+
+Tidak perlu menambahkan `mode: 'no-cors'`. Mode tersebut tidak membuat respons JSON dapat dibaca oleh JavaScript.
+
+## Konfigurasi upstream
+
+Backend sembakorido menggunakan environment variable berikut:
+
+```text
+FEATURE_SEMBAKO_API_URL=https://paket-sembako-online-943127658752.asia-southeast1.run.app
+```
+
+Jika tidak diatur, URL tersebut digunakan sebagai nilai default. Untuk deployment lain, ubah environment variable tanpa mengubah kode frontend.
+
+## Bentuk respons
 
 ```json
 {
   "success": true,
   "data": {
-    "items": [
-      {
-        "id": "prod-1",
-        "name": "Beras Medium Ramos Super 5kg",
-        "category": "Beras",
-        "unit": "Karung 5kg",
-        "retailPrice": 72000,
-        "stock": 85,
-        "image": "https://...",
-        "description": "...",
-        "priceTiers": [
-          { "minQty": 1, "pricePerUnit": 72000, "label": "Eceran" }
-        ]
-      }
-    ],
-    "total": 1,
-    "limit": 100,
+    "items": [],
+    "total": 0,
+    "limit": 20,
     "offset": 0
   }
 }
 ```
 
-Field `hpp` atau harga modal sengaja tidak disertakan pada respons publik. Parameter katalog yang tersedia adalah `q`, `category`, `limit`, dan `offset`.
+Backend proxy menyimpan cache singkat selama 60 detik untuk mengurangi request berulang ke API upstream. API publik upstream tetap read-only dan tidak menyertakan field HPP atau data sensitif.
 
-## Contoh pemakaian dari website lain
+## Catatan deployment
 
-```javascript
-const API_BASE = 'https://paket-sembako-online-943127658752.asia-southeast1.run.app';
+Setelah kedua repositori dideploy, uji endpoint pada domain sembakorido, bukan langsung dari browser ke domain fitur-sembako-gemini:
 
-async function loadProducts({ q = '', category = '', limit = 20, offset = 0 } = {}) {
-  const params = new URLSearchParams({ q, category, limit, offset });
-  const response = await fetch(`${API_BASE}/api/catalog/products?${params}`);
-  if (!response.ok) throw new Error(`API error: HTTP ${response.status}`);
-  const payload = await response.json();
-  return payload.data.items;
-}
+```bash
+curl -i 'https://DOMAIN-SEMBAKORIDO/api/products?q=beras&limit=2'
 ```
 
-API mengizinkan akses lintas domain melalui CORS. Untuk beban tinggi, gunakan cache di website pemanggil dan manfaatkan header cache dari server. Endpoint ini bersifat **read-only**; checkout, perubahan stok, data pengguna, dan operasi admin tetap harus memakai backend internal yang memiliki kontrol akses.
+Pastikan service sembakorido dapat melakukan koneksi keluar ke URL fitur-sembako-gemini dan environment variable `FEATURE_SEMBAKO_API_URL` telah tersedia pada service tersebut.

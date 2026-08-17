@@ -1,42 +1,38 @@
 /*
- * Public Catalog API client for integrations.
- * Read-only: safe to expose to browser clients.
+ * Same-origin catalog client.
+ * The website backend proxies requests to the feature API, so browser CORS is not needed.
  */
 (function (global) {
     'use strict';
 
-    const DEFAULT_BASE_URL = 'https://paket-sembako-online-943127658752.asia-southeast1.run.app';
+    const DEFAULT_PATH = '/api/products';
 
-    function getBaseUrl() {
-        const configured = global.CONFIG && typeof global.CONFIG.getPublicCatalogApiUrl === 'function'
-            ? global.CONFIG.getPublicCatalogApiUrl()
+    function getPath() {
+        const configured = global.CONFIG && typeof global.CONFIG.getPublicCatalogApiPath === 'function'
+            ? global.CONFIG.getPublicCatalogApiPath()
             : '';
-        return (configured || DEFAULT_BASE_URL).replace(/\/$/, '');
+        return configured || DEFAULT_PATH;
     }
 
-    async function request(path, params) {
+    async function request(params) {
         const query = new URLSearchParams();
         Object.entries(params || {}).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== '') query.set(key, String(value));
         });
 
         const suffix = query.toString() ? `?${query.toString()}` : '';
-        const response = await fetch(`${getBaseUrl()}${path}${suffix}`, {
+        const response = await fetch(`${getPath()}${suffix}`, {
             method: 'GET',
             headers: { Accept: 'application/json' }
         });
-        if (!response.ok) throw new Error(`Public Catalog API HTTP ${response.status}`);
+        if (!response.ok) throw new Error(`Catalog API HTTP ${response.status}`);
         const payload = await response.json();
-        if (!payload.success) throw new Error(payload.error || 'Public Catalog API gagal');
+        if (!payload.success) throw new Error(payload.error || 'Catalog API gagal');
         return payload.data;
     }
 
     global.PublicCatalogApi = {
-        getBaseUrl,
-        health: () => request('/api/health'),
-        categories: () => request('/api/catalog/categories'),
-        products: (params) => request('/api/catalog/products', params),
-        product: (id) => request(`/api/catalog/products/${encodeURIComponent(id)}`),
-        store: () => request('/api/catalog/store')
+        getPath,
+        products: (params) => request(params)
     };
 })(window);

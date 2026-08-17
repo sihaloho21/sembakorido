@@ -22,7 +22,8 @@ const CONFIG = {
         STORE_CLOSED: 'sembako_store_closed',
         MARGIN_ALERT: 'sembako_margin_alert',
         BUNDLE_DISCOUNT: 'sembako_bundle_discount',
-        PUBLIC_CATALOG_API: 'sembako_public_catalog_api_url'
+        PUBLIC_CATALOG_API: 'sembako_public_catalog_api_url',
+        PUBLIC_CATALOG_API_PATH: 'sembako_public_catalog_api_path'
     },
     
 
@@ -57,6 +58,10 @@ const CONFIG = {
             return true;
         }
         return false;
+    },
+
+    getPublicCatalogApiPath() {
+        return localStorage.getItem(this.STORAGE_KEYS.PUBLIC_CATALOG_API_PATH) || '/api/products';
     },
 
     /**
