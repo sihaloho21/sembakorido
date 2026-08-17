@@ -8,7 +8,10 @@ const { pipeline } = require('stream');
 
 const ROOT_DIR = path.resolve(__dirname);
 const PORT = Number(process.env.PORT) || 8080;
+const FEATURE_API_BASE_URL = (process.env.FEATURE_SEMBAKO_API_URL || 'https://paket-sembako-online-943127658752.asia-southeast1.run.app').replace(/\/$/, '');
 const ONE_HOUR_SECONDS = 60 * 60;
+const CATALOG_PROXY_CACHE_SECONDS = 60;
+let catalogProxyCache = null;
 const THIRTY_DAYS_SECONDS = 30 * 24 * 60 * 60;
 
 const MIME_TYPES = {
@@ -184,6 +187,40 @@ const server = http.createServer(async (req, res) => {
     }
 
     const parsedUrl = new URL(req.url, 'http://localhost');
+
+    // Same-origin server-to-server proxy. The browser calls this website only;
+    // this server calls the feature API privately, so browser CORS is unnecessary.
+    if (parsedUrl.pathname === '/api/products') {
+        try {
+            const query = parsedUrl.search || '';
+            const now = Date.now();
+            if (catalogProxyCache && catalogProxyCache.expiresAt > now && catalogProxyCache.query === query) {
+                sendTextResponse(res, 200, catalogProxyCache.body, 'application/json; charset=UTF-8');
+                return;
+            }
+
+            const upstream = await fetch(`${FEATURE_API_BASE_URL}/api/catalog/products${query}`, {
+                headers: { Accept: 'application/json' }
+            });
+            const body = await upstream.text();
+            if (!upstream.ok) {
+                sendTextResponse(res, upstream.status, body || 'Upstream API error', 'application/json; charset=UTF-8');
+                return;
+            }
+
+            catalogProxyCache = {
+                query,
+                body,
+                expiresAt: now + CATALOG_PROXY_CACHE_SECONDS * 1000
+            };
+            sendTextResponse(res, 200, body, 'application/json; charset=UTF-8');
+        } catch (error) {
+            console.error('Catalog proxy error:', error);
+            sendTextResponse(res, 502, JSON.stringify({ success: false, error: 'Catalog API unavailable' }), 'application/json; charset=UTF-8');
+        }
+        return;
+    }
+
     if (parsedUrl.pathname === '/admin') {
         const search = parsedUrl.search || '';
         res.writeHead(308, {
