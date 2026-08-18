@@ -6,7 +6,6 @@ const skipDirs = new Set(['node_modules', '.git', 'docs', 'demo']);
 const htmlAllowlist = new Set([
   path.join(root, 'index.html'),
   path.join(root, 'akun.html'),
-  path.join(root, 'promo.html'),
   path.join(root, 'promo_katalog.html'),
   path.join(root, 'admin/index.html'),
   path.join(root, 'admin/login.html'),

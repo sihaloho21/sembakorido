@@ -7,7 +7,7 @@ const today = new Date().toISOString().slice(0, 10);
 const pages = [
   { loc: `${domain}/`, changefreq: "weekly", priority: "1.0" },
   { loc: `${domain}/akun.html`, changefreq: "monthly", priority: "0.6" },
-  { loc: `${domain}/promo.html`, changefreq: "weekly", priority: "0.8" },
+  { loc: `${domain}/transaksi.html`, changefreq: "daily", priority: "0.8" },
   { loc: `${domain}/promo_katalog.html`, changefreq: "monthly", priority: "0.7" }
 ];
 
