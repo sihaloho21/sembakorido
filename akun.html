@@ -306,6 +306,124 @@
         #notification-backdrop.active {
             pointer-events: auto;
         }
+        /* ── ACCOUNT REDESIGN: cleaner hierarchy and spacing ── */
+        body.account-page {
+            background: linear-gradient(180deg, #f4faf6 0, #f8fafc 22rem, #f8fafc 100%);
+        }
+        .account-topbar {
+            background: linear-gradient(135deg, #075e42 0%, #128052 58%, #1a9a61 100%);
+            box-shadow: 0 10px 30px rgba(7, 94, 66, 0.18);
+        }
+        .account-topbar > div {
+            min-height: 4.7rem;
+        }
+        .account-brand-logo {
+            height: 44px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,.12));
+        }
+        .account-main-shell {
+            max-width: 1180px;
+            padding-top: 2.25rem;
+        }
+        .account-auth-card,
+        .account-section-card,
+        .account-summary-card {
+            border-color: rgba(148, 163, 184, .18);
+            border-radius: 1.5rem;
+            box-shadow: 0 18px 42px rgba(15, 23, 42, .065), 0 3px 10px rgba(15, 23, 42, .025);
+        }
+        .account-auth-card {
+            padding: clamp(1.4rem, 3vw, 2.25rem);
+        }
+        .account-dashboard-layout {
+            display: grid;
+            gap: 1.25rem;
+        }
+        .account-dashboard-layout > .account-section-card,
+        .account-dashboard-layout > .account-summary-card {
+            margin-bottom: 0;
+        }
+        .account-hero-card {
+            padding: clamp(1.15rem, 3vw, 1.75rem);
+            background: linear-gradient(135deg, #075e42 0%, #128052 62%, #1a9a61 100%);
+        }
+        .account-hero-card > div {
+            gap: 1rem;
+        }
+        .account-hero-card #user-name {
+            letter-spacing: -.02em;
+        }
+        .account-summary-card,
+        #notifications-section,
+        .account-dashboard-layout > .account-section-card {
+            padding: clamp(1.15rem, 2.5vw, 1.6rem);
+        }
+        .account-summary-card .rounded-2xl.border {
+            border-color: rgba(226, 232, 240, .8);
+            background: linear-gradient(135deg, #f8fbf9, #f4f8f6);
+        }
+        #notifications-section h3,
+        .account-dashboard-layout h3 {
+            letter-spacing: -.015em;
+        }
+        #notifications-list > *,
+        #order-list > *,
+        #reward-items-list > *,
+        #claims-list > *,
+        #referral-history-list > *,
+        #paylater-invoice-list > * {
+            border-radius: 1rem;
+            background: #fbfdfc;
+        }
+        .account-dashboard-layout button,
+        .account-dashboard-layout a,
+        .account-auth-card button,
+        .account-auth-card input {
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease;
+        }
+        .account-dashboard-layout button:hover,
+        .account-auth-card button:hover {
+            transform: translateY(-1px);
+        }
+        @media (min-width: 768px) {
+            .account-dashboard-layout {
+                gap: 1.5rem;
+            }
+            .account-dashboard-layout > #notifications-section {
+                padding: 1.5rem 1.75rem;
+            }
+        }
+        @media (max-width: 639px) {
+            .account-topbar > div {
+                min-height: 4.1rem;
+            }
+            .account-brand-logo {
+                height: 38px;
+            }
+            .account-topbar h1 {
+                font-size: 1rem;
+            }
+            .account-main-shell {
+                padding-top: 1.25rem;
+                padding-right: .85rem;
+                padding-left: .85rem;
+            }
+            .account-hero-card {
+                border-radius: 1.35rem;
+            }
+            .account-hero-card > div {
+                align-items: flex-start;
+            }
+            .account-hero-card > div > div:last-child {
+                width: 100%;
+                justify-content: flex-end;
+            }
+            .account-summary-card,
+            #notifications-section,
+            .account-dashboard-layout > .account-section-card {
+                border-radius: 1.35rem;
+            }
+        }
         .notifications-extra-collapse {
             display: grid;
             grid-template-rows: 0fr;
@@ -652,7 +770,7 @@
         </div>
 
         <!-- Dashboard Section (Hidden by default) -->
-        <div id="dashboard-section" class="hidden fade-in">
+        <div id="dashboard-section" class="hidden fade-in account-dashboard-layout">
             <!-- User Info Card -->
             <div id="profile-section" class="account-section-card account-hero-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
                 <div class="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -797,6 +915,29 @@
                 </div>
                 <div id="notifications-list" class="hidden space-y-3"></div>
             </div>
+
+            <!-- Submitted Reviews -->
+            <section id="account-reviews-section" class="account-section-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6" aria-labelledby="account-reviews-title">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+                    <div>
+                        <h3 id="account-reviews-title" class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-500" aria-hidden="true">★</span>
+                            Ulasan Saya
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-1">Daftar rating dan ulasan yang pernah Anda berikan.</p>
+                        <div class="mt-3 flex flex-wrap gap-2 text-xs font-bold text-gray-600" aria-label="Ringkasan ulasan"><span class="rounded-full bg-amber-50 px-3 py-1.5 text-amber-700"><span id="account-reviews-average">0,0</span>/5 rata-rata</span><span class="rounded-full bg-gray-100 px-3 py-1.5"><span id="account-reviews-total">0</span> ulasan</span></div>
+                    </div>
+                    <a href="/transaksi.html" class="inline-flex items-center justify-center rounded-xl bg-green-50 px-4 py-2 text-sm font-bold text-green-700 transition hover:bg-green-100">Lihat Transaksi</a>
+                </div>
+                <div id="account-reviews-loading" class="hidden rounded-xl bg-gray-50 px-4 py-5 text-sm text-gray-500">Memuat ulasan...</div>
+                <div id="account-reviews-empty" class="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-5 py-8 text-center">
+                    <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-500 text-xl" aria-hidden="true">★</div>
+                    <p class="text-sm font-semibold text-gray-700">Belum ada ulasan</p>
+                    <p class="mt-1 text-xs text-gray-500">Ulasan dari pesanan selesai akan muncul di sini.</p>
+                </div>
+                <div id="account-reviews-list" class="hidden space-y-3"></div>
+            </section>
+
             <!-- Referral Card -->
             <div class="account-section-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
                 <div class="flex items-center justify-between gap-3 mb-4">
@@ -919,55 +1060,6 @@
                 </div>
             </div>
 
-            <!-- Order History -->
-            <div id="orders-section" class="account-section-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <svg aria-hidden="true" class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                    </svg>
-                    Riwayat Belanja
-                </h3>
-
-                <!-- Loading State -->
-                <div id="order-loading" class="text-center py-8">
-                    <svg aria-hidden="true" class="animate-spin h-8 w-8 text-green-600 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p class="text-gray-500 text-sm">Memuat riwayat pesanan...</p>
-                </div>
-
-                <!-- Empty State -->
-                <div id="order-empty" class="hidden text-center py-8">
-                    <img src="assets/images/empty_orders.webp" alt="Belum ada riwayat pesanan" class="w-full max-w-[260px] h-auto mx-auto mb-4" data-fallback-src="assets/images/empty_orders.webp">
-                    <p class="text-gray-500 text-sm mb-4">Belum ada riwayat pesanan<br>Yuk, belanja sekarang</p>
-                    <a href="/" class="inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition">
-                        Mulai Belanja
-                    </a>
-                </div>
-                <div id="order-error" class="hidden text-center py-8">
-                    <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-red-50 text-red-500 flex items-center justify-center border border-red-100">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <p id="order-error-text" class="text-sm text-red-600 font-semibold">Gagal memuat riwayat pesanan.</p>
-                    <div class="flex items-center justify-center gap-2 mt-3">
-                        <button type="button" data-action="retry-orders" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-bold transition">Coba Lagi</button>
-                        <button type="button" data-action="show-login" id="orders-login-cta" class="hidden px-4 py-2 rounded-lg bg-white border border-red-200 text-red-700 text-sm font-bold hover:bg-red-50 transition">Login Ulang</button>
-                    </div>
-                </div>
-
-                <!-- Order List -->
-                <div id="order-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- Orders will be dynamically inserted here -->
-                </div>
-                
-                <!-- Pagination -->
-                <div id="order-pagination" class="hidden">
-                    <!-- Pagination will be dynamically inserted here -->
-                </div>
-            </div>
         </div>
 
     </main>
@@ -1411,20 +1503,18 @@
                 <span class="text-xs mt-1 font-medium">Kategori</span>
             </a>
 
+            <!-- Transaksi -->
+            <a href="/transaksi.html" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600" title="Transaksi" aria-label="Transaksi">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <span class="text-xs mt-1 font-medium">Transaksi</span>
+            </a>
+
             <!-- Keranjang -->
             <a href="/" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600 relative" title="Keranjang" aria-label="Keranjang">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
                 </svg>
                 <span class="text-xs mt-1 font-medium">Keranjang</span>
-            </a>
-
-            <!-- Promo -->
-            <a href="/promo.html" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600" title="Promo" aria-label="Promo">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
-                </svg>
-                <span class="text-xs mt-1 font-medium">Promo</span>
             </a>
 
             <!-- Daftar -->

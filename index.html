@@ -804,11 +804,34 @@
         .product-grid-skeleton .skeleton-line.short {
             width: 60%;
         }
+        /* Keep every product card action row on one bottom baseline. */
+        @media (min-width: 1024px) {
+            /* Keep the desktop storefront visually contained with comfortable side gutters. */
+            #katalog > .container {
+                max-width: 1380px;
+                padding-right: clamp(2rem, 4vw, 4.5rem);
+                padding-left: clamp(2rem, 4vw, 4.5rem);
+            }
+        }
+        #product-grid > * {
+            display: flex;
+            height: 100%;
+            flex-direction: column;
+        }
+        #product-grid > * > div:last-child {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+        }
+        #product-grid > * > div:last-child > .grid.grid-cols-2 {
+            margin-top: auto;
+        }
         .product-card-cart-slot {
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            min-height: 2rem;
+            min-height: 2.75rem;
+            height: auto !important;
         }
         .product-card-cart-control {
             transform-origin: center;
@@ -1843,6 +1866,7 @@
         .order-dialog__body::-webkit-scrollbar { width: 5px; }
         .order-dialog__body::-webkit-scrollbar-thumb { background: #c8d9cd; border-radius: 999px; }
         #order-modal .order-form-section {
+            flex: 0 0 auto;
             margin: 0;
             padding: 0;
             background: transparent;
@@ -2349,6 +2373,126 @@
                 animation: none;
             }
         }
+        /* Modern mobile bottom navigation */
+        .mobile-bottom-navigation {
+            padding: 0 0.8rem max(0.65rem, env(safe-area-inset-bottom));
+            pointer-events: none;
+        }
+        .mobile-bottom-navigation__shell {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            align-items: end;
+            gap: 0.2rem;
+            min-height: 4.35rem;
+            padding: 0.45rem 0.4rem 0.35rem;
+            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(214, 229, 219, 0.95);
+            border-radius: 1.45rem;
+            box-shadow: 0 18px 42px rgba(15, 64, 35, 0.16), 0 3px 10px rgba(15, 64, 35, 0.07);
+            -webkit-backdrop-filter: blur(18px);
+            backdrop-filter: blur(18px);
+        }
+        .mobile-bottom-navigation__item {
+            position: relative;
+            display: flex;
+            min-width: 0;
+            min-height: 3.35rem;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.22rem;
+            padding: 0.45rem 0.15rem 0.35rem;
+            color: #7a8b82;
+            border-radius: 0.95rem;
+            font-size: 0.62rem;
+            font-weight: 700;
+            line-height: 1;
+            text-decoration: none;
+            transition: color 180ms ease, background-color 180ms ease, transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .mobile-bottom-navigation__item svg { width: 1.25rem; height: 1.25rem; transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1); }
+        .mobile-bottom-navigation__item:hover,
+        .mobile-bottom-navigation__item:focus-visible { color: #168447; background: #f0faf3; outline: none; }
+        .mobile-bottom-navigation__item:active { transform: scale(0.94); }
+        .mobile-bottom-navigation__item--active { color: #138344; background: #eaf8ee; }
+        .mobile-bottom-navigation__item--active::after {
+            position: absolute;
+            right: 50%;
+            bottom: 0.18rem;
+            width: 1.15rem;
+            height: 0.18rem;
+            content: '';
+            background: #168447;
+            border-radius: 999px;
+            transform: translateX(50%);
+        }
+        .mobile-bottom-navigation__item--active svg { transform: translateY(-1px); }
+        .mobile-bottom-navigation__cart { z-index: 1; justify-content: center; gap: 0; color: #ffffff; }
+        .mobile-bottom-navigation__cart::before {
+            position: absolute;
+            top: -0.7rem;
+            left: 50%;
+            width: 3.35rem;
+            height: 3.35rem;
+            content: '';
+            background: linear-gradient(145deg, #20a655, #10713a);
+            border: 0.25rem solid #ffffff;
+            border-radius: 1.15rem;
+            box-shadow: 0 10px 22px rgba(20, 125, 61, 0.3);
+            transform: translateX(-50%);
+            transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 180ms ease;
+        }
+        .mobile-bottom-navigation__cart:hover { color: #ffffff; background: transparent; }
+        .mobile-bottom-navigation__cart:active::before { transform: translateX(-50%) scale(0.94); }
+        .mobile-bottom-navigation__cart svg { position: relative; z-index: 1; }
+        .mobile-bottom-navigation__cart svg { margin-top: -0.7rem; }
+        .mobile-bottom-navigation__transaction { position: relative; }
+        .mobile-transaction-badge {
+            align-items: center;
+            background: #e53950;
+            border: 2px solid #ffffff;
+            border-radius: 999px;
+            color: #ffffff;
+            display: flex;
+            font-size: 10px;
+            font-weight: 800;
+            height: 18px;
+            justify-content: center;
+            line-height: 1;
+            min-width: 18px;
+            padding: 0 4px;
+            position: absolute;
+            right: 0.35rem;
+            top: 0.05rem;
+            z-index: 3;
+        }
+        .mobile-transaction-badge:not(.hidden) { animation: header-badge-bounce 2.4s ease-in-out infinite; }
+        #mobile-cart-count {
+            top: -0.45rem;
+            right: calc(50% - 1.65rem);
+            z-index: 2;
+            min-width: 1.05rem;
+            padding: 0.2rem 0.28rem;
+            color: #ffffff;
+            background: #ef5350;
+            border: 2px solid #ffffff;
+            border-radius: 999px;
+            font-size: 0.55rem;
+            line-height: 1;
+            text-align: center;
+        }
+        @media (max-width: 360px) {
+            .mobile-bottom-navigation { padding-right: 0.45rem; padding-left: 0.45rem; }
+            .mobile-bottom-navigation__shell { padding-right: 0.2rem; padding-left: 0.2rem; }
+            .mobile-bottom-navigation__item { font-size: 0.56rem; }
+            .mobile-bottom-navigation__item svg { width: 1.15rem; height: 1.15rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .mobile-bottom-navigation__item,
+            .mobile-bottom-navigation__item svg,
+            .mobile-bottom-navigation__cart::before { transition-duration: 0.01ms; }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -2367,7 +2511,6 @@
                 <div class="flex items-center gap-5">
                     <button type="button" class="header-link-button" data-action="open-about" aria-haspopup="dialog">Tentang Paket Sembako</button>
                     <a href="cara-belanja.html" class="header-link-button">Cara Belanja</a>
-                    <a href="/promo.html" class="header-quick-link">Promo Terbaru</a>
                     <button type="button" data-action="open-reward" class="header-link-button">Tukar Poin</button>
                 </div>
                 <div class="flex items-center gap-5">
@@ -2511,13 +2654,13 @@
                                         </span>
                                         <span>Profil Saya</span>
                                     </a>
-                                    <a href="akun.html#orders" class="header-account-item" role="menuitem" data-close-account-menu="true">
+                                    <a href="transaksi.html" class="header-account-item" role="menuitem" data-close-account-menu="true">
                                         <span class="header-account-icon text-amber-500">
                                             <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                                             </svg>
                                         </span>
-                                        <span>Pesanan Saya</span>
+                                        <span>Transaksi Saya</span>
                                     </a>
                                     <button type="button" class="header-account-item" role="menuitem" data-action="open-wishlist" data-close-account-menu="true">
                                         <span class="header-account-icon text-rose-500">
@@ -2631,7 +2774,7 @@
                 <!-- Search desktop dipindahkan ke header -->
             </div>
 
-            <div id="product-grid" class="grid grid-cols-3 gap-2 md:gap-6">
+            <div id="product-grid" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-6">
                 <!-- Products will be loaded here -->
                 <div class="product-grid-skeleton bg-white rounded-lg p-2 shadow-sm">
                     <div class="skeleton skeleton-product-image mb-2"></div>
@@ -3764,10 +3907,10 @@
     <!-- /Modal: Tentang Paket Sembako -->
 
     <!-- Mobile Bottom Navigation -->
-    <nav id="mobile-bottom-navigation" class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
-        <div class="flex justify-around items-center h-16">
+    <nav id="mobile-bottom-navigation" class="mobile-bottom-navigation md:hidden fixed bottom-0 left-0 right-0 z-50" aria-label="Navigasi utama">
+        <div class="mobile-bottom-navigation__shell">
             <!-- Home -->
-            <a href="/" class="flex flex-col items-center justify-center flex-1 text-green-600" title="Home" aria-label="Home" aria-current="page">
+            <a href="/" class="mobile-bottom-navigation__item mobile-bottom-navigation__item--active" title="Home" aria-label="Home" aria-current="page">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
                 </svg>
@@ -3775,32 +3918,31 @@
             </a>
             
             <!-- Kategori -->
-            <button type="button" data-action="open-category" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600" title="Kategori" aria-label="Kategori">
+            <button type="button" data-action="open-category" class="mobile-bottom-navigation__item" title="Kategori" aria-label="Kategori">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/>
                 </svg>
                 <span class="text-xs mt-1 font-medium">Kategori</span>
             </button>
             
-            <!-- Keranjang -->
-            <button type="button" data-action="open-cart" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600 relative" title="Keranjang" aria-label="Keranjang">
+            <!-- Keranjang: tombol utama di posisi tengah -->
+            <button type="button" data-action="open-cart" class="mobile-bottom-navigation__item mobile-bottom-navigation__cart" title="Keranjang" aria-label="Keranjang">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
                 </svg>
                 <span id="mobile-cart-count" class="absolute top-0 right-3 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden" role="status" aria-live="polite" aria-atomic="true" aria-label="Jumlah item di keranjang">0</span>
-                <span class="text-xs mt-1 font-medium">Keranjang</span>
             </button>
-            
-            <!-- Promo -->
-            <a href="/promo.html" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600" title="Promo" aria-label="Promo">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+            <!-- Transaksi -->
+            <a href="/transaksi.html" class="mobile-bottom-navigation__item mobile-bottom-navigation__transaction" title="Transaksi" aria-label="Transaksi">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                 </svg>
-                <span class="text-xs mt-1 font-medium">Promo</span>
+                <span class="text-xs mt-1 font-medium">Transaksi</span>
+                <span id="mobile-transaction-count" class="mobile-transaction-badge hidden" role="status" aria-live="polite" aria-atomic="true" aria-label="0 pesanan aktif">0</span>
             </a>
             
             <!-- Akun -->
-            <a href="/akun.html" class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-green-600" title="Akun" aria-label="Akun">
+            <a href="/akun.html" class="mobile-bottom-navigation__item" title="Akun" aria-label="Akun">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
                 </svg>
@@ -4051,6 +4193,7 @@
         </div>
     </div>
     <script src="assets/js/script.js?v=20260813j"></script>
+    <script src="assets/js/transaction-badge.js"></script>
 
     <script>
         (function () {

@@ -1572,6 +1572,78 @@ function showLogin() {
     document.getElementById('dashboard-section').classList.add('hidden');
 }
 
+function renderSubmittedReviews(user) {
+    const loading = document.getElementById('account-reviews-loading');
+    const empty = document.getElementById('account-reviews-empty');
+    const list = document.getElementById('account-reviews-list');
+    const averageEl = document.getElementById('account-reviews-average');
+    const totalEl = document.getElementById('account-reviews-total');
+    if (!loading || !empty || !list) return;
+
+    loading.classList.remove('hidden');
+    empty.classList.add('hidden');
+    list.classList.add('hidden');
+    list.innerHTML = '';
+
+    const identity = normalizePhone(user?.whatsapp) || user?.session_token || 'guest';
+    let reviews = {};
+    try {
+        reviews = JSON.parse(localStorage.getItem(`gosembako_reviews_${identity}`) || '{}') || {};
+    } catch (error) {
+        console.warn('Tidak dapat membaca ulasan tersimpan:', error);
+    }
+
+    const entries = Object.entries(reviews)
+        .filter(([, review]) => review && Number(review.rating) >= 1)
+        .sort(([, a], [, b]) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+
+    loading.classList.add('hidden');
+    const totalReviews = entries.length;
+    const averageRating = totalReviews ? entries.reduce((sum, [, review]) => sum + Math.min(5, Math.max(1, Number(review.rating) || 1)), 0) / totalReviews : 0;
+    if (averageEl) averageEl.textContent = averageRating.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    if (totalEl) totalEl.textContent = String(totalReviews);
+    if (!entries.length) {
+        empty.classList.remove('hidden');
+        return;
+    }
+
+    entries.forEach(([orderId, review]) => {
+        const card = document.createElement('article');
+        card.className = 'rounded-2xl border border-gray-100 bg-gray-50/80 p-4 transition hover:border-amber-200 hover:bg-amber-50/40';
+
+        const header = document.createElement('div');
+        header.className = 'flex flex-wrap items-start justify-between gap-3';
+        const order = document.createElement('div');
+        const label = document.createElement('p');
+        label.className = 'text-[11px] font-bold uppercase tracking-wider text-gray-400';
+        label.textContent = 'Pesanan';
+        const orderText = document.createElement('p');
+        orderText.className = 'mt-1 text-sm font-extrabold text-gray-800';
+        orderText.textContent = `#${orderId}`;
+        order.append(label, orderText);
+
+        const meta = document.createElement('div');
+        meta.className = 'text-right';
+        const stars = document.createElement('p');
+        stars.className = 'text-lg leading-none tracking-widest text-amber-500';
+        const rating = Math.min(5, Math.max(1, Number(review.rating) || 1));
+        stars.textContent = `${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}`;
+        stars.setAttribute('aria-label', `Rating ${rating} dari 5`);
+        const date = document.createElement('p');
+        date.className = 'mt-1 text-[11px] text-gray-500';
+        date.textContent = review.submittedAt ? formatDate(review.submittedAt) : 'Tanggal tidak tersedia';
+        meta.append(stars, date);
+        header.append(order, meta);
+
+        const text = document.createElement('p');
+        text.className = 'mt-3 border-t border-gray-200 pt-3 text-sm leading-6 text-gray-700 whitespace-pre-wrap break-words';
+        text.textContent = review.text || 'Tidak ada komentar.';
+        card.append(header, text);
+        list.appendChild(card);
+    });
+    list.classList.remove('hidden');
+}
+
 /**
  * Show dashboard section
  */
@@ -1599,9 +1671,9 @@ function showDashboard(user) {
 
     // Load paylater section
     loadPaylaterData(user);
+    renderSubmittedReviews(user);
     
-    // Load order history
-    loadOrderHistory(user);
+    // Order history is now displayed on transaksi.html.
     focusRequestedAccountSection();
 }
 

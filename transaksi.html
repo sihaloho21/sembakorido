@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaksi | Paket Sembako</title>
+    <meta name="description" content="Riwayat transaksi dan belanja pengguna Paket Sembako.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --brand: #168447; --brand-dark: #0b5f42; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #f4f8f5; color: #17251e; }
+        .transaction-topbar { background: linear-gradient(135deg, var(--brand-dark), var(--brand)); box-shadow: 0 12px 28px rgba(11,95,66,.18); }
+        .transaction-card { border: 1px solid #dcebe1; box-shadow: 0 18px 42px rgba(15, 55, 32, .07); }
+        .order-card { border: 1px solid #e4eee7; transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms cubic-bezier(.23,1,.32,1); }
+        .order-card:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(15,55,32,.10); }
+        .status-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: .28rem .6rem; font-size: .68rem; font-weight: 800; text-transform: capitalize; }
+        .status-success { background: #dcfce7; color: #15803d; }
+        .status-pending { background: #fef3c7; color: #a16207; }
+        .status-danger { background: #fee2e2; color: #b91c1c; }
+        .status-neutral { background: #eef2f7; color: #475569; }
+        .transaction-filter { display: inline-flex; align-items: center; gap: .45rem; border: 1px solid #dcebe1; border-radius: 999px; background: #fff; color: #64748b; padding: .55rem .8rem; font-size: .72rem; font-weight: 800; transition: all 160ms ease; }
+        .transaction-filter:hover { border-color: #86c99e; color: #168447; background: #f7fcf8; }
+        .transaction-filter.is-active { border-color: #168447; background: #168447; color: #fff; box-shadow: 0 6px 14px rgba(22,132,71,.18); }
+        .transaction-filter__count { min-width: 1.35rem; padding: .12rem .35rem; border-radius: 999px; background: #eef5f0; color: #168447; text-align: center; font-size: .65rem; }
+        .transaction-filter.is-active .transaction-filter__count { background: rgba(255,255,255,.2); color: #fff; }
+        @media (prefers-reduced-motion: reduce) { .order-card { transition: none; } }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="transaction-topbar text-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+            <a href="/" class="flex items-center gap-3 min-w-0" aria-label="Kembali ke Paket Sembako">
+                <img src="assets/img/logo.png" alt="Paket Sembako" class="h-11 w-auto object-contain brightness-0 invert">
+                <div class="min-w-0"><p class="text-[10px] uppercase tracking-[.18em] text-green-100 font-bold">Paket Sembako</p><h1 class="text-lg sm:text-xl font-extrabold truncate">Transaksi</h1></div>
+            </a>
+            <a href="akun.html" class="shrink-0 inline-flex items-center gap-2 rounded-xl bg-white/15 hover:bg-white/25 px-3 py-2 text-xs sm:text-sm font-bold transition" aria-label="Buka Akun">
+                <span id="transaction-user-label">Akun</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-7 sm:py-10 pb-24">
+        <section class="mb-6 sm:mb-8">
+            <p class="text-xs font-extrabold uppercase tracking-[.18em] text-green-700 mb-2">Riwayat Belanja</p>
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div><h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Semua transaksi Anda</h2><p id="transaction-subtitle" class="text-sm text-slate-500 mt-2">Memuat data pengguna...</p></div>
+                <a href="/" class="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 hover:bg-green-700 text-white px-4 py-3 text-sm font-extrabold transition">Belanja Lagi</a>
+            </div>
+        </section>
+
+        <section id="transaction-login" class="hidden transaction-card rounded-3xl bg-white p-8 sm:p-12 text-center">
+            <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-green-700"><svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4m-5-4l5-5m0 0l-5-5m5 5H3"/></svg></div>
+            <h3 class="text-xl font-extrabold text-slate-900">Masuk untuk melihat transaksi</h3><p class="mt-2 text-sm text-slate-500">Riwayat belanja hanya ditampilkan sesuai akun yang sedang login.</p>
+            <a href="akun.html" class="mt-6 inline-flex rounded-xl bg-green-600 hover:bg-green-700 px-5 py-3 text-sm font-extrabold text-white transition">Masuk ke Akun</a>
+        </section>
+
+        <section id="transaction-content" class="transaction-card rounded-3xl bg-white p-5 sm:p-7">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-5 mb-5">
+                <div><h3 class="text-lg font-extrabold text-slate-900">Riwayat Pesanan</h3><p class="text-xs text-slate-500 mt-1">Pesanan terbaru ditampilkan terlebih dahulu.</p></div>
+                <div class="rounded-2xl bg-green-50 px-4 py-3"><p class="text-[10px] font-extrabold uppercase tracking-wider text-green-700">Total belanja diterima</p><p id="transaction-total" class="mt-1 text-lg font-extrabold text-green-800">Rp 0</p></div>
+            </div>
+            <div class="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Filter status pesanan">
+                <button type="button" class="transaction-filter is-active" data-transaction-filter="all" role="tab" aria-selected="true">Semua <span id="transaction-count-all" class="transaction-filter__count">0</span></button>
+                <button type="button" class="transaction-filter" data-transaction-filter="completed" role="tab" aria-selected="false">Selesai <span id="transaction-count-completed" class="transaction-filter__count">0</span></button>
+                <button type="button" class="transaction-filter" data-transaction-filter="processing" role="tab" aria-selected="false">Diproses <span id="transaction-count-processing" class="transaction-filter__count">0</span></button>
+                <button type="button" class="transaction-filter" data-transaction-filter="cancelled" role="tab" aria-selected="false">Dibatalkan <span id="transaction-count-cancelled" class="transaction-filter__count">0</span></button>
+            </div>
+            <div id="transaction-loading" class="py-12 text-center"><svg class="animate-spin h-8 w-8 text-green-600 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg><p class="text-sm text-slate-500">Memuat riwayat belanja...</p></div>
+            <div id="transaction-empty" class="hidden py-12 text-center"><div class="mx-auto mb-4 h-14 w-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400"><svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18v18H3zM8 8h8M8 12h5"/></svg></div><p class="font-bold text-slate-700">Belum ada riwayat belanja</p><p class="text-sm text-slate-500 mt-1">Pesanan Anda akan muncul di sini setelah melakukan checkout.</p></div>
+            <div id="transaction-error" class="hidden py-12 text-center"><p id="transaction-error-text" class="text-sm font-bold text-red-600">Gagal memuat riwayat belanja.</p><button id="transaction-retry" type="button" class="mt-4 rounded-xl bg-green-600 hover:bg-green-700 px-4 py-2 text-sm font-bold text-white transition">Coba Lagi</button></div>
+            <div id="transaction-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+        </section>
+    </main>
+
+    <div id="order-tracking-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="tracking-order-title" tabindex="-1">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex items-center justify-between gap-4 mb-6">
+                    <h3 id="tracking-order-title" class="text-xl font-extrabold text-slate-800">Detail Pesanan</h3>
+                    <button type="button" id="close-order-tracking" class="text-slate-400 hover:text-slate-600" aria-label="Tutup detail pesanan">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 mb-6">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0"><p class="text-xs text-slate-500 mb-1">Nomor Pesanan</p><p id="tracking-order-id" class="font-extrabold text-green-700 break-all">-</p><p class="text-xs text-slate-500 mt-3">Tanggal Pesanan</p><p id="tracking-order-date" class="text-xs font-semibold text-slate-700">-</p></div>
+                        <span id="tracking-status-badge" class="status-pill status-pending shrink-0">Diproses</span>
+                    </div>
+                </div>
+                <div class="mb-6"><h4 class="font-extrabold text-slate-800 mb-4">Status Pesanan</h4><div id="tracking-timeline" class="overflow-x-auto"></div></div>
+                <div class="border-t border-slate-100 pt-4 space-y-3">
+                    <div><p class="text-xs text-slate-500 mb-1">Produk</p><p id="tracking-products" class="font-semibold text-slate-800 break-words">-</p></div>
+                    <div class="flex items-center justify-between gap-3"><p class="text-xs text-slate-500">Total Bayar</p><p id="tracking-total" class="font-extrabold text-green-700">Rp 0</p></div>
+                </div>
+                <section id="order-review-section" class="hidden mt-6 border-t border-slate-100 pt-5" aria-labelledby="order-review-title">
+                    <div class="flex items-start gap-3"><div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-500"><svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.802 2.036a1 1 0 00-.346 1.116l1.07 3.292c.3.922-.755 1.688-1.54 1.118l-2.803-2.036a1 1 0 00-1.176 0l-2.803 2.036c-.784.57-1.838-.196-1.539-1.118l1.07-3.292a1 1 0 00-.346-1.116L3.007 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.042-3.293z"/></svg></div><div><h4 id="order-review-title" class="font-extrabold text-slate-800">Bagaimana pengalaman belanja Anda?</h4><p class="mt-1 text-xs text-slate-500">Berikan rating dan ulasan untuk pesanan ini.</p></div></div>
+                    <form id="order-review-form" class="mt-4 space-y-3">
+                        <div><p class="mb-2 text-xs font-bold text-slate-600">Rating produk</p><div id="order-review-stars" class="flex gap-1" role="radiogroup" aria-label="Pilih rating produk"><button type="button" class="review-star text-2xl leading-none text-slate-300 transition hover:text-amber-400" data-review-rating="1" role="radio" aria-label="1 bintang" aria-checked="false">★</button><button type="button" class="review-star text-2xl leading-none text-slate-300 transition hover:text-amber-400" data-review-rating="2" role="radio" aria-label="2 bintang" aria-checked="false">★</button><button type="button" class="review-star text-2xl leading-none text-slate-300 transition hover:text-amber-400" data-review-rating="3" role="radio" aria-label="3 bintang" aria-checked="false">★</button><button type="button" class="review-star text-2xl leading-none text-slate-300 transition hover:text-amber-400" data-review-rating="4" role="radio" aria-label="4 bintang" aria-checked="false">★</button><button type="button" class="review-star text-2xl leading-none text-slate-300 transition hover:text-amber-400" data-review-rating="5" role="radio" aria-label="5 bintang" aria-checked="false">★</button></div></div>
+                        <label class="block"><span class="mb-2 block text-xs font-bold text-slate-600">Ulasan Anda</span><textarea id="order-review-text" rows="3" maxlength="500" class="w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-100" placeholder="Ceritakan pengalaman Anda dengan produk ini..."></textarea></label>
+                        <p id="order-review-error" class="hidden text-xs font-bold text-red-600"></p>
+                        <button id="order-review-submit" type="submit" class="w-full rounded-xl bg-amber-500 px-4 py-3 text-sm font-extrabold text-white transition hover:bg-amber-600 active:scale-[.98]">Kirim Ulasan</button>
+                    </form>
+                    <div id="order-review-submitted" class="hidden mt-4 rounded-xl bg-green-50 p-4"><div class="flex items-start justify-between gap-3"><p class="text-xs font-extrabold uppercase tracking-wider text-green-700">Ulasan Anda</p><button id="order-review-edit" type="button" class="text-xs font-extrabold text-green-700 hover:text-green-900 underline underline-offset-2">Edit</button></div><p id="order-review-submitted-rating" class="mt-2 text-lg tracking-widest text-amber-500" aria-label="Rating tersimpan"></p><p id="order-review-submitted-text" class="mt-2 text-sm leading-5 text-slate-700"></p></div>
+                </section>
+                <a href="/" class="mt-6 block w-full text-center bg-green-600 hover:bg-green-700 text-white font-extrabold py-3 rounded-xl transition">Belanja Lagi</a>
+            </div>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden" aria-label="Navigasi utama">
+        <div class="mx-auto flex h-16 max-w-lg items-stretch">
+            <a href="/" class="flex flex-1 flex-col items-center justify-center text-slate-500 hover:text-green-700"><svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7A1 1 0 0010 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg><span class="mt-1 text-[10px] font-bold">Home</span></a>
+            <a href="transaksi.html" aria-current="page" class="flex flex-1 flex-col items-center justify-center text-green-700"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><span class="mt-1 text-[10px] font-bold">Transaksi</span></a>
+            <a href="akun.html" class="flex flex-1 flex-col items-center justify-center text-slate-500 hover:text-green-700"><svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg><span class="mt-1 text-[10px] font-bold">Akun</span></a>
+        </div>
+    </nav>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/transaksi.js?v=20260326a"></script>
+</body>
+</html>
+
+<footer class="sr-only">Paket Sembako</footer>
