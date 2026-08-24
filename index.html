@@ -49,17 +49,6 @@
             background: rgba(255, 255, 255, 0.82);
             box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
         }
-        .category-filter-more__icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            flex: 0 0 32px;
-            border-radius: 10px;
-            background: #ecfdf5;
-            color: #059669;
-        }
         .category-filter-rail-wrap {
             position: relative;
             min-width: 0;
@@ -105,7 +94,6 @@
             transform: scale(0.98);
         }
         .filter-btn:focus-visible,
-        .category-filter-more:focus-visible,
         .category-sheet__close:focus-visible,
         .category-sheet__button:focus-visible {
             outline: 3px solid rgba(16, 185, 129, 0.28);
@@ -139,30 +127,6 @@
         }
         .category-filter-rail-wrap.has-overflow.at-end::after {
             display: none;
-        }
-        .category-filter-more {
-            align-items: center;
-            justify-content: center;
-            gap: 7px;
-            width: calc(100% - 28px);
-            min-height: 42px;
-            margin: 0 14px 14px;
-            padding: 0 14px;
-            border: 1px solid #bbf7d0;
-            border-radius: 13px;
-            background: #f0fdf4;
-            color: #047857;
-            font-size: 12px;
-            font-weight: 800;
-        }
-        .category-filter-more__count {
-            min-width: 20px;
-            padding: 3px 6px;
-            border-radius: 999px;
-            background: #d1fae5;
-            color: #047857;
-            font-size: 10px;
-            line-height: 1;
         }
         .category-scroll-button {
             position: absolute;
@@ -285,7 +249,6 @@
                 padding: 0 48px 8px;
             }
             .category-filter-rail-wrap.has-overflow::after,
-            .category-filter-more,
             .category-sheet {
                 display: none !important;
             }
@@ -299,11 +262,6 @@
             .category-filter-rail {
                 padding-right: 12px;
                 padding-left: 12px;
-            }
-            .category-filter-more {
-                width: calc(100% - 24px);
-                margin-right: 12px;
-                margin-left: 12px;
             }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -3029,15 +2987,6 @@
                         </button>
                     </div>
 
-                    <button type="button" id="category-filter-more" class="category-filter-more hidden md:hidden" data-action="open-category-sheet" aria-haspopup="dialog" aria-expanded="false" aria-controls="category-sheet">
-                        <span class="category-filter-more__icon" aria-hidden="true">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                            </svg>
-                        </span>
-                        <span>Lainnya</span>
-                        <span class="category-filter-more__count" id="category-filter-more-count">0</span>
-                    </button>
                 </section>
 
                 <!-- Mobile category overflow bottom sheet -->
@@ -4481,7 +4430,7 @@
             </div>
         </div>
     </div>
-    <script src="assets/js/script.js?v=20260824d"></script>
+    <script src="assets/js/script.js?v=20260824e"></script>
     <script src="assets/js/transaction-badge.js"></script>
 
     <script>
