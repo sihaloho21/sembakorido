@@ -891,9 +891,12 @@
                         </h3>
                         <p id="notifications-summary-text" class="text-sm text-gray-500 mt-1">Belum ada notifikasi baru.</p>
                     </div>
-                    <button type="button" data-action="mark-all-notifications-read" id="notification-mark-all-section" class="hidden inline-flex items-center justify-center px-4 py-2 rounded-xl bg-green-50 hover:bg-green-100 text-green-700 text-sm font-bold transition">
-                        Tandai Semua Dibaca
-                    </button>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a href="notifikasi.html" class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-green-200 bg-white hover:bg-green-50 text-green-700 text-sm font-bold transition">Riwayat Notifikasi</a>
+                        <button type="button" data-action="mark-all-notifications-read" id="notification-mark-all-section" class="hidden inline-flex items-center justify-center px-4 py-2 rounded-xl bg-green-50 hover:bg-green-100 text-green-700 text-sm font-bold transition">
+                            Tandai Semua Dibaca
+                        </button>
+                    </div>
                 </div>
 
                 <div id="notifications-loading" class="text-sm text-gray-500">Memuat notifikasi...</div>
@@ -1725,6 +1728,6 @@
         </div>
     </div>
 
-    <script src="assets/js/akun.js?v=20260326f"></script>
+    <script src="assets/js/akun.js?v=20260824a"></script>
 </body>
 </html>

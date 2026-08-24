@@ -1419,6 +1419,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const loggedInUser = getLoggedInUser();
     const initialViewMode = getInitialAccountViewMode();
 
+    const refreshAccountReviews = () => {
+        const user = getLoggedInUser();
+        if (user) renderSubmittedReviews(user);
+    };
+    window.addEventListener('gosembako-reviews-updated', refreshAccountReviews);
+    window.addEventListener('storage', (event) => {
+        if (String(event.key || '').startsWith('gosembako_reviews_')) refreshAccountReviews();
+    });
+
     const referralInput = document.getElementById('referral-input');
     if (referralInput) {
         referralInput.addEventListener('keydown', (event) => {
@@ -1456,7 +1465,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const viewAllNotificationsTrigger = event.target.closest('[data-action="view-all-notifications"]');
             if (viewAllNotificationsTrigger) {
                 closeNotificationDropdown();
-                scrollToNotificationSection();
+                window.location.href = 'notifikasi.html';
             }
         });
         notificationDropdown.setAttribute('aria-hidden', notificationDropdown.classList.contains('hidden') ? 'true' : 'false');
@@ -1483,7 +1492,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const viewAllNotificationsTrigger = event.target.closest('[data-action="view-all-notifications"]');
         if (viewAllNotificationsTrigger) {
             closeNotificationDropdown();
-            scrollToNotificationSection();
+            window.location.href = 'notifikasi.html';
             return;
         }
         const closeNotificationDetailTrigger = event.target.closest('[data-action="close-notification-detail"]');

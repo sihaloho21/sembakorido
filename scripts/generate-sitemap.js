@@ -8,6 +8,7 @@ const pages = [
   { loc: `${domain}/`, changefreq: "weekly", priority: "1.0" },
   { loc: `${domain}/akun.html`, changefreq: "monthly", priority: "0.6" },
   { loc: `${domain}/transaksi.html`, changefreq: "daily", priority: "0.8" },
+  { loc: `${domain}/notifikasi.html`, changefreq: "daily", priority: "0.7" },
   { loc: `${domain}/promo_katalog.html`, changefreq: "monthly", priority: "0.7" }
 ];
 

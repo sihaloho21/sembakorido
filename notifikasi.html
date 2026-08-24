@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifikasi | Paket Sembako</title>
+    <meta name="description" content="Riwayat notifikasi pengguna Paket Sembako.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --brand: #168447; --brand-dark: #0b5f42; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #f4f8f5; color: #17251e; }
+        .notification-topbar { background: linear-gradient(135deg, var(--brand-dark), var(--brand)); box-shadow: 0 12px 28px rgba(11,95,66,.18); }
+        .notification-card { border: 1px solid #dcebe1; box-shadow: 0 18px 42px rgba(15,55,32,.07); }
+        .notification-item { border: 1px solid #e3eee7; transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms cubic-bezier(.23,1,.32,1), border-color 180ms ease; }
+        .notification-item:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(15,55,32,.10); border-color: #a9d5b6; }
+        .notification-item.is-unread { border-color: #9fdbb2; background: linear-gradient(135deg, #f2fcf5, #fff); }
+        .history-filter { display: inline-flex; align-items: center; gap: .45rem; border: 1px solid #dcebe1; border-radius: 999px; background: #fff; color: #64748b; padding: .58rem .85rem; font-size: .72rem; font-weight: 800; transition: all 160ms ease; }
+        .history-filter:hover { border-color: #86c99e; color: #168447; background: #f7fcf8; }
+        .history-filter.is-active { border-color: #168447; background: #168447; color: #fff; box-shadow: 0 6px 14px rgba(22,132,71,.18); }
+        .history-filter__count { min-width: 1.35rem; padding: .12rem .35rem; border-radius: 999px; background: #eef5f0; color: #168447; text-align: center; font-size: .65rem; }
+        .history-filter.is-active .history-filter__count { background: rgba(255,255,255,.2); color: #fff; }
+        .notification-detail-content { white-space: pre-wrap; overflow-wrap: anywhere; }
+        @media (prefers-reduced-motion: reduce) { .notification-item { transition: none; } }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="notification-topbar text-white">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+            <a href="akun.html" class="flex items-center gap-3 min-w-0" aria-label="Kembali ke Akun">
+                <img src="assets/img/logo.png" alt="Paket Sembako" class="h-11 w-auto object-contain brightness-0 invert">
+                <div class="min-w-0"><p class="text-[10px] uppercase tracking-[.18em] text-green-100 font-bold">Menu Akun</p><h1 class="text-lg sm:text-xl font-extrabold truncate">Notifikasi</h1></div>
+            </a>
+            <a href="akun.html" class="shrink-0 inline-flex items-center gap-2 rounded-xl bg-white/15 hover:bg-white/25 px-3 py-2 text-xs sm:text-sm font-bold transition" aria-label="Kembali ke Akun">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                <span>Akun</span>
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 py-7 sm:py-10 pb-24">
+        <section class="mb-6 sm:mb-8">
+            <p class="text-xs font-extrabold uppercase tracking-[.18em] text-green-700 mb-2">Pusat Informasi</p>
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div><h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Riwayat notifikasi</h2><p id="notification-history-subtitle" class="text-sm text-slate-500 mt-2">Memuat informasi akun...</p></div>
+                <a href="transaksi.html" class="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 hover:bg-green-700 text-white px-4 py-3 text-sm font-extrabold transition">Lihat Transaksi</a>
+            </div>
+        </section>
+
+        <section id="notification-history-login" class="hidden notification-card rounded-3xl bg-white p-8 sm:p-12 text-center">
+            <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-green-700"><svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4m-5-4l5-5m0 0l-5-5m5 5H3"/></svg></div>
+            <h3 class="text-xl font-extrabold text-slate-900">Masuk untuk melihat notifikasi</h3><p class="mt-2 text-sm text-slate-500">Notifikasi hanya ditampilkan sesuai akun yang sedang login.</p>
+            <a href="akun.html" class="mt-6 inline-flex rounded-xl bg-green-600 hover:bg-green-700 px-5 py-3 text-sm font-extrabold text-white transition">Masuk ke Akun</a>
+        </section>
+
+        <section id="notification-history-content" class="notification-card rounded-3xl bg-white p-5 sm:p-7">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5 mb-5">
+                <div><h3 class="text-lg font-extrabold text-slate-900">Semua informasi untuk Anda</h3><p id="notification-history-summary" class="text-xs text-slate-500 mt-1">Belum ada notifikasi baru.</p></div>
+                <button id="notification-history-mark-all" type="button" class="hidden inline-flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-xs font-extrabold text-green-700 hover:bg-green-100 transition">Tandai semua dibaca</button>
+            </div>
+            <div class="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Filter notifikasi">
+                <button type="button" class="history-filter is-active" data-notification-filter="all" role="tab" aria-selected="true">Semua <span id="notification-count-all" class="history-filter__count">0</span></button>
+                <button type="button" class="history-filter" data-notification-filter="unread" role="tab" aria-selected="false">Belum dibaca <span id="notification-count-unread" class="history-filter__count">0</span></button>
+                <button type="button" class="history-filter" data-notification-filter="read" role="tab" aria-selected="false">Sudah dibaca <span id="notification-count-read" class="history-filter__count">0</span></button>
+            </div>
+            <div id="notification-history-loading" class="py-12 text-center"><svg class="animate-spin h-8 w-8 text-green-600 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg><p class="text-sm text-slate-500">Memuat riwayat notifikasi...</p></div>
+            <div id="notification-history-empty" class="hidden py-12 text-center"><div class="mx-auto mb-4 h-14 w-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400"><svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-2 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg></div><p id="notification-history-empty-title" class="font-bold text-slate-700">Belum ada notifikasi</p><p id="notification-history-empty-text" class="text-sm text-slate-500 mt-1">Informasi penting tentang pesanan dan layanan akan muncul di sini.</p></div>
+            <div id="notification-history-error" class="hidden py-12 text-center"><p id="notification-history-error-text" class="text-sm font-bold text-red-600">Gagal memuat notifikasi.</p><button id="notification-history-retry" type="button" class="mt-4 rounded-xl bg-green-600 hover:bg-green-700 px-4 py-2 text-sm font-bold text-white transition">Coba Lagi</button></div>
+            <div id="notification-history-list" class="hidden space-y-3"></div>
+        </section>
+    </main>
+
+    <div id="notification-history-detail-modal" class="hidden fixed inset-0 z-50 bg-slate-950/50 p-4 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="notification-history-detail-title">
+        <div class="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl bg-white shadow-2xl">
+            <div class="flex items-center justify-between gap-4 border-b border-slate-100 p-5 sm:p-6">
+                <div class="flex items-center gap-3 min-w-0"><div id="notification-history-detail-icon" class="shrink-0"></div><div class="min-w-0"><p id="notification-history-detail-meta" class="text-[10px] font-extrabold uppercase tracking-[.16em] text-green-700">Notifikasi</p><h3 id="notification-history-detail-title" class="mt-1 text-lg font-extrabold text-slate-900 break-words">Notifikasi</h3></div></div>
+                <button type="button" data-action="close-notification-detail" class="shrink-0 rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition" aria-label="Tutup detail notifikasi"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            <div class="p-5 sm:p-6"><p id="notification-history-detail-date" class="text-xs text-slate-500"></p><p id="notification-history-detail-summary" class="mt-4 rounded-2xl bg-green-50 p-4 text-sm font-semibold leading-6 text-green-900"></p><p id="notification-history-detail-content" class="notification-detail-content mt-5 text-sm leading-7 text-slate-700"></p></div>
+            <div id="notification-history-detail-footer" class="hidden border-t border-slate-100 bg-slate-50 p-5 sm:p-6"><a id="notification-history-detail-action" href="#" class="inline-flex w-full items-center justify-center rounded-xl bg-green-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-green-700 transition">Lihat Terkait</a></div>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden" aria-label="Navigasi utama">
+        <div class="mx-auto flex h-16 max-w-lg items-stretch">
+            <a href="/" class="flex flex-1 flex-col items-center justify-center text-slate-500 hover:text-green-700"><svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7A1 1 0 0010 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg><span class="mt-1 text-[10px] font-bold">Home</span></a>
+            <a href="transaksi.html" class="flex flex-1 flex-col items-center justify-center text-slate-500 hover:text-green-700"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><span class="mt-1 text-[10px] font-bold">Transaksi</span></a>
+            <a href="akun.html" aria-current="page" class="flex flex-1 flex-col items-center justify-center text-green-700"><svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg><span class="mt-1 text-[10px] font-bold">Akun</span></a>
+        </div>
+    </nav>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/notifikasi.js?v=20260824a"></script>
+</body>
+</html>
+<footer class="sr-only">Paket Sembako</footer>
