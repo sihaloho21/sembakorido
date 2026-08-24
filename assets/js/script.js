@@ -667,10 +667,37 @@ async function fetchProducts() {
  * Renders category filter buttons dynamically based on products.
  * Only shows categories that have at least one product.
  */
+function getCategoryFilterButtonMarkup(category, isSheet = false) {
+    const safeCategory = escapeHtml(category);
+    const isActive = currentCategory === category;
+    const buttonClass = isSheet
+        ? `category-sheet__button${isActive ? ' active' : ''}`
+        : `filter-btn snap-start flex-shrink-0${isActive ? ' active' : ''}`;
+    const checkMarkup = isActive
+        ? `<span class="filter-btn__check" aria-hidden="true"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 12l4 4L19 6"></path></svg></span>`
+        : '';
+
+    return `<button type="button" data-action="set-category" data-category="${safeCategory}" aria-pressed="${isActive ? 'true' : 'false'}" class="${buttonClass}"><span>${safeCategory}</span>${checkMarkup}</button>`;
+}
+
+function updateCategoryFilterSummary() {
+    const summary = document.getElementById('category-filter-summary');
+    if (!summary) return;
+    summary.textContent = currentCategory === 'Semua' ? 'Semua produk' : currentCategory;
+}
+
+function renderCategoryFilterSheet(categories) {
+    const list = document.getElementById('category-sheet-list');
+    if (!list) return;
+    list.innerHTML = ['Semua', ...categories]
+        .map(category => getCategoryFilterButtonMarkup(category, true))
+        .join('');
+}
+
 function renderCategoryFilters() {
     const container = document.getElementById('category-filters');
     if (!container || !allProducts || allProducts.length === 0) return;
-    
+
     console.log('Rendering category filters...');
 
     const categories = getDisplayCategories();
@@ -679,27 +706,67 @@ function renderCategoryFilters() {
     if (currentCategory !== 'Semua' && categories.indexOf(currentCategory) === -1) {
         currentCategory = 'Semua';
     }
-    
-    // Keep "Semua" button and add dynamic categories with carousel styling
-    const allBtnClass = currentCategory === 'Semua'
-        ? 'filter-btn active snap-start flex-shrink-0 px-4 py-1.5 md:px-6 md:py-2 rounded-full border-2 border-green-500 bg-green-50 text-green-700 text-xs md:text-sm font-bold transition hover:border-green-600 hover:bg-green-100'
-        : 'filter-btn snap-start flex-shrink-0 px-4 py-1.5 md:px-6 md:py-2 rounded-full border-2 border-gray-300 bg-white text-gray-700 text-xs md:text-sm font-bold transition hover:border-green-500 hover:bg-green-50';
-    let html = `<button type="button" data-action="set-category" data-category="Semua" class="${allBtnClass}">Semua</button>`;
-    
-    categories.forEach(cat => {
-        const safeCat = escapeHtml(cat);
-        const btnClass = currentCategory === cat
-            ? 'filter-btn active snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-green-500 bg-green-50 text-green-700 text-sm font-bold transition hover:border-green-600 hover:bg-green-100'
-            : 'filter-btn snap-start flex-shrink-0 px-6 py-2 rounded-full border-2 border-gray-300 bg-white text-gray-700 text-sm font-bold transition hover:border-green-500 hover:bg-green-50';
-        html += `<button type="button" data-action="set-category" data-category="${safeCat}" class="${btnClass}">${safeCat}</button>`;
-    });
-    
-    container.innerHTML = html;
+
+    const isMobile = window.matchMedia ? window.matchMedia('(max-width: 767px)').matches : window.innerWidth < 768;
+    let railCategories = !isMobile || categories.length <= 4 ? [...categories] : categories.slice(0, 3);
+
+    // Keep a selected category visible in the mobile rail after choosing it from the sheet.
+    if (isMobile && currentCategory !== 'Semua' && !railCategories.includes(currentCategory)) {
+        railCategories = [...railCategories.slice(0, 2), currentCategory];
+    }
+
+    const hiddenCategories = categories.filter(category => !railCategories.includes(category));
+    container.innerHTML = ['Semua', ...railCategories]
+        .map(category => getCategoryFilterButtonMarkup(category))
+        .join('');
+
+    const moreButton = document.getElementById('category-filter-more');
+    const moreCount = document.getElementById('category-filter-more-count');
+    if (moreButton) {
+        moreButton.classList.toggle('hidden', hiddenCategories.length === 0);
+        moreButton.classList.toggle('flex', hiddenCategories.length > 0);
+        moreButton.setAttribute('aria-label', hiddenCategories.length > 0 ? `Buka ${hiddenCategories.length} kategori lainnya` : 'Tidak ada kategori tambahan');
+    }
+    if (moreCount) {
+        moreCount.textContent = hiddenCategories.length > 0 ? `+${hiddenCategories.length}` : '0';
+    }
+
+    updateCategoryFilterSummary();
+    renderCategoryFilterSheet(categories);
     console.log('Category filters rendered:', categories.length, 'categories');
     renderHeaderCategoryMenu();
-    
-    // Add desktop scroll functionality
+
+    // Add desktop scroll functionality.
     initCategoryCarouselScroll();
+}
+
+let categoryFilterSheetLastFocus = null;
+
+function openCategoryFilterSheet() {
+    const sheet = document.getElementById('category-sheet');
+    if (!sheet || window.innerWidth >= 768) return;
+
+    categoryFilterSheetLastFocus = document.activeElement;
+    sheet.classList.remove('hidden');
+    sheet.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('category-filter-sheet-open');
+
+    const closeButton = sheet.querySelector('[data-action="close-category-sheet"]:not(.category-sheet__backdrop)');
+    if (closeButton) closeButton.focus();
+}
+
+function closeCategoryFilterSheet() {
+    const sheet = document.getElementById('category-sheet');
+    if (!sheet || sheet.classList.contains('hidden')) return;
+
+    sheet.classList.add('hidden');
+    sheet.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('category-filter-sheet-open');
+
+    if (categoryFilterSheetLastFocus && typeof categoryFilterSheetLastFocus.focus === 'function') {
+        categoryFilterSheetLastFocus.focus();
+    }
+    categoryFilterSheetLastFocus = null;
 }
 
 function getHeaderCategoryDisplayLabel(category) {
@@ -1766,6 +1833,12 @@ function initCategoryCarouselScroll() {
     const container = document.getElementById('category-filters');
     if (!container) return;
     
+    if (container.dataset.carouselInitialized === 'true') {
+        updateCategoryArrowsVisibility();
+        return;
+    }
+    container.dataset.carouselInitialized = 'true';
+
     // Mouse wheel horizontal scroll
     container.addEventListener('wheel', (e) => {
         if (e.deltaY !== 0) {
@@ -1840,21 +1913,27 @@ function updateCategoryArrowsVisibility() {
     const container = document.getElementById('category-filters');
     const leftArrow = document.getElementById('category-scroll-left');
     const rightArrow = document.getElementById('category-scroll-right');
+    const railWrap = document.getElementById('category-filter-rail-wrap');
     
-    if (!container || !leftArrow || !rightArrow) return;
+    if (!container) return;
     
     const isAtStart = container.scrollLeft <= 10;
     const isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 10;
+    const hasOverflow = container.scrollWidth > container.clientWidth + 10;
+
+    railWrap?.classList.toggle('has-overflow', hasOverflow);
+    railWrap?.classList.toggle('at-end', isAtEnd);
+
+    if (!leftArrow || !rightArrow) return;
     
-    // Show/hide left arrow
-    if (isAtStart) {
+    // Show/hide arrow buttons on desktop.
+    if (isAtStart || !hasOverflow) {
         leftArrow.classList.add('opacity-0', 'pointer-events-none');
     } else {
         leftArrow.classList.remove('opacity-0', 'pointer-events-none');
     }
     
-    // Show/hide right arrow
-    if (isAtEnd) {
+    if (isAtEnd || !hasOverflow) {
         rightArrow.classList.add('opacity-0', 'pointer-events-none');
     } else {
         rightArrow.classList.remove('opacity-0', 'pointer-events-none');
@@ -2306,25 +2385,34 @@ function changePage(page) {
 }
 
 function setCategory(cat) {
+    if (!cat) return;
     currentCategory = cat;
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        if (btn.innerText === cat) {
-            btn.classList.add('active');
-            // Update styling for active state
-            btn.classList.remove('border-gray-300', 'bg-white', 'text-gray-700');
-            btn.classList.add('border-green-500', 'bg-green-50', 'text-green-700');
-            
-            // Scroll button into view smoothly
+
+    const rail = document.getElementById('category-filters');
+    const activeRailButton = rail
+        ? Array.from(rail.querySelectorAll('[data-action="set-category"]')).find(btn => btn.getAttribute('data-category') === cat)
+        : null;
+    const isMobile = window.matchMedia ? window.matchMedia('(max-width: 767px)').matches : window.innerWidth < 768;
+
+    // Re-render only when a sheet-only category needs to be promoted into the mobile rail.
+    if (isMobile && cat !== 'Semua' && !activeRailButton) {
+        renderCategoryFilters();
+    }
+
+    document.querySelectorAll('[data-action="set-category"]').forEach(btn => {
+        const isActive = btn.getAttribute('data-category') === cat;
+        btn.classList.toggle('active', isActive);
+        btn.classList.toggle('category-sheet__button', btn.closest('#category-sheet') !== null);
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        if (isActive && btn.closest('#category-filters')) {
             btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        } else {
-            btn.classList.remove('active');
-            // Reset styling for inactive state
-            btn.classList.remove('border-green-500', 'bg-green-50', 'text-green-700');
-            btn.classList.add('border-gray-300', 'bg-white', 'text-gray-700');
         }
     });
+
+    updateCategoryFilterSummary();
     syncHeaderCategoryMenuState();
     closeHeaderCategoryMenu();
+    closeCategoryFilterSheet();
     filterProducts();
 }
 
@@ -5266,6 +5354,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const categoryFilterMore = document.getElementById('category-filter-more');
+    if (categoryFilterMore) {
+        categoryFilterMore.addEventListener('click', (event) => {
+            event.preventDefault();
+            openCategoryFilterSheet();
+        });
+    }
+
+    const categorySheet = document.getElementById('category-sheet');
+    if (categorySheet) {
+        categorySheet.addEventListener('click', (event) => {
+            const actionEl = event.target.closest('[data-action]');
+            if (!actionEl) return;
+
+            const action = actionEl.getAttribute('data-action');
+            if (action === 'close-category-sheet') {
+                event.preventDefault();
+                closeCategoryFilterSheet();
+                return;
+            }
+            if (action === 'set-category') {
+                const category = actionEl.getAttribute('data-category');
+                if (category) setCategory(category);
+            }
+        });
+    }
+
     const sidebarCategoryList = document.getElementById('sidebar-category-list');
     if (sidebarCategoryList) {
         sidebarCategoryList.addEventListener('click', (event) => {
@@ -5694,6 +5809,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closeHeaderNotificationDropdown();
         closeHeaderNotificationDetailModal();
         closeHeaderOrderTrackingModal();
+        closeCategoryFilterSheet();
     });
 
     document.addEventListener('visibilitychange', () => {
