@@ -750,6 +750,10 @@ function openCategoryFilterSheet() {
     sheet.classList.remove('hidden');
     sheet.setAttribute('aria-hidden', 'false');
     document.body.classList.add('category-filter-sheet-open');
+    document.querySelectorAll('[data-action="open-category-sheet"]').forEach((trigger) => {
+        trigger.setAttribute('aria-expanded', 'true');
+        trigger.classList.add('is-open');
+    });
 
     const closeButton = sheet.querySelector('[data-action="close-category-sheet"]:not(.category-sheet__backdrop)');
     if (closeButton) closeButton.focus();
@@ -762,6 +766,10 @@ function closeCategoryFilterSheet() {
     sheet.classList.add('hidden');
     sheet.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('category-filter-sheet-open');
+    document.querySelectorAll('[data-action="open-category-sheet"]').forEach((trigger) => {
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.classList.remove('is-open');
+    });
 
     if (categoryFilterSheetLastFocus && typeof categoryFilterSheetLastFocus.focus === 'function') {
         categoryFilterSheetLastFocus.focus();
@@ -5354,13 +5362,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const categoryFilterMore = document.getElementById('category-filter-more');
-    if (categoryFilterMore) {
-        categoryFilterMore.addEventListener('click', (event) => {
+    document.querySelectorAll('[data-action="open-category-sheet"]').forEach((trigger) => {
+        trigger.addEventListener('click', (event) => {
             event.preventDefault();
             openCategoryFilterSheet();
         });
-    }
+    });
 
     const categorySheet = document.getElementById('category-sheet');
     if (categorySheet) {
