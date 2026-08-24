@@ -1594,7 +1594,7 @@ function renderSubmittedReviews(user) {
     list.classList.add('hidden');
     list.innerHTML = '';
 
-    const identity = normalizePhone(user?.whatsapp) || user?.session_token || 'guest';
+    const identity = normalizePhoneTo08(user?.whatsapp || user?.phone) || user?.session_token || 'guest';
     let reviews = {};
     try {
         reviews = JSON.parse(localStorage.getItem(`gosembako_reviews_${identity}`) || '{}') || {};
