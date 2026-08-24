@@ -680,12 +680,6 @@ function getCategoryFilterButtonMarkup(category, isSheet = false) {
     return `<button type="button" data-action="set-category" data-category="${safeCategory}" aria-pressed="${isActive ? 'true' : 'false'}" class="${buttonClass}"><span>${safeCategory}</span>${checkMarkup}</button>`;
 }
 
-function updateCategoryFilterSummary() {
-    const summary = document.getElementById('category-filter-summary');
-    if (!summary) return;
-    summary.textContent = currentCategory === 'Semua' ? 'Semua produk' : currentCategory;
-}
-
 function renderCategoryFilterSheet(categories) {
     const list = document.getElementById('category-sheet-list');
     if (!list) return;
@@ -715,23 +709,10 @@ function renderCategoryFilters() {
         railCategories = [...railCategories.slice(0, 2), currentCategory];
     }
 
-    const hiddenCategories = categories.filter(category => !railCategories.includes(category));
     container.innerHTML = ['Semua', ...railCategories]
         .map(category => getCategoryFilterButtonMarkup(category))
         .join('');
 
-    const moreButton = document.getElementById('category-filter-more');
-    const moreCount = document.getElementById('category-filter-more-count');
-    if (moreButton) {
-        moreButton.classList.toggle('hidden', hiddenCategories.length === 0);
-        moreButton.classList.toggle('flex', hiddenCategories.length > 0);
-        moreButton.setAttribute('aria-label', hiddenCategories.length > 0 ? `Buka ${hiddenCategories.length} kategori lainnya` : 'Tidak ada kategori tambahan');
-    }
-    if (moreCount) {
-        moreCount.textContent = hiddenCategories.length > 0 ? `+${hiddenCategories.length}` : '0';
-    }
-
-    updateCategoryFilterSummary();
     renderCategoryFilterSheet(categories);
     console.log('Category filters rendered:', categories.length, 'categories');
     renderHeaderCategoryMenu();
@@ -2417,7 +2398,6 @@ function setCategory(cat) {
         }
     });
 
-    updateCategoryFilterSummary();
     syncHeaderCategoryMenuState();
     closeHeaderCategoryMenu();
     closeCategoryFilterSheet();
