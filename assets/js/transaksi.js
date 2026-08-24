@@ -70,6 +70,18 @@
         updateReviewStars(review.rating);
         $('order-review-text')?.focus();
     };
+    const deleteSavedReview = () => {
+        if (!activeOrder) return;
+        const orderKey = getOrderKey(activeOrder);
+        const review = getSavedReviews()[orderKey];
+        if (!review) return;
+        if (!window.confirm('Hapus ulasan untuk pesanan ini?')) return;
+        const reviews = getSavedReviews();
+        delete reviews[orderKey];
+        localStorage.setItem(getReviewStorageKey(), JSON.stringify(reviews));
+        window.dispatchEvent(new CustomEvent('gosembako-reviews-updated', { detail: { storageKey: getReviewStorageKey() } }));
+        renderSavedReview(null);
+    };
     const normalizeStatus = (status) => {
         const value = String(status || '').trim().toLowerCase();
         if (['terima', 'diterima', 'selesai', 'lunas', 'paid', 'completed'].includes(value)) return 'completed';
@@ -223,6 +235,7 @@
         });
         document.querySelectorAll('[data-review-rating]').forEach((star) => star.addEventListener('click', () => updateReviewStars(star.dataset.reviewRating)));
         $('order-review-edit')?.addEventListener('click', editSavedReview);
+        $('order-review-delete')?.addEventListener('click', deleteSavedReview);
         $('order-review-form')?.addEventListener('submit', (event) => {
             event.preventDefault();
             const error = $('order-review-error');
@@ -234,6 +247,7 @@
             const previousReview = reviews[getOrderKey(activeOrder)];
             reviews[getOrderKey(activeOrder)] = { rating: activeReviewRating, text, submittedAt: new Date().toISOString(), createdAt: previousReview?.createdAt || new Date().toISOString() };
             localStorage.setItem(getReviewStorageKey(), JSON.stringify(reviews));
+            window.dispatchEvent(new CustomEvent('gosembako-reviews-updated', { detail: { storageKey: getReviewStorageKey() } }));
             renderSavedReview(reviews[getOrderKey(activeOrder)]);
         });
         $('close-order-tracking')?.addEventListener('click', closeOrderDetail);
