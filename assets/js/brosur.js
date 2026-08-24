@@ -11,9 +11,9 @@
 const BROSUR_PIN_KEY = 'gosembako_brosur_pin_ok';
 const BROSUR_DRAFTS_KEY = 'gosembako_brosur_drafts'; // localStorage key untuk draft list
 const BROSUR_MAX_DRAFTS = 10; // maksimal draft tersimpan
-const BROSUR_PIN_CORRECT = '082625'; // PIN default — bisa diganti
 const CANVAS_SIZE = { w: 1080, h: 1080 };
 const CANVAS_SIZE_PORTRAIT = { w: 1080, h: 1350 };
+const CANVAS_SIZE_A4 = { w: 2480, h: 3508 }; // A4 portrait, approximately 300 DPI
 
 const THEMES = {
     'green-blue':  { from: '#128052', to: '#1d4ed8', accent: '#22c55e', text: '#ffffff' },
@@ -24,7 +24,7 @@ const THEMES = {
     'dark':        { from: '#1e293b', to: '#475569', accent: '#22c55e', text: '#ffffff' }
 };
 
-const TEMPLATE_SLOTS = { featured: 1, grid4: 4, grid6: 6, lottemart: 4, story: 3, banner: 3, minimalist: 1, retro: 4, neon: 4, newspaper: 6, polaroid: 4, zigzag: 4 };
+const TEMPLATE_SLOTS = { featured: 1, grid4: 4, grid6: 6, lottemart: 4, story: 3, banner: 3, minimalist: 1, retro: 4, neon: 4, newspaper: 6, polaroid: 4, zigzag: 4, a4: 20 };
 const CANVAS_SIZE_LOTTEMART = { w: 1080, h: 1527 }; // A4 portrait ratio
 const CANVAS_SIZE_STORY  = { w: 1080, h: 1920 }; // Instagram Story / Reels
 const CANVAS_SIZE_BANNER = { w: 1200, h: 628  }; // Facebook / WA Status landscape
@@ -58,9 +58,17 @@ const STICKER_PRESETS = [
 
 let state = {
     authed: false,
-    template: 'featured',
+        template: 'a4',
     theme: 'green-blue',
-    products: [],          // all from API
+    brochureName: '',
+    promoTitle: 'PROMO GEBYAR SEMBAKO GROSIR',
+    promoSubtitle: 'Harga Miring Stok Melimpah',
+    storeName: 'Paket Sembako',
+    storeAddress: '',
+    qrUrl: 'https://paketsembako.com/',
+    bannerDataUrl: null,
+    products: [],
+          // all from API
     selected: [],          // selected product objects (with overrides)
     promoStart: '',
     promoEnd: '',
@@ -117,9 +125,18 @@ let currentStep = 1;
    INIT
 ══════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
-    // Check session
-    if (sessionStorage.getItem(BROSUR_PIN_KEY) === '1') {
+    // Gunakan session admin resmi; PIN frontend lama tidak lagi menjadi proteksi utama.
+    const adminSession = (window.AdminAuth && typeof window.AdminAuth.readSession === 'function')
+        ? window.AdminAuth.readSession()
+        : null;
+    const hasAdminToken = (window.AdminAuth && typeof window.AdminAuth.hasToken === 'function')
+        ? window.AdminAuth.hasToken()
+        : false;
+    if (adminSession && hasAdminToken) {
         showApp();
+    } else {
+        const pinScreen = document.getElementById('pin-screen');
+        if (pinScreen) pinScreen.innerHTML = '<div class="pin-card"><h1 style="font-size:1.2rem;font-weight:900;color:#0f172a;margin-bottom:0.5rem;">Login Admin Diperlukan</h1><p style="font-size:0.8rem;color:#6b7280;margin-bottom:1.25rem;">Silakan masuk melalui autentikasi admin resmi.</p><a class="pin-btn" style="display:block;text-decoration:none;" href="/admin/login.html">Buka Login Admin</a></div>';
     }
 
     // PIN enter key
@@ -146,32 +163,14 @@ document.addEventListener('DOMContentLoaded', () => {
    PIN AUTH
 ══════════════════════════════════════════ */
 function checkPin() {
-    const input = document.getElementById('pin-input');
-    const errEl = document.getElementById('pin-error');
-    const btnText = document.getElementById('pin-btn-text');
-    if (!input) return;
-
-    const val = input.value.trim();
-    if (!val) { errEl.textContent = 'Masukkan PIN terlebih dahulu.'; return; }
-
-    btnText.innerHTML = '<span class="spinner"></span>';
-    setTimeout(() => {
-        if (val === BROSUR_PIN_CORRECT) {
-            sessionStorage.setItem(BROSUR_PIN_KEY, '1');
-            showApp();
-        } else {
-            errEl.textContent = 'PIN salah. Coba lagi.';
-            input.value = '';
-            input.focus();
-            btnText.textContent = 'Masuk';
-        }
-    }, 400);
+    window.location.href = '/admin/login.html';
 }
 
 function showApp() {
     state.authed = true;
     document.getElementById('pin-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'block';
+    selectTemplate(state.template);
     loadProducts();
     loadGoogleFonts();
     setTimeout(() => {
@@ -206,7 +205,11 @@ function loadGoogleFonts() {
 
 function logout() {
     sessionStorage.removeItem(BROSUR_PIN_KEY);
-    location.reload();
+    if (window.AdminAuth && typeof window.AdminAuth.logout === 'function') {
+        window.AdminAuth.logout();
+        return;
+    }
+    window.location.href = '/admin/login.html';
 }
 
 /* ══════════════════════════════════════════
@@ -384,6 +387,9 @@ function renderSelectedProducts() {
     list.innerHTML = state.selected.map((p, i) => {
         const imgSrc = p.gambar || 'https://placehold.co/80x80/e2e8f0/94a3b8?text=Produk';
         const badgePresets = ['TERLARIS', 'BARU', 'PROMO', 'HEMAT', 'LIMITED', 'BEST SELLER'];
+        const promoPrice = parseInt(p._harga, 10) || p.harga || 0;
+        const normalPrice = parseInt(p._hargaCoret, 10) || p.hargaCoret || p.harga || 0;
+        const priceWarning = promoPrice > normalPrice ? '<div style="color:#b45309;background:#fffbeb;border:1px solid #fcd34d;border-radius:0.5rem;padding:0.45rem 0.6rem;font-size:0.68rem;margin-top:0.5rem;">⚠ Harga promo lebih tinggi daripada harga normal.</div>' : '';
         return `
         <div class="selected-product-card" draggable="true"
              ondragstart="onDragStart(event,${i})"
@@ -434,6 +440,8 @@ function renderSelectedProducts() {
                            oninput="updateField(${i},'_hargaCoret',this.value)">
                 </div>
             </div>
+
+            ${priceWarning}
 
             <div class="field-row">
                 <div>
@@ -590,15 +598,17 @@ function selectTemplate(t) {
         newspaper:  '1080×1080 px',
         polaroid:   '1080×1080 px',
         zigzag:     '1080×1350 px',
+        a4:          '2480×3508 px · A4 · 300 DPI',
     };
     if (sizeLabel) sizeLabel.textContent = sizeMap[t] || '1080×1080 px';
     if (previewWrap) {
-        previewWrap.classList.remove('portrait', 'lottemart', 'story', 'banner', 'zigzag');
+        previewWrap.classList.remove('portrait', 'lottemart', 'story', 'banner', 'zigzag', 'a4');
         if (t === 'grid6')     previewWrap.classList.add('portrait');
         if (t === 'lottemart') { previewWrap.classList.add('portrait'); previewWrap.classList.add('lottemart'); }
         if (t === 'story')     previewWrap.classList.add('story');
         if (t === 'banner')    previewWrap.classList.add('banner');
         if (t === 'zigzag')    previewWrap.classList.add('portrait');
+        if (t === 'a4')        previewWrap.classList.add('a4');
     }
     schedulePreview();
 }
@@ -615,6 +625,12 @@ function selectTheme(el, theme) {
 ══════════════════════════════════════════ */
 function schedulePreview() {
     // Read current form values
+    state.brochureName = (document.getElementById('brochure-name') || {}).value || '';
+    state.promoTitle = (document.getElementById('promo-title') || {}).value || '';
+    state.promoSubtitle = (document.getElementById('promo-subtitle') || {}).value || '';
+    state.storeName = (document.getElementById('store-name') || {}).value || '';
+    state.storeAddress = (document.getElementById('store-address') || {}).value || '';
+    state.qrUrl = (document.getElementById('qr-url') || {}).value || '';
     state.promoStart = (document.getElementById('promo-date-start') || {}).value || '';
     state.promoEnd = (document.getElementById('promo-date-end') || {}).value || '';
     state.ctaText = (document.getElementById('cta-text') || {}).value || '';
@@ -673,6 +689,7 @@ async function generateBrosur() {
    CANVAS DRAWING ENGINE
 ══════════════════════════════════════════ */
 async function drawBrosur(canvas, highRes) {
+    const isA4         = state.template === 'a4';
     const isLottemart  = state.template === 'lottemart';
     const isStory      = state.template === 'story';
     const isBanner     = state.template === 'banner';
@@ -683,6 +700,7 @@ async function drawBrosur(canvas, highRes) {
     const isPolaroid   = state.template === 'polaroid';
     const isZigzag     = state.template === 'zigzag';
     const isPortrait   = state.template === 'grid6';
+    if (isA4)         { await drawA4(canvas, highRes);         return; }
     if (isLottemart)  { await drawLotteMart(canvas, highRes);  return; }
     if (isStory)      { await drawStory(canvas, highRes);      return; }
     if (isBanner)     { await drawBanner(canvas, highRes);     return; }
@@ -975,6 +993,132 @@ async function drawGridCell(ctx, prod, x, y, w, h, theme) {
     ctx.fillStyle = 'rgba(255,255,255,0.65)';
     ctx.font = `500 ${Math.round(fs * 0.65)}px -apple-system, Arial, sans-serif`;
     ctx.fillText(`📦 Min. ${eff.minOrder} pcs`, x + pad, curY);
+}
+
+/* ══════════════════════════════════════════
+   A4 PROMO GRID TEMPLATE — MVP PRD
+══════════════════════════════════════════ */
+function drawQrCode(ctx, text, x, y, size) {
+    if (typeof qrcode !== 'function' || !text) return false;
+    try {
+        const qr = qrcode(0, 'M');
+        qr.addData(String(text));
+        qr.make();
+        const count = qr.getModuleCount();
+        const cell = size / count;
+        ctx.save();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x - 18, y - 18, size + 36, size + 36);
+        ctx.fillStyle = '#111827';
+        for (let row = 0; row < count; row++) {
+            for (let col = 0; col < count; col++) {
+                if (qr.isDark(row, col)) ctx.fillRect(x + col * cell, y + row * cell, Math.ceil(cell), Math.ceil(cell));
+            }
+        }
+        ctx.restore();
+        return true;
+    } catch (error) {
+        console.warn('QR Code gagal dibuat:', error);
+        return false;
+    }
+}
+
+async function drawA4(canvas, highRes) {
+    const W = CANVAS_SIZE_A4.w;
+    const H = CANVAS_SIZE_A4.h;
+    const scale = highRes ? 1 : 0.24;
+    canvas.width = Math.round(W * scale);
+    canvas.height = Math.round(H * scale);
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    const theme = THEMES[state.theme] || THEMES['green-blue'];
+    const ff = (FONT_MAP[state.fontFamily] || FONT_MAP.default).family;
+    const margin = 60;
+
+    const background = ctx.createLinearGradient(0, 0, W, H);
+    background.addColorStop(0, '#f8fafc');
+    background.addColorStop(1, '#ffffff');
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, W, H);
+
+    const headerH = 430;
+    const header = ctx.createLinearGradient(0, 0, W, headerH);
+    header.addColorStop(0, theme.from);
+    header.addColorStop(1, theme.to);
+    ctx.fillStyle = header;
+    ctx.fillRect(0, 0, W, headerH);
+
+    if (state.logoDataUrl) {
+        try {
+            const logo = await loadImage(state.logoDataUrl);
+            const logoH = 115;
+            const logoW = Math.min(520, logoH * (logo.width / logo.height));
+            ctx.drawImage(logo, margin, 42, logoW, logoH);
+        } catch (error) { /* gunakan branding teks */ }
+    } else {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `900 54px ${ff}`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(state.storeName || 'Paket Sembako', margin, 52);
+    }
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.font = `900 82px ${ff}`;
+    let titleY = 185;
+    titleY = drawWrappedText(ctx, state.promoTitle || 'PROMO GEBYAR SEMBAKO', margin, titleY, W - margin * 2 - 480, 88, 2);
+    ctx.font = `500 38px ${ff}`;
+    drawWrappedText(ctx, state.promoSubtitle || 'Harga terbaik untuk kebutuhan harian', margin, titleY + 16, W - margin * 2 - 480, 48, 2);
+    ctx.font = `700 32px ${ff}`;
+    ctx.fillText(`Periode: ${formatDateRange(state.promoStart, state.promoEnd)}`, margin, headerH - 62);
+
+    const bannerY = 470;
+    const bannerH = 350;
+    if (state.bannerDataUrl) {
+        await drawProductImage(ctx, state.bannerDataUrl, margin, bannerY, W - margin * 2, bannerH, 28);
+    } else {
+        const banner = ctx.createLinearGradient(margin, bannerY, W - margin, bannerY + bannerH);
+        banner.addColorStop(0, theme.from);
+        banner.addColorStop(1, theme.to);
+        ctx.fillStyle = banner;
+        roundRect(ctx, margin, bannerY, W - margin * 2, bannerH, 28);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `900 70px ${ff}`;
+        ctx.fillText('HARGA SPESIAL', W / 2, bannerY + bannerH / 2 - 30);
+        ctx.font = `500 34px ${ff}`;
+        ctx.fillText('Stok terbatas • Pesan sekarang', W / 2, bannerY + bannerH / 2 + 55);
+    }
+
+    const gridY = 870;
+    const footerH = 340;
+    const gridH = H - gridY - footerH - 40;
+    await drawGrid(ctx, state.selected, 5, 4, margin, gridY, W - margin * 2, gridH, theme);
+
+    const footerY = H - footerH;
+    ctx.fillStyle = theme.from;
+    ctx.fillRect(0, footerY, W, footerH);
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.font = `900 40px ${ff}`;
+    ctx.fillText(state.ctaText || 'Pesan Sekarang!', margin, footerY + 48);
+    ctx.font = `500 30px ${ff}`;
+    ctx.fillText(`WhatsApp: ${state.waNumber || '-'}`, margin, footerY + 112);
+    if (state.storeAddress) ctx.fillText(state.storeAddress, margin, footerY + 160);
+    ctx.font = `500 24px ${ff}`;
+    ctx.fillText('Syarat & ketentuan berlaku. Harga dapat berubah sewaktu-waktu.', margin, footerY + 250);
+    drawQrCode(ctx, state.qrUrl, W - margin - 220, footerY + 48, 180);
+    ctx.font = `700 22px ${ff}`;
+    ctx.textAlign = 'center';
+    ctx.fillText('SCAN UNTUK PESAN ONLINE', W - margin - 130, footerY + 282);
+
+    drawStickers(ctx, W, H);
+    if (state.showWatermark) drawWatermarkAt(ctx, W, H, state.elementPositions.watermark || { x: 0.92, y: 0.94 }, theme);
 }
 
 /* ══════════════════════════════════════════
@@ -2613,6 +2757,46 @@ function handleBgUpload(input) {
     reader.readAsDataURL(file);
 }
 
+function handleBannerUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) { showToast('Banner harus JPG, PNG, atau WebP.'); return; }
+    if (file.size > 5 * 1024 * 1024) { showToast('Ukuran banner maksimal 5MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+        pushUndo();
+        state.bannerDataUrl = e.target.result;
+        updateBannerPreview();
+        schedulePreview();
+        showToast('Banner berhasil diupload.');
+    };
+    reader.readAsDataURL(file);
+}
+
+function updateBannerPreview() {
+    const preview = document.getElementById('banner-preview');
+    const removeButton = document.getElementById('btn-remove-banner');
+    if (!preview) return;
+    if (state.bannerDataUrl) {
+        preview.innerHTML = `<img src="${escHtml(state.bannerDataUrl)}" alt="Banner brosur" style="max-width:100%;max-height:120px;border-radius:8px;object-fit:cover;">`;
+        if (removeButton) removeButton.style.display = 'inline-flex';
+    } else {
+        preview.innerHTML = '<span>Upload banner JPG, PNG, atau WebP</span><span style="font-size:0.7rem;color:#94a3b8;">Maks. 5MB</span>';
+        if (removeButton) removeButton.style.display = 'none';
+    }
+}
+
+function removeBanner() {
+    pushUndo();
+    state.bannerDataUrl = null;
+    const input = document.getElementById('banner-upload-input');
+    if (input) input.value = '';
+    updateBannerPreview();
+    schedulePreview();
+    showToast('Banner dihapus.');
+}
+
 function removeBgCustom() {
     pushUndo(); state.bgDataUrl = null; state.bgType = 'gradient';
     updateBgPreview(); schedulePreview();
@@ -2727,6 +2911,37 @@ function downloadBrosur() {
     a.href = state.generatedDataUrl;
     a.click();
     showToast('Brosur berhasil didownload! 📥');
+}
+
+function downloadPdf() {
+    if (!state.generatedDataUrl) {
+        showToast('Generate brosur terlebih dahulu.');
+        return;
+    }
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        showToast('Library PDF belum termuat. Periksa koneksi lalu coba lagi.');
+        return;
+    }
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+        const canvas = document.getElementById('export-canvas');
+        const pageW = 210, pageH = 297, margin = 5;
+        const ratio = canvas.width / canvas.height;
+        const maxW = pageW - margin * 2, maxH = pageH - margin * 2;
+        let imgW = maxW, imgH = imgW / ratio;
+        if (imgH > maxH) { imgH = maxH; imgW = imgH * ratio; }
+        const x = (pageW - imgW) / 2, y = (pageH - imgH) / 2;
+        pdf.addImage(state.generatedDataUrl, 'PNG', x, y, imgW, imgH, undefined, 'FAST');
+        const now = new Date();
+        const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+        const name = (state.brochureName || 'brosur-paket-sembako').trim().replace(/[^a-z0-9-_]+/gi, '-').replace(/^-+|-+$/g, '') || 'brosur-paket-sembako';
+        pdf.save(`${name}-${ts}.pdf`);
+        showToast('PDF A4 berhasil didownload.');
+    } catch (error) {
+        console.error('downloadPdf error:', error);
+        showToast('Gagal membuat PDF. Coba lagi.');
+    }
 }
 
 function shareWhatsApp() {
@@ -2992,6 +3207,95 @@ function getAllDrafts() {
     } catch { return []; }
 }
 
+function remoteCampaignToDraft(campaign) {
+    let items = Array.isArray(campaign.items) ? campaign.items : [];
+    if (!items.length) {
+        try { items = JSON.parse(campaign.items_json || '[]'); } catch (error) { items = []; }
+    }
+    return {
+        id: String(campaign.id || `remote-${Date.now()}`),
+        name: String(campaign.title || 'Campaign POP').trim(),
+        savedAt: campaign.updated_at || campaign.created_at || new Date().toISOString(),
+        template: 'a4',
+        theme: campaign.theme || 'green-blue',
+        brochureName: campaign.title || '',
+        promoTitle: campaign.title || 'PROMO GEBYAR SEMBAKO GROSIR',
+        promoSubtitle: campaign.subtitle || 'Harga Miring Stok Melimpah',
+        storeName: campaign.store_name || 'Paket Sembako',
+        storeAddress: campaign.footer_note || '',
+        qrUrl: campaign.qr_url || 'https://paketsembako.com/',
+        bannerDataUrl: null,
+        paperSize: campaign.paper_size || 'A4',
+        orientation: campaign.orientation || 'portrait',
+        promoStart: campaign.start_at ? String(campaign.start_at).slice(0, 10) : '',
+        promoEnd: campaign.end_at ? String(campaign.end_at).slice(0, 10) : '',
+        ctaText: 'Pesan Sekarang! Stok Terbatas',
+        waNumber: '',
+        showWatermark: String(campaign.show_watermark || '').toLowerCase() !== 'false',
+        watermarkPos: 'br',
+        activeStickers: [],
+        selected: items.map(item => ({
+            id: String(item.id || ''), nama: item.name || item.nama || 'Produk', harga: Number(item.normal_price || item.price || 0),
+            hargaCoret: Number(item.normal_price || item.price || 0), gambar: item.image || item.gambar || '', deskripsi: item.description || '', kategori: item.category || 'Produk',
+            badge: item.badge || '', minOrder: Number(item.min_order || 1), rewardPoin: 0,
+            _harga: Number(item.promo_price || item.price || 0), _badge: item.badge || '', _gambar: item.image || item.gambar || ''
+        }))
+    };
+}
+
+async function syncRemoteDrafts() {
+    if (typeof GASActions === 'undefined' || typeof CONFIG === 'undefined' || typeof CONFIG.getAdminApiUrl !== 'function') return;
+    const token = GASActions.getAdminToken();
+    if (!token) return;
+    const url = new URL(CONFIG.getAdminApiUrl());
+    url.searchParams.set('sheet', 'promo_flyers');
+    url.searchParams.set('token', token);
+    url.searchParams.set('admin_token', token);
+    const role = GASActions.getAdminRole();
+    if (role) url.searchParams.set('admin_role', role);
+    url.searchParams.set('_t', Date.now());
+    try {
+        const response = await fetch(url.toString(), { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        if (payload && payload.error) throw new Error(payload.error);
+        const remoteRows = Array.isArray(payload) ? payload : (payload.data || payload.rows || []);
+        const remoteDrafts = remoteRows.filter(row => String(row.status || 'draft').toLowerCase() === 'draft').map(remoteCampaignToDraft);
+        if (!remoteDrafts.length) return;
+        const local = getAllDrafts();
+        const byId = new Map(local.map(item => [String(item.id), item]));
+        remoteDrafts.forEach(item => byId.set(String(item.id), item));
+        const merged = Array.from(byId.values()).sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt)).slice(0, BROSUR_MAX_DRAFTS);
+        localStorage.setItem(BROSUR_DRAFTS_KEY, JSON.stringify(merged));
+        renderDraftList();
+    } catch (error) {
+        console.warn('Sinkronisasi draft backend dilewati:', error.message);
+    }
+}
+
+async function syncDraftRemote(snapshot) {
+    if (typeof GASActions === 'undefined' || !snapshot) return;
+    const items = (snapshot.selected || []).map(item => ({
+        id: item.id, name: item._nama || item.nama, image: (/^data:/i.test(item._gambarDataUrl || '') ? '' : (item._gambar || item.gambar || '')),
+        normal_price: Number(item._hargaCoret || item.hargaCoret || item.harga || 0), promo_price: Number(item._harga || item.harga || 0),
+        badge: item._badge || item.badge || '', unit: item.unit || ''
+    }));
+    const data = {
+        id: snapshot.id, title: snapshot.brochureName || snapshot.name, slug: createSlug(snapshot.brochureName || snapshot.name),
+        subtitle: snapshot.promoSubtitle || '', status: 'draft', theme: snapshot.theme || 'green-blue', layout: 'a4',
+        store_name: snapshot.storeName || 'Paket Sembako', items_json: JSON.stringify(items), start_at: snapshot.promoStart || '', end_at: snapshot.promoEnd || '',
+        qr_url: snapshot.qrUrl || '', footer_note: snapshot.storeAddress || '', show_watermark: snapshot.showWatermark !== false ? 'true' : 'false',
+        brochure_name: snapshot.brochureName || snapshot.name, paper_size: 'A4', orientation: 'portrait', template_id: snapshot.template || 'a4',
+        store_address: snapshot.storeAddress || '', banner_url: /^data:/i.test(snapshot.bannerDataUrl || '') ? '' : (snapshot.bannerDataUrl || ''),
+        updated_at: snapshot.savedAt || new Date().toISOString(), created_by: GASActions.getAdminRole() || 'admin'
+    };
+    try {
+        await GASActions.create('promo_flyers', data);
+    } catch (error) {
+        console.warn('Draft remote belum tersimpan; localStorage tetap digunakan:', error.message);
+    }
+}
+
 /** Simpan draft baru atau update yang sudah ada */
 function saveDraft(customName = '') {
     // Sinkronkan state dari form
@@ -3007,6 +3311,13 @@ function saveDraft(customName = '') {
         savedAt: new Date().toISOString(),
         template: state.template,
         theme: state.theme,
+        brochureName: state.brochureName,
+        promoTitle: state.promoTitle,
+        promoSubtitle: state.promoSubtitle,
+        storeName: state.storeName,
+        storeAddress: state.storeAddress,
+        qrUrl: state.qrUrl,
+        bannerDataUrl: state.bannerDataUrl || null,
         promoStart: state.promoStart,
         promoEnd: state.promoEnd,
         ctaText: state.ctaText,
@@ -3052,6 +3363,7 @@ function saveDraft(customName = '') {
 
     try {
         localStorage.setItem(BROSUR_DRAFTS_KEY, JSON.stringify(drafts));
+        void syncDraftRemote(snapshot);
         showToast(`Draft "${name}" berhasil disimpan! 💾`);
         renderDraftList();
         // Tutup modal setelah simpan
@@ -3065,6 +3377,7 @@ function saveDraft(customName = '') {
         draftsNoImg.push(snapshotNoImg);
         try {
             localStorage.setItem(BROSUR_DRAFTS_KEY, JSON.stringify(draftsNoImg));
+            void syncDraftRemote(snapshotNoImg);
             showToast(`Draft disimpan (tanpa gambar upload karena storage penuh). 💾`);
             renderDraftList();
             closeDraftModal();
@@ -3083,6 +3396,13 @@ function loadDraft(id) {
     // Restore state
     state.template  = draft.template  || 'featured';
     state.theme     = draft.theme     || 'green-blue';
+    state.brochureName = draft.brochureName || '';
+    state.promoTitle = draft.promoTitle || 'PROMO GEBYAR SEMBAKO GROSIR';
+    state.promoSubtitle = draft.promoSubtitle || 'Harga Miring Stok Melimpah';
+    state.storeName = draft.storeName || 'Paket Sembako';
+    state.storeAddress = draft.storeAddress || '';
+    state.qrUrl = draft.qrUrl || 'https://paketsembako.com/';
+    state.bannerDataUrl = draft.bannerDataUrl || null;
     state.promoStart = draft.promoStart || '';
     state.promoEnd   = draft.promoEnd   || '';
     state.ctaText    = draft.ctaText    || '';
@@ -3094,6 +3414,12 @@ function loadDraft(id) {
 
     // Update UI form
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    setVal('brochure-name', state.brochureName);
+    setVal('promo-title', state.promoTitle);
+    setVal('promo-subtitle', state.promoSubtitle);
+    setVal('store-name', state.storeName);
+    setVal('store-address', state.storeAddress);
+    setVal('qr-url', state.qrUrl);
     setVal('promo-date-start', state.promoStart);
     setVal('promo-date-end',   state.promoEnd);
     setVal('cta-text',         state.ctaText);
@@ -3115,6 +3441,7 @@ function loadDraft(id) {
     updateSlotCounter();
     renderSelectedProducts();
     renderStickerUI();
+    updateBannerPreview();
     schedulePreview();
 
     closeDraftModal();
@@ -3128,9 +3455,36 @@ function loadDraft(id) {
     }
 }
 
+/** Duplikasi draft */
+function duplicateDraft(id) {
+    const drafts = getAllDrafts();
+    const source = drafts.find(d => d.id === id);
+    if (!source) { showToast('Draft tidak ditemukan.'); return; }
+    const copy = JSON.parse(JSON.stringify(source));
+    copy.id = Date.now().toString();
+    copy.name = `${source.name} (salinan)`;
+    copy.savedAt = new Date().toISOString();
+    drafts.push(copy);
+    while (drafts.length > BROSUR_MAX_DRAFTS) drafts.sort((a, b) => new Date(a.savedAt) - new Date(b.savedAt)).shift();
+    localStorage.setItem(BROSUR_DRAFTS_KEY, JSON.stringify(drafts));
+    void syncDraftRemote(copy);
+    renderDraftList();
+    showToast(`Draft "${copy.name}" berhasil diduplikasi.`);
+}
+
 /** Hapus draft */
+async function deleteDraftRemote(id) {
+    if (typeof GASActions === 'undefined' || !id) return;
+    try {
+        await GASActions.delete('promo_flyers', id);
+    } catch (error) {
+        console.warn('Draft remote tidak dihapus atau belum tersedia:', error.message);
+    }
+}
+
 function deleteDraft(id) {
     const drafts = getAllDrafts().filter(d => d.id !== id);
+    void deleteDraftRemote(id);
     localStorage.setItem(BROSUR_DRAFTS_KEY, JSON.stringify(drafts));
     renderDraftList();
     showToast('Draft dihapus.');
@@ -3165,8 +3519,8 @@ function renderDraftList() {
     }
     if (emptyMsg) emptyMsg.style.display = 'none';
 
-    const templateIcons = { featured: '🌟', grid4: '⊞', grid6: '⊟', lottemart: '📰' };
-    const templateNames = { featured: '1 Produk', grid4: 'Grid 4', grid6: 'Grid 6', lottemart: 'Katalog' };
+    const templateIcons = { a4: '📄', featured: '🌟', grid4: '⊞', grid6: '⊟', lottemart: '📰' };
+    const templateNames = { a4: 'A4 Promo Grid', featured: '1 Produk', grid4: 'Grid 4', grid6: 'Grid 6', lottemart: 'Katalog' };
     const themeColors = {
         'green-blue': '#128052', 'red-orange': '#dc2626', 'purple-pink': '#7c3aed',
         'blue-cyan': '#0369a1', 'amber': '#d97706', 'dark': '#1e293b'
@@ -3192,6 +3546,7 @@ function renderDraftList() {
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                     Muat
                 </button>
+                <button class="btn-draft-delete" onclick="duplicateDraft('${d.id}')" title="Duplikasi draft">Duplikat</button>
                 <button class="btn-draft-delete" onclick="deleteDraft('${d.id}')" title="Hapus draft">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
@@ -3201,10 +3556,11 @@ function renderDraftList() {
 }
 
 /** Buka modal draft */
-function openDraftModal() {
+async function openDraftModal() {
     renderDraftList();
     const modal = document.getElementById('draft-modal');
     if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+    await syncRemoteDrafts();
 }
 
 /** Tutup modal draft */
