@@ -212,7 +212,9 @@ const SCHEMA_REQUIREMENTS = {
     'published_at', 'created_at', 'updated_at', 'created_by', 'sort_order',
     'share_image_url', 'pdf_url', 'qr_url', 'period_text', 'footer_note',
     'show_watermark', 'watermark_text', 'show_qr_code', 'banner_config_json',
-    'grid_config_json'
+    'grid_config_json',
+    'brochure_name', 'paper_size', 'orientation', 'template_id', 'store_address', 'banner_url',
+    'disclaimer_text', 'show_service', 'show_payment', 'show_disclaimer'
   ],
   notification_reads: [
     'id', 'notification_id', 'phone', 'read_at', 'created_at', 'updated_at'

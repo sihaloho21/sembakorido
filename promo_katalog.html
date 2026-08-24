@@ -358,6 +358,29 @@
 
         /* ===== HIDDEN ===== */
         .hidden { display: none !important; }
+        .pk-pop-card-cover { min-height: 240px; background-position: center; background-size: cover; }
+        .pk-pop-cover-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .65rem; padding: 1.25rem; text-align: center; background: linear-gradient(180deg, rgba(15,23,42,.08), rgba(15,23,42,.68)); }
+        .pk-pop-cover-kicker { color: rgba(255,255,255,.82); font-size: .65rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+        .pk-pop-cover-items { color: rgba(255,255,255,.86); font-size: .7rem; font-weight: 700; }
+        .pk-pop-no-link { cursor: default; }
+        .pk-pop-preview { height: 100%; overflow: auto; padding: 1rem; background: #f3f4f6; }
+        .pk-pop-preview-card { max-width: 760px; margin: 0 auto; overflow: hidden; border-radius: 1rem; background: white; box-shadow: 0 8px 30px rgba(15,23,42,.12); }
+        .pk-pop-preview-hero { min-height: 190px; display: flex; align-items: flex-end; padding: 1.5rem; color: white; background-position: center; background-size: cover; position: relative; }
+        .pk-pop-preview-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15,23,42,.04), rgba(15,23,42,.76)); }
+        .pk-pop-preview-hero-content { position: relative; z-index: 1; }
+        .pk-pop-preview-hero h3 { margin: .45rem 0 0; font-size: clamp(1.5rem, 4vw, 2.2rem); line-height: 1.08; font-weight: 900; }
+        .pk-pop-preview-hero p { margin: .55rem 0 0; font-size: .85rem; opacity: .9; }
+        .pk-pop-preview-meta { display: flex; justify-content: space-between; gap: .75rem; flex-wrap: wrap; padding: .85rem 1rem; border-bottom: 1px solid #eef2f7; color: #64748b; font-size: .75rem; }
+        .pk-pop-preview-badge { border-radius: 999px; padding: .3rem .6rem; background: #dc2626; color: white; font-size: .68rem; font-weight: 900; }
+        .pk-pop-preview-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: .75rem; padding: 1rem; }
+        .pk-pop-preview-item { min-width: 0; padding: .65rem; border: 1px solid #eef2f7; border-radius: .8rem; }
+        .pk-pop-preview-image { height: 105px; display: grid; place-items: center; overflow: hidden; border-radius: .6rem; background: #fff7ed; color: #c2410c; font-size: .7rem; font-weight: 900; }
+        .pk-pop-preview-image img { width: 100%; height: 100%; object-fit: cover; }
+        .pk-pop-preview-item-name { margin-top: .55rem; color: #1f2937; font-size: .78rem; font-weight: 800; line-height: 1.35; }
+        .pk-pop-preview-normal { margin-top: .3rem; color: #94a3b8; font-size: .68rem; text-decoration: line-through; }
+        .pk-pop-preview-price { color: #ea580c; font-size: .9rem; font-weight: 900; }
+        .pk-pop-preview-footer { display: flex; justify-content: space-between; gap: .75rem; flex-wrap: wrap; padding: .85rem 1rem; border-top: 1px solid #eef2f7; color: #64748b; font-size: .72rem; }
+        .pk-pop-preview-footer a { color: #ea580c; font-weight: 800; text-decoration: none; }
     </style>
 </head>
 <body>
@@ -506,11 +529,12 @@
                     </button>
                 </div>
             </div>
-            <div class="pk-modal-body">
+                <div class="pk-modal-body">
                 <div class="pk-modal-loading" id="modal-loading">
                     <div class="pk-spinner"></div>
                     <span>Memuat katalog...</span>
                 </div>
+                <div id="pop-preview-content" class="pk-pop-preview hidden" aria-label="Preview campaign POP"></div>
                 <iframe id="pdf-iframe" title="Preview PDF Katalog"></iframe>
             </div>
         </div>
@@ -581,11 +605,54 @@
             if (!val) return '';
             return String(val).slice(0, 10);
         }
+        function escapeHtml(value) {
+            return String(value == null ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function safeUrl(value, allowedProtocols) {
+            var raw = String(value || '').trim();
+            if (!raw) return '';
+            try {
+                var parsed = new URL(raw, window.location.href);
+                var protocols = allowedProtocols || ['http:', 'https:'];
+                return protocols.indexOf(parsed.protocol.toLowerCase()) !== -1 ? parsed.href : '';
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function toNumber(value) {
+            if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+            var normalized = String(value == null ? '' : value).replace(/[^0-9.-]/g, '');
+            var parsed = Number(normalized);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function formatRupiah(value) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(toNumber(value));
+        }
+
+        function parseItems(value) {
+            if (Array.isArray(value)) return value;
+            if (!value) return [];
+            try {
+                var parsed = JSON.parse(value);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
         async function fetchPublicSheet(sheetName) {
             var apiUrl = (typeof CONFIG !== 'undefined' && CONFIG.getMainApiUrl) ? CONFIG.getMainApiUrl() : '';
             if (!apiUrl) throw new Error('API URL tidak tersedia');
-            var params = new URLSearchParams({ sheet: sheetName });
-            var response = await fetch(apiUrl + '?' + params.toString());
+            var params = new URLSearchParams({ sheet: sheetName, _t: Date.now() });
+            var response = await fetch(apiUrl + '?' + params.toString(), { cache: 'no-store' });
             if (!response.ok) throw new Error('HTTP ' + response.status);
             var payload = await response.json();
             if (payload && typeof payload === 'object' && !Array.isArray(payload) && payload.error) {
@@ -593,36 +660,94 @@
             }
             return Array.isArray(payload) ? payload : [];
         }
+
+        async function fetchPublicPromoFlyers() {
+            var apiUrl = (typeof CONFIG !== 'undefined' && CONFIG.getMainApiUrl) ? CONFIG.getMainApiUrl() : '';
+            if (!apiUrl) throw new Error('API URL tidak tersedia');
+            var params = new URLSearchParams({ action: 'public_promo_flyers', _t: Date.now() });
+            var response = await fetch(apiUrl + '?' + params.toString(), { cache: 'no-store' });
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            var payload = await response.json();
+            if (payload && typeof payload === 'object' && !Array.isArray(payload) && payload.error) {
+                throw new Error(String(payload.message || payload.error));
+            }
+            return Array.isArray(payload) ? payload : [];
+        }
+
+        function normalizeLegacyCatalog(c) {
+            return {
+                type: 'pdf',
+                id: String(c.id == null ? '' : c.id),
+                title: c.title || '',
+                month: c.month || '',
+                period: c.period || '',
+                startDate: normalizeDate(c.start_date),
+                endDate: normalizeDate(c.end_date),
+                pdfUrl: safeUrl(c.pdf_url),
+                badge: c.badge || 'BARU',
+                badgeClass: getBadgeClassFromBadge(c.badge),
+                color: c.color || 'linear-gradient(145deg, #16a34a 0%, #14532d 100%)',
+                description: c.description || '',
+                featured: c.featured === 'true' || c.featured === true
+            };
+        }
+
+        function normalizePromoFlyer(c) {
+            var items = parseItems(c.items);
+            if (!items.length) items = parseItems(c.items_json);
+            var heroUrl = safeUrl(c.hero_image);
+            var qrUrl = safeUrl(c.qr_url);
+            var theme = String(c.theme || 'retail-impact').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            var layout = String(c.layout || 'auto').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            return {
+                type: 'pop',
+                id: String(c.id == null ? '' : c.id),
+                title: c.title || 'Promo Spesial',
+                month: c.period_text || c.start_at || 'Promo Produk',
+                period: c.period_text || [normalizeDate(c.start_at), normalizeDate(c.end_at)].filter(Boolean).join(' – '),
+                startDate: normalizeDate(c.start_at),
+                endDate: normalizeDate(c.end_at),
+                pdfUrl: safeUrl(c.pdf_url),
+                qrUrl: qrUrl,
+                heroUrl: heroUrl,
+                storeName: c.store_name || 'Paket Sembako',
+                subtitle: c.subtitle || '',
+                footerNote: c.footer_note || '',
+                badge: c.badge_text || 'PROMO SPESIAL',
+                badgeClass: 'pk-badge-hot',
+                color: 'linear-gradient(145deg, #f97316 0%, #991b1b 100%)',
+                theme: theme,
+                layout: layout,
+                description: c.description || c.subtitle || 'Temukan promo produk pilihan dengan harga terbaik.',
+                items: items.map(function(item) {
+                    return {
+                        id: String(item.id == null ? '' : item.id),
+                        name: item.name || item.title || 'Produk',
+                        image: safeUrl(item.image || item.gambar),
+                        normalPrice: toNumber(item.normal_price == null ? item.price : item.normal_price),
+                        promoPrice: toNumber(item.promo_price == null ? item.price : item.promo_price),
+                        unit: item.unit || item.satuan || '',
+                        badge: item.badge || ''
+                    };
+                }),
+                featured: false
+            };
+        }
+
         // ===== LOAD DATA DARI GOOGLE SHEETS =====
         async function loadCatalogs() {
-            try {
-                var rows = await fetchPublicSheet('katalog_promo');
-                if (rows && rows.length > 0) {
-                    // Normalisasi field dari Sheets (snake_case) ke format yang digunakan halaman
-                    CATALOGS = rows.map(function(c) {
-                        return {
-                            id: c.id,
-                            title: c.title || '',
-                            month: c.month || '',
-                            period: c.period || '',
-                            startDate: normalizeDate(c.start_date),
-                            endDate: normalizeDate(c.end_date),
-                            pdfUrl: c.pdf_url || '',
-                            badge: c.badge || 'BARU',
-                            badgeClass: getBadgeClassFromBadge(c.badge),
-                            color: c.color || 'linear-gradient(145deg, #16a34a 0%, #14532d 100%)',
-                            description: c.description || '',
-                            featured: c.featured === 'true' || c.featured === true
-                        };
-                    });
-                } else {
-                    // Gunakan fallback jika tidak ada data di Sheets
-                    CATALOGS = FALLBACK_CATALOGS;
-                }
-            } catch (e) {
-                console.warn('Gagal memuat katalog dari GAS, menggunakan data fallback:', e);
-                CATALOGS = FALLBACK_CATALOGS;
-            }
+            var legacyRows = [];
+            var popRows = [];
+            var results = await Promise.allSettled([fetchPublicSheet('katalog_promo'), fetchPublicPromoFlyers()]);
+            if (results[0].status === 'fulfilled') legacyRows = results[0].value;
+            else console.warn('Katalog PDF tidak dapat dimuat:', results[0].reason);
+            if (results[1].status === 'fulfilled') popRows = results[1].value;
+            else console.warn('Campaign POP tidak dapat dimuat:', results[1].reason);
+
+            var legacyCatalogs = legacyRows.map(normalizeLegacyCatalog).filter(function(c) { return c.id && c.title; });
+            var popCatalogs = popRows.map(normalizePromoFlyer).filter(function(c) { return c.id && c.title; });
+            CATALOGS = legacyCatalogs.concat(popCatalogs);
+            if (!CATALOGS.length) CATALOGS = FALLBACK_CATALOGS;
             updateStats();
             renderFeatured();
             applyFilterSort();
@@ -649,12 +774,80 @@
             + '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>'
             + '</svg>';
 
+        function popThemeGradient(theme) {
+            var colors = {
+                'retail-impact': 'linear-gradient(145deg, #dc2626 0%, #991b1b 100%)',
+                'modern-minimalist': 'linear-gradient(145deg, #475569 0%, #1e293b 100%)',
+                'seasonal-festive': 'linear-gradient(145deg, #d97706 0%, #92400e 100%)',
+                'flash-sale-neon': 'linear-gradient(145deg, #7c3aed 0%, #1e1b4b 100%)',
+                'fresh-organic': 'linear-gradient(145deg, #16a34a 0%, #14532d 100%)',
+                'retro-pasar': 'linear-gradient(145deg, #78350f 0%, #451a03 100%)',
+                'cyber-grosir': 'linear-gradient(145deg, #15803d 0%, #052e16 100%)',
+                'carnival-pesta': 'linear-gradient(145deg, #1d4ed8 0%, #ca8a04 100%)',
+                'luxury-gold': 'linear-gradient(145deg, #b45309 0%, #1e3a5f 100%)',
+                'pastel-korean': 'linear-gradient(145deg, #ec4899 0%, #f9a8d4 100%)'
+            };
+            return colors[theme] || colors['retail-impact'];
+        }
+
+        function catalogCoverStyle(c) {
+            var gradient = c.type === 'pop' ? popThemeGradient(c.theme) : (c.color || 'linear-gradient(145deg, #16a34a 0%, #14532d 100%)');
+            var image = c.type === 'pop' ? c.heroUrl : '';
+            return image ? 'background-image:url("' + escapeHtml(image) + '");background-color:#f97316;' : 'background:' + gradient + ';';
+        }
+
+        function renderPopPreviewContent(c, target) {
+            if (!target) return;
+            var imageStyle = c.heroUrl ? ' style="background-image:url(&quot;' + escapeHtml(c.heroUrl) + '&quot;);background-color:#f97316;"' : ' style="background:' + popThemeGradient(c.theme) + ';"';
+            var items = c.items || [];
+            target.innerHTML = '<div class="pk-pop-preview-card">'
+                + '<div class="pk-pop-preview-hero"' + imageStyle + '><div class="pk-pop-preview-hero-content">'
+                + '<div class="pk-pop-cover-kicker">' + escapeHtml(c.storeName) + '</div>'
+                + '<h3>' + escapeHtml(c.title) + '</h3>'
+                + (c.subtitle ? '<p>' + escapeHtml(c.subtitle) + '</p>' : '')
+                + (c.period ? '<p>' + escapeHtml(c.period) + '</p>' : '')
+                + '</div></div>'
+                + '<div class="pk-pop-preview-meta"><span class="pk-pop-preview-badge">' + escapeHtml(c.badge) + '</span><span>' + items.length + ' produk promo</span></div>'
+                + '<div class="pk-pop-preview-items">'
+                + (items.length ? items.slice(0, 24).map(function(item) {
+                    var image = item.image ? '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy">' : '<span>POP</span>';
+                    var normal = item.normalPrice > item.promoPrice ? '<div class="pk-pop-preview-normal">' + formatRupiah(item.normalPrice) + '</div>' : '';
+                    return '<article class="pk-pop-preview-item"><div class="pk-pop-preview-image">' + image + '</div>'
+                        + '<div class="pk-pop-preview-item-name">' + escapeHtml(item.name) + '</div>'
+                        + normal + '<div class="pk-pop-preview-price">' + formatRupiah(item.promoPrice) + '</div>'
+                        + (item.unit ? '<div class="text-xs text-slate-400">' + escapeHtml(item.unit) + '</div>' : '')
+                        + (item.badge ? '<div class="text-xs text-red-600 font-bold mt-1">' + escapeHtml(item.badge) + '</div>' : '')
+                        + '</article>';
+                }).join('') : '<div class="text-sm text-slate-500" style="grid-column:1/-1;text-align:center;padding:2rem 0;">Detail produk belum tersedia.</div>')
+                + '</div>'
+                + (c.footerNote || c.qrUrl ? '<div class="pk-pop-preview-footer"><span>' + escapeHtml(c.footerNote || 'Stok terbatas. Syarat dan ketentuan berlaku.') + '</span>' + (c.qrUrl ? '<a href="' + escapeHtml(c.qrUrl) + '" target="_blank" rel="noopener noreferrer">Buka katalog promo</a>' : '') + '</div>' : '')
+                + '</div>';
+        }
+
         // ===== RENDER FEATURED =====
         function renderFeatured() {
             var f = CATALOGS.find(function(c){return c.featured;}) || CATALOGS[0];
             var s = getStatus(f);
             var el = document.getElementById('featured-card');
             if (!el) return;
+            if (f.type === 'pop') {
+                var featuredLink = f.pdfUrl || f.qrUrl;
+                el.innerHTML = '<div class="pk-featured-cover pk-pop-card-cover" style="' + catalogCoverStyle(f) + '">'
+                    + '<span class="pk-featured-cover-badge">' + escapeHtml(f.badge) + '</span>'
+                    + '<div class="pk-cover-icon">' + PDF_ICON + '</div>'
+                    + '<div class="pk-featured-cover-title">' + escapeHtml(f.title) + '</div>'
+                    + '<div class="pk-featured-cover-period">' + escapeHtml(f.period) + '</div>'
+                    + (s === 'ended' ? '<div class="pk-ended-overlay"><span class="pk-ended-label">BERAKHIR</span></div>' : '')
+                    + '</div><div class="pk-featured-info">'
+                    + '<div class="pk-featured-label">Promo Produk POP &bull; ' + statusLabel(s) + '</div>'
+                    + '<h2 class="pk-featured-title">' + escapeHtml(f.title) + '</h2>'
+                    + '<div class="pk-featured-period-row">Periode: ' + escapeHtml(f.period) + '</div>'
+                    + '<p class="pk-featured-desc">' + escapeHtml(f.description) + '</p>'
+                    + '<div class="pk-featured-actions"><button class="pk-btn-primary" data-preview-id="' + escapeHtml(f.id) + '" aria-label="Preview promo ' + escapeHtml(f.title) + '">Preview Promo</button>'
+                    + (featuredLink ? '<a href="' + escapeHtml(featuredLink) + '" ' + (f.pdfUrl ? 'download' : 'target="_blank" rel="noopener noreferrer"') + ' class="pk-btn-secondary" aria-label="Buka promo ' + escapeHtml(f.title) + '">' + (f.pdfUrl ? 'Download PDF' : 'Buka Promo') + '</a>' : '')
+                    + '</div></div>';
+                return;
+            }
             el.innerHTML =
                 '<div class="pk-featured-cover" style="background:' + f.color + ';">'
                 + '<span class="pk-featured-cover-badge">' + f.badge + '</span>'
@@ -703,6 +896,20 @@
             grid.innerHTML = list.map(function(c) {
                 var s = getStatus(c);
                 var dc = dotClass(s);
+                if (c.type === 'pop') {
+                    var popLink = c.pdfUrl || c.qrUrl;
+                    return '<article class="pk-card" data-id="' + escapeHtml(c.id) + '">'
+                        + '<div class="pk-card-cover pk-pop-card-cover" style="' + catalogCoverStyle(c) + '">'
+                        + '<div class="pk-pop-cover-inner"><div class="pk-pop-cover-kicker">' + escapeHtml(c.storeName) + '</div><div class="pk-cover-icon">' + PDF_ICON + '</div><div class="pk-cover-title">' + escapeHtml(c.title) + '</div><div class="pk-pop-cover-items">' + c.items.length + ' produk promo</div></div>'
+                        + '<span class="pk-card-badge ' + escapeHtml(c.badgeClass) + '">' + escapeHtml(c.badge) + '</span>'
+                        + '<span class="pk-status-dot ' + escapeHtml(dc) + '" title="' + escapeHtml(statusLabel(s)) + '" aria-label="Status: ' + escapeHtml(statusLabel(s)) + '"></span>'
+                        + '</div><div class="pk-card-body"><h3 class="pk-card-title">' + escapeHtml(c.title) + '</h3>'
+                        + '<div class="pk-card-period-row">' + escapeHtml(c.period) + '</div>'
+                        + '<p class="text-xs text-slate-500 mb-3">' + escapeHtml(c.description) + '</p>'
+                        + '<div class="pk-card-actions"><button class="pk-card-btn pk-card-btn-preview" data-preview-id="' + escapeHtml(c.id) + '" aria-label="Preview promo ' + escapeHtml(c.title) + '">Preview</button>'
+                        + (popLink ? '<a href="' + escapeHtml(popLink) + '" ' + (c.pdfUrl ? 'download' : 'target="_blank" rel="noopener noreferrer"') + ' class="pk-card-btn pk-card-btn-download" aria-label="Buka promo ' + escapeHtml(c.title) + '">' + (c.pdfUrl ? 'Download' : 'Buka Promo') + '</a>' : '<span></span>')
+                        + '</div></div></article>';
+                }
                 return '<article class="pk-card" data-id="' + c.id + '">'
                     + '<div class="pk-card-cover" style="background:' + c.color + ';">'
                     + '<div class="pk-card-cover-inner">'
@@ -816,6 +1023,20 @@
             iframe.src = '';
             overlay.classList.add('open');
             document.body.style.overflow = 'hidden';
+            var popContent = document.getElementById('pop-preview-content');
+            if (c.type === 'pop') {
+                renderPopPreviewContent(c, popContent);
+                popContent.classList.remove('hidden');
+                loading.style.display = 'none';
+                iframe.style.display = 'none';
+                document.getElementById('modal-download-btn').style.display = c.pdfUrl ? 'inline-flex' : 'none';
+                document.getElementById('modal-open-btn').style.display = c.qrUrl ? 'inline-flex' : 'none';
+                document.getElementById('modal-open-btn').href = c.qrUrl || '#';
+                return;
+            }
+            popContent.classList.add('hidden');
+            document.getElementById('modal-download-btn').style.display = 'inline-flex';
+            document.getElementById('modal-open-btn').style.display = 'inline-flex';
             setTimeout(function() {
                 // Gunakan Google Docs Viewer agar PDF tampil di modal, bukan di-download
                 iframe.src = buildViewerUrl(c.pdfUrl);
@@ -838,6 +1059,11 @@
             var iframe = document.getElementById('pdf-iframe');
             overlay.classList.remove('open');
             document.body.style.overflow = '';
+            var popContent = document.getElementById('pop-preview-content');
+            if (popContent) {
+                popContent.classList.add('hidden');
+                popContent.innerHTML = '';
+            }
             setTimeout(function(){ iframe.src = ''; }, 300);
         }
 

@@ -213,6 +213,7 @@
         .preview-wrap.lottemart { aspect-ratio: 1080/1527; }
         .preview-wrap.story     { aspect-ratio: 1080/1920; }
         .preview-wrap.banner    { aspect-ratio: 1200/628; }
+        .preview-wrap.a4        { aspect-ratio: 2480/3508; }
 
         /* ── Draft Button ── */
         .btn-undo-redo {
@@ -497,19 +498,14 @@
 <body>
 
 <!-- ══════════════════════════════════════════════
-     PIN SCREEN
+     ADMIN AUTH SCREEN
 ══════════════════════════════════════════════ -->
 <div id="pin-screen">
     <div class="pin-card">
         <img src="assets/img/logo.png" alt="Paket Sembako" style="height:52px;margin:0 auto 1rem;" onerror="this.style.display='none'">
         <h1 style="font-size:1.2rem;font-weight:900;color:#0f172a;margin-bottom:0.25rem;">Generator Brosur</h1>
-        <p style="font-size:0.8rem;color:#6b7280;margin-bottom:1.5rem;">Masukkan PIN Admin untuk melanjutkan</p>
-        <input type="password" id="pin-input" class="pin-input" placeholder="••••••" maxlength="8"
-               autocomplete="current-password" inputmode="numeric">
-        <p id="pin-error" class="pin-error"></p>
-        <button class="pin-btn" id="pin-submit-btn" onclick="checkPin()">
-            <span id="pin-btn-text">Masuk</span>
-        </button>
+        <p style="font-size:0.8rem;color:#6b7280;margin-bottom:1.5rem;">Login admin diperlukan untuk mengelola brosur.</p>
+        <a class="pin-btn" style="display:block;text-decoration:none;" href="/admin/login.html">Buka Login Admin</a>
         <p style="font-size:0.72rem;color:#94a3b8;margin-top:1rem;">
             <a href="index.html" style="color:#128052;font-weight:600;">← Kembali ke Beranda</a>
         </p>
@@ -571,8 +567,19 @@
                     </span>
                 </div>
                 <div class="card-body">
+                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.75rem;margin-bottom:1.25rem;">
+                        <label style="grid-column:1/-1;"><span class="field-label">Nama Brosur</span><input id="brochure-name" class="field-input" type="text" placeholder="Promo Gebyar Sembako Agustus"></label>
+                        <label><span class="field-label">Judul Promo</span><input id="promo-title" class="field-input" type="text" value="PROMO GEBYAR SEMBAKO GROSIR" maxlength="80"></label>
+                        <label><span class="field-label">Subjudul</span><input id="promo-subtitle" class="field-input" type="text" value="Harga Miring Stok Melimpah" maxlength="100"></label>
+                        <label><span class="field-label">Ukuran Kertas</span><select id="paper-size" class="field-input"><option value="A4">A4 Portrait (MVP)</option><option value="A5" disabled>A5 (Phase 2)</option><option value="custom" disabled>Custom (Phase 2)</option></select></label>
+                        <label><span class="field-label">Orientasi</span><select id="paper-orientation" class="field-input"><option value="portrait">Portrait</option><option value="landscape" disabled>Landscape (Phase 2)</option></select></label>
+                    </div>
                     <div class="template-grid">
-                        <div class="template-card selected" data-template="featured" onclick="selectTemplate('featured')">
+                        <div class="template-card selected" data-template="a4" onclick="selectTemplate('a4')" style="position:relative;">
+                            <div style="position:absolute;top:-8px;right:-8px;background:#128052;color:#fff;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:99px;letter-spacing:0.05em;">MVP</div>
+                            <div class="template-icon">📄</div><div class="template-name">A4 Promo Grid</div><div class="template-desc">5 kolom • 20 produk • 300 DPI</div>
+                        </div>
+                        <div class="template-card" data-template="featured" onclick="selectTemplate('featured')">
                             <div class="template-icon">🌟</div>
                             <div class="template-name">1 Produk</div>
                             <div class="template-desc">Featured utama</div>
@@ -711,6 +718,29 @@
                         Seret ☰ untuk mengatur urutan section
                     </div>
                     <div id="custom-sections-sortable">
+                    <!-- Identitas, Banner, dan QR Code -->
+                    <div class="custom-section" data-section-id="identity">
+                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 🏪 Informasi Toko</label>
+                        <div class="field-row">
+                            <div><div class="field-label">Nama Toko</div><input id="store-name" class="field-input" type="text" value="Paket Sembako" maxlength="60" oninput="schedulePreview()"></div>
+                            <div><div class="field-label">Nomor WhatsApp</div><input id="wa-number" class="field-input" type="text" value="0899-3370-200" oninput="schedulePreview()"></div>
+                        </div>
+                        <div class="field-row full"><div><div class="field-label">Alamat / Keterangan Footer</div><input id="store-address" class="field-input" type="text" placeholder="Ciruas, Serang, Banten" maxlength="120" oninput="schedulePreview()"></div></div>
+                    </div>
+                    <div class="custom-section" data-section-id="banner">
+                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 🖼️ Banner Utama</label>
+                        <div class="upload-area" onclick="document.getElementById('banner-upload-input').click()">
+                            <input type="file" id="banner-upload-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleBannerUpload(this)">
+                            <div id="banner-preview" class="upload-placeholder"><span>Upload banner JPG, PNG, atau WebP</span><span style="font-size:0.7rem;color:#94a3b8;">Maks. 5MB</span></div>
+                        </div>
+                        <button id="btn-remove-banner" class="btn-remove-logo" onclick="removeBanner()" style="display:none;margin-top:0.5rem;">Hapus Banner</button>
+                    </div>
+                    <div class="custom-section" data-section-id="qr">
+                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 🔳 QR Code Otomatis</label>
+                        <input id="qr-url" class="field-input" type="url" value="https://paketsembako.com/" placeholder="https://paketsembako.com/" oninput="schedulePreview()">
+                        <div style="font-size:0.65rem;color:#94a3b8;margin-top:0.25rem;">QR Code dibuat otomatis dari URL ini pada template A4.</div>
+                    </div>
+
                     <!-- Logo Custom -->
                     <div class="custom-section" data-section-id="logo">
                         <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 🏢 Logo Toko</label>
@@ -810,12 +840,6 @@
                         <div style="font-size:0.65rem;color:#94a3b8;margin-top:0.25rem;">Maks. 60 karakter</div>
                     </div>
 
-                    <!-- Nomor WA -->
-                    <div class="custom-section" data-section-id="whatsapp">
-                        <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 📱 Nomor WhatsApp</label>
-                        <input type="text" id="wa-number" class="field-input" value="0899-3370-200" oninput="schedulePreview()">
-                    </div>
-
                     <!-- Stiker Overlay -->
                     <div class="custom-section" data-section-id="sticker">
                         <label class="custom-label"><span class="drag-handle" title="Seret untuk pindahkan">☰</span> 🏷️ Stiker / Overlay Preset</label>
@@ -860,7 +884,7 @@
                     </span>
                 </div>
                 <div class="card-body">
-                    <p style="font-size:0.82rem;color:#6b7280;margin-bottom:1.25rem;">Brosur siap! Download sebagai gambar PNG atau bagikan langsung ke berbagai platform.</p>
+                    <p style="font-size:0.82rem;color:#6b7280;margin-bottom:1.25rem;">Brosur siap! Download sebagai gambar PNG, PDF A4, atau bagikan langsung ke berbagai platform.</p>
 
                     <!-- Download -->
                     <div style="margin-bottom:1rem;">
@@ -868,6 +892,9 @@
                         <button class="btn-primary" id="download-btn" onclick="downloadBrosur()">
                             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                             Download PNG
+                        </button>
+                        <button class="btn-secondary" id="download-pdf-btn" onclick="downloadPdf()" style="margin-left:0.5rem;">
+                            Download PDF A4
                         </button>
                     </div>
 
@@ -916,7 +943,7 @@
                         Preview Brosur
                     </span>
                     <div style="display:flex;align-items:center;gap:0.5rem;">
-                        <span id="preview-size-label" style="font-size:0.68rem;color:#94a3b8;font-weight:600;">1080×1080 px</span>
+                        <span id="preview-size-label" style="font-size:0.68rem;color:#94a3b8;font-weight:600;">2480×3508 px · A4 · 300 DPI</span>
                         <div style="display:flex;gap:0.25rem;margin-left:0.5rem;">
                             <button class="preview-size-btn active" data-size="auto" onclick="setPreviewSize('auto')" title="Auto">
                                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
@@ -998,7 +1025,12 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="assets/js/config.js"></script>
+<script src="assets/js/sanitize.min.js"></script>
+<script src="admin/js/admin-auth.js"></script>
+<script src="assets/js/gas-actions.js"></script>
 <script src="assets/js/api-service.js"></script>
 <script src="assets/js/brosur.js"></script>
 <script>

@@ -12,7 +12,7 @@
  * tidak dihapus atau dipindahkan. Kolom yang hilang hanya ditambahkan di akhir.
  */
 
-var PROMO_FLYER_SCHEMA_VERSION = '20260816.1';
+var PROMO_FLYER_SCHEMA_VERSION = '20260824.1';
 
 var PROMO_FLYER_REQUIRED_HEADERS = [
   'id',
@@ -43,7 +43,18 @@ var PROMO_FLYER_REQUIRED_HEADERS = [
   'watermark_text',
   'show_qr_code',
   'banner_config_json',
-  'grid_config_json'
+  'grid_config_json',
+  // Metadata brochure generator (PRD MVP)
+  'brochure_name',
+  'paper_size',
+  'orientation',
+  'template_id',
+  'store_address',
+  'banner_url',
+  'disclaimer_text',
+  'show_service',
+  'show_payment',
+  'show_disclaimer'
 ];
 
 function runPromoFlyerSchemaDeployment() {
