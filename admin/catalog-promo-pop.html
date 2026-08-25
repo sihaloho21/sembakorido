@@ -104,7 +104,12 @@
         .promo-badge-input { width:92px; border:1px solid #e2e8f0; border-radius:8px; padding:6px 7px; font-size:11px; }
         .promo-select-button, .small-action { display:inline-flex; align-items:center; justify-content:center; gap:5px; border:1px solid #fdba74; border-radius:8px; padding:7px 9px; background:#fff7ed; color:#c2410c; font-size:11px; font-weight:900; }
         .promo-select-button.is-selected { color:#fff; background:var(--pop-orange); border-color:var(--pop-orange); }
-        .selected-product-row { align-items:flex-start; }
+        .selected-product-row { align-items:flex-start; cursor:grab; }
+        .selected-product-row:active { cursor:grabbing; }
+        .selected-product-row.is-dragging { opacity:.52; background:#fff7ed; }
+        .selected-product-row.is-drop-target { border-top:3px solid var(--pop-orange); background:#fffaf5; }
+        .selected-drag-handle { width:18px; flex:none; padding-top:4px; color:#cbd5e1; font-size:16px; line-height:1; text-align:center; user-select:none; }
+        .selected-drag-handle:focus-visible { outline:2px solid var(--pop-orange); outline-offset:2px; border-radius:4px; }
         .selected-number { width:24px; height:24px; display:grid; place-items:center; flex:none; border-radius:50%; background:#ffedd5; color:#c2410c; font-size:11px; font-weight:950; }
         .selected-product-main { min-width:0; flex:1; }
         .selected-product-main strong { display:block; overflow:hidden; color:#1e293b; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
@@ -268,6 +273,6 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="js/catalog-promo-pop.js?v=20260825d"></script>
+<script src="js/catalog-promo-pop.js?v=20260825e"></script>
 </body>
 </html>

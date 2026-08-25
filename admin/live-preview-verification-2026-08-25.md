@@ -49,3 +49,13 @@ Console measurement after three products in local Bento preview: layout class `f
 - Saved campaign serialization now stores `image_frame_height` and `image_scale` in `grid_config_json`; the public renderer reads these values with safe bounds.
 
 No campaign was saved or published during this test.
+
+## Drag-and-drop product ordering verification
+
+- Local admin builder loaded renderer asset `20260825e`.
+- Selected-product rows expose native `draggable="true"` behavior and visible `⋮⋮` drag handles.
+- Synthetic drag/drop test moved the first selected product after the third; the selected list and live preview order updated from the original sequence.
+- Verified five selected rows, five drag handles, and no lingering drop-target state after the reorder.
+- The reorder uses the existing `Map` insertion order, so campaign serialization and public rendering inherit the selected sequence.
+
+No campaign was saved or published during this test.
