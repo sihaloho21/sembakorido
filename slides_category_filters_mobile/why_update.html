@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background: #F8FAFC;
+            position: relative;
+            padding-top: 60px;
+        }
+        .header {
+            margin-left: 80px;
+            margin-bottom: 60px;
+            border-left: 6px solid #10B981;
+            padding-left: 24px;
+        }
+        h2 {
+            font-size: 48px;
+            color: #0F172A;
+            font-weight: 600;
+        }
+        .main-content {
+            display: flex;
+            justify-content: space-between;
+            margin: 0 80px;
+        }
+        .column {
+            width: 520px;
+        }
+        .insight-card {
+            background: #FFFFFF;
+            padding-top: 40px;
+            padding-left: 40px;
+            padding-right: 40px;
+            margin-bottom: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            min-height: 300px;
+        }
+        h3 {
+            font-size: 28px;
+            color: #10B981;
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+        p, li {
+            font-size: 22px;
+            color: #334155;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            list-style: none;
+        }
+        .bullet {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+        .bullet i {
+            color: #10B981;
+            margin-right: 16px;
+            margin-top: 6px;
+            font-size: 20px;
+        }
+        .focus-box {
+            background: #10B981;
+            padding-top: 30px;
+            padding-left: 30px;
+            padding-right: 30px;
+            border-radius: 16px;
+            color: #FFFFFF;
+        }
+        .focus-box h3 {
+            color: #FFFFFF;
+        }
+        .focus-box p {
+            color: #FFFFFF;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="header">
+            <h2>Mengapa filter kategori perlu diperbarui?</h2>
+        </div>
+        <div class="main-content">
+            <div class="column">
+                <div class="insight-card">
+                    <h3>Kondisi Saat Ini</h3>
+                    <div class="bullet">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <div>Pengguna belum menyadari daftar kategori dapat digeser (scroll).</div>
+                    </div>
+                    <div class="bullet">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <div>Active state belum cukup kontras dan informatif.</div>
+                    </div>
+                    <div class="bullet">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <div>Indikator scroll tidak merepresentasikan posisi nyata.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="focus-box">
+                    <h3>Fokus Redesign</h3>
+                    <p>Kurangi beban kognitif pengguna dalam memahami:</p>
+                    <div class="bullet" style="margin-top: 20px;">
+                        <i class="fas fa-check-circle" style="color: white;"></i>
+                        <div>Kategori apa yang sedang aktif?</div>
+                    </div>
+                    <div class="bullet">
+                        <i class="fas fa-check-circle" style="color: white;"></i>
+                        <div>Di mana kategori lainnya berada?</div>
+                    </div>
+                    <div class="bullet">
+                        <i class="fas fa-check-circle" style="color: white;"></i>
+                        <div>Apa dampak dari setiap tap/pilihan?</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

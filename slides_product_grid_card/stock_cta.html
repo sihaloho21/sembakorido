@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .slide-container {
+        width: 1280px;
+        min-height: 720px;
+        background: #f7fbf8;
+        font-family: Arial, sans-serif;
+        color: #102a23;
+        padding: 62px 82px 0;
+    }
+    .eyebrow {
+        color: #059669;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+    .title {
+        font-size: 45px;
+        letter-spacing: -1px;
+        margin: 18px 0 42px;
+    }
+    .states-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-top: 20px;
+    }
+    .state-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 30px;
+        min-height: 420px;
+        display: flex;
+        flex-direction: column;
+    }
+    .state-header {
+        font-size: 22px;
+        font-weight: 800;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    .desc {
+        font-size: 17px;
+        line-height: 1.5;
+        color: #47645b;
+        margin-bottom: 30px;
+        min-height: 80px;
+    }
+    .visual-preview {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 20px;
+        margin-top: auto;
+    }
+    .mock-label {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 800;
+        margin-bottom: 16px;
+    }
+    .mock-cta {
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 15px;
+    }
+
+    /* State: Tersedia */
+    .state-available .indicator { background: #10b981; }
+    .state-available .state-header { color: #059669; }
+    .state-available .mock-label { background: #d1fae5; color: #065f46; }
+    .state-available .mock-cta { background: #10b981; color: #ffffff; }
+
+    /* State: Terbatas */
+    .state-limited .indicator { background: #f59e0b; }
+    .state-limited .state-header { color: #b45309; }
+    .state-limited .mock-label { background: #fef3c7; color: #92400e; }
+    .state-limited .mock-cta { background: #f59e0b; color: #ffffff; }
+
+    /* State: Habis */
+    .state-out .indicator { background: #94a3b8; }
+    .state-out .state-header { color: #475569; }
+    .state-out .mock-label { background: #f1f5f9; color: #475569; }
+    .state-out .mock-cta { background: #e2e8f0; color: #94a3b8; border: 1px dashed #cbd5e1; }
+
+    .note {
+        margin-top: 40px;
+        font-size: 16px;
+        color: #6b8179;
+        font-style: italic;
+        border-left: 3px solid #10b981;
+        padding-left: 15px;
+    }
+</style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="eyebrow">09 · Inventory &amp; Action</div>
+    <h1 class="title">Status stok dan CTA harus selalu jujur</h1>
+
+    <div class="states-grid">
+        <!-- Tersedia -->
+        <div class="state-card state-available">
+            <div class="state-header"><div class="indicator"></div>Tersedia</div>
+            <div class="desc">Label hijau atau teks stok ringkas. CTA aktif sepenuhnya untuk pembelian langsung.</div>
+            <div class="visual-preview">
+                <div class="mock-label">STOK TERSEDIA</div>
+                <div class="mock-cta">Tambah ke Keranjang</div>
+            </div>
+        </div>
+
+        <!-- Terbatas -->
+        <div class="state-card state-limited">
+            <div class="state-header"><div class="indicator"></div>Stok Terbatas</div>
+            <div class="desc">Label amber/oranye. CTA tetap aktif, namun memberikan peringatan urgensi kepada pengguna.</div>
+            <div class="visual-preview">
+                <div class="mock-label">STOK TERBATAS</div>
+                <div class="mock-cta">Tambah ke Keranjang</div>
+            </div>
+        </div>
+
+        <!-- Habis -->
+        <div class="state-card state-out">
+            <div class="state-header"><div class="indicator"></div>Habis</div>
+            <div class="desc">Label netral/abu-abu. CTA dinonaktifkan (disabled) untuk mencegah aksi yang tidak valid.</div>
+            <div class="visual-preview">
+                <div class="mock-label">STOK HABIS</div>
+                <div class="mock-cta">Tidak Tersedia</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="note">Warna bukan satu-satunya pembeda; status ketersediaan harus selalu menyertakan teks yang jelas untuk aksesibilitas.</div>
+</div>
+</body>
+</html>

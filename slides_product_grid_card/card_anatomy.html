@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .slide-container { width: 1280px; min-height: 720px; background: #f7fbf8; font-family: Arial, sans-serif; color: #102a23; display: flex; }
+    .left { width: 50%; padding: 60px 0 0 80px; }
+    .right { width: 50%; padding: 60px 80px 0 40px; }
+    .eyebrow { color: #059669; font-size: 14px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; }
+    .title { font-size: 44px; line-height: 1.1; letter-spacing: -1px; font-weight: 800; margin-bottom: 40px; }
+
+    /* Card Diagram */
+    .diagram-container { position: relative; width: 420px; background: #fff; border: 2px solid #e2e8f0; border-radius: 24px; padding: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); }
+    .zone { border: 2px dashed #cbd5e1; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #64748b; position: relative; margin-bottom: 8px; }
+    .zone-media { height: 160px; background: #f1f5f9; }
+    .zone-info { height: 64px; }
+    .zone-price { height: 42px; }
+    .zone-status { height: 28px; border: none; justify-content: flex-start; font-size: 14px; color: #059669; }
+    .zone-action { height: 44px; background: #10b981; color: #fff; border: none; border-radius: 12px; }
+
+    .callout { position: absolute; width: 32px; height: 32px; background: #102a23; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; z-index: 10; border: 2px solid #fff; }
+    .c1 { top: 10px; left: -16px; }
+    .c2 { top: 190px; left: -16px; }
+    .c3 { top: 258px; left: -16px; }
+    .c4 { top: 312px; left: -16px; }
+    .c5 { top: 356px; left: -16px; }
+
+    /* List Items */
+    .list-item { display: flex; gap: 12px; margin-bottom: 18px; }
+    .list-num { width: 36px; height: 36px; background: #10b981; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; }
+    .list-content h3 { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+    .list-content p { font-size: 16px; color: #47645b; line-height: 1.4; margin: 0; }
+</style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="left">
+        <div class="eyebrow">05 · Card Anatomy</div>
+        <h1 class="title">Struktur kartu mengarahkan mata ke keputusan</h1>
+        <div class="diagram-container">
+            <div class="callout c1">1</div>
+            <div class="zone zone-media">MEDIA</div>
+            <div class="callout c2">2</div>
+            <div class="zone zone-info">INFORMASI</div>
+            <div class="callout c3">3</div>
+            <div class="zone zone-price">HARGA</div>
+            <div class="callout c4">4</div>
+            <div class="zone zone-status">STATUS</div>
+            <div class="callout c5">5</div>
+            <div class="zone zone-action">AKSI</div>
+        </div>
+    </div>
+    <div class="right">
+        <div class="list-item">
+            <div class="list-num">1</div>
+            <div class="list-content">
+                <h3>Media Produk</h3>
+                <p>Rasio tetap dan placeholder untuk mencegah layout shift.</p>
+            </div>
+        </div>
+        <div class="list-item">
+            <div class="list-num">2</div>
+            <div class="list-content">
+                <h3>Informasi Utama</h3>
+                <p>Nama produk (max 2 baris) dan unit sebagai metadata.</p>
+            </div>
+        </div>
+        <div class="list-item">
+            <div class="list-num">3</div>
+            <div class="list-content">
+                <h3>Hierarki Harga</h3>
+                <p>Harga aktif dominan; harga lama sebagai konteks.</p>
+            </div>
+        </div>
+        <div class="list-item">
+            <div class="list-num">4</div>
+            <div class="list-content">
+                <h3>Status Stok</h3>
+                <p>Indikator warna untuk ketersediaan (Tersedia/Terbatas/Habis).</p>
+            </div>
+        </div>
+        <div class="list-item">
+            <div class="list-num">5</div>
+            <div class="list-content">
+                <h3>Action Zone</h3>
+                <p>CTA utama atau kontrol kuantitas di posisi bawah konsisten.</p>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

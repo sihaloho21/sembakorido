@@ -1,0 +1,144 @@
+{
+  "project_info": {
+    "title": "Redesign Mobile Category Filters",
+    "created": 1787577257.666,
+    "last_updated": 1787577344.311,
+    "total_slides": 12
+  },
+  "slides": [
+    {
+      "id": "cover",
+      "state": "edited",
+      "pageNum": 1
+    },
+    {
+      "id": "why_update",
+      "state": "edited",
+      "pageNum": 2
+    },
+    {
+      "id": "principles",
+      "state": "edited",
+      "pageNum": 3
+    },
+    {
+      "id": "solution_dock",
+      "state": "edited",
+      "pageNum": 4
+    },
+    {
+      "id": "rail_speed",
+      "state": "edited",
+      "pageNum": 5
+    },
+    {
+      "id": "overflow_access",
+      "state": "edited",
+      "pageNum": 6
+    },
+    {
+      "id": "user_flow",
+      "state": "edited",
+      "pageNum": 7
+    },
+    {
+      "id": "visual_direction",
+      "state": "edited",
+      "pageNum": 8
+    },
+    {
+      "id": "responsive_behavior",
+      "state": "edited",
+      "pageNum": 9
+    },
+    {
+      "id": "accessibility_perf",
+      "state": "edited",
+      "pageNum": 10
+    },
+    {
+      "id": "criteria_delivery",
+      "state": "edited",
+      "pageNum": 11
+    },
+    {
+      "id": "recommendation",
+      "state": "edited",
+      "pageNum": 12
+    }
+  ],
+  "outline": [
+    {
+      "id": "cover",
+      "title": "Redesign Mobile Category Filters",
+      "summary": "Cover slide with title, subtitle, and presenter info for the Paket Sembako mobile category filter redesign proposal.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "why_update",
+      "title": "Mengapa filter kategori perlu diperbarui?",
+      "summary": "Overview of current mobile filter limitations: low discoverability, weak active state, and crowded rail.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "principles",
+      "title": "Prinsip desain: cepat, terlihat, dan scalable",
+      "summary": "Core design goals: one-tap speed, clear selection hierarchy, scroll discoverability, and scalability.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "solution_dock",
+      "title": "Konsep solusi: Compact Category Dock",
+      "summary": "Introduction to the new compact filter block, header row, and single-line chip rail with snap alignment.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "rail_speed",
+      "title": "Rail tetap cepat untuk kategori utama",
+      "summary": "Behavioral rules for the horizontal rail, including chip limits, edge fades, and automatic centering.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "overflow_access",
+      "title": "Lainnya membuka akses ke seluruh kategori",
+      "summary": "Details on the 'Lainnya' overflow chip and the resulting bottom sheet for complete category access.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "user_flow",
+      "title": "User flow yang lebih sederhana",
+      "summary": "Step-by-step mobile shopper journey from discovery to filtering without unnecessary apply steps.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "visual_direction",
+      "title": "Visual direction: Paket Sembako yang lebih modern",
+      "summary": "Design tokens for the dock, chips, typography, and motion consistent with the brand's green-white identity.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "responsive_behavior",
+      "title": "Mobile-first, desktop tetap aman",
+      "summary": "Responsive behavior across mobile viewports while preserving existing desktop arrow carousel functionality.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "accessibility_perf",
+      "title": "Aksesibilitas dan performa adalah bagian dari desain",
+      "summary": "Technical standards for ARIA states, focus management, native scrolling, and lightweight CSS implementation.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "criteria_delivery",
+      "title": "Acceptance criteria dan rencana delivery",
+      "summary": "Final success metrics and the phased implementation plan from visual foundation to QA.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "recommendation",
+      "title": "Rekomendasi keputusan",
+      "summary": "Final recommendation to adopt the Compact Category Dock and next steps for mobile prototype validation.",
+      "image_plan": "Use a suitable image if needed"
+    }
+  ]
+}
