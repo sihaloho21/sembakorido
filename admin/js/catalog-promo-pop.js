@@ -500,6 +500,16 @@
         return { frame, scale: scalePercent / 100 };
     }
 
+    function getGridSettings() {
+        const rows = Math.min(8, Math.max(1, Number($('promo-pop-grid-rows')?.value) || 4));
+        const columns = Math.min(6, Math.max(1, Number($('promo-pop-grid-columns')?.value) || 3));
+        const rowsOutput = $('promo-pop-grid-rows-output');
+        const columnsOutput = $('promo-pop-grid-columns-output');
+        if (rowsOutput) rowsOutput.textContent = String(rows);
+        if (columnsOutput) columnsOutput.textContent = String(columns);
+        return { rows, columns, limit: rows * columns };
+    }
+
     function renderPreview() {
         const title = $('promo-pop-title')?.value || 'Promo Spesial';
         const subtitle = $('promo-pop-subtitle')?.value || 'Harga terbaik untuk kebutuhan harian';
@@ -515,12 +525,15 @@
         const preview = $('promo-pop-preview');
         if (!preview) return;
         const crop = getCropSettings();
+        const grid = getGridSettings();
         preview.style.setProperty('--flyer-media-height', `${crop.frame}px`);
         preview.style.setProperty('--flyer-image-scale', String(crop.scale));
+        preview.style.setProperty('--flyer-grid-rows', String(grid.rows));
+        preview.style.setProperty('--flyer-grid-columns', String(grid.columns));
         const rows = selectedProductRows();
         const featured = rows.filter(item => state.featuredIds.has(String(item.id))).slice(0, 3);
         const qrDataUrl = makeQrDataUrl(qrUrl);
-        const productMarkup = rows.slice(0, 10).map((item) => `<article class="flyer-item"><div class="flyer-media-frame">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="lazy">` : 'POP'}${item.badge ? `<span class="flyer-item-badge">${escapeHtml(item.badge)}</span>` : ''}</div><div class="flyer-item-name">${escapeHtml(item.name)}</div><div class="flyer-item-normal">${formatCurrency(item.normal_price)}</div><div class="flyer-item-promo">${formatCurrency(item.promo_price)}</div>${item.unit ? `<div style="font-size:9px;color:#94a3b8;">${escapeHtml(item.unit)}</div>` : ''}</article>`).join('');
+        const productMarkup = rows.slice(0, grid.limit).map((item) => `<article class="flyer-item"><div class="flyer-media-frame">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="lazy">` : 'POP'}${item.badge ? `<span class="flyer-item-badge">${escapeHtml(item.badge)}</span>` : ''}</div><div class="flyer-item-name">${escapeHtml(item.name)}</div><div class="flyer-item-normal">${formatCurrency(item.normal_price)}</div><div class="flyer-item-promo">${formatCurrency(item.promo_price)}</div>${item.unit ? `<div style="font-size:9px;color:#94a3b8;">${escapeHtml(item.unit)}</div>` : ''}</article>`).join('');
         const featuredMarkup = featured.length ? `<div class="flyer-featured"><div class="flyer-media-frame">${featured[0].image ? `<img src="${escapeHtml(safeHttpUrl(featured[0].image))}" alt="" loading="lazy">` : 'POP'}</div><div><div class="flyer-featured-label">Produk Unggulan</div><div style="margin-top:4px;color:#334155;font-size:12px;font-weight:900;">${escapeHtml(featured[0].name)}</div><div class="flyer-item-normal">${formatCurrency(featured[0].normal_price)}</div><div class="flyer-item-promo">${formatCurrency(featured[0].promo_price)}</div></div></div>` : '';
         const serviceMarkup = $('promo-pop-show-service')?.checked ? '<div class="flyer-service"><strong style="color:#334155;">MELAYANI TOP UP DIGITAL & PPOB</strong><br>Pulsa · Paket Data · Token PLN · E-Wallet · Bayar Tagihan</div>' : '';
         const paymentMarkup = $('promo-pop-show-payment')?.checked ? '<div class="flyer-payment">Pembayaran: QRIS · GoPay · DANA · OVO · Transfer Bank</div>' : '';
@@ -577,7 +590,7 @@
             show_qr_code: $('promo-pop-qr')?.value ? 'true' : 'false',
             qr_url: String($('promo-pop-qr')?.value || '').trim(),
             banner_config_json: JSON.stringify({ top: String($('promo-pop-top-banner')?.value || '').trim(), bottom: String($('promo-pop-bottom-banner')?.value || '').trim() }),
-            grid_config_json: JSON.stringify({ layout: String($('promo-pop-layout')?.value || 'auto').trim(), columns: Number($('promo-pop-columns')?.value || 3), image_frame_height: getCropSettings().frame, image_scale: getCropSettings().scale }),
+            grid_config_json: JSON.stringify({ layout: String($('promo-pop-layout')?.value || 'auto').trim(), rows: getGridSettings().rows, columns: getGridSettings().columns, image_frame_height: getCropSettings().frame, image_scale: getCropSettings().scale }),
             created_by: GASActions.getAdminRole() || 'admin',
             updated_at: new Date().toISOString()
         };
@@ -597,8 +610,12 @@
         try { gridConfig = JSON.parse(campaign.grid_config_json || '{}') || {}; } catch (error) { gridConfig = {}; }
         const frameField = $('promo-pop-image-frame');
         const scaleField = $('promo-pop-image-scale');
+        const rowsField = $('promo-pop-grid-rows');
+        const columnsField = $('promo-pop-grid-columns');
         if (frameField) frameField.value = Math.min(220, Math.max(64, Number(gridConfig.image_frame_height) || 82));
         if (scaleField) scaleField.value = Math.min(110, Math.max(70, Math.round((Number(gridConfig.image_scale) || 1) * 100)));
+        if (rowsField) rowsField.value = Math.min(8, Math.max(1, Number(gridConfig.rows) || 4));
+        if (columnsField) columnsField.value = Math.min(6, Math.max(1, Number(gridConfig.columns) || 3));
         $('promo-pop-paper').value = campaign.paper_size || 'A4';
         $('promo-pop-orientation').value = campaign.orientation || 'portrait';
         state.templateId = campaign.template_id || 'promo-grid';
@@ -797,6 +814,8 @@
         });
         $('promo-pop-image-frame')?.addEventListener('input', renderPreview);
         $('promo-pop-image-scale')?.addEventListener('input', renderPreview);
+        $('promo-pop-grid-rows')?.addEventListener('input', renderPreview);
+        $('promo-pop-grid-columns')?.addEventListener('input', renderPreview);
         $('promo-pop-product-list')?.addEventListener('click', (event) => {
             const button = event.target.closest('[data-select-product]');
             if (!button) return;

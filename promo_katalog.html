@@ -372,7 +372,7 @@
         .pk-pop-preview-hero p { margin: .55rem 0 0; font-size: .85rem; opacity: .9; }
         .pk-pop-preview-meta { display: flex; justify-content: space-between; gap: .75rem; flex-wrap: wrap; padding: .85rem 1rem; border-bottom: 1px solid #eef2f7; color: #64748b; font-size: .75rem; }
         .pk-pop-preview-badge { border-radius: 999px; padding: .3rem .6rem; background: #dc2626; color: white; font-size: .68rem; font-weight: 900; }
-        .pk-pop-preview-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: .75rem; padding: 1rem; }
+        .pk-pop-preview-items { display: grid; grid-template-columns: repeat(var(--pk-pop-grid-columns,3), minmax(0, 1fr)); grid-template-rows: repeat(var(--pk-pop-grid-rows,4), minmax(0, auto)); gap: .75rem; padding: 1rem; }
         .pk-pop-preview-item { min-width: 0; padding: .65rem; border: 1px solid #eef2f7; border-radius: .8rem; }
         .pk-pop-preview-image { height: var(--pk-pop-image-height,105px); display: grid; place-items: center; overflow: visible; border-radius: .6rem; background: #fff7ed; color: #c2410c; font-size: .7rem; font-weight: 900; }
         .pk-pop-preview-image img { width: auto; height: auto; max-width: calc(100% - 8px); max-height: calc(100% - 8px); object-fit: contain; object-position: center; transform: scale(var(--pk-pop-image-scale,1)); transform-origin: center; }
@@ -703,6 +703,8 @@
             try { gridConfig = JSON.parse(c.grid_config_json || '{}') || {}; } catch (error) { gridConfig = {}; }
             var imageFrameHeight = Math.min(220, Math.max(64, Number(gridConfig.image_frame_height) || 105));
             var imageScale = Math.min(1.1, Math.max(.7, Number(gridConfig.image_scale) || 1));
+            var gridRows = Math.min(8, Math.max(1, Number(gridConfig.rows) || 4));
+            var gridColumns = Math.min(6, Math.max(1, Number(gridConfig.columns) || 3));
             return {
                 type: 'pop',
                 id: String(c.id == null ? '' : c.id),
@@ -724,6 +726,8 @@
                 layout: layout,
                 imageFrameHeight: imageFrameHeight,
                 imageScale: imageScale,
+                gridRows: gridRows,
+                gridColumns: gridColumns,
                 description: c.description || c.subtitle || 'Temukan promo produk pilihan dengan harga terbaik.',
                 items: items.map(function(item) {
                     return {
@@ -806,6 +810,8 @@
             if (!target) return;
             target.style.setProperty('--pk-pop-image-height', (Number(c.imageFrameHeight) || 105) + 'px');
             target.style.setProperty('--pk-pop-image-scale', String(Number(c.imageScale) || 1));
+            target.style.setProperty('--pk-pop-grid-rows', String(Number(c.gridRows) || 4));
+            target.style.setProperty('--pk-pop-grid-columns', String(Number(c.gridColumns) || 3));
             var imageStyle = c.heroUrl ? ' style="background-image:url(&quot;' + escapeHtml(c.heroUrl) + '&quot;);background-color:#f97316;"' : ' style="background:' + popThemeGradient(c.theme) + ';"';
             var items = c.items || [];
             target.innerHTML = '<div class="pk-pop-preview-card">'
@@ -817,7 +823,7 @@
                 + '</div></div>'
                 + '<div class="pk-pop-preview-meta"><span class="pk-pop-preview-badge">' + escapeHtml(c.badge) + '</span><span>' + items.length + ' produk promo</span></div>'
                 + '<div class="pk-pop-preview-items">'
-                + (items.length ? items.slice(0, 24).map(function(item) {
+                + (items.length ? items.slice(0, Math.max(1, (Number(c.gridRows) || 4) * (Number(c.gridColumns) || 3))).map(function(item) {
                     var image = item.image ? '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy">' : '<span>POP</span>';
                     var normal = item.normalPrice > item.promoPrice ? '<div class="pk-pop-preview-normal">' + formatRupiah(item.normalPrice) + '</div>' : '';
                     return '<article class="pk-pop-preview-item"><div class="pk-pop-preview-image">' + image + '</div>'
