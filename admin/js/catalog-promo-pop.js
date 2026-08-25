@@ -318,6 +318,15 @@
         return raw;
     }
 
+    function setFormStatusBadge(status) {
+        const badge = $('promo-pop-form-status-badge');
+        if (!badge) return;
+        const normalized = String(status || 'draft').toLowerCase();
+        const label = normalized === 'published' ? 'Published' : normalized === 'expired' ? 'Expired' : normalized === 'archived' ? 'Archived' : 'Draft';
+        badge.textContent = label;
+        badge.className = `status-badge status-${normalized}`;
+    }
+
     function renderProductPicker() {
         const container = $('promo-pop-product-list');
         if (!container) return;
@@ -564,6 +573,7 @@
     function fillForm(campaign) {
         if (!campaign) return;
         state.editingId = String(campaign.id || '');
+        setFormStatusBadge(campaignStatus(campaign));
         $('promo-pop-title').value = campaign.title || '';
         $('promo-pop-slug').value = campaign.slug || '';
         $('promo-pop-subtitle').value = campaign.subtitle || '';
@@ -632,6 +642,7 @@
 
     function resetForm() {
         state.editingId = '';
+        setFormStatusBadge('draft');
         state.templateId = 'promo-grid';
         state.heroDataUrl = '';
         state.featuredIds.clear();
@@ -639,9 +650,11 @@
         const heroPreview = $('promo-pop-hero-preview');
         if (heroPreview) { heroPreview.src = ''; heroPreview.style.display = 'none'; }
         state.selectedItems.clear();
+        selectTemplate(state.templateId);
         renderProductPicker();
         renderSelectedItems();
         renderPreview();
+        setStatus('Campaign baru siap diisi.', 'info');
     }
 
     function renderCampaigns() {

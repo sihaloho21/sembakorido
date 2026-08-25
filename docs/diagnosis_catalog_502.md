@@ -168,3 +168,31 @@ Dengan HTML final yang hanya memuat `js/catalog-promo-pop.js?v=20260824g`, klik 
 Dengan nama file v6 yang belum dicache dan query `debug-restore=1`, status UI berhasil menampilkan `DEBUG boot: 2 campaign · 4 item parsed.` Ini membuktikan controller baru dan parser aktif pada browser. Pada snapshot pertama setelah boot, callback delayed restore belum terlihat; snapshot berikutnya diperlukan untuk membaca hasil `DEBUG after fill`.
 
 Snapshot berikutnya menunjukkan metadata campaign pertama sudah masuk, tetapi status masih `DEBUG boot: 2 campaign · 4 item parsed.` dan counter selected tetap 0. Source v6 tersaji dengan checksum terbaru; diagnostic callback masih perlu dipastikan selesai sebelum menyimpulkan state.
+
+## Pemeriksaan URL sementara — 25 Agustus 2026
+
+Halaman `/admin/catalog-promo-pop.html` pada URL sementara sempat redirect ke `/admin/login.html` karena sesi browser baru. Login superadmin dengan token yang sebelumnya diberikan pengguna berhasil dan dashboard dapat membuka halaman POP.
+
+Setelah data selesai dimuat, halaman menampilkan 14 produk, dua campaign published (`Promo Hemat Minggu` dengan 4 produk dan `Promo Hemat SELASA` dengan 13 produk), serta satu campaign draft baru (`Promo Hemat Rabu` dengan 6 produk). Preview awal menampilkan QR code dan status siap; console browser tidak menghasilkan output/error pada saat snapshot.
+
+Pemeriksaan lanjutan perlu memverifikasi Edit campaign, penyimpanan, filter produk, tombol PNG/PDF, serta responsivitas mobile.
+
+Pada sesi pemeriksaan 25 Agustus 2026, halaman target berhasil dimuat setelah login dan menampilkan 14 produk serta tiga campaign tersimpan. Console tidak menampilkan output/error pada snapshot awal. Uji klik koordinat pada area tombol Edit belum mengubah state; karena indeks visual berpotensi stale, pemeriksaan berikutnya menggunakan identifikasi DOM langsung terhadap elemen `[data-edit-campaign]`.
+
+Inspeksi DOM menunjukkan tiga elemen `[data-edit-campaign]` aktif dan tidak disabled, masing-masing memiliki ID `POP-1787576068432`, `POP-1787584537464`, dan `POP-1787614919897`. Event `click()` langsung pada tombol pertama berhasil dipicu secara programatis; perlu snapshot setelah callback untuk memeriksa status dan jumlah produk yang dipulihkan.
+
+Event Edit campaign pertama yang dipicu langsung melalui DOM berhasil. UI menunjukkan `Mode edit aktif: 4 produk dipulihkan dari campaign.`, counter `4 produk dipilih`, empat item pada Urutan Flyer, dan Live Preview berisi empat kartu produk beserta banner, metadata campaign, dan QR. Console tetap tanpa error yang dilaporkan.
+
+Event Edit campaign kedua juga berhasil. UI menunjukkan `Mode edit aktif: 13 produk dipulihkan dari campaign.`, 13 item pada Urutan Flyer, metadata `Promo Hemat SELASA`, banner tersimpan, badge produk, gambar produk, dan Live Preview `13 produk promo`. Tidak ada exception yang muncul pada console browser.
+
+Uji Edit langsung pada tiga campaign tersimpan berhasil: campaign pertama memulihkan 4 produk, campaign kedua 13 produk, dan campaign draft ketiga 6 produk. Pada draft ketiga, input mulai `2026-08-25T06:39` dan selesai `2026-08-27T06:39` juga kembali terisi; Live Preview menampilkan 6 kartu produk. Tidak ada exception browser yang terdeteksi pada console.
+
+Uji alur Campaign Baru menemukan bug UX kecil: setelah `Campaign Baru` ditekan lalu produk pertama dipilih, state dan Live Preview benar-benar berubah menjadi 1 produk, tetapi banner status masih menampilkan `Mode edit aktif: 6 produk dipulihkan dari campaign.` dari campaign sebelumnya. Ini tidak merusak data, namun status stale dapat membingungkan pengguna dan perlu direset saat `resetForm()`/Campaign Baru.
+
+Controller terbaru dengan cache-buster `20260825a` berhasil dimuat pada URL target. Setelah API selesai, halaman tetap menampilkan 14 produk dan tiga campaign; status kembali normal ke `Generator Catalog Promo POP siap digunakan.` sebelum uji Campaign Baru.
+
+Setelah perbaikan reset dan controller `20260825a`, alur Campaign Baru diuji ulang: status berubah menjadi `Campaign baru siap diisi.`, `editingId` kosong, pemilihan produk menghasilkan 1 item, Live Preview menampilkan 1 produk, dan tombol Download PNG menghasilkan status `PNG berhasil dibuat dan diunduh.` Library `html2canvas` dan `jsPDF` terdeteksi sebagai function.
+
+Perbaikan badge status diuji pada controller `20260825b`: Edit campaign published pertama menampilkan label `Published` pada header editor, bukan lagi `Draft`, sambil mempertahankan restore 4 produk dan Live Preview. Perbaikan ini masih berupa perubahan lokal yang belum di-commit.
+
+Regresi status pada controller `20260825b` berhasil: setelah campaign published dibuka lalu `Campaign Baru` dijalankan, status menjadi `Campaign baru siap diisi.`, badge editor menjadi `Draft`, judul kosong, `editingId` kosong, dan selected item 0. Console tidak menunjukkan exception baru.
