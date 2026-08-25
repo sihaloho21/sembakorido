@@ -91,6 +91,24 @@
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value) || 0);
     }
 
+    // Brochure-only overrides stay on the campaign item snapshot and never mutate state.products.
+    function brochureName(item) {
+        return String(item?.brochure_name ?? item?.name ?? 'Produk').trim() || 'Produk';
+    }
+
+    function brochureNormalPrice(item) {
+        return Number(item?.brochure_normal_price ?? item?.normal_price ?? 0) || 0;
+    }
+
+    function brochurePromoPrice(item) {
+        return Number(item?.brochure_promo_price ?? item?.promo_price ?? brochureNormalPrice(item)) || 0;
+    }
+
+    function brochureOffer(item) {
+        const fallback = item?.unit ? `Harga spesial · ${item.unit}` : (item?.badge || 'Promo terbatas');
+        return String(item?.brochure_offer ?? fallback).trim() || 'Promo terbatas';
+    }
+
     function readArrayResponse(payload) {
         if (Array.isArray(payload)) return payload;
         if (payload && Array.isArray(payload.data)) return payload.data;
@@ -361,7 +379,7 @@
                 </div>
                 <div class="flex items-center gap-2 flex-wrap justify-end">
                     ${selected ? `<span class="text-[10px] font-black text-orange-600">-${discount}%</span><input class="promo-badge-input" data-promo-badge="${escapeHtml(product.id)}" type="text" value="${escapeHtml(selected.badge || '')}" placeholder="Badge" aria-label="Badge ${escapeHtml(product.name)}">` : ''}
-                    <input class="promo-price-input" data-promo-price="${escapeHtml(product.id)}" type="number" min="0" step="500" value="${escapeHtml(selected ? selected.promo_price : product.price)}" aria-label="Harga promo ${escapeHtml(product.name)}">
+                    <input class="promo-price-input" data-promo-price="${escapeHtml(product.id)}" type="number" min="0" step="500" value="${escapeHtml(selected ? brochurePromoPrice(selected) : product.price)}" aria-label="Harga promo ${escapeHtml(product.name)}">
                     <button type="button" class="promo-select-button ${selected ? 'is-selected' : ''}" data-select-product="${escapeHtml(product.id)}">${selected ? 'Dipilih' : outOfStock ? 'Tetap tampilkan' : 'Pilih'}</button>
                 </div>
             </div>`;
@@ -414,6 +432,10 @@
             stock: Number(raw.stock ?? raw.stok ?? source.stock ?? 0) || 0,
             normal_price: normal,
             promo_price: promo,
+            brochure_name: String(raw.brochure_name ?? raw.display_name ?? raw.name ?? raw.product_name ?? raw.productName ?? source.name ?? 'Produk').trim(),
+            brochure_normal_price: Number(raw.brochure_normal_price ?? raw.display_normal_price ?? raw.normal_price ?? raw.normalPrice ?? normal) || 0,
+            brochure_promo_price: Number(raw.brochure_promo_price ?? raw.display_promo_price ?? raw.promo_price ?? raw.promoPrice ?? promo) || 0,
+            brochure_offer: String(raw.brochure_offer ?? raw.display_offer ?? (raw.unit || source.unit ? `Harga spesial · ${raw.unit || source.unit}` : (raw.badge || 'Promo terbatas'))).trim(),
             badge: String(raw.badge || raw.badge_text || '').trim()
         };
     }
@@ -454,6 +476,7 @@
                 ? clampDiscount((amount / Math.max(normal, 1)) * 100)
                 : clampDiscount(amount);
             item.promo_price = type === 'fixed' ? Math.max(0, Math.round(normal - amount)) : promoPriceFromDiscount(normal, discountPct);
+            item.brochure_promo_price = item.promo_price;
             item.badge = prefix ? `${prefix} ${type === 'fixed' ? formatCurrency(amount) : discountPct + '%'}` : '';
         });
         renderProductPicker();
@@ -464,7 +487,7 @@
 
     function resetBulkPricing() {
         const selected = selectedProducts();
-        selected.forEach((item) => { item.promo_price = Number(item.normal_price) || 0; item.badge = ''; });
+        selected.forEach((item) => { item.promo_price = Number(item.normal_price) || 0; item.brochure_promo_price = item.promo_price; item.badge = ''; });
         renderProductPicker();
         renderSelectedItems();
         renderPreview();
@@ -488,10 +511,17 @@
         container.innerHTML = rows.map((item, index) => {
             const isFeatured = state.featuredIds.has(String(item.id));
             const isOut = productIsOutOfStock(item);
-            return `<div class="selected-product-row" draggable="true" data-selected-id="${escapeHtml(item.id)}" aria-label="Urutan ${index + 1}: ${escapeHtml(item.name)}">
-                <span class="selected-drag-handle" tabindex="0" role="button" title="Seret untuk mengatur urutan" aria-label="Seret ${escapeHtml(item.name)} untuk mengatur urutan">⋮⋮</span><span class="selected-number">${index + 1}</span>
-                <div class="selected-product-main"><strong>${escapeHtml(item.name)}</strong><span>${isOut ? '⚠ Stok habis · ' : ''}Normal ${formatCurrency(item.normal_price)}${item.badge ? ` · ${escapeHtml(item.badge)}` : ''}</span></div>
-                <div class="selected-product-actions"><strong style="color:#ea580c;font-size:12px;">${formatCurrency(item.promo_price)}</strong><button type="button" class="${isFeatured ? 'is-featured' : ''}" data-feature-product="${escapeHtml(item.id)}">${isFeatured ? '★ Unggulan' : '☆ Featured'}</button><button type="button" data-copy-layout="${escapeHtml(item.id)}">Salin layout</button>${state.layoutClipboard && state.layoutClipboard !== String(item.id) ? `<button type="button" data-paste-layout="${escapeHtml(item.id)}">Tempel layout</button>` : ''}<button type="button" data-remove-product="${escapeHtml(item.id)}">Hapus</button></div>
+            return `<div class="selected-product-row" draggable="true" data-selected-id="${escapeHtml(item.id)}" aria-label="Urutan ${index + 1}: ${escapeHtml(brochureName(item))}">
+                <span class="selected-drag-handle" tabindex="0" role="button" title="Seret untuk mengatur urutan" aria-label="Seret ${escapeHtml(brochureName(item))} untuk mengatur urutan">⋮⋮</span><span class="selected-number">${index + 1}</span>
+                <div class="selected-product-main"><strong>${escapeHtml(brochureName(item))}</strong><span>${isOut ? '⚠ Stok habis · ' : ''}Harga database ${formatCurrency(item.normal_price)}</span>
+                    <div class="selected-brochure-fields" aria-label="Edit konten brosur ${escapeHtml(brochureName(item))}">
+                        <input type="text" data-brochure-name="${escapeHtml(item.id)}" value="${escapeHtml(brochureName(item))}" placeholder="Nama di brosur" aria-label="Nama brosur ${escapeHtml(brochureName(item))}">
+                        <input type="number" min="0" step="500" data-brochure-normal="${escapeHtml(item.id)}" value="${escapeHtml(brochureNormalPrice(item))}" placeholder="Harga coret" aria-label="Harga coret brosur ${escapeHtml(brochureName(item))}">
+                        <input type="number" min="0" step="500" data-brochure-promo="${escapeHtml(item.id)}" value="${escapeHtml(brochurePromoPrice(item))}" placeholder="Harga promo" aria-label="Harga promo brosur ${escapeHtml(brochureName(item))}">
+                        <input type="text" data-brochure-offer="${escapeHtml(item.id)}" value="${escapeHtml(brochureOffer(item))}" placeholder="Teks promo" aria-label="Teks promo ${escapeHtml(brochureName(item))}">
+                    </div>
+                </div>
+                <div class="selected-product-actions"><strong style="color:#ea580c;font-size:12px;">${formatCurrency(brochurePromoPrice(item))}</strong><button type="button" class="${isFeatured ? 'is-featured' : ''}" data-feature-product="${escapeHtml(item.id)}">${isFeatured ? '★ Unggulan' : '☆ Featured'}</button><button type="button" data-copy-layout="${escapeHtml(item.id)}">Salin layout</button>${state.layoutClipboard && state.layoutClipboard !== String(item.id) ? `<button type="button" data-paste-layout="${escapeHtml(item.id)}">Tempel layout</button>` : ''}<button type="button" data-remove-product="${escapeHtml(item.id)}">Hapus</button></div>
             </div>`;
         }).join('');
     }
@@ -605,8 +635,8 @@
         const rows = selectedProductRows();
         const featured = rows.filter(item => state.featuredIds.has(String(item.id))).slice(0, 3);
         const qrDataUrl = makeQrDataUrl(qrUrl);
-        const renderStandardItem = (item) => `<article class="flyer-item"><div class="flyer-media-frame">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="lazy">` : 'POP'}${item.badge ? `<span class="flyer-item-badge">${escapeHtml(item.badge)}</span>` : ''}</div><div class="flyer-item-name">${escapeHtml(item.name)}</div><div class="flyer-item-normal">${formatCurrency(item.normal_price)}</div><div class="flyer-item-promo">${formatCurrency(item.promo_price)}</div>${item.unit ? `<div style="font-size:9px;color:#94a3b8;">${escapeHtml(item.unit)}</div>` : ''}</article>`;
-        const renderRetailTile = (item) => `<article class="flyer-retail-tile"><div class="flyer-retail-drag-hint">Seret elemen untuk atur posisi · Scroll untuk ubah ukuran</div><div class="flyer-retail-media flyer-retail-draggable" data-tile-position="image" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'image')}" tabindex="0" role="button" aria-label="Seret atau scroll gambar produk untuk mengubah posisi dan ukuran">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="lazy">` : 'POP'}</div><div class="flyer-retail-name flyer-retail-draggable" data-tile-position="name" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'name')}" tabindex="0" role="button" aria-label="Seret atau scroll nama produk untuk mengubah posisi dan ukuran">${escapeHtml(item.name)}</div><div class="flyer-retail-normal flyer-retail-draggable" data-tile-position="normal" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'normal')}" tabindex="0" role="button" aria-label="Seret atau scroll harga coret untuk mengubah posisi dan ukuran">${formatCurrency(item.normal_price)}</div><div class="flyer-retail-promo flyer-retail-draggable" data-tile-position="promo" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'promo')}" tabindex="0" role="button" aria-label="Seret atau scroll harga promo untuk mengubah posisi dan ukuran">${formatCurrency(item.promo_price)}</div><div class="flyer-retail-offer flyer-retail-draggable" data-tile-position="offer" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'offer')}" tabindex="0" role="button" aria-label="Seret atau scroll teks promo untuk mengubah posisi dan ukuran">${item.unit ? `Harga spesial · ${escapeHtml(item.unit)}` : 'Promo terbatas'}</div></article>`;
+        const renderStandardItem = (item) => `<article class="flyer-item"><div class="flyer-media-frame">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="lazy">` : 'POP'}${item.badge ? `<span class="flyer-item-badge">${escapeHtml(item.badge)}</span>` : ''}</div><div class="flyer-item-name">${escapeHtml(brochureName(item))}</div><div class="flyer-item-normal">${formatCurrency(brochureNormalPrice(item))}</div><div class="flyer-item-promo">${formatCurrency(brochurePromoPrice(item))}</div>${item.unit ? `<div style="font-size:9px;color:#94a3b8;">${escapeHtml(item.unit)}</div>` : ''}</article>`;
+        const renderRetailTile = (item) => `<article class="flyer-retail-tile"><div class="flyer-retail-drag-hint">Seret elemen untuk atur posisi · Scroll untuk ubah ukuran</div><div class="flyer-retail-media flyer-retail-draggable" data-tile-position="image" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'image')}" tabindex="0" role="button" aria-label="Seret atau scroll gambar produk untuk mengubah posisi dan ukuran">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="lazy">` : 'POP'}</div><div class="flyer-retail-name flyer-retail-draggable" data-tile-position="name" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'name')}" tabindex="0" role="button" aria-label="Seret atau scroll nama produk untuk mengubah posisi dan ukuran">${escapeHtml(brochureName(item))}</div><div class="flyer-retail-normal flyer-retail-draggable" data-tile-position="normal" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'normal')}" tabindex="0" role="button" aria-label="Seret atau scroll harga coret untuk mengubah posisi dan ukuran">${formatCurrency(brochureNormalPrice(item))}</div><div class="flyer-retail-promo flyer-retail-draggable" data-tile-position="promo" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'promo')}" tabindex="0" role="button" aria-label="Seret atau scroll harga promo untuk mengubah posisi dan ukuran">${formatCurrency(brochurePromoPrice(item))}</div><div class="flyer-retail-offer flyer-retail-draggable" data-tile-position="offer" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'offer')}" tabindex="0" role="button" aria-label="Seret atau scroll teks promo untuk mengubah posisi dan ukuran">${escapeHtml(brochureOffer(item))}</div></article>`;
         const productMarkup = rows.slice(0, grid.limit).map(layout === 'retail-tile' ? renderRetailTile : renderStandardItem).join('');
         const featuredMarkup = featured.length ? `<div class="flyer-featured"><div class="flyer-media-frame">${featured[0].image ? `<img src="${escapeHtml(safeHttpUrl(featured[0].image))}" alt="" loading="lazy">` : 'POP'}</div><div><div class="flyer-featured-label">Produk Unggulan</div><div style="margin-top:4px;color:#334155;font-size:12px;font-weight:900;">${escapeHtml(featured[0].name)}</div><div class="flyer-item-normal">${formatCurrency(featured[0].normal_price)}</div><div class="flyer-item-promo">${formatCurrency(featured[0].promo_price)}</div></div></div>` : '';
         const serviceMarkup = $('promo-pop-show-service')?.checked ? '<div class="flyer-service"><strong style="color:#334155;">MELAYANI TOP UP DIGITAL & PPOB</strong><br>Pulsa · Paket Data · Token PLN · E-Wallet · Bayar Tagihan</div>' : '';
@@ -646,6 +676,10 @@
                 image: item.image,
                 normal_price: Number(item.normal_price) || 0,
                 promo_price: Number(item.promo_price) || 0,
+                brochure_name: brochureName(item),
+                brochure_normal_price: brochureNormalPrice(item),
+                brochure_promo_price: brochurePromoPrice(item),
+                brochure_offer: brochureOffer(item),
                 unit: item.unit || '',
                 badge: item.badge || '',
                 is_featured: state.featuredIds.has(String(item.id)),
@@ -904,7 +938,7 @@
                 state.selectedItems.delete(id);
                 state.featuredIds.delete(id);
             } else {
-                state.selectedItems.set(id, { id, name: product.name, image: product.image, unit: product.unit, brand: product.brand, sku: product.sku, stock: product.stock, normal_price: product.price, promo_price: product.price });
+                state.selectedItems.set(id, { id, name: product.name, image: product.image, unit: product.unit, brand: product.brand, sku: product.sku, stock: product.stock, normal_price: product.price, promo_price: product.price, brochure_name: product.name, brochure_normal_price: product.price, brochure_promo_price: product.price, brochure_offer: product.unit ? `Harga spesial · ${product.unit}` : 'Promo terbatas' });
             }
             renderProductPicker();
             renderSelectedItems();
@@ -922,13 +956,31 @@
             const badgeInput = event.target.closest('[data-promo-badge]');
             if (input) {
                 const item = state.selectedItems.get(input.dataset.promoPrice);
-                if (item) item.promo_price = Number(input.value) || 0;
+                if (item) { item.promo_price = Number(input.value) || 0; item.brochure_promo_price = item.promo_price; }
             }
             if (badgeInput) {
                 const item = state.selectedItems.get(badgeInput.dataset.promoBadge);
                 if (item) item.badge = String(badgeInput.value || '').trim();
             }
             if (!input && !badgeInput) return;
+            renderSelectedItems();
+            renderPreview();
+        });
+        $('promo-pop-selected-list')?.addEventListener('input', (event) => {
+            const input = event.target.closest('[data-brochure-name],[data-brochure-normal],[data-brochure-promo],[data-brochure-offer]');
+            if (!input) return;
+            const id = input.dataset.brochureName || input.dataset.brochureNormal || input.dataset.brochurePromo || input.dataset.brochureOffer;
+            const item = state.selectedItems.get(id);
+            if (!item) return;
+            if (input.dataset.brochureName) item.brochure_name = String(input.value || '').trim();
+            if (input.dataset.brochureNormal) item.brochure_normal_price = Number(input.value) || 0;
+            if (input.dataset.brochurePromo) { item.brochure_promo_price = Number(input.value) || 0; item.promo_price = item.brochure_promo_price; }
+            if (input.dataset.brochureOffer) item.brochure_offer = String(input.value || '').trim();
+            renderPreview();
+        });
+        $('promo-pop-selected-list')?.addEventListener('change', (event) => {
+            const input = event.target.closest('[data-brochure-name],[data-brochure-normal],[data-brochure-promo],[data-brochure-offer]');
+            if (!input) return;
             renderSelectedItems();
             renderPreview();
         });

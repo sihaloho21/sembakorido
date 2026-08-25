@@ -114,6 +114,10 @@
         .selected-product-main { min-width:0; flex:1; }
         .selected-product-main strong { display:block; overflow:hidden; color:#1e293b; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
         .selected-product-main span { display:block; margin-top:3px; color:#94a3b8; font-size:10px; }
+        .selected-brochure-fields { display:grid; grid-template-columns:minmax(120px,1fr) repeat(2,minmax(88px,110px)) minmax(120px,1fr); gap:5px; margin-top:8px; }
+        .selected-brochure-fields input { min-width:0; width:100%; border:1px solid #e2e8f0; border-radius:7px; padding:5px 7px; color:#334155; background:#fff; font-size:10px; }
+        .selected-brochure-fields input:focus { outline:2px solid rgba(249,115,22,.22); border-color:#fb923c; }
+        @media (max-width:760px) { .selected-brochure-fields { grid-template-columns:1fr 1fr; } }
         .selected-product-actions { display:flex; align-items:center; gap:5px; flex-wrap:wrap; justify-content:flex-end; }
         .selected-product-actions button { border:0; background:none; color:#94a3b8; font-size:10px; font-weight:900; }
         .selected-product-actions button:hover { color:#c2410c; }
@@ -256,7 +260,8 @@
 
                     <section class="pop-card" data-step-panel="2">
                         <div class="pop-card-head"><div><div class="pop-section-tag">03 · Produk & harga</div><h3>Pilih produk dari katalog</h3><p>Harga promo hanya berlaku pada campaign ini dan tidak mengubah katalog utama.</p></div><div class="pop-inline"><strong id="promo-pop-selected-count" style="color:#ea580c;font-size:12px;">0 produk</strong></div></div>
-                        <div class="pop-card-body"><div class="pop-product-toolbar"><input id="promo-pop-product-search" class="pop-input search" placeholder="Cari nama, SKU, atau kategori..."><select id="promo-pop-category-filter" class="pop-select"><option value="all">Semua kategori</option></select><select id="promo-pop-stock-filter" class="pop-select"><option value="available">Stok tersedia</option><option value="all">Semua stok</option><option value="out">Stok habis</option></select></div><div class="pop-product-layout"><div class="pop-list"><div class="pop-list-title"><span>Produk tersedia</span><span id="promo-pop-product-result">—</span></div><div id="promo-pop-product-list"></div></div><div class="pop-list"><div class="pop-list-title"><span>Urutan flyer</span><span>Drag & drop</span></div><div id="promo-pop-selected-list"></div></div></div></div>
+                        <div class="pop-card-body"><div class="pop-product-toolbar"><input id="promo-pop-product-search" class="pop-input search" placeholder="Cari nama, SKU, atau kategori..."><select id="promo-pop-category-filter" class="pop-select"><option value="all">Semua kategori</option></select><select id="promo-pop-stock-filter" class="pop-select"><option value="available">Stok tersedia</option><option value="all">Semua stok</option><option value="out">Stok habis</option></select></div><div class="pop-product-layout"><div class="pop-list"><div class="pop-list-title"><span>Produk tersedia</span><span id="promo-pop-product-result">—</span></div><div id="promo-pop-product-list"></div></div><div class="pop-list"><div class="pop-list-title"><span>Urutan flyer</span><span>Drag & drop · Edit konten brosur tanpa mengubah katalog</span></div>
+<div id="promo-pop-selected-list"></div></div></div></div>
                     </section>
 
                     <section class="pop-card" data-step-panel="2">
@@ -302,6 +307,6 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="js/catalog-promo-pop.js?v=20260825j"></script>
+<script src="js/catalog-promo-pop.js?v=20260825k"></script>
 </body>
 </html>
