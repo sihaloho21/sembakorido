@@ -721,12 +721,12 @@
         }
 
         function normalizeTilePositions(value) {
-            var defaults = { image:{x:50,y:24}, name:{x:50,y:73}, normal:{x:78,y:65}, promo:{x:50,y:86}, offer:{x:50,y:96} };
+            var defaults = { image:{x:50,y:24,scale:1}, name:{x:50,y:73,scale:1}, normal:{x:78,y:65,scale:1}, promo:{x:50,y:86,scale:1}, offer:{x:50,y:96,scale:1} };
             function normalizeFields(source) {
                 var result = {};
                 Object.keys(defaults).forEach(function(key) {
                     var item = source && source[key] && typeof source[key] === 'object' ? source[key] : {};
-                    result[key] = { x: Math.min(96, Math.max(4, Number(item.x) || defaults[key].x)), y: Math.min(96, Math.max(4, Number(item.y) || defaults[key].y)) };
+                    result[key] = { x: Math.min(96, Math.max(4, Number(item.x) || defaults[key].x)), y: Math.min(96, Math.max(4, Number(item.y) || defaults[key].y)), scale: Math.min(2, Math.max(.6, Number(item.scale) || defaults[key].scale)) };
                 });
                 return result;
             }
@@ -744,7 +744,7 @@
             var item = productPositions[key] || fallback;
             var x = Math.min(96, Math.max(4, Number(item.x) || fallback.x));
             var y = Math.min(96, Math.max(4, Number(item.y) || fallback.y));
-            return 'left:' + x + '%;top:' + y + '%;' + (extra || '');
+            return 'left:' + x + '%;top:' + y + '%;transform:translate(-50%,-50%) scale(' + (Math.min(2, Math.max(.6, Number(item.scale) || 1))) + ');' + (extra || '');
         }
 
         function normalizePromoFlyer(c) {
