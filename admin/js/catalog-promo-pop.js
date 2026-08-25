@@ -12,7 +12,8 @@
         templateId: 'promo-grid',
         heroDataUrl: '',
         previewZoom: 1,
-        tilePositions: { __default: { image: { x: 50, y: 24, scale: 1 }, name: { x: 50, y: 73, scale: 1 }, normal: { x: 78, y: 65, scale: 1 }, promo: { x: 50, y: 86, scale: 1 }, offer: { x: 50, y: 96, scale: 1 } } }
+        tilePositions: { __default: { image: { x: 50, y: 24, scale: 1 }, name: { x: 50, y: 73, scale: 1 }, normal: { x: 78, y: 65, scale: 1 }, promo: { x: 50, y: 86, scale: 1 }, offer: { x: 50, y: 96, scale: 1 } } },
+        layoutClipboard: ''
     };
 
     const $ = (id) => document.getElementById(id);
@@ -470,6 +471,10 @@
         setBulkResult(`${selected.length} harga dikembalikan ke harga normal.`);
     }
 
+    function cloneTilePositions(productId) {
+        return Object.fromEntries(Object.entries(tilePositionsForProduct(productId)).map(([field, position]) => [field, { ...position }]));
+    }
+
     function renderSelectedItems() {
         const container = $('promo-pop-selected-list');
         const count = $('promo-pop-selected-count');
@@ -486,7 +491,7 @@
             return `<div class="selected-product-row" draggable="true" data-selected-id="${escapeHtml(item.id)}" aria-label="Urutan ${index + 1}: ${escapeHtml(item.name)}">
                 <span class="selected-drag-handle" tabindex="0" role="button" title="Seret untuk mengatur urutan" aria-label="Seret ${escapeHtml(item.name)} untuk mengatur urutan">⋮⋮</span><span class="selected-number">${index + 1}</span>
                 <div class="selected-product-main"><strong>${escapeHtml(item.name)}</strong><span>${isOut ? '⚠ Stok habis · ' : ''}Normal ${formatCurrency(item.normal_price)}${item.badge ? ` · ${escapeHtml(item.badge)}` : ''}</span></div>
-                <div class="selected-product-actions"><strong style="color:#ea580c;font-size:12px;">${formatCurrency(item.promo_price)}</strong><button type="button" class="${isFeatured ? 'is-featured' : ''}" data-feature-product="${escapeHtml(item.id)}">${isFeatured ? '★ Unggulan' : '☆ Featured'}</button><button type="button" data-remove-product="${escapeHtml(item.id)}">Hapus</button></div>
+                <div class="selected-product-actions"><strong style="color:#ea580c;font-size:12px;">${formatCurrency(item.promo_price)}</strong><button type="button" class="${isFeatured ? 'is-featured' : ''}" data-feature-product="${escapeHtml(item.id)}">${isFeatured ? '★ Unggulan' : '☆ Featured'}</button><button type="button" data-copy-layout="${escapeHtml(item.id)}">Salin layout</button>${state.layoutClipboard && state.layoutClipboard !== String(item.id) ? `<button type="button" data-paste-layout="${escapeHtml(item.id)}">Tempel layout</button>` : ''}<button type="button" data-remove-product="${escapeHtml(item.id)}">Hapus</button></div>
             </div>`;
         }).join('');
     }
@@ -559,7 +564,7 @@
                     const x = Math.min(96, Math.max(4, ((moveEvent.clientX - rect.left) / rect.width) * 100));
                     const y = Math.min(96, Math.max(4, ((moveEvent.clientY - rect.top) / rect.height) * 100));
                     const productPositions = tilePositionsForProduct(productId);
-                    state.tilePositions[productId] = { ...productPositions, [field]: { x, y } };
+                    state.tilePositions[productId] = { ...productPositions, [field]: { ...productPositions[field], x, y } };
                     element.style.left = `${x}%`;
                     element.style.top = `${y}%`;
                     element.style.transform = `translate(-50%,-50%) scale(${productPositions[field].scale || 1})`;
@@ -753,6 +758,7 @@
         state.templateId = 'promo-grid';
         state.heroDataUrl = '';
         state.tilePositions = normalizeTilePositions();
+        state.layoutClipboard = '';
         state.featuredIds.clear();
         $('promo-pop-form')?.reset();
         const heroPreview = $('promo-pop-hero-preview');
@@ -928,7 +934,25 @@
         });
         $('promo-pop-selected-list')?.addEventListener('click', (event) => {
             const featureButton = event.target.closest('[data-feature-product]');
+            const copyButton = event.target.closest('[data-copy-layout]');
+            const pasteButton = event.target.closest('[data-paste-layout]');
             const removeButton = event.target.closest('[data-remove-product]');
+            if (copyButton) {
+                state.layoutClipboard = copyButton.dataset.copyLayout || '';
+                setStatus('Pengaturan layout produk disalin. Klik “Tempel layout” pada produk tujuan.', 'info');
+                renderSelectedItems();
+                return;
+            }
+            if (pasteButton) {
+                const sourceId = state.layoutClipboard;
+                const targetId = pasteButton.dataset.pasteLayout || '';
+                if (!sourceId || !targetId || sourceId === targetId || !state.selectedItems.has(sourceId) || !state.selectedItems.has(targetId)) return;
+                state.tilePositions[targetId] = cloneTilePositions(sourceId);
+                setStatus('Pengaturan layout berhasil ditempel ke produk tujuan.', 'success');
+                renderSelectedItems();
+                renderPreview();
+                return;
+            }
             if (featureButton) {
                 const id = featureButton.dataset.featureProduct;
                 if (state.featuredIds.has(id)) state.featuredIds.delete(id);
@@ -937,8 +961,10 @@
                 renderSelectedItems(); renderPreview(); return;
             }
             if (!removeButton) return;
-            state.selectedItems.delete(removeButton.dataset.removeProduct);
-            state.featuredIds.delete(removeButton.dataset.removeProduct);
+            const removedId = removeButton.dataset.removeProduct;
+            state.selectedItems.delete(removedId);
+            state.featuredIds.delete(removedId);
+            if (state.layoutClipboard === removedId) state.layoutClipboard = '';
             renderProductPicker(); renderSelectedItems(); renderPreview();
         });
         let draggedProductId = '';
