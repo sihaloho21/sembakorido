@@ -12,13 +12,7 @@
         templateId: 'promo-grid',
         heroDataUrl: '',
         previewZoom: 1,
-        tilePositions: {
-            image: { x: 50, y: 24 },
-            name: { x: 50, y: 73 },
-            normal: { x: 78, y: 65 },
-            promo: { x: 50, y: 86 },
-            offer: { x: 50, y: 96 }
-        }
+        tilePositions: { __default: { image: { x: 50, y: 24 }, name: { x: 50, y: 73 }, normal: { x: 78, y: 65 }, promo: { x: 50, y: 86 }, offer: { x: 50, y: 96 } } }
     };
 
     const $ = (id) => document.getElementById(id);
@@ -519,32 +513,41 @@
 
     function normalizeTilePositions(value) {
         const defaults = { image: { x: 50, y: 24 }, name: { x: 50, y: 73 }, normal: { x: 78, y: 65 }, promo: { x: 50, y: 86 }, offer: { x: 50, y: 96 } };
-        const source = value && typeof value === 'object' ? value : {};
-        return Object.fromEntries(Object.entries(defaults).map(([key, fallback]) => {
-            const item = source[key] && typeof source[key] === 'object' ? source[key] : {};
+        const normalizeFields = (source) => Object.fromEntries(Object.entries(defaults).map(([key, fallback]) => {
+            const item = source && source[key] && typeof source[key] === 'object' ? source[key] : {};
             return [key, { x: Math.min(96, Math.max(4, Number(item.x) || fallback.x)), y: Math.min(96, Math.max(4, Number(item.y) || fallback.y)) }];
         }));
+        const source = value && typeof value === 'object' ? value : {};
+        if (Object.keys(source).some(key => ['image', 'name', 'normal', 'promo', 'offer'].includes(key))) return { __default: normalizeFields(source) };
+        return Object.fromEntries(Object.entries(source).map(([productId, positions]) => [productId, normalizeFields(positions)]).concat([['__default', normalizeFields(source.__default)]]));
     }
 
-    function tilePositionStyle(field, extra) {
-        const position = state.tilePositions[field] || { x: 50, y: 50 };
+    function tilePositionsForProduct(productId) {
+        const defaults = state.tilePositions.__default || normalizeTilePositions();
+        return state.tilePositions[String(productId)] || defaults;
+    }
+
+    function tilePositionStyle(productId, field, extra) {
+        const position = tilePositionsForProduct(productId)[field] || { x: 50, y: 50 };
         return `left:${position.x}%;top:${position.y}%;${extra || ''}`;
     }
 
     function bindTilePositionDrag() {
         const preview = $('promo-pop-preview');
         if (!preview || !preview.classList.contains('flyer-layout-retail-tile')) return;
-        preview.querySelectorAll('[data-tile-position="image"]').forEach((element) => {
+        preview.querySelectorAll('[data-tile-position]').forEach((element) => {
             element.addEventListener('pointerdown', (event) => {
                 event.preventDefault();
                 const field = element.dataset.tilePosition;
+                const productId = element.dataset.productId;
                 const tile = element.closest('.flyer-retail-tile');
-                if (!tile || !field) return;
+                if (!tile || !field || !productId) return;
                 const rect = tile.getBoundingClientRect();
                 const move = (moveEvent) => {
                     const x = Math.min(96, Math.max(4, ((moveEvent.clientX - rect.left) / rect.width) * 100));
                     const y = Math.min(96, Math.max(4, ((moveEvent.clientY - rect.top) / rect.height) * 100));
-                    state.tilePositions[field] = { x, y };
+                    const productPositions = tilePositionsForProduct(productId);
+                    state.tilePositions[productId] = { ...productPositions, [field]: { x, y } };
                     element.style.left = `${x}%`;
                     element.style.top = `${y}%`;
                 };
@@ -585,7 +588,7 @@
         const featured = rows.filter(item => state.featuredIds.has(String(item.id))).slice(0, 3);
         const qrDataUrl = makeQrDataUrl(qrUrl);
         const renderStandardItem = (item) => `<article class="flyer-item"><div class="flyer-media-frame">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="lazy">` : 'POP'}${item.badge ? `<span class="flyer-item-badge">${escapeHtml(item.badge)}</span>` : ''}</div><div class="flyer-item-name">${escapeHtml(item.name)}</div><div class="flyer-item-normal">${formatCurrency(item.normal_price)}</div><div class="flyer-item-promo">${formatCurrency(item.promo_price)}</div>${item.unit ? `<div style="font-size:9px;color:#94a3b8;">${escapeHtml(item.unit)}</div>` : ''}</article>`;
-        const renderRetailTile = (item) => `<article class="flyer-retail-tile"><div class="flyer-retail-drag-hint">Seret gambar untuk atur posisi</div><div class="flyer-retail-media flyer-retail-draggable" data-tile-position="image" style="${tilePositionStyle('image')}" tabindex="0" role="button" aria-label="Seret gambar produk">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="lazy">` : 'POP'}</div><div class="flyer-retail-name" style="${tilePositionStyle('name')}">${escapeHtml(item.name)}</div><div class="flyer-retail-normal" style="${tilePositionStyle('normal')}">${formatCurrency(item.normal_price)}</div><div class="flyer-retail-promo" style="${tilePositionStyle('promo')}">${formatCurrency(item.promo_price)}</div><div class="flyer-retail-offer" style="${tilePositionStyle('offer')}">${item.unit ? `Harga spesial · ${escapeHtml(item.unit)}` : 'Promo terbatas'}</div></article>`;
+        const renderRetailTile = (item) => `<article class="flyer-retail-tile"><div class="flyer-retail-drag-hint">Seret gambar untuk atur posisi</div><div class="flyer-retail-media flyer-retail-draggable" data-tile-position="image" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'image')}" tabindex="0" role="button" aria-label="Seret gambar produk">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="lazy">` : 'POP'}</div><div class="flyer-retail-name flyer-retail-draggable" data-tile-position="name" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'name')}" tabindex="0" role="button" aria-label="Seret nama produk">${escapeHtml(item.name)}</div><div class="flyer-retail-normal flyer-retail-draggable" data-tile-position="normal" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'normal')}" tabindex="0" role="button" aria-label="Seret harga coret">${formatCurrency(item.normal_price)}</div><div class="flyer-retail-promo flyer-retail-draggable" data-tile-position="promo" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'promo')}" tabindex="0" role="button" aria-label="Seret harga promo">${formatCurrency(item.promo_price)}</div><div class="flyer-retail-offer flyer-retail-draggable" data-tile-position="offer" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'offer')}" tabindex="0" role="button" aria-label="Seret teks promo">${item.unit ? `Harga spesial · ${escapeHtml(item.unit)}` : 'Promo terbatas'}</div></article>`;
         const productMarkup = rows.slice(0, grid.limit).map(layout === 'retail-tile' ? renderRetailTile : renderStandardItem).join('');
         const featuredMarkup = featured.length ? `<div class="flyer-featured"><div class="flyer-media-frame">${featured[0].image ? `<img src="${escapeHtml(safeHttpUrl(featured[0].image))}" alt="" loading="lazy">` : 'POP'}</div><div><div class="flyer-featured-label">Produk Unggulan</div><div style="margin-top:4px;color:#334155;font-size:12px;font-weight:900;">${escapeHtml(featured[0].name)}</div><div class="flyer-item-normal">${formatCurrency(featured[0].normal_price)}</div><div class="flyer-item-promo">${formatCurrency(featured[0].promo_price)}</div></div></div>` : '';
         const serviceMarkup = $('promo-pop-show-service')?.checked ? '<div class="flyer-service"><strong style="color:#334155;">MELAYANI TOP UP DIGITAL & PPOB</strong><br>Pulsa · Paket Data · Token PLN · E-Wallet · Bayar Tagihan</div>' : '';
