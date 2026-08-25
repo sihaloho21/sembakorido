@@ -2037,15 +2037,15 @@ function renderProducts(products) {
             ? 'disabled aria-disabled="true" tabindex="-1"'
             : `data-action="toggle-wishlist" data-product-id="${productId}"`;
         const wishlistButtonClass = isHiddenProd
-            ? 'absolute top-2 right-1 md:top-2 md:right-3 z-20 p-2 bg-white/90 rounded-full shadow-md transition opacity-60 cursor-not-allowed'
-            : 'absolute top-2 right-1 md:top-2 md:right-3 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition active:scale-95';
+            ? 'product-card-wishlist absolute top-2 right-1 md:top-2 md:right-3 z-20 p-2 bg-white/90 rounded-full shadow-md transition opacity-60 cursor-not-allowed'
+            : 'product-card-wishlist absolute top-2 right-1 md:top-2 md:right-3 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition active:scale-95';
         const imageActionAttrs = isHiddenProd ? '' : `data-action="show-detail" data-product-id="${productId}"`;
         const imageInteractiveClass = isHiddenProd ? 'cursor-default' : 'cursor-pointer hover:opacity-90';
         const inlineCartState = !isHiddenProd && !hasVariations
             ? getProductCardCartControlState(p)
             : null;
         cardsHtml += `
-	            <div class="bg-white rounded-lg md:rounded-xl shadow-md md:shadow-lg hover:shadow-xl transition duration-300 relative${hiddenCardClass}" data-product-id="${productId}" aria-disabled="${isHiddenProd ? 'true' : 'false'}">
+	            <div class="product-card-shell bg-white rounded-lg md:rounded-xl shadow-md md:shadow-lg hover:shadow-xl transition duration-300 relative${hiddenCardClass}" data-product-id="${productId}" aria-disabled="${isHiddenProd ? 'true' : 'false'}">
 	                ${hiddenBanner}
 	                                <div class="absolute top-1 left-1 md:top-3 md:left-3 z-10 flex flex-col gap-1 md:gap-1">
                     <div class="bg-amber-300 text-amber-900 text-[8px] md:text-[10px] font-bold px-1 py-1 md:px-2 md:py-1 rounded md:rounded-lg shadow-sm flex items-center gap-1 md:gap-1">
@@ -2061,7 +2061,7 @@ function renderProducts(products) {
 	                </div>
 	                <div class="lazy-image-wrapper bg-white relative" style="aspect-ratio: 4 / 3;">
 	                    <div class="skeleton skeleton-product-image"></div>
-	                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="https://placehold.co/500x500?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+	                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="product-card-image w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="https://placehold.co/500x500?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
 	                    
 	                    <!-- Wishlist Heart Button -->
 	                    <button id="wishlist-btn-${productId}" ${wishlistButtonAttrs} class="${wishlistButtonClass}" aria-label="${wishlistLabel}" title="${wishlistLabel}">

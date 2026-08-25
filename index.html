@@ -1024,6 +1024,44 @@
         .product-grid-skeleton .skeleton-line.short {
             width: 60%;
         }
+        /* Structured product-card hover system */
+        .product-card-shell {
+            isolation: isolate;
+            transform: translateY(0);
+            transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 220ms ease, border-color 220ms ease;
+        }
+        .product-card-shell:focus-within {
+            outline: 3px solid rgba(16, 185, 129, 0.22);
+            outline-offset: 3px;
+        }
+        .lazy-image-wrapper .product-card-image {
+            transform: scale(1);
+            transition: transform 260ms cubic-bezier(0.23, 1, 0.32, 1), opacity 180ms ease;
+        }
+        .product-card-wishlist {
+            transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 180ms ease, background-color 180ms ease;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .product-card-shell:hover {
+                transform: translateY(-4px);
+                border-color: rgba(16, 185, 129, 0.22);
+                box-shadow: 0 18px 34px rgba(15, 23, 42, 0.14), 0 4px 10px rgba(16, 185, 129, 0.08);
+            }
+            .product-card-shell:hover .product-card-image {
+                transform: scale(1.045);
+            }
+            .product-card-shell:hover .product-card-wishlist {
+                transform: translateY(-1px) scale(1.04);
+                box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .product-card-shell,
+            .product-card-image,
+            .product-card-wishlist {
+                transition: none !important;
+            }
+        }
         /* Keep every product card action row on one bottom baseline. */
         @media (min-width: 1024px) {
             /* Keep the desktop storefront visually contained with comfortable side gutters. */
@@ -4430,7 +4468,7 @@
             </div>
         </div>
     </div>
-    <script src="assets/js/script.js?v=20260824g"></script>
+    <script src="assets/js/script.js?v=20260824h"></script>
     <script src="assets/js/transaction-badge.js"></script>
 
     <script>
