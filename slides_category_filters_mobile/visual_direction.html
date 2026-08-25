@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background: #F8FAFC;
+            padding-top: 60px;
+        }
+        .header {
+            margin-left: 80px;
+            margin-bottom: 40px;
+            border-left: 6px solid #10B981;
+            padding-left: 24px;
+        }
+        h2 {
+            font-size: 48px;
+            color: #0F172A;
+            font-weight: 600;
+        }
+        .content-wrapper {
+            display: flex;
+            margin: 0 80px;
+            gap: 40px;
+        }
+        .table-section {
+            flex: 2;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #FFFFFF;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        th {
+            background: #10B981;
+            color: #FFFFFF;
+            text-align: left;
+            padding-top: 20px;
+            padding-left: 24px;
+            font-size: 22px;
+            font-weight: 600;
+        }
+        td {
+            padding-top: 20px;
+            padding-left: 24px;
+            border-bottom: 1px solid #F1F5F9;
+            font-size: 18px;
+            color: #334155;
+            vertical-align: top;
+        }
+        .token-name {
+            font-weight: 600;
+            color: #0F172A;
+            width: 180px;
+        }
+        .visual-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .tone-card {
+            background: #10B981;
+            padding-top: 30px;
+            padding-left: 30px;
+            padding-right: 30px;
+            border-radius: 16px;
+            color: #FFFFFF;
+        }
+        .tone-card h3 {
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+        .tone-card p {
+            font-size: 18px;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        .swatch-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .swatch {
+            height: 80px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="header">
+            <h2>Visual direction: Paket Sembako yang lebih modern</h2>
+        </div>
+        <div class="content-wrapper">
+            <div class="table-section">
+                <table>
+                    <thead>
+                        <tr>
+                            <th colspan="2">Design Tokens & Spesifikasi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="token-name">Dock & Surface</td>
+                            <td>White translucent (85% opacity), soft border Slate-100, backdrop blur.</td>
+                        </tr>
+                        <tr>
+                            <td class="token-name">Active Chip</td>
+                            <td>Green fill (#10B981), white text, check icon, medium shadow.</td>
+                        </tr>
+                        <tr>
+                            <td class="token-name">Inactive Chip</td>
+                            <td>White surface, slate text, thin neutral border.</td>
+                        </tr>
+                        <tr>
+                            <td class="token-name">Geometri</td>
+                            <td>Full pill radius (16-18px), tinggi chip 44-48px, gap 8px.</td>
+                        </tr>
+                        <tr>
+                            <td class="token-name">Tipografi</td>
+                            <td>Plus Jakarta Sans; 12-13px SemiBold untuk label kategori.</td>
+                        </tr>
+                        <tr>
+                            <td class="token-name">Motion</td>
+                            <td>Smooth native scroll; menghormati prefers-reduced-motion.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="visual-section">
+                <div class="tone-card">
+                    <h3>Karakter Visual</h3>
+                    <p>Clean, tactile, dan ringan. Memperkuat identitas hijau-putih brand dengan kedalaman visual yang lebih modern melalui bayangan dan transparansi.</p>
+                </div>
+                <div class="swatch-grid">
+                    <div class="swatch" style="background: #10B981; color: white;">#10B981</div>
+                    <div class="swatch" style="background: #FFFFFF; border: 1px solid #E2E8F0; color: #0F172A;">#FFFFFF</div>
+                    <div class="swatch" style="background: #F8FAFC; border: 1px solid #E2E8F0; color: #0F172A;">#F8FAFC</div>
+                    <div class="swatch" style="background: #0F172A; color: white;">#0F172A</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

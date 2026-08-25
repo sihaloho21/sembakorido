@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background: #F8FAFC;
+            padding-top: 60px;
+        }
+        .header {
+            margin-left: 80px;
+            margin-bottom: 60px;
+            border-left: 6px solid #10B981;
+            padding-left: 24px;
+        }
+        h2 {
+            font-size: 48px;
+            color: #0F172A;
+            font-weight: 600;
+        }
+        .responsive-grid {
+            display: flex;
+            margin: 0 80px;
+            gap: 30px;
+        }
+        .viewport-card {
+            flex: 1;
+            background: #FFFFFF;
+            padding-top: 40px;
+            padding-left: 30px;
+            padding-right: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        .viewport-icon {
+            font-size: 32px;
+            color: #10B981;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .viewport-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0F172A;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .viewport-range {
+            font-size: 16px;
+            color: #64748B;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .behavior-list {
+            list-style: none;
+        }
+        .behavior-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #334155;
+            line-height: 1.4;
+        }
+        .behavior-item i {
+            color: #10B981;
+            margin-right: 12px;
+            margin-top: 4px;
+            font-size: 16px;
+        }
+        .regression-alert {
+            margin: 60px 80px 0;
+            background: #F1F5F9;
+            padding-top: 24px;
+            padding-left: 32px;
+            padding-right: 32px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+        }
+        .regression-alert i {
+            font-size: 24px;
+            color: #475569;
+            margin-right: 20px;
+        }
+        .regression-alert p {
+            font-size: 20px;
+            color: #475569;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="header">
+            <h2>Mobile-first, desktop tetap aman</h2>
+        </div>
+        <div class="responsive-grid">
+            <div class="viewport-card">
+                <div class="viewport-icon"><i class="fas fa-mobile-alt"></i></div>
+                <div class="viewport-title">Narrow Mobile</div>
+                <div class="viewport-range">320px – 374px</div>
+                <ul class="behavior-list">
+                    <li class="behavior-item"><i class="fas fa-check"></i> Rail paling compact tanpa dekorasi teks berlebih.</li>
+                    <li class="behavior-item"><i class="fas fa-check"></i> Tap target tetap minimal 44px untuk ergonomi.</li>
+                    <li class="behavior-item"><i class="fas fa-check"></i> Mencegah page-level horizontal overflow.</li>
+                </ul>
+            </div>
+            <div class="viewport-card">
+                <div class="viewport-icon"><i class="fas fa-tablet-alt"></i></div>
+                <div class="viewport-title">Standard Mobile</div>
+                <div class="viewport-range">375px – 767px</div>
+                <ul class="behavior-list">
+                    <li class="behavior-item"><i class="fas fa-check"></i> Compact Category Dock lengkap dengan header.</li>
+                    <li class="behavior-item"><i class="fas fa-check"></i> Edge fade aktif untuk navigasi scroll.</li>
+                    <li class="behavior-item"><i class="fas fa-check"></i> Akses penuh ke overflow sheet "Lainnya".</li>
+                </ul>
+            </div>
+            <div class="viewport-card">
+                <div class="viewport-icon"><i class="fas fa-desktop"></i></div>
+                <div class="viewport-title">Desktop View</div>
+                <div class="viewport-range">768px ke atas</div>
+                <ul class="behavior-list">
+                    <li class="behavior-item"><i class="fas fa-check"></i> Mempertahankan arrow carousel desktop yang ada.</li>
+                    <li class="behavior-item"><i class="fas fa-check"></i> Tidak ada perubahan pada perilaku hover/click.</li>
+                    <li class="behavior-item"><i class="fas fa-check"></i> Menjamin nol regresi pada layout layar lebar.</li>
+                </ul>
+            </div>
+        </div>
+        <div class="regression-alert">
+            <i class="fas fa-shield-alt"></i>
+            <p>Prioritas: Redesign hanya menargetkan breakpoint mobile tanpa mengganggu stabilitas desktop.</p>
+        </div>
+    </div>
+</body>
+</html>

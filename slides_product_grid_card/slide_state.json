@@ -1,0 +1,144 @@
+{
+  "project_info": {
+    "title": "Redesign Product Grid Card",
+    "created": 1787614748.628,
+    "last_updated": 1787614972.272,
+    "total_slides": 12
+  },
+  "slides": [
+    {
+      "id": "cover",
+      "state": "edited",
+      "pageNum": 1
+    },
+    {
+      "id": "decision_point",
+      "state": "edited",
+      "pageNum": 2
+    },
+    {
+      "id": "foundation",
+      "state": "edited",
+      "pageNum": 3
+    },
+    {
+      "id": "mobile_problems",
+      "state": "edited",
+      "pageNum": 4
+    },
+    {
+      "id": "structured_solution",
+      "state": "edited",
+      "pageNum": 5
+    },
+    {
+      "id": "card_anatomy",
+      "state": "edited",
+      "pageNum": 6
+    },
+    {
+      "id": "mobile_behavior",
+      "state": "edited",
+      "pageNum": 7
+    },
+    {
+      "id": "desktop_behavior",
+      "state": "edited",
+      "pageNum": 8
+    },
+    {
+      "id": "stock_cta",
+      "state": "edited",
+      "pageNum": 9
+    },
+    {
+      "id": "states_quality",
+      "state": "edited",
+      "pageNum": 10
+    },
+    {
+      "id": "criteria_priority",
+      "state": "edited",
+      "pageNum": 11
+    },
+    {
+      "id": "closing",
+      "state": "edited",
+      "pageNum": 12
+    }
+  ],
+  "outline": [
+    {
+      "id": "cover",
+      "title": "Redesign Product Grid Card",
+      "summary": "Structured Product Card untuk Paket Sembako. PRD v1.0 untuk Product & Frontend Team.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "decision_point",
+      "title": "Product card adalah titik keputusan utama",
+      "summary": "Menjelaskan mengapa kartu produk perlu membuat informasi inti dan aksi pembelian mudah dipahami tanpa membuka detail.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "foundation",
+      "title": "Fondasi visual sudah ada, sistemnya belum lengkap",
+      "summary": "Membandingkan fondasi class existing dengan aspek sistem yang masih perlu diperkuat: hierarki, tinggi, CTA, stok, feedback, dan responsive behavior.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "mobile_problems",
+      "title": "Masalah UX paling terasa di mobile",
+      "summary": "Menunjukkan risiko nama panjang, gambar tidak konsisten, status stok yang kurang jelas, serta area sentuh dan feedback yang belum optimal.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "structured_solution",
+      "title": "Solusi: Structured Product Card",
+      "summary": "Memperkenalkan struktur konsisten media, informasi, harga, status, dan action zone tanpa mengubah API, data, harga, atau checkout.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "card_anatomy",
+      "title": "Struktur kartu mengarahkan mata ke keputusan",
+      "summary": "Merinci fungsi setiap zona kartu: media, informasi, harga, status, dan aksi.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "mobile_behavior",
+      "title": "Mobile: ringkas, terbaca, dan mudah disentuh",
+      "summary": "Mendefinisikan perilaku mobile: dua kolom bila memungkinkan, target sentuh memadai, line clamp, dan tanpa ketergantungan hover.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "desktop_behavior",
+      "title": "Desktop: rapi untuk membandingkan produk",
+      "summary": "Menjelaskan konsistensi tinggi, baseline aksi, breathing room, dan hover desktop yang ringan.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "stock_cta",
+      "title": "Status stok dan CTA harus selalu jujur",
+      "summary": "Menetapkan tiga state stok: tersedia, stok terbatas, dan habis, dengan perilaku CTA yang sesuai dan teks yang selalu jelas.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "states_quality",
+      "title": "States, aksesibilitas, dan performa menghilangkan keraguan",
+      "summary": "Menggabungkan interaction states, accessible names, keyboard focus, skeleton, lazy loading, reduced motion, dan pencegahan layout shift.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "criteria_priority",
+      "title": "Acceptance criteria dan prioritas implementasi",
+      "summary": "Merangkum prioritas P0, P1, P2 dan kondisi Definition of Done tanpa regression pada filter, pagination, detail, dan cart.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "closing",
+      "title": "Keputusan desain",
+      "summary": "Gambar → nama produk → harga → status → aksi. Product card harus sederhana, cepat dipahami, dan langsung digunakan.",
+      "image_plan": "Use a suitable image if needed"
+    }
+  ]
+}

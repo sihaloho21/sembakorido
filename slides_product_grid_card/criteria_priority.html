@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .slide-container {
+        width: 1280px;
+        min-height: 720px;
+        background: #f7fbf8;
+        font-family: Arial, sans-serif;
+        color: #102a23;
+        padding: 62px 82px 0;
+        display: flex;
+        gap: 60px;
+    }
+    .left { width: 60%; }
+    .right { width: 40%; }
+    .eyebrow {
+        color: #059669;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+    .title {
+        font-size: 45px;
+        letter-spacing: -1px;
+        margin: 18px 0 42px;
+    }
+    .priority-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    .priority-box {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 24px;
+        border-left: 6px solid #10b981;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+    .p1-box { border-left-color: #34d399; }
+    .p2-box { border-left-color: #a7f3d0; }
+    .p-label {
+        font-size: 13px;
+        font-weight: 800;
+        color: #059669;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+    }
+    .p-title {
+        font-size: 20px;
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+    .p-desc {
+        font-size: 16px;
+        color: #47645b;
+        line-height: 1.4;
+    }
+    .dod-panel {
+        background: #102a23;
+        color: #ffffff;
+        border-radius: 24px;
+        padding: 40px;
+        min-height: 520px;
+    }
+    .dod-title {
+        font-size: 24px;
+        font-weight: 800;
+        margin-bottom: 30px;
+        color: #59d69c;
+    }
+    .check-item {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+        font-size: 17px;
+        line-height: 1.4;
+    }
+    .check-icon {
+        width: 24px;
+        height: 24px;
+        background: #10b981;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 14px;
+        font-weight: 800;
+    }
+</style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="left">
+        <div class="eyebrow">11 · Roadmap &amp; Criteria</div>
+        <h1 class="title">Prioritas Implementasi</h1>
+        <div class="priority-grid">
+            <div class="priority-box">
+                <div class="p-label">Prioritas P0 · Core System</div>
+                <div class="p-title">Struktur &amp; Aksi Utama</div>
+                <div class="p-desc">Struktur kartu konsisten, harga jelas, CTA terlihat, state stok valid, dan feedback add-to-cart instan.</div>
+            </div>
+            <div class="priority-box p1-box">
+                <div class="p-label">Prioritas P1 · Refinement</div>
+                <div class="p-title">Visual &amp; Aksesibilitas</div>
+                <div class="p-desc">Placeholder gambar, line clamp, quantity control yang konsisten, focus state, dan accessible labels.</div>
+            </div>
+            <div class="priority-box p2-box">
+                <div class="p-label">Prioritas P2 · Enhancement</div>
+                <div class="p-title">Fitur Tambahan</div>
+                <div class="p-desc">Wishlist, micro-interaction tambahan, dan optimasi performa rendering tingkat lanjut.</div>
+            </div>
+        </div>
+    </div>
+    <div class="right">
+        <div class="dod-panel">
+            <div class="dod-title">Definition of Done</div>
+            <div class="check-item">
+                <div class="check-icon">✓</div>
+                <span>Tidak ada regression pada filter &amp; pagination.</span>
+            </div>
+            <div class="check-item">
+                <div class="check-icon">✓</div>
+                <span>Layout stabil di mobile &amp; desktop.</span>
+            </div>
+            <div class="check-item">
+                <div class="check-icon">✓</div>
+                <span>Aksi keranjang tersinkronisasi dengan controller existing.</span>
+            </div>
+            <div class="check-item">
+                <div class="check-icon">✓</div>
+                <span>Lulus validasi aksesibilitas dasar (WCAG).</span>
+            </div>
+            <div class="check-item">
+                <div class="check-icon">✓</div>
+                <span>Performa interaksi &lt; 100ms.</span>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

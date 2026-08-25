@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Mobile Behavior - Product Grid Card</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    .slide-container {
+        width: 1280px;
+        min-height: 720px;
+        background: #f7fbf8;
+        color: #102a23;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        position: relative;
+        overflow: hidden;
+    }
+    .content-left {
+        width: 55%;
+        padding: 80px 0 0 80px;
+    }
+    .eyebrow {
+        font-size: 16px;
+        font-weight: 800;
+        color: #059669;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 24px;
+    }
+    .title {
+        font-size: 48px;
+        font-weight: 800;
+        line-height: 1.1;
+        margin-bottom: 40px;
+        color: #064e3b;
+    }
+    .requirement-list {
+        list-style: none;
+    }
+    .requirement-item {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 32px;
+    }
+    .icon-box {
+        width: 48px;
+        height: 48px;
+        background: #d1fae5;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 20px;
+        flex-shrink: 0;
+    }
+    .icon-dot {
+        width: 12px;
+        height: 12px;
+        background: #059669;
+        border-radius: 50%;
+    }
+    .req-text h3 {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #065f46;
+    }
+    .req-text p {
+        font-size: 18px;
+        color: #475569;
+        line-height: 1.5;
+    }
+    .visual-right {
+        width: 45%;
+        background: #ecfdf5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    .phone-mockup {
+        width: 320px;
+        height: 600px;
+        background: #ffffff;
+        border: 12px solid #102a23;
+        border-radius: 40px;
+        padding: 20px;
+        position: relative;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+    .phone-header {
+        height: 20px;
+        width: 100px;
+        background: #102a23;
+        border-radius: 0 0 15px 15px;
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    .mock-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 20px;
+    }
+    .mock-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 8px;
+        min-height: 180px;
+    }
+    .mock-img {
+        height: 80px;
+        background: #e2e8f0;
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+    .mock-line {
+        height: 8px;
+        background: #cbd5e1;
+        border-radius: 4px;
+        margin-bottom: 6px;
+    }
+    .mock-line.short { width: 60%; }
+    .mock-price {
+        height: 12px;
+        background: #10b981;
+        border-radius: 4px;
+        margin-top: 12px;
+        width: 80%;
+    }
+    .mock-btn {
+        height: 32px;
+        background: #059669;
+        border-radius: 8px;
+        margin-top: 12px;
+    }
+    .touch-indicator {
+        position: absolute;
+        width: 44px;
+        height: 44px;
+        border: 2px solid #ef4444;
+        border-radius: 50%;
+        background: rgba(239, 68, 68, 0.1);
+        bottom: 120px;
+        right: 60px;
+        z-index: 10;
+    }
+    .label-tag {
+        position: absolute;
+        background: #ef4444;
+        color: white;
+        font-size: 12px;
+        font-weight: 800;
+        padding: 4px 8px;
+        border-radius: 4px;
+        top: -25px;
+        left: 0;
+        white-space: nowrap;
+    }
+</style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="content-left">
+        <div class="eyebrow">07 · Mobile Experience</div>
+        <h1 class="title">Mobile: Ringkas, Terbaca, &amp; Mudah Disentuh</h1>
+        <ul class="requirement-list">
+            <li class="requirement-item">
+                <div class="icon-box"><div class="icon-dot"></div></div>
+                <div class="req-text">
+                    <h3>2-Column Grid Layout</h3>
+                    <p>Memaksimalkan ruang layar untuk perbandingan produk yang efisien pada perangkat mobile.</p>
+                </div>
+            </li>
+            <li class="requirement-item">
+                <div class="icon-box"><div class="icon-dot"></div></div>
+                <div class="req-text">
+                    <h3>Target Sentuh 44px</h3>
+                    <p>Memastikan semua elemen interaktif (CTA &amp; Quantity) mudah diakses tanpa salah klik.</p>
+                </div>
+            </li>
+            <li class="requirement-item">
+                <div class="icon-box"><div class="icon-dot"></div></div>
+                <div class="req-text">
+                    <h3>Line Clamp &amp; No Hover</h3>
+                    <p>Menjaga konsistensi tinggi kartu dan memastikan informasi tidak bergantung pada interaksi hover.</p>
+                </div>
+            </li>
+        </ul>
+    </div>
+    <div class="visual-right">
+        <div class="phone-mockup">
+            <div class="phone-header"></div>
+            <div class="mock-grid">
+                <div class="mock-card">
+                    <div class="mock-img"></div>
+                    <div class="mock-line"></div>
+                    <div class="mock-line short"></div>
+                    <div class="mock-price"></div>
+                    <div class="mock-btn"></div>
+                </div>
+                <div class="mock-card">
+                    <div class="mock-img"></div>
+                    <div class="mock-line"></div>
+                    <div class="mock-line short"></div>
+                    <div class="mock-price"></div>
+                    <div class="mock-btn"></div>
+                </div>
+                <div class="mock-card">
+                    <div class="mock-img"></div>
+                    <div class="mock-line"></div>
+                    <div class="mock-line short"></div>
+                    <div class="mock-price"></div>
+                    <div class="mock-btn"></div>
+                </div>
+                <div class="mock-card">
+                    <div class="mock-img"></div>
+                    <div class="mock-line"></div>
+                    <div class="mock-line short"></div>
+                    <div class="mock-price"></div>
+                    <div class="mock-btn"></div>
+                </div>
+            </div>
+            <div class="touch-indicator">
+                <div class="label-tag">Min 44px Area</div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

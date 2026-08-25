@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background: #F8FAFC;
+            padding-top: 60px;
+        }
+        .header {
+            margin-left: 80px;
+            margin-bottom: 60px;
+            border-left: 6px solid #10B981;
+            padding-left: 24px;
+        }
+        h2 {
+            font-size: 48px;
+            color: #0F172A;
+            font-weight: 600;
+        }
+        .content-wrapper {
+            margin: 0 80px;
+        }
+        .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin-bottom: 60px;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            background: #FFFFFF;
+            padding-top: 24px;
+            padding-left: 32px;
+            padding-right: 32px;
+            border-radius: 16px;
+            min-height: 100px;
+        }
+        .feature-icon {
+            width: 50px;
+            font-size: 24px;
+            color: #10B981;
+            margin-right: 24px;
+        }
+        .feature-text {
+            font-size: 24px;
+            color: #334155;
+            font-weight: 500;
+        }
+        .feature-text b {
+            color: #0F172A;
+            font-weight: 600;
+        }
+        .quote-box {
+            background: #ECFDF5;
+            border-radius: 16px;
+            padding-top: 40px;
+            padding-left: 40px;
+            padding-right: 40px;
+            text-align: center;
+        }
+        .quote-text {
+            font-size: 32px;
+            color: #065F46;
+            font-weight: 600;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="header">
+            <h2>Konsep solusi: Compact Category Dock</h2>
+        </div>
+        <div class="content-wrapper">
+            <div class="feature-list">
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-window-maximize"></i></div>
+                    <div class="feature-text"><b>Baris Header:</b> Ikon kategori, label "Kategori", dan ringkasan status seperti "Semua dipilih".</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-arrows-alt-h"></i></div>
+                    <div class="feature-text"><b>Chip Rail:</b> Satu baris dengan native touch scrolling dan snap alignment untuk navigasi halus.</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="feature-text"><b>Active Chip:</b> Menggunakan check icon, green fill, white text, dan shadow ringan untuk kontras tinggi.</div>
+                </div>
+            </div>
+            <div class="quote-box">
+                <p class="quote-text">"Satu komponen, satu sumber state, satu tap untuk memfilter."</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

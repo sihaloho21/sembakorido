@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .slide-container {
+        width: 1280px;
+        min-height: 720px;
+        background: #f7fbf8;
+        font-family: Arial, sans-serif;
+        color: #102a23;
+        padding: 62px 82px 0;
+    }
+    .eyebrow {
+        color: #059669;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+    .title {
+        font-size: 45px;
+        letter-spacing: -1px;
+        margin: 18px 0 48px;
+        max-width: 900px;
+    }
+    .pillars {
+        display: flex;
+        gap: 32px;
+    }
+    .pillar {
+        flex: 1;
+        background: #ffffff;
+        border-radius: 24px;
+        padding: 20px; /* reduced from 32 to save vertical space */
+        border: 1px solid #e2e8f0;
+    }
+    .pillar-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px; /* reduced from 24 */
+    }
+    .icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: #d1fae5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .icon-inner {
+        width: 20px;
+        height: 20px;
+        background: #059669;
+        border-radius: 4px;
+    }
+    .pillar-title {
+        font-size: 22px;
+        font-weight: 800;
+        color: #047857;
+    }
+    .list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .list-item {
+        position: relative;
+        padding-left: 24px;
+        margin-top: 12px; /* reduced from 18 */
+        font-size: 17px;
+        line-height: 1.5;
+        color: #47645b;
+    }
+    .list-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 8px;
+        width: 8px;
+        height: 8px;
+        background: #10b981;
+        border-radius: 50%;
+    }
+    .list-item strong {
+        display: block;
+        color: #102a23;
+        margin-bottom: 4px;
+    }
+</style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="eyebrow">10 · Quality Standards</div>
+    <h1 class="title">States, aksesibilitas, dan performa menghilangkan keraguan</h1>
+
+    <div class="pillars">
+        <div class="pillar">
+            <div class="pillar-header">
+                <div class="icon-circle"><div class="icon-inner"></div></div>
+                <div class="pillar-title">Interaction States</div>
+            </div>
+            <ul class="list">
+                <li class="list-item"><strong>Skeleton Loading</strong>Menjaga ukuran kartu tetap stabil saat data produk dimuat.</li>
+                <li class="list-item"><strong>Feedback Aksi</strong>Status "Berhasil Ditambahkan" atau "Error" tampil secara instan.</li>
+                <li class="list-item"><strong>Visual States</strong>Focus-visible dan pressed state yang konsisten di setiap kontrol.</li>
+            </ul>
+        </div>
+
+        <div class="pillar">
+            <div class="pillar-header">
+                <div class="icon-circle" style="background:#dbeafe;"><div class="icon-inner" style="background:#2563eb;"></div></div>
+                <div class="pillar-title">Aksesibilitas</div>
+            </div>
+            <ul class="list">
+                <li class="list-item"><strong>Semantic Markup</strong>Struktur kartu dan kontrol memiliki accessible name yang jelas.</li>
+                <li class="list-item"><strong>Keyboard Focus</strong>Navigasi keyboard tetap terjaga setelah state quantity berubah.</li>
+                <li class="list-item"><strong>Motion Control</strong>Menghormati preferensi reduced-motion pengguna.</li>
+            </ul>
+        </div>
+
+        <div class="pillar">
+            <div class="pillar-header">
+                <div class="icon-circle" style="background:#fef3c7;"><div class="icon-inner" style="background:#d97706;"></div></div>
+                <div class="pillar-title">Performa</div>
+            </div>
+            <ul class="list">
+                <li class="list-item"><strong>Zero Layout Shift</strong>Dimensi gambar ditentukan sejak awal untuk stabilitas visual.</li>
+                <li class="list-item"><strong>Lazy Loading</strong>Hanya memuat gambar yang masuk ke dalam viewport pengguna.</li>
+                <li class="list-item"><strong>Event Delegation</strong>Mencegah listener berlebihan untuk menjaga kecepatan browsing.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background: #F8FAFC;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding-top: 60px;
+        }
+        .decorative-shape {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 400px;
+            height: 400px;
+            background: #10B981;
+            opacity: 0.05;
+            border-radius: 0 0 0 100%;
+        }
+        .content-box {
+            text-align: center;
+            max-width: 900px;
+            z-index: 1;
+        }
+        .brand {
+            font-size: 24px;
+            color: #10B981;
+            font-weight: 600;
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        h1 {
+            font-size: 72px;
+            color: #0F172A;
+            font-weight: 600;
+            line-height: 1.1;
+            margin-bottom: 32px;
+        }
+        .subtitle {
+            font-size: 28px;
+            color: #334155;
+            font-weight: 400;
+            line-height: 1.4;
+            margin-bottom: 60px;
+        }
+        .footer {
+            position: absolute;
+            bottom: 60px;
+            font-size: 18px;
+            color: #64748B;
+            font-weight: 400;
+        }
+        .accent-bar {
+            width: 120px;
+            height: 8px;
+            background: #10B981;
+            border-radius: 4px;
+            margin: 0 auto 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="decorative-shape"></div>
+        <div class="content-box">
+            <div class="brand">Paket Sembako</div>
+            <div class="accent-bar"></div>
+            <h1>Redesign Mobile<br>Category Filters</h1>
+            <p class="subtitle">Membuat navigasi kategori produk lebih cepat, jelas, dan modern</p>
+        </div>
+        <div class="footer">Product & Frontend Proposal · 2026</div>
+    </div>
+</body>
+</html>

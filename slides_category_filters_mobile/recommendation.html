@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background: #F8FAFC;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding-top: 60px;
+        }
+        .decorative-shape {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 300px;
+            height: 300px;
+            background: #10B981;
+            opacity: 0.05;
+            border-radius: 0 100% 0 0;
+        }
+        .content-box {
+            text-align: center;
+            max-width: 1000px;
+            z-index: 1;
+        }
+        h2 {
+            font-size: 48px;
+            color: #0F172A;
+            font-weight: 600;
+            margin-bottom: 40px;
+        }
+        .recommendation-card {
+            background: #FFFFFF;
+            padding-top: 40px;
+            padding-left: 60px;
+            padding-right: 60px;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 60px;
+            border: 2px solid #10B981;
+        }
+        .recommendation-card p {
+            font-size: 28px;
+            color: #334155;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+        .recommendation-card b {
+            color: #10B981;
+            font-weight: 700;
+        }
+        .next-steps {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+        }
+        .step-item {
+            display: flex;
+            align-items: center;
+            font-size: 20px;
+            color: #0F172A;
+            font-weight: 600;
+        }
+        .step-item i {
+            color: #10B981;
+            margin-right: 12px;
+            font-size: 24px;
+        }
+        .footer-brand {
+            position: absolute;
+            bottom: 60px;
+            font-size: 24px;
+            color: #10B981;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="decorative-shape"></div>
+        <div class="content-box">
+            <h2>Rekomendasi keputusan</h2>
+
+            <div class="recommendation-card">
+                <p>Adopsi <b>Compact Category Dock</b> dengan <b>conditional "Lainnya" bottom sheet</b> sebagai standar baru navigasi kategori mobile Paket Sembako.</p>
+            </div>
+
+            <div class="next-steps">
+                <div class="step-item">
+                    <i class="fas fa-vial"></i>
+                    Validasi Visual Prototype
+                </div>
+                <div class="step-item">
+                    <i class="fas fa-code"></i>
+                    Implementasi Phase 1
+                </div>
+                <div class="step-item">
+                    <i class="fas fa-mobile-alt"></i>
+                    User Testing (Mobile)
+                </div>
+            </div>
+        </div>
+        <div class="footer-brand">Paket Sembako</div>
+    </div>
+</body>
+</html>

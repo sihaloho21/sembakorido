@@ -1,0 +1,27 @@
+# 1 - Lainnya membuka akses ke seluruh kategori
+
+Building on the fast horizontal rail, the overflow option opens a full category view without cluttering the main screen. We use an ergonomic bottom sheet with a two-column grid so users can scan options instantly. And because selection applies immediately and closes the sheet, the transition back to the product grid feels completely effortless.
+
+# 2 - User flow yang lebih sederhana
+
+We designed this flow to remove every unnecessary step between discovery and product filtering. Users tap a chip or open the overflow menu, and the system immediately updates both the state and the product grid. By eliminating any extra apply button, we ensure one tap delivers an instant result.
+
+# 3 - Visual direction: Paket Sembako yang lebih modern
+
+To make the new experience feel at home in our brand, we are modernizing the visual tokens with a clean and tactile approach. We use translucent surfaces and subtle blur for the dock, paired with a distinct green fill and check icon for active chips. Plus Jakarta Sans typography and comfortable 44-pixel touch targets keep everything crisp, lightweight, and accessible.
+
+# 4 - Mobile-first, desktop tetap aman
+
+While this redesign is built mobile-first, we are making sure desktop users experience zero regressions. On narrow screens down to 320 pixels, we keep the rail compact and touch targets safe. On standard mobile viewports, the full dock and bottom sheet take over, while desktop retains the familiar arrow carousel without breaking layout stability.
+
+# 5 - Aksesibilitas dan performa adalah bagian dari desain
+
+We can't treat accessibility and speed as afterthoughts when building mobile interfaces. Every button needs proper ARIA states so screen readers announce active filters correctly. And by relying on native scrolling and existing data structures, we keep the experience fast without adding heavy API requests. Next, let's look at how we measure success and roll this out safely.
+
+# 6 - Acceptance criteria dan rencana delivery
+
+Building a better filter rail means nothing if it breaks on smaller screens or harms desktop users. We need to verify that 320px viewports render cleanly without horizontal overflow and that desktop carousels remain untouched. By splitting delivery into visual foundations and overflow phases, the team can test thoroughly without rushing. Let's wrap this up with our final recommendation.
+
+# 7 - Rekomendasi keputusan
+
+The data points clearly to adopting the compact category dock and conditional bottom sheet. It keeps frequent categories one tap away while safely scaling for a growing catalog. Because it leverages existing filtering logic, the technical risk stays low. We're ready to validate the prototype and start Phase 1.

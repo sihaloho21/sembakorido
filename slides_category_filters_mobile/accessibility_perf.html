@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background: #F8FAFC;
+            padding-top: 60px;
+            position: relative;
+        }
+        .header {
+            margin-left: 80px;
+            margin-bottom: 60px;
+            border-left: 6px solid #10B981;
+            padding-left: 24px;
+        }
+        h2 {
+            font-size: 48px;
+            color: #0F172A;
+            font-weight: 600;
+        }
+        .main-content {
+            display: flex;
+            margin: 0 80px;
+            gap: 60px;
+        }
+        .column {
+            flex: 1;
+        }
+        .tech-card {
+            background: #FFFFFF;
+            padding-top: 40px;
+            padding-left: 40px;
+            padding-right: 40px;
+            border-radius: 16px;
+            min-height: 400px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        h3 {
+            font-size: 28px;
+            color: #10B981;
+            margin-bottom: 32px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        h3 i {
+            margin-right: 16px;
+        }
+        .point {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+        .point-icon {
+            color: #10B981;
+            margin-right: 16px;
+            margin-top: 6px;
+            font-size: 18px;
+        }
+        .point-text {
+            font-size: 20px;
+            color: #334155;
+            line-height: 1.5;
+        }
+        .point-text b {
+            color: #0F172A;
+            display: block;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="header">
+            <h2>Aksesibilitas dan performa adalah bagian dari desain</h2>
+        </div>
+        <div class="main-content">
+            <div class="column">
+                <div class="tech-card">
+                    <h3><i class="fas fa-universal-access"></i> Standar Aksesibilitas</h3>
+                    <div class="point">
+                        <i class="fas fa-check point-icon"></i>
+                        <div class="point-text">
+                            <b>Semantik & ARIA</b>
+                            Gunakan native button dengan aria-pressed="true/false" untuk status terpilih.
+                        </div>
+                    </div>
+                    <div class="point">
+                        <i class="fas fa-check point-icon"></i>
+                        <div class="point-text">
+                            <b>Focus Management</b>
+                            Indikator fokus yang jelas dan urutan tab yang logis pada rail dan bottom sheet.
+                        </div>
+                    </div>
+                    <div class="point">
+                        <i class="fas fa-check point-icon"></i>
+                        <div class="point-text">
+                            <b>Screen Reader Support</b>
+                            Label deskriptif seperti "Pilih kategori produk" untuk navigasi rail.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="tech-card">
+                    <h3><i class="fas fa-tachometer-alt"></i> Optimasi Performa</h3>
+                    <div class="point">
+                        <i class="fas fa-check point-icon"></i>
+                        <div class="point-text">
+                            <b>Native Scrolling</b>
+                            Gunakan CSS overflow-x dan snap alignment untuk interaksi yang ringan.
+                        </div>
+                    </div>
+                    <div class="point">
+                        <i class="fas fa-check point-icon"></i>
+                        <div class="point-text">
+                            <b>Lightweight CSS</b>
+                            Prioritaskan CSS transform dan opacity; hindari JS scroll berlebih.
+                        </div>
+                    </div>
+                    <div class="point">
+                        <i class="fas fa-check point-icon"></i>
+                        <div class="point-text">
+                            <b>Zero Latency</b>
+                            Tidak menambah request API baru; tetap menggunakan data kategori yang sudah ada.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

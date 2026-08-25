@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { margin: 0; }
+    .slide-container { width: 1280px; min-height: 720px; background: #f7fbf8; font-family: Arial, sans-serif; color: #102a23; display: flex; overflow: hidden; }
+    .content-left { width: 45%; padding: 66px 0 0 84px; }
+    .eyebrow { color: #059669; font-size: 14px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; }
+    .title { font-size: 48px; line-height: 1.1; letter-spacing: -1.5px; margin-bottom: 32px; font-weight: 800; }
+    .principles { margin-top: 40px; }
+    .principle-item { margin-top: 24px; padding-left: 20px; border-left: 4px solid #10b981; }
+    .principle-title { font-size: 22px; font-weight: 700; color: #0d6b4a; margin-bottom: 6px; }
+    .principle-desc { font-size: 17px; color: #47645b; line-height: 1.4; }
+    .constraints { margin-top: 50px; background: #e7f8ef; padding: 24px; border-radius: 16px; width: 90%; }
+    .constraints-title { font-size: 14px; font-weight: 800; text-transform: uppercase; color: #047857; margin-bottom: 12px; letter-spacing: 1px; }
+    .constraints-list { font-size: 15px; color: #47645b; line-height: 1.6; }
+    .content-right { width: 55%; background: #fff; display: flex; align-items: center; justify-content: center; position: relative; }
+    .anatomy-card { width: 420px; background: #fff; border: 2px solid #e2e8f0; border-radius: 24px; padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.05); }
+    .zone { border: 2px dashed #cbd5e1; border-radius: 12px; margin-top: 12px; padding: 12px; position: relative; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #64748b; text-transform: uppercase; }
+    .zone:first-child { margin-top: 0; }
+    .zone-media { height: 200px; background: #f8fafc; }
+    .zone-info { height: 80px; background: #f1f5f9; }
+    .zone-price { height: 60px; background: #f0fdf4; border-color: #bbf7d0; color: #059669; }
+    .zone-status { height: 40px; background: #fff; border-style: solid; border-width: 1px; border-color: #e2e8f0; font-size: 11px; }
+    .zone-action { height: 60px; background: #10b981; border-color: #059669; color: #fff; }
+    .label-tag { position: absolute; left: -100px; font-size: 12px; font-weight: 800; color: #059669; text-align: right; width: 90px; }
+</style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="content-left">
+        <div class="eyebrow">04 · The Solution</div>
+        <h1 class="title">Solusi: Structured Product Card</h1>
+        <div class="principles">
+            <div class="principle-item">
+                <div class="principle-title">Struktur Konsisten</div>
+                <div class="principle-desc">Media → Informasi → Harga → Status → Action Zone.</div>
+            </div>
+            <div class="principle-item">
+                <div class="principle-title">Identitas Visual</div>
+                <div class="principle-desc">Mempertahankan estetika putih-hijau khas Paket Sembako.</div>
+            </div>
+        </div>
+        <div class="constraints">
+            <div class="constraints-title">Tanpa Perubahan Sistem</div>
+            <div class="constraints-list">
+                • Tidak mengubah API & Data Produk<br>
+                • Tidak mengubah Aturan Harga & Promo<br>
+                • Tidak mengubah Alur Checkout
+            </div>
+        </div>
+    </div>
+    <div class="content-right">
+        <div class="anatomy-card">
+            <div class="zone zone-media"><div class="label-tag">MEDIA</div>Gambar Produk</div>
+            <div class="zone zone-info"><div class="label-tag">INFORMASI</div>Nama & Unit</div>
+            <div class="zone zone-price"><div class="label-tag">HARGA</div>Fokus Utama</div>
+            <div class="zone zone-status"><div class="label-tag">STATUS</div>Ketersediaan</div>
+            <div class="zone zone-action"><div class="label-tag">AKSI</div>CTA / Quantity</div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
