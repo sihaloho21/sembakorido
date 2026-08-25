@@ -2014,10 +2014,8 @@ function renderProducts(products) {
         if (p.hargaCoret > p.harga) {
             const diskon = Math.round(((p.hargaCoret - p.harga) / p.hargaCoret) * 100);
             hargaCoretHtml = `
-                <div class="flex min-h-[16px] items-center gap-1 mb-1 md:min-h-[20px]">
-                    <span class="text-[9px] leading-none text-gray-500 line-through md:text-xs">Rp ${p.hargaCoret.toLocaleString('id-ID')}</span>
-                    <span class="inline-flex shrink-0 items-center rounded-sm bg-red-500 px-1.5 py-0.5 text-[7px] font-bold leading-none text-white md:rounded md:px-2 md:py-1 md:text-[9px]">-${diskon}%</span>
-                </div>
+                <span class="text-[9px] leading-tight text-gray-400 line-through md:text-xs">Rp ${p.hargaCoret.toLocaleString('id-ID')}</span>
+                <span class="inline-flex shrink-0 items-center rounded-sm bg-red-500 px-1.5 py-0.5 text-[7px] font-bold leading-none text-white md:rounded md:px-2 md:py-1 md:text-[9px]">-${diskon}%</span>
             `;
         }
 
@@ -2076,10 +2074,10 @@ function renderProducts(products) {
 	                        ${stokLabel}
 	                    </div>
 	                    <div class="flex flex-col mb-2 md:mb-3">
-	                        <div class="flex flex-col">
-	                            ${hargaCoretHtml}
-	                            <p class="text-[14px] font-bold leading-tight text-green-700 md:text-lg">Rp ${p.harga.toLocaleString('id-ID')}</p>
-	                        </div>
+                        <div class="flex flex-wrap items-center gap-x-1.5 gap-y-1 md:gap-x-2">
+                            <p class="text-[14px] font-bold leading-tight text-green-700 md:text-lg">Rp ${p.harga.toLocaleString('id-ID')}</p>
+                            ${hargaCoretHtml}
+                        </div>
                         <!-- Bayar Gajian Section Hidden as requested -->
                         <div class="hidden bg-blue-50 p-2 md:p-3 rounded-lg mt-2">
                             <p class="text-[10px] text-blue-600 font-bold uppercase">Bayar Gajian</p>
