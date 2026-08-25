@@ -152,8 +152,11 @@
         .flyer-layout-bento .flyer-item:first-child .flyer-media-frame { height:max(170px,var(--flyer-media-height,82px)); }
         .flyer-item-badge { position:absolute; top:4px; left:4px; max-width:calc(100% - 8px); line-height:1.1; }
         .flyer-item-name { min-height:29px; overflow:hidden; color:#334155; font-size:10px; font-weight:850; line-height:1.35; }
-        .flyer-item-normal { margin-top:4px; color:#94a3b8; font-size:9px; text-decoration:line-through; }
-        .flyer-item-promo { color:#ea580c; font-size:12px; font-weight:950; }
+        .currency-price { display:inline-flex; align-items:baseline; gap:2px; white-space:nowrap; }
+        .currency-prefix { font-size:2px; line-height:1; font-weight:900; }
+        .currency-amount { font-size:10px; line-height:1; font-weight:inherit; }
+        .flyer-item-normal { margin-top:4px; color:#94a3b8; font-size:10px; text-decoration:line-through; }
+        .flyer-item-promo { color:#ea580c; font-size:10px; font-weight:950; }
         .flyer-featured { grid-column:1/-1; display:grid; grid-template-columns:82px 1fr; gap:10px; padding:10px; border:1px solid #fed7aa; border-radius:11px; background:#fff7ed; }
         .flyer-featured .flyer-media-frame { height:var(--flyer-media-height,82px); margin:0; }
         .flyer-featured-label { color:#c2410c; font-size:9px; font-weight:950; letter-spacing:.1em; text-transform:uppercase; }
@@ -191,12 +194,11 @@
         .flyer-retail-media img { display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; }
         .flyer-retail-name { width:82%; text-align:center; font-size:11px; font-weight:900; line-height:1.12; }
         .flyer-retail-normal { color:#111827; font-size:10px; font-weight:900; text-decoration:line-through; white-space:nowrap; }
-        .flyer-retail-promo { color:#dc2626; font-size:25px; font-weight:1000; line-height:.95; white-space:nowrap; }
+        .flyer-retail-promo { color:#dc2626; font-size:10px; font-weight:1000; line-height:.95; white-space:nowrap; }
         .flyer-retail-offer { width:90%; color:#111827; font-size:11px; font-weight:950; line-height:1.1; text-align:center; }
         .flyer-retail-badge { position:absolute; top:7px; left:7px; z-index:3; padding:3px 5px; border-radius:4px; background:#dc2626; color:#fff; font-size:8px; font-weight:950; }
-        .flyer-retail-drag-hint { position:absolute; right:5px; bottom:4px; z-index:4; color:rgba(17,24,39,.48); font-size:7px; font-weight:800; pointer-events:none; }
         .flyer-layout-retail-tile .flyer-retail-tile:nth-child(even) { background:#f6cf84; }
-        @media (max-width:620px) { .flyer-layout-retail-tile .flyer-preview-items { grid-template-columns:repeat(2,minmax(0,1fr)); } .flyer-retail-tile { min-height:250px; } .flyer-retail-promo { font-size:21px; } }
+        @media (max-width:620px) { .flyer-layout-retail-tile .flyer-preview-items { grid-template-columns:repeat(2,minmax(0,1fr)); } .flyer-retail-tile { min-height:250px; } .flyer-retail-promo { font-size:10px; } }
         @media (max-width:620px) {
             .flyer-layout-split-feature .flyer-preview-items { grid-template-columns:repeat(2,minmax(0,1fr)); }
             .flyer-layout-split-feature .flyer-item:first-child { grid-column:1/-1; grid-row:auto; }
