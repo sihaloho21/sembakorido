@@ -673,6 +673,10 @@
             return '<span class="pk-pop-currency"><span class="pk-pop-currency-prefix">Rp</span><span class="pk-pop-currency-amount">' + amount + '</span></span>';
         }
 
+        function formatStrikePrice(value) {
+            return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(toNumber(value));
+        }
+
         function parseItems(value) {
             if (Array.isArray(value)) return value;
             if (!value) return [];
@@ -890,14 +894,14 @@
                 + '<div class="pk-pop-preview-items">'
                 + (items.length ? items.slice(0, Math.max(1, (Number(c.gridRows) || 4) * (Number(c.gridColumns) || 3))).map(function(item) {
                     var image = item.image ? '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy">' : '<span>POP</span>';
-                    var normal = item.normalPrice > item.promoPrice ? '<div class="pk-pop-preview-normal">' + formatRupiahMarkup(item.normalPrice) + '</div>' : '';
+                    var normal = item.normalPrice > item.promoPrice ? '<div class="pk-pop-preview-normal">' + formatStrikePrice(item.normalPrice) + '</div>' : '';
                     var brochureOffer = item.offer || (item.unit ? ('Harga spesial · ' + item.unit) : (item.badge || 'Promo terbatas'));
                     if ((c.layout || '') === 'retail-tile') {
                         var p = c.tilePositions || normalizeTilePositions();
                         return '<article class="pk-pop-preview-item"><div class="pk-pop-retail-tile">'
                             + '<div class="pk-pop-retail-media" style="' + tilePositionStyle(p, item.id, 'image') + '">' + image + '</div>'
                             + '<div class="pk-pop-retail-name" style="' + tilePositionStyle(p, item.id, 'name') + '">' + escapeHtml(item.name) + '</div>'
-                            + (normal ? '<div class="pk-pop-retail-normal" style="' + tilePositionStyle(p, item.id, 'normal') + '">' + formatRupiahMarkup(item.normalPrice) + '</div>' : '')
+                            + (normal ? '<div class="pk-pop-retail-normal" style="' + tilePositionStyle(p, item.id, 'normal') + '">' + formatStrikePrice(item.normalPrice) + '</div>' : '')
                             + '<div class="pk-pop-retail-price" style="' + tilePositionStyle(p, item.id, 'promo') + '">' + formatRupiahMarkup(item.promoPrice) + '</div>'
                             + '<div class="pk-pop-retail-offer" style="' + tilePositionStyle(p, item.id, 'offer') + '">' + escapeHtml(brochureOffer) + '</div>'
                             + '</div></article>';
