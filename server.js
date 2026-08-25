@@ -67,7 +67,7 @@ const COMPRESSIBLE_EXTENSIONS = new Set([
 
 function getCacheControl(extname) {
     if (extname === '.html') {
-        return `public, max-age=${ONE_HOUR_SECONDS}, must-revalidate`;
+        return 'no-cache, max-age=0, must-revalidate';
     }
     if (STATIC_EXTENSIONS.has(extname)) {
         return `public, max-age=${THIRTY_DAYS_SECONDS}, immutable`;
