@@ -178,6 +178,21 @@
         .flyer-layout-horizontal-list .flyer-item .flyer-item-name { min-height:0; }
         .flyer-layout-horizontal-list .flyer-item .flyer-item-normal { grid-column:2; }
         .flyer-layout-horizontal-list .flyer-item .flyer-item-promo { grid-column:3; grid-row:2; white-space:nowrap; }
+        .flyer-layout-retail-tile .flyer-preview-items { grid-template-columns:repeat(var(--flyer-grid-columns,2),minmax(0,1fr)); gap:8px; background:#b91c1c; padding:8px; }
+        .flyer-retail-tile { position:relative; min-height:280px; overflow:hidden; border:3px solid #b91c1c; border-radius:12px; background:#f9d58b; color:#111827; }
+        .flyer-retail-draggable { position:absolute; z-index:2; transform:translate(-50%,-50%); cursor:grab; touch-action:none; user-select:none; }
+        .flyer-retail-draggable:active { cursor:grabbing; }
+        .flyer-retail-draggable:focus-visible { outline:2px solid #b91c1c; outline-offset:2px; }
+        .flyer-retail-media { display:flex; align-items:center; justify-content:center; width:58%; height:44%; }
+        .flyer-retail-media img { display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; }
+        .flyer-retail-name { width:82%; text-align:center; font-size:11px; font-weight:900; line-height:1.12; }
+        .flyer-retail-normal { color:#111827; font-size:10px; font-weight:900; text-decoration:line-through; white-space:nowrap; }
+        .flyer-retail-promo { color:#dc2626; font-size:25px; font-weight:1000; line-height:.95; white-space:nowrap; }
+        .flyer-retail-offer { width:90%; color:#111827; font-size:11px; font-weight:950; line-height:1.1; text-align:center; }
+        .flyer-retail-badge { position:absolute; top:7px; left:7px; z-index:3; padding:3px 5px; border-radius:4px; background:#dc2626; color:#fff; font-size:8px; font-weight:950; }
+        .flyer-retail-drag-hint { position:absolute; right:5px; bottom:4px; z-index:4; color:rgba(17,24,39,.48); font-size:7px; font-weight:800; pointer-events:none; }
+        .flyer-layout-retail-tile .flyer-retail-tile:nth-child(even) { background:#f6cf84; }
+        @media (max-width:620px) { .flyer-layout-retail-tile .flyer-preview-items { grid-template-columns:repeat(2,minmax(0,1fr)); } .flyer-retail-tile { min-height:250px; } .flyer-retail-promo { font-size:21px; } }
         @media (max-width:620px) {
             .flyer-layout-split-feature .flyer-preview-items { grid-template-columns:repeat(2,minmax(0,1fr)); }
             .flyer-layout-split-feature .flyer-item:first-child { grid-column:1/-1; grid-row:auto; }
@@ -254,7 +269,7 @@
                         <div class="pop-card-body"><div class="pop-form-grid">
                             <label class="pop-field"><span class="pop-label">Nama toko</span><input id="promo-pop-store" class="pop-input" value="Paket Sembako" placeholder="Nama toko"></label>
                             <label class="pop-field"><span class="pop-label">Tema warna</span><select id="promo-pop-theme" class="pop-select"><option value="retail-impact">Retail Impact · Merah</option><option value="modern-minimalist">Modern Minimalist</option><option value="seasonal-festive">Seasonal Festive</option><option value="flash-sale-neon">Midnight Flash</option><option value="fresh-organic">Fresh Organic</option><option value="blue">Blue Commerce</option><option value="green">Fresh Green</option><option value="purple">Purple Pop</option></select></label>
-                            <label class="pop-field"><span class="pop-label">Layout produk</span><select id="promo-pop-layout" class="pop-select"><option value="auto">Auto Adaptive Grid</option><option value="bento">Bento Featured</option><option value="mosaic-grid">Mosaic Grid</option><option value="split-feature">Split Feature</option><option value="horizontal-list">Horizontal List</option></select><span class="pop-help">Pilih komposisi grid sesuai karakter promo: unggulan, editorial, atau daftar ringkas.</span></label>
+                            <label class="pop-field"><span class="pop-label">Layout produk</span><select id="promo-pop-layout" class="pop-select"><option value="auto">Auto Adaptive Grid</option><option value="bento">Bento Featured</option><option value="mosaic-grid">Mosaic Grid</option><option value="split-feature">Split Feature</option><option value="horizontal-list">Horizontal List</option><option value="retail-tile">Retail Tile · Brosur Vertikal</option></select><span class="pop-help">Pilih komposisi grid sesuai karakter promo. Pada Retail Tile, seret gambar, nama, harga coret, harga promo, atau teks promo langsung di preview.</span></label>
                             <div class="pop-field full"><span class="pop-label">Ukuran artwork produk</span><div class="pop-form-grid" style="gap:10px;"><label class="pop-field"><span class="pop-help">Tinggi area gambar: <output id="promo-pop-image-frame-output">82 px</output></span><input id="promo-pop-image-frame" class="pop-input" type="range" min="64" max="220" step="1" value="82"></label><label class="pop-field"><span class="pop-help">Skala artwork: <output id="promo-pop-image-scale-output">100%</output></span><input id="promo-pop-image-scale" class="pop-input" type="range" min="70" max="110" step="1" value="100"></label></div><span class="pop-help">Gunakan tinggi frame untuk memberi ruang pada produk portrait, lalu sesuaikan skala artwork tanpa memotong gambar.</span></div>
                             <div class="pop-field full"><span class="pop-label">Jumlah grid produk</span><div class="pop-form-grid" style="gap:10px;"><label class="pop-field"><span class="pop-help">Baris: <output id="promo-pop-grid-rows-output">4</output></span><input id="promo-pop-grid-rows" class="pop-input" type="range" min="1" max="8" step="1" value="4"></label><label class="pop-field"><span class="pop-help">Kolom: <output id="promo-pop-grid-columns-output">3</output></span><input id="promo-pop-grid-columns" class="pop-input" type="range" min="1" max="6" step="1" value="3"></label></div><span class="pop-help">Jumlah produk yang ditampilkan mengikuti Baris × Kolom. Layout Bento mempertahankan tile unggulan agar tetap menonjol.</span></div>
                             <label class="pop-field"><span class="pop-label">Pesan CTA</span><input id="promo-pop-footer" class="pop-input" value="Pesan sekarang · stok terbatas" placeholder="Pesan sekarang"></label>
@@ -287,6 +302,6 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="js/catalog-promo-pop.js?v=20260825f"></script>
+<script src="js/catalog-promo-pop.js?v=20260825g"></script>
 </body>
 </html>

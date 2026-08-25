@@ -395,6 +395,18 @@
         .pk-pop-preview-item-name { margin-top: .55rem; color: #1f2937; font-size: .78rem; font-weight: 800; line-height: 1.35; }
         .pk-pop-preview-normal { margin-top: .3rem; color: #94a3b8; font-size: .68rem; text-decoration: line-through; }
         .pk-pop-preview-price { color: #ea580c; font-size: .9rem; font-weight: 900; }
+        .pk-pop-layout-retail-tile .pk-pop-preview-items { grid-template-columns:repeat(var(--pk-pop-grid-columns,2),minmax(0,1fr)); gap:.5rem; padding:.5rem; background:#b91c1c; }
+        .pk-pop-retail-tile { position:relative; min-height:280px; overflow:hidden; border:3px solid #b91c1c; border-radius:.75rem; background:#f9d58b; color:#111827; }
+        .pk-pop-retail-media,.pk-pop-retail-name,.pk-pop-retail-normal,.pk-pop-retail-price,.pk-pop-retail-offer { position:absolute; transform:translate(-50%,-50%); z-index:2; }
+        .pk-pop-retail-media { display:flex; align-items:center; justify-content:center; width:58%; height:44%; }
+        .pk-pop-retail-media img { display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; }
+        .pk-pop-retail-name { width:82%; text-align:center; font-size:.72rem; font-weight:900; line-height:1.12; }
+        .pk-pop-retail-normal { color:#111827; font-size:.65rem; font-weight:900; text-decoration:line-through; white-space:nowrap; }
+        .pk-pop-retail-price { color:#dc2626; font-size:1.55rem; font-weight:1000; line-height:.95; white-space:nowrap; }
+        .pk-pop-retail-offer { width:90%; color:#111827; font-size:.7rem; font-weight:950; line-height:1.1; text-align:center; }
+        .pk-pop-layout-retail-tile .pk-pop-preview-item { padding:0; border:0; border-radius:0; }
+        .pk-pop-layout-retail-tile .pk-pop-preview-item:nth-child(even) .pk-pop-retail-tile { background:#f6cf84; }
+        @media (max-width:640px) { .pk-pop-retail-tile { min-height:250px; } .pk-pop-retail-price { font-size:1.3rem; } }
         .pk-pop-preview-footer { display: flex; justify-content: space-between; gap: .75rem; flex-wrap: wrap; padding: .85rem 1rem; border-top: 1px solid #eef2f7; color: #64748b; font-size: .72rem; }
         .pk-pop-preview-footer a { color: #ea580c; font-weight: 800; text-decoration: none; }
     </style>
@@ -708,6 +720,25 @@
             };
         }
 
+        function normalizeTilePositions(value) {
+            var defaults = { image:{x:50,y:24}, name:{x:50,y:73}, normal:{x:78,y:65}, promo:{x:50,y:86}, offer:{x:50,y:96} };
+            var source = value && typeof value === 'object' ? value : {};
+            var result = {};
+            Object.keys(defaults).forEach(function(key) {
+                var item = source[key] && typeof source[key] === 'object' ? source[key] : {};
+                result[key] = { x: Math.min(96, Math.max(4, Number(item.x) || defaults[key].x)), y: Math.min(96, Math.max(4, Number(item.y) || defaults[key].y)) };
+            });
+            return result;
+        }
+
+        function tilePositionStyle(positions, key, extra) {
+            var fallback = { image:{x:50,y:24}, name:{x:50,y:73}, normal:{x:78,y:65}, promo:{x:50,y:86}, offer:{x:50,y:96} }[key] || {x:50,y:50};
+            var item = positions && positions[key] ? positions[key] : fallback;
+            var x = Math.min(96, Math.max(4, Number(item.x) || fallback.x));
+            var y = Math.min(96, Math.max(4, Number(item.y) || fallback.y));
+            return 'left:' + x + '%;top:' + y + '%;' + (extra || '');
+        }
+
         function normalizePromoFlyer(c) {
             var items = parseItems(c.items);
             if (!items.length) items = parseItems(c.items_json);
@@ -744,6 +775,7 @@
                 imageScale: imageScale,
                 gridRows: gridRows,
                 gridColumns: gridColumns,
+                tilePositions: normalizeTilePositions(gridConfig.tile_positions),
                 description: c.description || c.subtitle || 'Temukan promo produk pilihan dengan harga terbaik.',
                 items: items.map(function(item) {
                     return {
@@ -842,6 +874,16 @@
                 + (items.length ? items.slice(0, Math.max(1, (Number(c.gridRows) || 4) * (Number(c.gridColumns) || 3))).map(function(item) {
                     var image = item.image ? '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy">' : '<span>POP</span>';
                     var normal = item.normalPrice > item.promoPrice ? '<div class="pk-pop-preview-normal">' + formatRupiah(item.normalPrice) + '</div>' : '';
+                    if ((c.layout || '') === 'retail-tile') {
+                        var p = c.tilePositions || normalizeTilePositions();
+                        return '<article class="pk-pop-preview-item"><div class="pk-pop-retail-tile">'
+                            + '<div class="pk-pop-retail-media" style="' + tilePositionStyle(p, 'image') + '">' + image + '</div>'
+                            + '<div class="pk-pop-retail-name" style="' + tilePositionStyle(p, 'name') + '">' + escapeHtml(item.name) + '</div>'
+                            + (normal ? '<div class="pk-pop-retail-normal" style="' + tilePositionStyle(p, 'normal') + '">' + formatRupiah(item.normalPrice) + '</div>' : '')
+                            + '<div class="pk-pop-retail-price" style="' + tilePositionStyle(p, 'promo') + '">' + formatRupiah(item.promoPrice) + '</div>'
+                            + '<div class="pk-pop-retail-offer" style="' + tilePositionStyle(p, 'offer') + '">' + escapeHtml(item.unit ? ('Harga spesial · ' + item.unit) : (item.badge || 'Promo terbatas')) + '</div>'
+                            + '</div></article>';
+                    }
                     return '<article class="pk-pop-preview-item"><div class="pk-pop-preview-image">' + image + '</div>'
                         + '<div class="pk-pop-preview-item-name">' + escapeHtml(item.name) + '</div>'
                         + normal + '<div class="pk-pop-preview-price">' + formatRupiah(item.promoPrice) + '</div>'
