@@ -169,6 +169,20 @@
         .flyer-theme-fresh-organic .flyer-preview-hero { background:linear-gradient(135deg,#16a34a,#14532d); }
         .flyer-layout-bento .flyer-item:first-child { grid-column:span 2; grid-row:span 2; }
         .flyer-layout-mosaic-grid .flyer-item:nth-child(4n+1) { grid-column:span 2; }
+        .flyer-layout-split-feature .flyer-preview-items { grid-template-columns:minmax(0,1.45fr) repeat(2,minmax(0,1fr)); }
+        .flyer-layout-split-feature .flyer-item:first-child { grid-row:span 2; padding:12px; background:#fff7ed; border:1px solid #fed7aa; border-radius:12px; }
+        .flyer-layout-split-feature .flyer-item:first-child .flyer-media-frame { height:max(170px,var(--flyer-media-height,82px)); }
+        .flyer-layout-horizontal-list .flyer-preview-items { display:flex; flex-direction:column; gap:8px; }
+        .flyer-layout-horizontal-list .flyer-item { display:grid; grid-template-columns:minmax(62px,82px) minmax(0,1fr) auto; grid-template-rows:auto auto auto; column-gap:10px; align-items:center; padding:8px; border:1px solid #e2e8f0; border-radius:10px; background:#fff; }
+        .flyer-layout-horizontal-list .flyer-item .flyer-media-frame { grid-row:1 / span 3; height:72px; margin:0; }
+        .flyer-layout-horizontal-list .flyer-item .flyer-item-name { min-height:0; }
+        .flyer-layout-horizontal-list .flyer-item .flyer-item-normal { grid-column:2; }
+        .flyer-layout-horizontal-list .flyer-item .flyer-item-promo { grid-column:3; grid-row:2; white-space:nowrap; }
+        @media (max-width:620px) {
+            .flyer-layout-split-feature .flyer-preview-items { grid-template-columns:repeat(2,minmax(0,1fr)); }
+            .flyer-layout-split-feature .flyer-item:first-child { grid-column:1/-1; grid-row:auto; }
+            .flyer-layout-horizontal-list .flyer-item { grid-template-columns:64px minmax(0,1fr) auto; }
+        }
         .pop-preview-legend { display:flex; justify-content:space-between; gap:8px; padding:10px 18px; border-top:1px solid #eef2f6; color:#94a3b8; font-size:10px; }
         .pop-campaign-list { max-height:360px; overflow:auto; }
         .campaign-row { display:flex; align-items:center; gap:10px; padding:13px 16px; border-bottom:1px solid #eef2f6; }
@@ -240,7 +254,7 @@
                         <div class="pop-card-body"><div class="pop-form-grid">
                             <label class="pop-field"><span class="pop-label">Nama toko</span><input id="promo-pop-store" class="pop-input" value="Paket Sembako" placeholder="Nama toko"></label>
                             <label class="pop-field"><span class="pop-label">Tema warna</span><select id="promo-pop-theme" class="pop-select"><option value="retail-impact">Retail Impact · Merah</option><option value="modern-minimalist">Modern Minimalist</option><option value="seasonal-festive">Seasonal Festive</option><option value="flash-sale-neon">Midnight Flash</option><option value="fresh-organic">Fresh Organic</option><option value="blue">Blue Commerce</option><option value="green">Fresh Green</option><option value="purple">Purple Pop</option></select></label>
-                            <label class="pop-field"><span class="pop-label">Layout produk</span><select id="promo-pop-layout" class="pop-select"><option value="auto">Auto Adaptive Grid</option><option value="bento">Bento Featured</option><option value="mosaic-grid">Mosaic Grid</option></select></label>
+                            <label class="pop-field"><span class="pop-label">Layout produk</span><select id="promo-pop-layout" class="pop-select"><option value="auto">Auto Adaptive Grid</option><option value="bento">Bento Featured</option><option value="mosaic-grid">Mosaic Grid</option><option value="split-feature">Split Feature</option><option value="horizontal-list">Horizontal List</option></select><span class="pop-help">Pilih komposisi grid sesuai karakter promo: unggulan, editorial, atau daftar ringkas.</span></label>
                             <div class="pop-field full"><span class="pop-label">Ukuran artwork produk</span><div class="pop-form-grid" style="gap:10px;"><label class="pop-field"><span class="pop-help">Tinggi area gambar: <output id="promo-pop-image-frame-output">82 px</output></span><input id="promo-pop-image-frame" class="pop-input" type="range" min="64" max="220" step="1" value="82"></label><label class="pop-field"><span class="pop-help">Skala artwork: <output id="promo-pop-image-scale-output">100%</output></span><input id="promo-pop-image-scale" class="pop-input" type="range" min="70" max="110" step="1" value="100"></label></div><span class="pop-help">Gunakan tinggi frame untuk memberi ruang pada produk portrait, lalu sesuaikan skala artwork tanpa memotong gambar.</span></div>
                             <div class="pop-field full"><span class="pop-label">Jumlah grid produk</span><div class="pop-form-grid" style="gap:10px;"><label class="pop-field"><span class="pop-help">Baris: <output id="promo-pop-grid-rows-output">4</output></span><input id="promo-pop-grid-rows" class="pop-input" type="range" min="1" max="8" step="1" value="4"></label><label class="pop-field"><span class="pop-help">Kolom: <output id="promo-pop-grid-columns-output">3</output></span><input id="promo-pop-grid-columns" class="pop-input" type="range" min="1" max="6" step="1" value="3"></label></div><span class="pop-help">Jumlah produk yang ditampilkan mengikuti Baris × Kolom. Layout Bento mempertahankan tile unggulan agar tetap menonjol.</span></div>
                             <label class="pop-field"><span class="pop-label">Pesan CTA</span><input id="promo-pop-footer" class="pop-input" value="Pesan sekarang · stok terbatas" placeholder="Pesan sekarang"></label>
@@ -273,6 +287,6 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="js/catalog-promo-pop.js?v=20260825e"></script>
+<script src="js/catalog-promo-pop.js?v=20260825f"></script>
 </body>
 </html>

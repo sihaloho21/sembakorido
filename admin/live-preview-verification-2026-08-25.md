@@ -59,3 +59,9 @@ No campaign was saved or published during this test.
 - The reorder uses the existing `Map` insertion order, so campaign serialization and public rendering inherit the selected sequence.
 
 No campaign was saved or published during this test.
+
+## Additional product-layout template verification
+
+The admin Layout produk selector now exposes `Auto Adaptive Grid`, `Bento Featured`, `Mosaic Grid`, `Split Feature`, and `Horizontal List`. In the local live preview, switching to `Split Feature` applied a three-column composition with the first product spanning two rows, while `Horizontal List` changed the product area to a vertical flex list. The templates use the existing contained-media frame, so portrait and landscape artwork remain bounded without crop rules. Responsive CSS collapses Split Feature to a full-width lead item on narrow screens and keeps Horizontal List readable with a compact media column.
+
+The public renderer now adds the saved layout class to each POP preview card, allowing the same `Split Feature` and `Horizontal List` compositions to render from `grid_config_json`. No campaign was saved or published during this test.
