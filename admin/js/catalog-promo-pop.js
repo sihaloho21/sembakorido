@@ -482,8 +482,8 @@
         container.innerHTML = rows.map((item, index) => {
             const isFeatured = state.featuredIds.has(String(item.id));
             const isOut = productIsOutOfStock(item);
-            return `<div class="selected-product-row" draggable="true" data-selected-id="${escapeHtml(item.id)}">
-                <span class="selected-number">${index + 1}</span>
+            return `<div class="selected-product-row" draggable="true" data-selected-id="${escapeHtml(item.id)}" aria-label="Urutan ${index + 1}: ${escapeHtml(item.name)}">
+                <span class="selected-drag-handle" tabindex="0" role="button" title="Seret untuk mengatur urutan" aria-label="Seret ${escapeHtml(item.name)} untuk mengatur urutan">⋮⋮</span><span class="selected-number">${index + 1}</span>
                 <div class="selected-product-main"><strong>${escapeHtml(item.name)}</strong><span>${isOut ? '⚠ Stok habis · ' : ''}Normal ${formatCurrency(item.normal_price)}${item.badge ? ` · ${escapeHtml(item.badge)}` : ''}</span></div>
                 <div class="selected-product-actions"><strong style="color:#ea580c;font-size:12px;">${formatCurrency(item.promo_price)}</strong><button type="button" class="${isFeatured ? 'is-featured' : ''}" data-feature-product="${escapeHtml(item.id)}">${isFeatured ? '★ Unggulan' : '☆ Featured'}</button><button type="button" data-remove-product="${escapeHtml(item.id)}">Hapus</button></div>
             </div>`;
@@ -873,10 +873,20 @@
         $('promo-pop-selected-list')?.addEventListener('dragstart', (event) => {
             const row = event.target.closest('[data-selected-id]');
             draggedProductId = row?.dataset.selectedId || '';
-            if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+            row?.classList.add('is-dragging');
+            if (event.dataTransfer) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', draggedProductId); }
+        });
+        $('promo-pop-selected-list')?.addEventListener('dragend', () => {
+            draggedProductId = '';
+            $('promo-pop-selected-list')?.querySelectorAll('.is-dragging,.is-drop-target').forEach((row) => row.classList.remove('is-dragging', 'is-drop-target'));
         });
         $('promo-pop-selected-list')?.addEventListener('dragover', (event) => {
-            if (event.target.closest('[data-selected-id]')) event.preventDefault();
+            const row = event.target.closest('[data-selected-id]');
+            if (!row || row.dataset.selectedId === draggedProductId) return;
+            event.preventDefault();
+            $('promo-pop-selected-list')?.querySelectorAll('.is-drop-target').forEach((item) => item.classList.remove('is-drop-target'));
+            row.classList.add('is-drop-target');
+            if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
         });
         $('promo-pop-selected-list')?.addEventListener('drop', (event) => {
             event.preventDefault();
