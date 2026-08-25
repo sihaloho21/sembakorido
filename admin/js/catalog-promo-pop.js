@@ -490,6 +490,16 @@
         }).join('');
     }
 
+    function getCropSettings() {
+        const frame = Math.min(220, Math.max(64, Number($('promo-pop-image-frame')?.value) || 82));
+        const scalePercent = Math.min(110, Math.max(70, Number($('promo-pop-image-scale')?.value) || 100));
+        const frameOutput = $('promo-pop-image-frame-output');
+        const scaleOutput = $('promo-pop-image-scale-output');
+        if (frameOutput) frameOutput.textContent = `${frame} px`;
+        if (scaleOutput) scaleOutput.textContent = `${scalePercent}%`;
+        return { frame, scale: scalePercent / 100 };
+    }
+
     function renderPreview() {
         const title = $('promo-pop-title')?.value || 'Promo Spesial';
         const subtitle = $('promo-pop-subtitle')?.value || 'Harga terbaik untuk kebutuhan harian';
@@ -504,6 +514,9 @@
         const disclaimer = $('promo-pop-disclaimer')?.value || '';
         const preview = $('promo-pop-preview');
         if (!preview) return;
+        const crop = getCropSettings();
+        preview.style.setProperty('--flyer-media-height', `${crop.frame}px`);
+        preview.style.setProperty('--flyer-image-scale', String(crop.scale));
         const rows = selectedProductRows();
         const featured = rows.filter(item => state.featuredIds.has(String(item.id))).slice(0, 3);
         const qrDataUrl = makeQrDataUrl(qrUrl);
@@ -564,7 +577,7 @@
             show_qr_code: $('promo-pop-qr')?.value ? 'true' : 'false',
             qr_url: String($('promo-pop-qr')?.value || '').trim(),
             banner_config_json: JSON.stringify({ top: String($('promo-pop-top-banner')?.value || '').trim(), bottom: String($('promo-pop-bottom-banner')?.value || '').trim() }),
-            grid_config_json: JSON.stringify({ layout: String($('promo-pop-layout')?.value || 'auto').trim(), columns: Number($('promo-pop-columns')?.value || 3) }),
+            grid_config_json: JSON.stringify({ layout: String($('promo-pop-layout')?.value || 'auto').trim(), columns: Number($('promo-pop-columns')?.value || 3), image_frame_height: getCropSettings().frame, image_scale: getCropSettings().scale }),
             created_by: GASActions.getAdminRole() || 'admin',
             updated_at: new Date().toISOString()
         };
@@ -580,6 +593,12 @@
         $('promo-pop-description').value = campaign.description || '';
         $('promo-pop-theme').value = campaign.theme || 'retail-impact';
         $('promo-pop-layout').value = campaign.layout || 'auto';
+        let gridConfig = {};
+        try { gridConfig = JSON.parse(campaign.grid_config_json || '{}') || {}; } catch (error) { gridConfig = {}; }
+        const frameField = $('promo-pop-image-frame');
+        const scaleField = $('promo-pop-image-scale');
+        if (frameField) frameField.value = Math.min(220, Math.max(64, Number(gridConfig.image_frame_height) || 82));
+        if (scaleField) scaleField.value = Math.min(110, Math.max(70, Math.round((Number(gridConfig.image_scale) || 1) * 100)));
         $('promo-pop-paper').value = campaign.paper_size || 'A4';
         $('promo-pop-orientation').value = campaign.orientation || 'portrait';
         state.templateId = campaign.template_id || 'promo-grid';
@@ -776,6 +795,8 @@
         $('promo-pop-title')?.addEventListener('input', () => {
             if (!state.editingId) $('promo-pop-slug').value = slugify($('promo-pop-title').value);
         });
+        $('promo-pop-image-frame')?.addEventListener('input', renderPreview);
+        $('promo-pop-image-scale')?.addEventListener('input', renderPreview);
         $('promo-pop-product-list')?.addEventListener('click', (event) => {
             const button = event.target.closest('[data-select-product]');
             if (!button) return;

@@ -374,8 +374,8 @@
         .pk-pop-preview-badge { border-radius: 999px; padding: .3rem .6rem; background: #dc2626; color: white; font-size: .68rem; font-weight: 900; }
         .pk-pop-preview-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: .75rem; padding: 1rem; }
         .pk-pop-preview-item { min-width: 0; padding: .65rem; border: 1px solid #eef2f7; border-radius: .8rem; }
-        .pk-pop-preview-image { height: 105px; display: grid; place-items: center; overflow: hidden; border-radius: .6rem; background: #fff7ed; color: #c2410c; font-size: .7rem; font-weight: 900; }
-        .pk-pop-preview-image img { width: 100%; height: 100%; object-fit: cover; }
+        .pk-pop-preview-image { height: var(--pk-pop-image-height,105px); display: grid; place-items: center; overflow: visible; border-radius: .6rem; background: #fff7ed; color: #c2410c; font-size: .7rem; font-weight: 900; }
+        .pk-pop-preview-image img { width: auto; height: auto; max-width: calc(100% - 8px); max-height: calc(100% - 8px); object-fit: contain; object-position: center; transform: scale(var(--pk-pop-image-scale,1)); transform-origin: center; }
         .pk-pop-preview-item-name { margin-top: .55rem; color: #1f2937; font-size: .78rem; font-weight: 800; line-height: 1.35; }
         .pk-pop-preview-normal { margin-top: .3rem; color: #94a3b8; font-size: .68rem; text-decoration: line-through; }
         .pk-pop-preview-price { color: #ea580c; font-size: .9rem; font-weight: 900; }
@@ -699,6 +699,10 @@
             var qrUrl = safeUrl(c.qr_url);
             var theme = String(c.theme || 'retail-impact').toLowerCase().replace(/[^a-z0-9-]/g, '-');
             var layout = String(c.layout || 'auto').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            var gridConfig = {};
+            try { gridConfig = JSON.parse(c.grid_config_json || '{}') || {}; } catch (error) { gridConfig = {}; }
+            var imageFrameHeight = Math.min(220, Math.max(64, Number(gridConfig.image_frame_height) || 105));
+            var imageScale = Math.min(1.1, Math.max(.7, Number(gridConfig.image_scale) || 1));
             return {
                 type: 'pop',
                 id: String(c.id == null ? '' : c.id),
@@ -718,6 +722,8 @@
                 color: 'linear-gradient(145deg, #f97316 0%, #991b1b 100%)',
                 theme: theme,
                 layout: layout,
+                imageFrameHeight: imageFrameHeight,
+                imageScale: imageScale,
                 description: c.description || c.subtitle || 'Temukan promo produk pilihan dengan harga terbaik.',
                 items: items.map(function(item) {
                     return {
@@ -798,6 +804,8 @@
 
         function renderPopPreviewContent(c, target) {
             if (!target) return;
+            target.style.setProperty('--pk-pop-image-height', (Number(c.imageFrameHeight) || 105) + 'px');
+            target.style.setProperty('--pk-pop-image-scale', String(Number(c.imageScale) || 1));
             var imageStyle = c.heroUrl ? ' style="background-image:url(&quot;' + escapeHtml(c.heroUrl) + '&quot;);background-color:#f97316;"' : ' style="background:' + popThemeGradient(c.theme) + ';"';
             var items = c.items || [];
             target.innerHTML = '<div class="pk-pop-preview-card">'

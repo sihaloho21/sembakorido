@@ -39,3 +39,13 @@ The current source was strengthened for the Bento layout: product images are con
 The local server was restarted with the updated source and served `Cache-Control: no-cache, max-age=0, must-revalidate`. The local page served `catalog-promo-pop.js?v=20260825c`, six `.flyer-media-frame` references, and no `.flyer-item-image` reference. In the browser, **Bento Featured** rendered PSM Gula Pasir Kristal Putih Premium 1 kg and Minute Maid Pulpy Rasa Jeruk Botol 300 ml without visible cropping: the portrait sugar package remained fully visible in the enlarged first tile, while the beverage remained contained in the secondary tile.
 
 Console measurement after three products in local Bento preview: layout class `flyer-layout-bento`; frame 1 = 274 × 170 px with image 162 × 162 px, frames 2–3 = 124 × 82 px with images 74 × 74 px. All images computed as `object-fit: contain`; all frames computed as `overflow: visible`; every measured image stayed within its frame bounds.
+
+## Admin crop customization verification
+
+- The local builder exposes `Tinggi area gambar` and `Skala artwork` range controls.
+- Setting frame height to 180 px and artwork scale to 90% updated the output labels to `180 px` and `90%`.
+- The Bento preview received `--flyer-media-height: 180px` and `--flyer-image-scale: 0.9`.
+- Rendered product media used `object-fit: contain`; the measured frame was 274 × 180 px and the image was 155 × 155 px with `overflow: visible`.
+- Saved campaign serialization now stores `image_frame_height` and `image_scale` in `grid_config_json`; the public renderer reads these values with safe bounds.
+
+No campaign was saved or published during this test.
