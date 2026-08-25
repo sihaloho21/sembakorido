@@ -788,12 +788,13 @@
                 items: items.map(function(item) {
                     return {
                         id: String(item.id == null ? '' : item.id),
-                        name: item.name || item.title || 'Produk',
+                        name: item.brochure_name || item.display_name || item.name || item.title || 'Produk',
                         image: safeUrl(item.image || item.gambar),
-                        normalPrice: toNumber(item.normal_price == null ? item.price : item.normal_price),
-                        promoPrice: toNumber(item.promo_price == null ? item.price : item.promo_price),
+                        normalPrice: toNumber(item.brochure_normal_price == null ? (item.normal_price == null ? item.price : item.normal_price) : item.brochure_normal_price),
+                        promoPrice: toNumber(item.brochure_promo_price == null ? (item.promo_price == null ? item.price : item.promo_price) : item.brochure_promo_price),
                         unit: item.unit || item.satuan || '',
-                        badge: item.badge || ''
+                        badge: item.badge || '',
+                        offer: item.brochure_offer || item.display_offer || ''
                     };
                 }),
                 featured: false
@@ -882,6 +883,7 @@
                 + (items.length ? items.slice(0, Math.max(1, (Number(c.gridRows) || 4) * (Number(c.gridColumns) || 3))).map(function(item) {
                     var image = item.image ? '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy">' : '<span>POP</span>';
                     var normal = item.normalPrice > item.promoPrice ? '<div class="pk-pop-preview-normal">' + formatRupiah(item.normalPrice) + '</div>' : '';
+                    var brochureOffer = item.offer || (item.unit ? ('Harga spesial · ' + item.unit) : (item.badge || 'Promo terbatas'));
                     if ((c.layout || '') === 'retail-tile') {
                         var p = c.tilePositions || normalizeTilePositions();
                         return '<article class="pk-pop-preview-item"><div class="pk-pop-retail-tile">'
@@ -889,7 +891,7 @@
                             + '<div class="pk-pop-retail-name" style="' + tilePositionStyle(p, item.id, 'name') + '">' + escapeHtml(item.name) + '</div>'
                             + (normal ? '<div class="pk-pop-retail-normal" style="' + tilePositionStyle(p, item.id, 'normal') + '">' + formatRupiah(item.normalPrice) + '</div>' : '')
                             + '<div class="pk-pop-retail-price" style="' + tilePositionStyle(p, item.id, 'promo') + '">' + formatRupiah(item.promoPrice) + '</div>'
-                            + '<div class="pk-pop-retail-offer" style="' + tilePositionStyle(p, item.id, 'offer') + '">' + escapeHtml(item.unit ? ('Harga spesial · ' + item.unit) : (item.badge || 'Promo terbatas')) + '</div>'
+                            + '<div class="pk-pop-retail-offer" style="' + tilePositionStyle(p, item.id, 'offer') + '">' + escapeHtml(brochureOffer) + '</div>'
                             + '</div></article>';
                     }
                     return '<article class="pk-pop-preview-item"><div class="pk-pop-preview-image">' + image + '</div>'
