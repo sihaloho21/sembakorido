@@ -679,10 +679,18 @@
         preview.innerHTML = `<div class="flyer-preview-hero" ${hero ? `style="background-image:url('${escapeHtml(hero)}')"` : ''}><div class="flyer-overlay"></div><div class="relative z-10"><span class="flyer-kicker">🔥 ${escapeHtml(store).toUpperCase()}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(subtitle)}</p>${period ? `<span class="flyer-period">${escapeHtml(period)}</span>` : ''}</div></div><div class="flyer-preview-meta"><strong>${escapeHtml(badge)}</strong><span>${rows.length} produk promo</span></div><div class="flyer-preview-items">${productMarkup || '<div style="grid-column:1/-1;color:#94a3b8;font-size:11px;text-align:center;padding:28px 0;">Preview produk akan tampil di sini.</div>'}${featuredMarkup}</div>${serviceMarkup}${paymentMarkup}<div class="flyer-preview-footer"><div class="flyer-footer-left"><strong>${escapeHtml(store)}</strong><span>${escapeHtml(address || 'Informasi toko akan tampil di sini')}</span></div><div class="flyer-footer-right">${qrDataUrl ? `<img class="flyer-qr" src="${qrDataUrl}" alt="QR Code">` : ''}<span>Scan<br>untuk pesan</span></div></div>${disclaimerMarkup}`;
         bindTilePositionDrag();
         const size = $('promo-pop-preview-size');
-        if (size) size.textContent = `A4 ${$('promo-pop-orientation')?.value === 'landscape' ? 'Landscape' : 'Portrait'} · ${rows.length} produk`;
+        if (size) size.textContent = `A4 Portrait · 210 × 297 mm · ${rows.length} produk`;
+    }
+
+    function enforceA4Portrait() {
+        const paper = $('promo-pop-paper');
+        const orientation = $('promo-pop-orientation');
+        if (paper) paper.value = 'A4';
+        if (orientation) orientation.value = 'portrait';
     }
 
     function collectFormData() {
+        enforceA4Portrait();
         const rows = selectedProductRows();
         const title = String($('promo-pop-title')?.value || '').trim();
         return {
@@ -759,8 +767,7 @@
         if (rowsField) rowsField.value = Math.min(8, Math.max(1, Number(gridConfig.rows) || 4));
         if (columnsField) columnsField.value = Math.min(6, Math.max(1, Number(gridConfig.columns) || 3));
         state.tilePositions = normalizeTilePositions(gridConfig.tile_positions);
-        $('promo-pop-paper').value = campaign.paper_size || 'A4';
-        $('promo-pop-orientation').value = campaign.orientation || 'portrait';
+        enforceA4Portrait();
         state.templateId = campaign.template_id || 'promo-grid';
         $('promo-pop-store').value = campaign.store_name || '';
         $('promo-pop-badge').value = campaign.badge_text || '';
@@ -828,6 +835,7 @@
         state.layoutClipboard = '';
         state.featuredIds.clear();
         $('promo-pop-form')?.reset();
+        enforceA4Portrait();
         const heroPreview = $('promo-pop-hero-preview');
         if (heroPreview) { heroPreview.src = ''; heroPreview.style.display = 'none'; }
         state.selectedItems.clear();
