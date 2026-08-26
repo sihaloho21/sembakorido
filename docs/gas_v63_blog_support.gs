@@ -214,7 +214,7 @@ const SCHEMA_REQUIREMENTS = {
     'show_watermark', 'watermark_text', 'show_qr_code', 'banner_config_json',
     'grid_config_json',
     'brochure_name', 'paper_size', 'orientation', 'template_id', 'store_address', 'banner_url',
-    'disclaimer_text', 'show_service', 'show_payment', 'show_disclaimer'
+    'disclaimer_text', 'show_service', 'ppob_wallets_json', 'show_payment', 'show_disclaimer'
   ],
   notification_reads: [
     'id', 'notification_id', 'phone', 'read_at', 'created_at', 'updated_at'

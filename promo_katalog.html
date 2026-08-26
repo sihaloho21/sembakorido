@@ -380,7 +380,17 @@
         .pk-pop-cover-items { color: rgba(255,255,255,.86); font-size: .7rem; font-weight: 700; }
         .pk-pop-no-link { cursor: default; }
         .pk-pop-preview { height: 100%; overflow: auto; padding: 1rem; background: #f3f4f6; }
-        .pk-pop-preview-card { max-width: 760px; margin: 0 auto; overflow: hidden; border-radius: 1rem; background: white; box-shadow: 0 8px 30px rgba(15,23,42,.12); }
+        .pk-pop-preview-card { position:relative; width:min(100%, 760px); aspect-ratio:210 / 297; min-height:0; margin:0 auto; overflow:hidden; border-radius:1rem; background:white; box-shadow:0 8px 30px rgba(15,23,42,.12); padding:4mm; }
+        .pk-pop-safe-area { position:relative; width:100%; height:100%; min-height:0; overflow:hidden; background:#fff; }
+        .pk-pop-preview-card .pk-pop-preview-hero { min-height:22%; }
+        .pk-pop-preview-card .pk-pop-preview-items { min-height:0; }
+        .pk-pop-service { padding:.55rem 1rem; border-top:1px solid #eef2f7; color:#334155; font-size:.68rem; line-height:1.45; text-align:center; }
+        .pk-pop-wallets { display:flex; flex-wrap:wrap; justify-content:center; gap:.35rem; margin-top:.4rem; }
+        .pk-pop-wallet { display:inline-flex; align-items:center; gap:.25rem; padding:.18rem .42rem; border:1px solid #e2e8f0; border-radius:999px; background:#f8fafc; color:#475569; font-size:.58rem; font-weight:800; }
+        .pk-pop-wallet-icon { display:inline-grid; place-items:center; width:16px; height:16px; border-radius:50%; color:#fff; font-size:.55rem; font-weight:900; }
+        .pk-pop-wallet-icon.dana { background:#1685f8; } .pk-pop-wallet-icon.gopay { background:#00a9e0; } .pk-pop-wallet-icon.ovo { background:#4c1d95; } .pk-pop-wallet-icon.shopeepay { background:#ee4d2d; } .pk-pop-wallet-icon.linkaja { background:#ef4444; }
+        .pk-pop-watermark { position:absolute; left:50%; top:50%; z-index:5; transform:translate(-50%,-50%) rotate(-28deg); color:rgba(15,23,42,.12); font-size:clamp(1.1rem,4vw,2.5rem); font-weight:900; letter-spacing:.12em; line-height:1; pointer-events:none; white-space:nowrap; text-transform:uppercase; }
+        .pk-pop-disclaimer { padding:.45rem 1rem; color:#94a3b8; font-size:.58rem; line-height:1.35; text-align:center; }
         .pk-pop-preview-hero { min-height: 190px; display: flex; align-items: flex-end; padding: 1.5rem; color: white; background-position: center; background-size: cover; position: relative; }
         .pk-pop-preview-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15,23,42,.04), rgba(15,23,42,.76)); }
         .pk-pop-preview-hero-content { position: relative; z-index: 1; }
@@ -690,6 +700,26 @@
             }
         }
 
+        var PPOB_WALLETS = [
+            { id:'dana', label:'DANA', initial:'D' },
+            { id:'gopay', label:'GoPay', initial:'G' },
+            { id:'ovo', label:'OVO', initial:'O' },
+            { id:'shopeepay', label:'ShopeePay', initial:'S' },
+            { id:'linkaja', label:'LinkAja', initial:'L' }
+        ];
+        function parseBoolean(value, fallback) {
+            if (value == null || value === '') return fallback;
+            return String(value).toLowerCase() !== 'false';
+        }
+        function renderPublicWallets(walletIds) {
+            var selected = new Set(parseItems(walletIds).map(function(item) { return String(item || '').toLowerCase(); }));
+            var wallets = PPOB_WALLETS.filter(function(wallet) { return selected.has(wallet.id); });
+            if (!wallets.length) return '';
+            return '<div class="pk-pop-wallets" aria-label="E-wallet tersedia">' + wallets.map(function(wallet) {
+                return '<span class="pk-pop-wallet"><span class="pk-pop-wallet-icon ' + wallet.id + '">' + wallet.initial + '</span>' + escapeHtml(wallet.label) + '</span>';
+            }).join('') + '</div>';
+        }
+
         async function fetchPublicSheet(sheetName) {
             var apiUrl = (typeof CONFIG !== 'undefined' && CONFIG.getMainApiUrl) ? CONFIG.getMainApiUrl() : '';
             if (!apiUrl) throw new Error('API URL tidak tersedia');
@@ -798,6 +828,13 @@
                 gridRows: gridRows,
                 gridColumns: gridColumns,
                 tilePositions: normalizeTilePositions(gridConfig.tile_positions),
+                showService: parseBoolean(c.show_service, true),
+                showPayment: parseBoolean(c.show_payment, true),
+                showDisclaimer: parseBoolean(c.show_disclaimer, true),
+                showWatermark: parseBoolean(c.show_watermark, false),
+                watermarkText: String(c.watermark_text || 'PaketSembako.com').trim() || 'PaketSembako.com',
+                ppobWallets: parseItems(c.ppob_wallets_json),
+                disclaimerText: String(c.disclaimer_text || '').trim(),
                 description: c.description || c.subtitle || 'Temukan promo produk pilihan dengan harga terbaik.',
                 items: items.map(function(item) {
                     return {
@@ -885,7 +922,7 @@
             target.style.setProperty('--pk-pop-grid-columns', String(Number(c.gridColumns) || 3));
             var imageStyle = c.heroUrl ? ' style="background-image:url(&quot;' + escapeHtml(c.heroUrl) + '&quot;);background-color:#f97316;"' : ' style="background:' + popThemeGradient(c.theme) + ';"';
             var items = c.items || [];
-            target.innerHTML = '<div class="pk-pop-preview-card pk-pop-layout-' + escapeHtml(c.layout || 'auto') + '">'
+            target.innerHTML = '<div class="pk-pop-preview-card pk-pop-layout-' + escapeHtml(c.layout || 'auto') + '"><div class="pk-pop-safe-area">'
                 + '<div class="pk-pop-preview-hero"' + imageStyle + '><div class="pk-pop-preview-hero-content">'
                 + '<div class="pk-pop-cover-kicker">' + escapeHtml(c.storeName) + '</div>'
                 + '<h3>' + escapeHtml(c.title) + '</h3>'
@@ -895,7 +932,7 @@
                 + '<div class="pk-pop-preview-meta"><span class="pk-pop-preview-badge">' + escapeHtml(c.badge) + '</span><span>' + items.length + ' produk promo</span></div>'
                 + '<div class="pk-pop-preview-items">'
                 + (items.length ? items.slice(0, Math.max(1, (Number(c.gridRows) || 4) * (Number(c.gridColumns) || 3))).map(function(item) {
-                    var image = item.image ? '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy">' : '<span>POP</span>';
+                    var image = item.image ? '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy" data-fallback-src="https://placehold.co/300x300?text=Produk">' : '<span>POP</span>';
                     var normal = item.normalPrice > item.promoPrice ? '<div class="pk-pop-preview-normal">' + formatStrikePrice(item.normalPrice) + '</div>' : '';
                     var brochureOffer = item.offer || (item.unit ? ('Harga spesial · ' + item.unit) : (item.badge || 'Promo terbatas'));
                     if ((c.layout || '') === 'retail-tile') {
@@ -916,8 +953,12 @@
                         + '</article>';
                 }).join('') : '<div class="text-sm text-slate-500" style="grid-column:1/-1;text-align:center;padding:2rem 0;">Detail produk belum tersedia.</div>')
                 + '</div>'
+                + (c.showService ? '<div class="pk-pop-service"><strong>MELAYANI TOP UP DIGITAL &amp; PPOB</strong><br>Pulsa · Paket Data · Token PLN · E-Wallet · Bayar Tagihan' + renderPublicWallets(c.ppobWallets) + '</div>' : '')
+                + (c.showPayment ? '<div class="pk-pop-preview-footer"><span>Pembayaran: QRIS · GoPay · DANA · OVO · Transfer Bank</span></div>' : '')
                 + (c.footerNote || c.qrUrl ? '<div class="pk-pop-preview-footer"><span>' + escapeHtml(c.footerNote || 'Stok terbatas. Syarat dan ketentuan berlaku.') + '</span>' + (c.qrUrl ? '<a href="' + escapeHtml(c.qrUrl) + '" target="_blank" rel="noopener noreferrer">Buka katalog promo</a>' : '') + '</div>' : '')
-                + '</div>';
+                + (c.showDisclaimer && c.disclaimerText ? '<div class="pk-pop-disclaimer">' + escapeHtml(c.disclaimerText) + '</div>' : '')
+                + (c.showWatermark ? '<span class="pk-pop-watermark">' + escapeHtml(c.watermarkText) + '</span>' : '')
+                + '</div></div>';
         }
 
         // ===== RENDER FEATURED =====
