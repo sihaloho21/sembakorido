@@ -20,7 +20,18 @@
         heroDataUrl: '',
         previewZoom: 1,
         tilePositions: { __default: { image: { x: 50, y: 24, scale: 1 }, name: { x: 50, y: 73, scale: 1 }, normal: { x: 78, y: 65, scale: 1 }, promo: { x: 50, y: 86, scale: 1 }, offer: { x: 50, y: 96, scale: 1 } } },
-        layoutClipboard: ''
+        layoutClipboard: '',
+        governance: {
+            actor: '',
+            role: '',
+            permissions: {},
+            policies: [],
+            campaignPolicyId: '',
+            policy: { id: 'implicit-default', minimum_price: 0, minimum_margin_percent: 0, mode: 'warning', status: 'active' },
+            roleEnforce: true,
+            requireApproval: false,
+            loaded: false
+        }
     };
 
     const $ = (id) => document.getElementById(id);
@@ -34,6 +45,50 @@
             : tone === 'success'
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 : 'bg-slate-50 text-slate-600 border border-slate-200');
+    }
+
+    function hasPromoPermission(permission) {
+        if (!state.governance.loaded || !state.governance.roleEnforce) return true;
+        return state.governance.permissions && state.governance.permissions[permission] === true;
+    }
+
+    function requirePromoPermission(permission, message) {
+        if (hasPromoPermission(permission)) return true;
+        setStatus(message || `Akses ditolak. Permission ${permission} diperlukan.`, 'error');
+        return false;
+    }
+
+    function applyGovernanceUiState() {
+        if (!state.governance.loaded) return;
+        const canWrite = hasPromoPermission('promo.write');
+        const canPublish = hasPromoPermission('promo.publish');
+        document.body.dataset.promoRole = state.governance.role || 'unknown';
+        document.body.dataset.promoRoleEnforce = state.governance.roleEnforce ? 'true' : 'false';
+        document.querySelectorAll('#promo-pop-form input, #promo-pop-form select, #promo-pop-form textarea, #promo-pop-form button[type="submit"], #promo-pop-save-top, #promo-pop-new').forEach((element) => {
+            element.disabled = state.governance.roleEnforce && !canWrite;
+        });
+        document.querySelectorAll('[data-promo-price],[data-promo-badge],[data-select-product],[data-brochure-name],[data-brochure-normal],[data-brochure-promo],[data-brochure-offer],[data-feature-product],[data-copy-layout],[data-paste-layout],[data-remove-product]').forEach((element) => {
+            element.disabled = state.governance.roleEnforce && !canWrite;
+        });
+        document.querySelectorAll('[data-toggle-campaign]').forEach((element) => {
+            element.disabled = state.governance.roleEnforce && !canPublish;
+        });
+        document.querySelectorAll('[data-delete-campaign],[data-edit-campaign]').forEach((element) => {
+            element.disabled = state.governance.roleEnforce && !canWrite;
+        });
+    }
+
+    function governanceErrorMessage(error, fallback) {
+        const code = String(error?.code || error?.payload?.error || error?.message || '').trim();
+        const payload = error?.payload || {};
+        if (code === 'PRICE_BELOW_MINIMUM') {
+            const violations = Array.isArray(payload.violations) ? payload.violations : [];
+            const first = violations[0];
+            return `${payload.message || 'Harga promo berada di bawah minimum price policy.'}${first?.product_name ? ` Produk: ${first.product_name}.` : ''}${first?.minimum_allowed ? ` Minimal ${formatCurrency(first.minimum_allowed)}.` : ''}`;
+        }
+        if (code === 'PROMO_APPROVAL_REQUIRED') return payload.message || 'Campaign harus disetujui terlebih dahulu sebelum dipublikasikan.';
+        if (/unauthorized|permission denied|forbidden/i.test(code)) return 'Akses ditolak oleh kebijakan role backend.';
+        return apiErrorMessage({ error: code, message: payload.message || error?.message }, fallback);
     }
 
     function escapeHtml(value) {
@@ -90,6 +145,8 @@
             brand: String(row.brand || row.merek || '').trim(),
             sku: String(row.sku || row.kode || row.productId || row.id || '').trim(),
             stock: Number(row.stok ?? row.stock ?? row.qty ?? 0) || 0,
+            cost_price: numericPrice(row.cost_price ?? row.hpp ?? row.cost ?? row.buy_price ?? row.modal),
+            minimum_price: numericPrice(row.minimum_price ?? row.min_price),
             bestSeller: row.best_seller === true || String(row.best_seller || row.bestSeller || '').toLowerCase() === 'true'
         };
     }
@@ -106,6 +163,102 @@
     function formatStrikePrice(value) {
         const amount = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(value) || 0);
         return `<del class="strike-price">${escapeHtml(amount)}</del>`;
+    }
+
+    function numericPrice(value) {
+        const parsed = Number(String(value ?? '').replace(/[^0-9.-]/g, ''));
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function activeMinimumPricePolicy(item) {
+        const policies = Array.isArray(state.governance.policies) ? state.governance.policies.filter((policy) => String(policy.status || 'active').toLowerCase() !== 'disabled') : [];
+        const campaignPolicyId = String($('promo-pop-minimum-price-policy')?.value || state.governance.campaignPolicyId || '').trim();
+        const itemId = String(item?.product_id || item?.id || item?.sku || '').trim();
+        const categoryId = String(item?.category_id || item?.category || '').trim();
+        return (campaignPolicyId && policies.find((policy) => String(policy.id || '') === campaignPolicyId))
+            || policies.find((policy) => String(policy.scope || '').toLowerCase() === 'product' && String(policy.scope_key || '') === itemId)
+            || policies.find((policy) => String(policy.scope || '').toLowerCase() === 'category' && String(policy.scope_key || '') === categoryId)
+            || policies.find((policy) => String(policy.scope || '').toLowerCase() === 'global' || !String(policy.scope || '').trim())
+            || state.governance.policy
+            || { id: 'implicit-default', minimum_price: 0, minimum_margin_percent: 0, mode: 'warning', status: 'active' };
+    }
+
+    function minimumPriceForItem(item) {
+        const policy = activeMinimumPricePolicy(item);
+        const explicitFloor = Math.max(numericPrice(item?.minimum_price ?? item?.min_price), numericPrice(policy.minimum_price));
+        const cost = numericPrice(item?.cost_price ?? item?.hpp ?? item?.cost ?? item?.buy_price ?? item?.modal);
+        const marginPct = Math.max(0, numericPrice(policy.minimum_margin_percent));
+        const marginFloor = cost > 0 ? cost * (1 + marginPct / 100) : 0;
+        return { minimum: Math.max(explicitFloor, marginFloor), policy, cost, marginPercent: marginPct };
+    }
+
+    function priceViolationForItem(item, promoValue) {
+        const pricing = minimumPriceForItem(item);
+        const promo = numericPrice(promoValue);
+        if (promo <= 0 || pricing.minimum <= 0 || promo >= pricing.minimum) return null;
+        return {
+            id: String(item?.id || ''),
+            name: brochureName(item),
+            promo,
+            minimum: Math.ceil(pricing.minimum),
+            mode: String(pricing.policy.mode || 'warning').toLowerCase(),
+            policyId: String(pricing.policy.id || '')
+        };
+    }
+
+    function validateMinimumPrices(items = selectedProductRows(), options = {}) {
+        const violations = [];
+        const warnings = [];
+        (items || []).forEach((item) => {
+            const violation = priceViolationForItem(item, brochurePromoPrice(item));
+            if (!violation) return;
+            if (violation.mode === 'strict') violations.push(violation);
+            else warnings.push(violation);
+        });
+        if (violations.length && options.showStatus !== false) {
+            const first = violations[0];
+            setStatus(`${violations.length} produk berada di bawah minimum harga${first?.name ? `: ${first.name}` : ''}. Harga minimal ${formatCurrency(first.minimum)}.`, 'error');
+        } else if (warnings.length && options.showWarning) {
+            setStatus(`${warnings.length} produk berada di bawah minimum harga (mode warning).`, 'info');
+        }
+        return { violations, warnings, valid: violations.length === 0 };
+    }
+
+    function enforceItemMinimumPrice(item, proposedPromo, input, previousPromo) {
+        const violation = priceViolationForItem(item, proposedPromo);
+        if (!violation || violation.mode !== 'strict') return true;
+        const previous = numericPrice(previousPromo);
+        item.brochure_promo_price = previous;
+        item.promo_price = previous;
+        if (input) input.value = String(previous);
+        setStatus(`Harga ${brochureName(item)} tidak boleh di bawah ${formatCurrency(violation.minimum)}.`, 'error');
+        return false;
+    }
+
+    async function loadGovernanceContext(campaignId = '') {
+        if (!window.GASActions?.getPromoGovernanceContext) return null;
+        try {
+            const response = await GASActions.getPromoGovernanceContext(campaignId);
+            const context = response?.context || response?.data || response || {};
+            state.governance = {
+                ...state.governance,
+                actor: String(context.actor?.id || context.actor?.actor || context.actor_id || (typeof context.actor === 'string' ? context.actor : '') || ''),
+                role: String(context.actor?.role || context.role || GASActions.getAdminRole?.() || ''),
+                permissions: context.permissions || {},
+                policies: Array.isArray(context.policies) ? context.policies : [],
+                campaignPolicyId: String(context.campaign_policy_id || state.governance.campaignPolicyId || '').trim(),
+                policy: context.policy || context.minimum_price_policy || (Array.isArray(context.policies) ? (context.policies.find((policy) => String(policy.scope || '').toLowerCase() === 'global' || !String(policy.scope || '').trim()) || state.governance.policy) : state.governance.policy),
+                roleEnforce: context.role_enforce !== false,
+                requireApproval: context.require_approval === true || String(context.require_approval || '').toLowerCase() === 'true',
+                loaded: true
+            };
+            applyGovernanceUiState();
+            return state.governance;
+        } catch (error) {
+            console.warn('Governance context belum tersedia:', error);
+            state.governance.loaded = false;
+            return null;
+        }
     }
 
     function getSelectedPpobWallets() {
@@ -495,6 +648,7 @@
                 </div>
             </div>`;
         }).join('');
+        applyGovernanceUiState();
     }
 
     function parseJsonArray(value, depth = 0) {
@@ -541,6 +695,9 @@
             brand: String(raw.brand || source.brand || '').trim(),
             sku: String(raw.sku || source.sku || '').trim(),
             stock: Number(raw.stock ?? raw.stok ?? source.stock ?? 0) || 0,
+            category: String(raw.category || raw.kategori || source.category || '').trim(),
+            cost_price: numericPrice(raw.cost_price ?? raw.hpp ?? raw.cost ?? raw.buy_price ?? raw.modal ?? source.cost_price ?? source.hpp ?? source.cost),
+            minimum_price: numericPrice(raw.minimum_price ?? raw.min_price ?? source.minimum_price ?? source.min_price),
             normal_price: normal,
             promo_price: promo,
             brochure_name: String(raw.brochure_name ?? raw.display_name ?? raw.name ?? raw.product_name ?? raw.productName ?? source.name ?? 'Produk').trim(),
@@ -553,10 +710,18 @@
 
     function restoreCampaignItems(campaign) {
         const items = parseCampaignItems(campaign);
+        const normalizedItems = items.map((item, index) => normalizeCampaignItem(item, index));
+        const priceCheck = validateMinimumPrices(normalizedItems, { showStatus: false });
+        if (!priceCheck.valid) {
+            const error = new Error('PRICE_BELOW_MINIMUM');
+            error.code = 'PRICE_BELOW_MINIMUM';
+            error.payload = { error: 'PRICE_BELOW_MINIMUM', operation: 'restore', violations: priceCheck.violations, warnings: priceCheck.warnings };
+            throw error;
+        }
         state.selectedItems = new Map();
         state.featuredIds = new Set();
-        items.forEach((item, index) => {
-            const normalized = normalizeCampaignItem(item, index);
+        normalizedItems.forEach((normalized, index) => {
+            const item = items[index] || {};
             state.selectedItems.set(String(normalized.id), normalized);
             if (item?.is_featured === true || String(item?.is_featured || '').toLowerCase() === 'true') state.featuredIds.add(String(normalized.id));
         });
@@ -576,20 +741,31 @@
     }
 
     function applyBulkPricing(type, value) {
+        if (!requirePromoPermission('promo.write', 'Anda tidak memiliki akses untuk mengubah campaign.')) return;
         const selected = selectedProducts();
         const amount = Number(value);
         if (!selected.length) return setBulkResult('Pilih minimal satu produk.', true);
         if (!Number.isFinite(amount) || amount < 0) return setBulkResult('Nilai diskon tidak valid.', true);
         const prefix = String($('promo-pop-bulk-badge')?.value || 'DISKON').trim().toUpperCase();
-        selected.forEach((item) => {
+        const changes = selected.map((item) => {
             const normal = Number(item.normal_price) || 0;
             const discountPct = type === 'fixed'
                 ? clampDiscount((amount / Math.max(normal, 1)) * 100)
                 : clampDiscount(amount);
-            item.promo_price = type === 'fixed' ? Math.max(0, Math.round(normal - amount)) : promoPriceFromDiscount(normal, discountPct);
-            item.brochure_promo_price = item.promo_price;
-            item.badge = prefix ? `${prefix} ${type === 'fixed' ? formatCurrency(amount) : discountPct + '%'}` : '';
+            const promo = type === 'fixed' ? Math.max(0, Math.round(normal - amount)) : promoPriceFromDiscount(normal, discountPct);
+            return { item, promo, badge: prefix ? `${prefix} ${type === 'fixed' ? formatCurrency(amount) : discountPct + '%'}` : '' };
         });
+        const priceCheck = validateMinimumPrices(changes.map(({ item, promo }) => ({ ...item, brochure_promo_price: promo })), { showStatus: false });
+        if (!priceCheck.valid) {
+            const names = priceCheck.violations.slice(0, 3).map((violation) => violation.name).join(', ');
+            return setBulkResult(`Bulk dibatalkan: ${priceCheck.violations.length} produk di bawah minimum${names ? ` (${names})` : ''}.`, true);
+        }
+        changes.forEach(({ item, promo, badge }) => {
+            item.promo_price = promo;
+            item.brochure_promo_price = promo;
+            item.badge = badge;
+        });
+        if (priceCheck.warnings.length) setStatus(`${priceCheck.warnings.length} produk berada di bawah minimum harga (mode warning).`, 'info');
         renderProductPicker();
         renderSelectedItems();
         renderPreview();
@@ -597,7 +773,10 @@
     }
 
     function resetBulkPricing() {
+        if (!requirePromoPermission('promo.write', 'Anda tidak memiliki akses untuk mengubah campaign.')) return;
         const selected = selectedProducts();
+        const priceCheck = validateMinimumPrices(selected.map((item) => ({ ...item, brochure_promo_price: Number(item.normal_price) || 0 })), { showStatus: false });
+        if (!priceCheck.valid) return setBulkResult(`Reset dibatalkan: ${priceCheck.violations.length} produk berada di bawah minimum harga.`, true);
         selected.forEach((item) => { item.promo_price = Number(item.normal_price) || 0; item.brochure_promo_price = item.promo_price; item.badge = ''; });
         renderProductPicker();
         renderSelectedItems();
@@ -635,6 +814,7 @@
                 <div class="selected-product-actions"><strong style="color:#ea580c;font-size:12px;">${formatCurrency(brochurePromoPrice(item))}</strong><button type="button" class="${isFeatured ? 'is-featured' : ''}" data-feature-product="${escapeHtml(item.id)}">${isFeatured ? '★ Unggulan' : '☆ Featured'}</button><button type="button" data-copy-layout="${escapeHtml(item.id)}">Salin layout</button>${state.layoutClipboard && state.layoutClipboard !== String(item.id) ? `<button type="button" data-paste-layout="${escapeHtml(item.id)}">Tempel layout</button>` : ''}<button type="button" data-remove-product="${escapeHtml(item.id)}">Hapus</button></div>
             </div>`;
         }).join('');
+        applyGovernanceUiState();
     }
 
     function getCropSettings() {
@@ -819,6 +999,9 @@
                 brochure_offer: brochureOffer(item),
                 unit: item.unit || '',
                 badge: item.badge || '',
+                cost_price: numericPrice(item.cost_price ?? item.hpp ?? item.cost ?? item.buy_price ?? item.modal),
+                minimum_price: numericPrice(item.minimum_price ?? item.min_price),
+                category: item.category || '',
                 is_featured: state.featuredIds.has(String(item.id)),
                 sort_order: rows.indexOf(item)
             }))),
@@ -836,6 +1019,8 @@
             watermark_text: String($('promo-pop-watermark-text')?.value || '').trim(),
             show_qr_code: $('promo-pop-qr')?.value ? 'true' : 'false',
             qr_url: String($('promo-pop-qr')?.value || '').trim(),
+            minimum_price_policy_id: String($('promo-pop-minimum-price-policy')?.value || state.governance.campaignPolicyId || '').trim(),
+            request_id: `pop-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
             banner_config_json: JSON.stringify({ top: String($('promo-pop-top-banner')?.value || '').trim(), bottom: String($('promo-pop-bottom-banner')?.value || '').trim() }),
             grid_config_json: JSON.stringify({ layout: String($('promo-pop-layout')?.value || 'auto').trim(), rows: getGridSettings().rows, columns: getGridSettings().columns, image_frame_height: getCropSettings().frame, image_scale: getCropSettings().scale, tile_positions: normalizeTilePositions(state.tilePositions) }),
             created_by: GASActions.getAdminRole() || 'admin',
@@ -846,6 +1031,7 @@
     function fillForm(campaign) {
         if (!campaign) return;
         state.editingId = String(campaign.id || '');
+        state.governance.campaignPolicyId = String(campaign.minimum_price_policy_id || '').trim();
         setFormStatusBadge(campaignStatus(campaign));
         $('promo-pop-title').value = campaign.title || '';
         $('promo-pop-slug').value = campaign.slug || '';
@@ -913,12 +1099,16 @@
         if (items.length && !restoredCount) {
             setTimeout(() => {
                 if (state.editingId !== String(campaign.id || '')) return;
-                restoreCampaignItems(campaign);
-                renderProductPicker();
-                renderSelectedItems();
-                renderPreview();
-                const deferredCount = selectedProductRows().length;
-                setStatus(deferredCount ? `Mode edit aktif: ${deferredCount} produk dipulihkan dari campaign.` : 'Item campaign belum dapat dipulihkan. Periksa response API.', deferredCount ? 'success' : 'error');
+                try {
+                    restoreCampaignItems(campaign);
+                    renderProductPicker();
+                    renderSelectedItems();
+                    renderPreview();
+                    const deferredCount = selectedProductRows().length;
+                    setStatus(deferredCount ? `Mode edit aktif: ${deferredCount} produk dipulihkan dari campaign.` : 'Item campaign belum dapat dipulihkan. Periksa response API.', deferredCount ? 'success' : 'error');
+                } catch (error) {
+                    setStatus(governanceErrorMessage(error, 'Item campaign gagal dipulihkan karena kebijakan harga minimum.'), 'error');
+                }
             }, 0);
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -926,6 +1116,7 @@
 
     function resetForm() {
         state.editingId = '';
+        state.governance.campaignPolicyId = '';
         setFormStatusBadge('draft');
         state.templateId = 'promo-grid';
         state.heroDataUrl = '';
@@ -955,17 +1146,24 @@
         container.innerHTML = state.campaigns.map((campaign) => {
             const status = campaignStatus(campaign);
             const items = parseCampaignItems(campaign);
+            const canWrite = hasPromoPermission('promo.write');
+            const canPublish = hasPromoPermission('promo.publish');
             return `<article class="campaign-row">
                 <div class="campaign-color theme-${escapeHtml(campaign.theme || 'orange')}"></div>
                 <div class="campaign-main"><h4>${escapeHtml(campaign.title || 'Tanpa judul')}</h4><p>${items.length} produk · ${escapeHtml(campaign.start_at || 'Tanpa mulai')} — ${escapeHtml(campaign.end_at || 'Tanpa akhir')}</p></div>
-                <span class="status-badge status-${escapeHtml(status)}">${status === 'published' ? 'Published' : status === 'expired' ? 'Expired' : 'Draft'}</span><div class="campaign-actions"><button type="button" class="small-action" data-edit-campaign="${escapeHtml(campaign.id)}">Edit</button>${status !== 'expired' ? `<button type="button" class="small-action ${status === 'published' ? 'warning' : 'success'}" data-toggle-campaign="${escapeHtml(campaign.id)}" data-campaign-status="${escapeHtml(status)}">${status === 'published' ? 'Unpublish' : 'Publish'}</button>` : ''}<button type="button" class="small-action danger" data-delete-campaign="${escapeHtml(campaign.id)}">Hapus</button></div>
+                <span class="status-badge status-${escapeHtml(status)}">${status === 'published' ? 'Published' : status === 'expired' ? 'Expired' : 'Draft'}</span><div class="campaign-actions"><button type="button" class="small-action" data-edit-campaign="${escapeHtml(campaign.id)}"${canWrite ? '' : ' disabled'}>Edit</button>${status !== 'expired' ? `<button type="button" class="small-action ${status === 'published' ? 'warning' : 'success'}" data-toggle-campaign="${escapeHtml(campaign.id)}" data-campaign-status="${escapeHtml(status)}"${canPublish ? '' : ' disabled'}>${status === 'published' ? 'Unpublish' : 'Publish'}</button>` : ''}<button type="button" class="small-action danger" data-delete-campaign="${escapeHtml(campaign.id)}"${canWrite ? '' : ' disabled'}>Hapus</button></div>
             </article>`;
         }).join('');
+        applyGovernanceUiState();
     }
 
     async function saveCampaign(event) {
         event.preventDefault();
         if (state.busy) return;
+        if (!requirePromoPermission('promo.write', 'Anda tidak memiliki akses untuk menyimpan campaign.')) return;
+        syncBrochureFieldsFromDom();
+        const priceCheck = validateMinimumPrices(selectedProductRows(), { showStatus: true, showWarning: true });
+        if (!priceCheck.valid) return;
         const data = collectFormData();
         if (!data.title) return setStatus('Judul campaign wajib diisi.', 'error');
         const rowsWithHigherPromo = selectedProductRows().filter(item => Number(item.promo_price || 0) > Number(item.normal_price || 0));
@@ -973,16 +1171,18 @@
         if (rowsWithHigherPromo.length && !window.confirm(`Ada ${rowsWithHigherPromo.length} produk dengan harga promo lebih tinggi daripada harga normal. Tetap simpan?`)) return;
         state.busy = true;
         try {
+            let result;
             if (state.editingId) {
-                await GASActions.update(SHEET, state.editingId, data);
+                result = await GASActions.update(SHEET, state.editingId, data);
             } else {
-                await GASActions.create(SHEET, data);
+                result = await GASActions.create(SHEET, data);
             }
-            setStatus('Campaign POP tersimpan sebagai draft.', 'success');
+            if (result?.warnings?.length) setStatus(`Draft tersimpan dengan ${result.warnings.length} peringatan minimum harga (mode warning).`, 'info');
+            else setStatus('Campaign POP tersimpan sebagai draft.', 'success');
             resetForm();
             await fetchCampaigns();
         } catch (error) {
-            setStatus(apiErrorMessage({ error: error.message }, 'Gagal menyimpan campaign.'), 'error');
+            setStatus(governanceErrorMessage(error, 'Gagal menyimpan campaign.'), 'error');
         } finally {
             state.busy = false;
         }
@@ -990,26 +1190,29 @@
 
     async function toggleCampaign(id, currentStatus) {
         if (state.busy) return;
+        if (!requirePromoPermission('promo.publish', 'Anda tidak memiliki akses untuk publish campaign.')) return;
         state.busy = true;
         try {
-            await GASActions.post({ action: currentStatus === 'published' ? 'promo_flyer_unpublish' : 'promo_flyer_publish', sheet: SHEET, id, data: { id, actor: GASActions.getAdminRole() || 'admin' } });
-            setStatus(currentStatus === 'published' ? 'Campaign di-unpublish.' : 'Campaign berhasil dipublikasikan.', 'success');
+            const result = await GASActions.post({ action: currentStatus === 'published' ? 'promo_flyer_unpublish' : 'promo_flyer_publish', sheet: SHEET, id, data: { id, actor: GASActions.getAdminRole() || 'admin', actor_role: state.governance.role || GASActions.getAdminRole() || 'admin' } });
+            if (result?.warnings?.length) setStatus(`Campaign diproses dengan ${result.warnings.length} peringatan minimum harga.`, 'info');
+            else setStatus(currentStatus === 'published' ? 'Campaign di-unpublish.' : 'Campaign berhasil dipublikasikan.', 'success');
             await fetchCampaigns();
         } catch (error) {
-            setStatus(apiErrorMessage({ error: error.message }, 'Gagal mengubah status campaign.'), 'error');
+            setStatus(governanceErrorMessage(error, 'Gagal mengubah status campaign.'), 'error');
         } finally {
             state.busy = false;
         }
     }
 
     async function deleteCampaign(id) {
+        if (!requirePromoPermission('promo.write', 'Anda tidak memiliki akses untuk menghapus campaign.')) return;
         if (!window.confirm('Hapus campaign POP ini?')) return;
         try {
             await GASActions.delete(SHEET, id);
             setStatus('Campaign dihapus.', 'success');
             await fetchCampaigns();
         } catch (error) {
-            setStatus(apiErrorMessage({ error: error.message }, 'Gagal menghapus campaign.'), 'error');
+            setStatus(governanceErrorMessage(error, 'Gagal menghapus campaign.'), 'error');
         }
     }
 
@@ -1019,7 +1222,13 @@
             if (!item) return;
             if (input.hasAttribute('data-brochure-name')) item.brochure_name = String(input.value || '').trim();
             if (input.hasAttribute('data-brochure-normal')) item.brochure_normal_price = Number(input.value) || 0;
-            if (input.hasAttribute('data-brochure-promo')) { item.brochure_promo_price = Number(input.value) || 0; item.promo_price = item.brochure_promo_price; }
+            if (input.hasAttribute('data-brochure-promo')) {
+                const previousPromo = brochurePromoPrice(item);
+                const proposedPromo = Number(input.value) || 0;
+                item.brochure_promo_price = proposedPromo;
+                item.promo_price = proposedPromo;
+                enforceItemMinimumPrice(item, proposedPromo, input, previousPromo);
+            }
             if (input.hasAttribute('data-brochure-offer')) item.brochure_offer = String(input.value || '').trim();
         });
     }
@@ -1096,6 +1305,7 @@
         $('promo-pop-product-list')?.addEventListener('click', (event) => {
             const button = event.target.closest('[data-select-product]');
             if (!button) return;
+            if (!requirePromoPermission('promo.write', 'Anda tidak memiliki akses untuk mengubah produk campaign.')) return;
             const id = button.dataset.selectProduct;
             const product = state.products.find((item) => item.id === id);
             if (!product) return;
@@ -1103,7 +1313,7 @@
                 state.selectedItems.delete(id);
                 state.featuredIds.delete(id);
             } else {
-                state.selectedItems.set(id, { id, name: product.name, image: product.image, unit: product.unit, brand: product.brand, sku: product.sku, stock: product.stock, normal_price: product.price, promo_price: product.price, brochure_name: product.name, brochure_normal_price: product.price, brochure_promo_price: product.price, brochure_offer: product.unit ? `Harga spesial · ${product.unit}` : 'Promo terbatas' });
+                state.selectedItems.set(id, { id, name: product.name, image: product.image, unit: product.unit, brand: product.brand, sku: product.sku, category: product.category, stock: product.stock, cost_price: product.cost_price, minimum_price: product.minimum_price, normal_price: product.price, promo_price: product.price, brochure_name: product.name, brochure_normal_price: product.price, brochure_promo_price: product.price, brochure_offer: product.unit ? `Harga spesial · ${product.unit}` : 'Promo terbatas' });
             }
             renderProductPicker();
             renderSelectedItems();
@@ -1112,6 +1322,7 @@
         $('promo-pop-product-list')?.addEventListener('input', (event) => {
             const input = event.target.closest('[data-promo-badge]');
             if (!input) return;
+            if (!requirePromoPermission('promo.write', 'Anda tidak memiliki akses untuk mengubah campaign.')) return;
             const item = state.selectedItems.get(input.dataset.promoBadge);
             if (item) item.badge = String(input.value || '').trim();
             renderPreview();
@@ -1119,9 +1330,16 @@
         $('promo-pop-product-list')?.addEventListener('change', (event) => {
             const input = event.target.closest('[data-promo-price]');
             const badgeInput = event.target.closest('[data-promo-badge]');
+            if ((input || badgeInput) && !requirePromoPermission('promo.write', 'Anda tidak memiliki akses untuk mengubah campaign.')) return;
             if (input) {
                 const item = state.selectedItems.get(input.dataset.promoPrice);
-                if (item) { item.promo_price = Number(input.value) || 0; item.brochure_promo_price = item.promo_price; }
+                if (item) {
+                    const previousPromo = brochurePromoPrice(item);
+                    const proposedPromo = Number(input.value) || 0;
+                    item.promo_price = proposedPromo;
+                    item.brochure_promo_price = proposedPromo;
+                    enforceItemMinimumPrice(item, proposedPromo, input, previousPromo);
+                }
             }
             if (badgeInput) {
                 const item = state.selectedItems.get(badgeInput.dataset.promoBadge);
@@ -1134,12 +1352,19 @@
         $('promo-pop-selected-list')?.addEventListener('input', (event) => {
             const input = event.target.closest('[data-brochure-name],[data-brochure-normal],[data-brochure-promo],[data-brochure-offer]');
             if (!input) return;
+            if (!requirePromoPermission('promo.write', 'Anda tidak memiliki akses untuk mengubah campaign.')) return;
             const id = brochureInputId(input);
             const item = state.selectedItems.get(id);
             if (!item) return;
             if (input.hasAttribute('data-brochure-name')) item.brochure_name = String(input.value || '').trim();
             if (input.hasAttribute('data-brochure-normal')) item.brochure_normal_price = Number(input.value) || 0;
-            if (input.hasAttribute('data-brochure-promo')) { item.brochure_promo_price = Number(input.value) || 0; item.promo_price = item.brochure_promo_price; }
+            if (input.hasAttribute('data-brochure-promo')) {
+                const previousPromo = brochurePromoPrice(item);
+                const proposedPromo = Number(input.value) || 0;
+                item.brochure_promo_price = proposedPromo;
+                item.promo_price = proposedPromo;
+                enforceItemMinimumPrice(item, proposedPromo, input, previousPromo);
+            }
             if (input.hasAttribute('data-brochure-offer')) item.brochure_offer = String(input.value || '').trim();
             renderPreview();
         });
@@ -1174,6 +1399,9 @@
                 renderSelectedItems();
                 renderPreview();
                 return;
+            }
+            if (featureButton || copyButton || pasteButton || removeButton) {
+                if (!requirePromoPermission('promo.write', 'Anda tidak memiliki akses untuk mengelola campaign.')) return;
             }
             if (featureButton) {
                 const id = featureButton.dataset.featureProduct;
@@ -1210,6 +1438,7 @@
         });
         $('promo-pop-selected-list')?.addEventListener('drop', (event) => {
             event.preventDefault();
+            if (!requirePromoPermission('promo.write', 'Anda tidak memiliki akses untuk mengurutkan produk.')) return;
             const targetId = event.target.closest('[data-selected-id]')?.dataset.selectedId;
             if (!draggedProductId || !targetId || draggedProductId === targetId) return;
             const ids = selectedProductRows().map(item => String(item.id));
@@ -1242,12 +1471,15 @@
     async function boot() {
         if (!window.AdminAuth || !AdminAuth.ensureOrRedirect()) return;
         bindEvents();
-        setStatus('Memuat produk dan campaign...', 'info');
+        setStatus('Memuat produk dan governance...', 'info');
         try {
+            await loadGovernanceContext('');
             await Promise.all([fetchProducts(), fetchCampaigns()]);
             renderSelectedItems();
             renderPreview();
-            setStatus('Generator Catalog Promo POP siap digunakan.', 'success');
+            renderCampaigns();
+            const roleLabel = state.governance.role ? ` Role: ${state.governance.role}.` : '';
+            setStatus(`Generator Catalog Promo POP siap digunakan.${roleLabel}`, 'success');
         } catch (error) {
             setStatus(error.message || 'Gagal memuat data generator.', 'error');
         }
