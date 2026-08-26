@@ -396,7 +396,8 @@
         .pk-pop-currency { display:inline-flex; align-items:baseline; gap:2px; white-space:nowrap; }
         .pk-pop-currency-prefix { font-size:.2em; line-height:1; font-weight:900; }
         .pk-pop-currency-amount { font-size:1em; line-height:1; font-weight:inherit; }
-        .pk-pop-preview-normal { margin-top: .3rem; color: #94a3b8; font-size: 10px; text-decoration: line-through; }
+        .pk-pop-preview-normal { margin-top: .3rem; color: #94a3b8; font-size: 10px; }
+        .pk-pop-preview-normal, .pk-pop-preview-normal .strike-price, .pk-pop-retail-normal, .pk-pop-retail-normal .strike-price { text-decoration-line:line-through; text-decoration-thickness:2px; text-decoration-color:currentColor; text-decoration-skip-ink:none; }
         .pk-pop-preview-price { color: #ea580c; font-size: 1.15rem; line-height:1; font-weight: 900; }
         .pk-pop-layout-retail-tile .pk-pop-preview-items { grid-template-columns:repeat(var(--pk-pop-grid-columns,2),minmax(0,1fr)); gap:.5rem; padding:.5rem; background:#b91c1c; }
         .pk-pop-retail-tile { position:relative; min-height:280px; overflow:hidden; border:3px solid #b91c1c; border-radius:.75rem; background:#f9d58b; color:#111827; }
@@ -404,7 +405,7 @@
         .pk-pop-retail-media { display:flex; align-items:center; justify-content:center; width:58%; height:44%; }
         .pk-pop-retail-media img { display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; }
         .pk-pop-retail-name { width:82%; text-align:center; font-size:.72rem; font-weight:900; line-height:1.12; }
-        .pk-pop-retail-normal { color:#111827; font-size:.65rem; font-weight:900; text-decoration:line-through; white-space:nowrap; }
+        .pk-pop-retail-normal { color:#111827; font-size:.65rem; font-weight:900; white-space:nowrap; }
         .pk-pop-retail-price { color:#dc2626; font-size:1.55rem; font-weight:1000; line-height:.95; white-space:nowrap; }
         .pk-pop-retail-offer { width:90%; color:#111827; font-size:.7rem; font-weight:950; line-height:1.1; text-align:center; }
         .pk-pop-layout-retail-tile .pk-pop-preview-item { padding:0; border:0; border-radius:0; }
@@ -674,7 +675,8 @@
         }
 
         function formatStrikePrice(value) {
-            return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(toNumber(value));
+            var amount = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(toNumber(value));
+            return '<del class="strike-price">' + escapeHtml(amount) + '</del>';
         }
 
         function parseItems(value) {

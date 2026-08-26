@@ -98,7 +98,7 @@
 
     function formatStrikePrice(value) {
         const amount = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(value) || 0);
-        return `<span class="strike-price">${escapeHtml(amount)}</span>`;
+        return `<del class="strike-price">${escapeHtml(amount)}</del>`;
     }
 
     // Brochure-only overrides stay on the campaign item snapshot and never mutate state.products.
@@ -237,6 +237,8 @@
         state.busy = true;
         setStatus('Membuat PDF A4 berkualitas tinggi...', 'info');
         try {
+            syncBrochureFieldsFromDom();
+            renderPreview();
             resetPreviewZoom();
             await waitForPreviewAssets(preview);
             const canvas = await html2canvas(preview, { scale: 3, useCORS: true, allowTaint: false, imageTimeout: 15000, backgroundColor: '#ffffff', logging: false });
@@ -265,6 +267,8 @@
         state.busy = true;
         setStatus('Membuat PNG berkualitas tinggi...', 'info');
         try {
+            syncBrochureFieldsFromDom();
+            renderPreview();
             resetPreviewZoom();
             await waitForPreviewAssets(preview);
             const canvas = await html2canvas(preview, { scale: 3, useCORS: true, allowTaint: false, imageTimeout: 15000, backgroundColor: '#ffffff', logging: false });
@@ -282,15 +286,43 @@
         }
     }
 
-    function printPreview() {
+    async function openPrintPreview() {
         const preview = $('promo-pop-preview');
-        if (!preview) return;
-        const popup = window.open('', '_blank', 'noopener,noreferrer');
-        if (!popup) return setStatus('Popup diblokir browser. Izinkan popup untuk mencetak.', 'error');
-        popup.document.write(`<!doctype html><html><head><title>Print ${escapeHtml($('promo-pop-title')?.value || 'Promo POP')}</title><style>@page{size:A4 portrait;margin:5mm}body{margin:0;background:#fff}.flyer-preview{width:100%;box-shadow:none;border:0}</style></head><body>${preview.outerHTML}</body></html>`);
-        popup.document.close();
-        popup.focus();
-        setTimeout(() => popup.print(), 250);
+        const modal = $('promo-pop-print-modal');
+        const sheet = $('promo-pop-print-sheet');
+        if (!preview || !modal || !sheet) return;
+        syncBrochureFieldsFromDom();
+        renderPreview();
+        resetPreviewZoom();
+        sheet.innerHTML = '<div class="pop-empty">Mempersiapkan pratinjau cetak...</div>';
+        modal.hidden = false;
+        document.body.classList.add('print-preview-open');
+        try {
+            await waitForPreviewAssets(preview);
+            if (typeof html2canvas !== 'function') throw new Error('html2canvas belum siap');
+            const canvas = await html2canvas(preview, { scale: 2, useCORS: true, allowTaint: false, imageTimeout: 15000, backgroundColor: '#ffffff', logging: false });
+            const image = document.createElement('img');
+            image.alt = 'Pratinjau brosur A4 Portrait';
+            image.src = canvas.toDataURL('image/png');
+            sheet.replaceChildren(image);
+        } catch (error) {
+            console.error('openPrintPreview error:', error);
+            sheet.replaceChildren(preview.cloneNode(true));
+            setStatus('Pratinjau cetak ditampilkan. Jika ada gambar yang hilang, periksa izin CORS asset.', 'info');
+        }
+        $('promo-pop-print-close')?.focus();
+    }
+
+    function closePrintPreview() {
+        const modal = $('promo-pop-print-modal');
+        if (modal) modal.hidden = true;
+        document.body.classList.remove('print-preview-open');
+    }
+
+    function printCurrentPreview() {
+        const modal = $('promo-pop-print-modal');
+        if (!modal || modal.hidden) return;
+        window.print();
     }
 
     function clampDiscount(value) {
@@ -972,7 +1004,12 @@
         $('promo-pop-zoom-reset')?.addEventListener('click', resetPreviewZoom);
         $('promo-pop-pdf')?.addEventListener('click', generatePdf);
         $('promo-pop-png')?.addEventListener('click', generatePng);
-        $('promo-pop-print')?.addEventListener('click', printPreview);
+        $('promo-pop-print')?.addEventListener('click', openPrintPreview);
+        $('promo-pop-print-close')?.addEventListener('click', closePrintPreview);
+        $('promo-pop-print-cancel')?.addEventListener('click', closePrintPreview);
+        $('promo-pop-print-now')?.addEventListener('click', printCurrentPreview);
+        $('promo-pop-print-modal')?.addEventListener('click', (event) => { if (event.target.id === 'promo-pop-print-modal') closePrintPreview(); });
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !$('promo-pop-print-modal')?.hidden) closePrintPreview(); });
         $('promo-pop-bulk-apply')?.addEventListener('click', () => applyBulkPricing($('promo-pop-bulk-type')?.value || 'percentage', $('promo-pop-bulk-value')?.value));
         $('promo-pop-bulk-reset')?.addEventListener('click', resetBulkPricing);
         $('promo-pop-share')?.addEventListener('click', shareWhatsApp);
