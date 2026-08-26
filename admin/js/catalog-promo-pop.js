@@ -213,6 +213,21 @@
         if (reset) reset.textContent = '100%';
     }
 
+    function fitPreviewToSafeArea() {
+        const preview = $('promo-pop-preview');
+        const content = preview?.querySelector('.flyer-preview-content');
+        const artwork = content?.querySelector('.flyer-preview-content-scale');
+        if (!preview || !content || !artwork) return;
+        preview.classList.add('is-fitting');
+        preview.style.setProperty('--flyer-content-scale', '1');
+        const availableWidth = Math.max(1, content.clientWidth);
+        const availableHeight = Math.max(1, content.clientHeight);
+        const naturalWidth = Math.max(1, artwork.scrollWidth, artwork.offsetWidth);
+        const naturalHeight = Math.max(1, artwork.scrollHeight, artwork.offsetHeight);
+        const scale = Math.min(1, availableWidth / naturalWidth, availableHeight / naturalHeight);
+        preview.style.setProperty('--flyer-content-scale', String(Math.max(.25, Number(scale.toFixed(4)))));
+    }
+
     async function waitForPreviewAssets(preview) {
         if (document.fonts?.ready) await document.fonts.ready;
         const images = Array.from(preview.querySelectorAll('img'));
@@ -241,10 +256,11 @@
             renderPreview();
             resetPreviewZoom();
             await waitForPreviewAssets(preview);
+            fitPreviewToSafeArea();
             const canvas = await html2canvas(preview, { scale: 3, useCORS: true, allowTaint: false, imageTimeout: 15000, backgroundColor: '#ffffff', logging: false });
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-            const pageW = 210, pageH = 297, margin = 5;
+            const pageW = 210, pageH = 297, margin = 0;
             const ratio = canvas.width / canvas.height;
             let width = pageW - (margin * 2), height = width / ratio;
             if (height > pageH - (margin * 2)) { height = pageH - (margin * 2); width = height * ratio; }
@@ -271,6 +287,7 @@
             renderPreview();
             resetPreviewZoom();
             await waitForPreviewAssets(preview);
+            fitPreviewToSafeArea();
             const canvas = await html2canvas(preview, { scale: 3, useCORS: true, allowTaint: false, imageTimeout: 15000, backgroundColor: '#ffffff', logging: false });
             const slug = slugify($('promo-pop-title')?.value || 'promo-pop') || 'promo-pop';
             const link = document.createElement('a');
@@ -299,6 +316,7 @@
         document.body.classList.add('print-preview-open');
         try {
             await waitForPreviewAssets(preview);
+            fitPreviewToSafeArea();
             if (typeof html2canvas !== 'function') throw new Error('html2canvas belum siap');
             const canvas = await html2canvas(preview, { scale: 2, useCORS: true, allowTaint: false, imageTimeout: 15000, backgroundColor: '#ffffff', logging: false });
             const image = document.createElement('img');
@@ -697,21 +715,22 @@
         preview.style.setProperty('--flyer-image-scale', String(crop.scale));
         preview.style.setProperty('--flyer-grid-rows', String(grid.rows));
         preview.style.setProperty('--flyer-grid-columns', String(grid.columns));
-        const rows = selectedProductRows();
-        const featured = rows.filter(item => state.featuredIds.has(String(item.id))).slice(0, 3);
+            const rows = selectedProductRows();
+            const featured = rows.filter(item => state.featuredIds.has(String(item.id))).slice(0, 3);
         const qrDataUrl = makeQrDataUrl(qrUrl);
-        const renderStandardItem = (item) => `<article class="flyer-item"><div class="flyer-media-frame">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="lazy">` : 'POP'}${item.badge ? `<span class="flyer-item-badge">${escapeHtml(item.badge)}</span>` : ''}</div><div class="flyer-item-name">${escapeHtml(brochureName(item))}</div><div class="flyer-item-normal">${formatStrikePrice(brochureNormalPrice(item))}</div><div class="flyer-item-promo">${formatCurrencyMarkup(brochurePromoPrice(item))}</div>${item.unit ? `<div style="font-size:9px;color:#94a3b8;">${escapeHtml(item.unit)}</div>` : ''}</article>`;
-        const renderRetailTile = (item) => `<article class="flyer-retail-tile"><div class="flyer-retail-media flyer-retail-draggable" data-tile-position="image" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'image')}" tabindex="0" role="button" aria-label="Seret atau scroll gambar produk untuk mengubah posisi dan ukuran">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="lazy">` : 'POP'}</div><div class="flyer-retail-name flyer-retail-draggable" data-tile-position="name" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'name')}" tabindex="0" role="button" aria-label="Seret atau scroll nama produk untuk mengubah posisi dan ukuran">${escapeHtml(brochureName(item))}</div><div class="flyer-retail-normal flyer-retail-draggable" data-tile-position="normal" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'normal')}" tabindex="0" role="button" aria-label="Seret atau scroll harga coret untuk mengubah posisi dan ukuran">${formatStrikePrice(brochureNormalPrice(item))}</div><div class="flyer-retail-promo flyer-retail-draggable" data-tile-position="promo" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'promo')}" tabindex="0" role="button" aria-label="Seret atau scroll harga promo untuk mengubah posisi dan ukuran">${formatCurrencyMarkup(brochurePromoPrice(item))}</div><div class="flyer-retail-offer flyer-retail-draggable" data-tile-position="offer" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'offer')}" tabindex="0" role="button" aria-label="Seret atau scroll teks promo untuk mengubah posisi dan ukuran">${escapeHtml(brochureOffer(item))}</div></article>`;
+        const renderStandardItem = (item) => `<article class="flyer-item"><div class="flyer-media-frame">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="eager">` : 'POP'}${item.badge ? `<span class="flyer-item-badge">${escapeHtml(item.badge)}</span>` : ''}</div><div class="flyer-item-name">${escapeHtml(brochureName(item))}</div><div class="flyer-item-normal">${formatStrikePrice(brochureNormalPrice(item))}</div><div class="flyer-item-promo">${formatCurrencyMarkup(brochurePromoPrice(item))}</div>${item.unit ? `<div style="font-size:9px;color:#94a3b8;">${escapeHtml(item.unit)}</div>` : ''}</article>`;
+        const renderRetailTile = (item) => `<article class="flyer-retail-tile"><div class="flyer-retail-media flyer-retail-draggable" data-tile-position="image" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'image')}" tabindex="0" role="button" aria-label="Seret atau scroll gambar produk untuk mengubah posisi dan ukuran">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="eager">` : 'POP'}</div><div class="flyer-retail-name flyer-retail-draggable" data-tile-position="name" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'name')}" tabindex="0" role="button" aria-label="Seret atau scroll nama produk untuk mengubah posisi dan ukuran">${escapeHtml(brochureName(item))}</div><div class="flyer-retail-normal flyer-retail-draggable" data-tile-position="normal" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'normal')}" tabindex="0" role="button" aria-label="Seret atau scroll harga coret untuk mengubah posisi dan ukuran">${formatStrikePrice(brochureNormalPrice(item))}</div><div class="flyer-retail-promo flyer-retail-draggable" data-tile-position="promo" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'promo')}" tabindex="0" role="button" aria-label="Seret atau scroll harga promo untuk mengubah posisi dan ukuran">${formatCurrencyMarkup(brochurePromoPrice(item))}</div><div class="flyer-retail-offer flyer-retail-draggable" data-tile-position="offer" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'offer')}" tabindex="0" role="button" aria-label="Seret atau scroll teks promo untuk mengubah posisi dan ukuran">${escapeHtml(brochureOffer(item))}</div></article>`;
         const productMarkup = rows.slice(0, grid.limit).map(layout === 'retail-tile' ? renderRetailTile : renderStandardItem).join('');
-        const featuredMarkup = featured.length ? `<div class="flyer-featured"><div class="flyer-media-frame">${featured[0].image ? `<img src="${escapeHtml(safeHttpUrl(featured[0].image))}" alt="" loading="lazy">` : 'POP'}</div><div><div class="flyer-featured-label">Produk Unggulan</div><div style="margin-top:4px;color:#334155;font-size:12px;font-weight:900;">${escapeHtml(brochureName(featured[0]))}</div><div class="flyer-item-normal">${formatStrikePrice(brochureNormalPrice(featured[0]))}</div><div class="flyer-item-promo">${formatCurrencyMarkup(brochurePromoPrice(featured[0]))}</div></div></div>` : '';
+        const featuredMarkup = featured.length ? `<div class="flyer-featured"><div class="flyer-media-frame">${featured[0].image ? `<img src="${escapeHtml(safeHttpUrl(featured[0].image))}" alt="" loading="eager">` : 'POP'}</div><div><div class="flyer-featured-label">Produk Unggulan</div><div style="margin-top:4px;color:#334155;font-size:12px;font-weight:900;">${escapeHtml(brochureName(featured[0]))}</div><div class="flyer-item-normal">${formatStrikePrice(brochureNormalPrice(featured[0]))}</div><div class="flyer-item-promo">${formatCurrencyMarkup(brochurePromoPrice(featured[0]))}</div></div></div>` : '';
         const serviceMarkup = $('promo-pop-show-service')?.checked ? '<div class="flyer-service"><strong style="color:#334155;">MELAYANI TOP UP DIGITAL & PPOB</strong><br>Pulsa · Paket Data · Token PLN · E-Wallet · Bayar Tagihan</div>' : '';
         const paymentMarkup = $('promo-pop-show-payment')?.checked ? '<div class="flyer-payment">Pembayaran: QRIS · GoPay · DANA · OVO · Transfer Bank</div>' : '';
         const disclaimerMarkup = $('promo-pop-show-disclaimer')?.checked && disclaimer ? `<div class="flyer-payment">${escapeHtml(disclaimer)}</div>` : '';
         preview.className = `flyer-preview flyer-theme-${escapeHtml(themeClass(theme))} flyer-layout-${escapeHtml(layoutClass(layout))}`;
-        preview.innerHTML = `<div class="flyer-preview-hero" ${hero ? `style="background-image:url('${escapeHtml(hero)}')"` : ''}><div class="flyer-overlay"></div><div class="relative z-10"><span class="flyer-kicker">🔥 ${escapeHtml(store).toUpperCase()}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(subtitle)}</p>${period ? `<span class="flyer-period">${escapeHtml(period)}</span>` : ''}</div></div><div class="flyer-preview-meta"><strong>${escapeHtml(badge)}</strong><span>${rows.length} produk promo</span></div><div class="flyer-preview-items">${productMarkup || '<div style="grid-column:1/-1;color:#94a3b8;font-size:11px;text-align:center;padding:28px 0;">Preview produk akan tampil di sini.</div>'}${featuredMarkup}</div>${serviceMarkup}${paymentMarkup}<div class="flyer-preview-footer"><div class="flyer-footer-left"><strong>${escapeHtml(store)}</strong><span>${escapeHtml(address || 'Informasi toko akan tampil di sini')}</span></div><div class="flyer-footer-right">${qrDataUrl ? `<img class="flyer-qr" src="${qrDataUrl}" alt="QR Code">` : ''}<span>Scan<br>untuk pesan</span></div></div>${disclaimerMarkup}`;
+        preview.innerHTML = `<div class="flyer-preview-content"><div class="flyer-preview-content-scale"><div class="flyer-preview-hero" ${hero ? `style="background-image:url('${escapeHtml(hero)}')"` : ''}><div class="flyer-overlay"></div><div class="relative z-10"><span class="flyer-kicker">🔥 ${escapeHtml(store).toUpperCase()}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(subtitle)}</p>${period ? `<span class="flyer-period">${escapeHtml(period)}</span>` : ''}</div></div><div class="flyer-preview-meta"><strong>${escapeHtml(badge)}</strong><span>${rows.length} produk promo</span></div><div class="flyer-preview-items">${productMarkup || '<div style="grid-column:1/-1;color:#94a3b8;font-size:11px;text-align:center;padding:28px 0;">Preview produk akan tampil di sini.</div>'}${featuredMarkup}</div>${serviceMarkup}${paymentMarkup}<div class="flyer-preview-footer"><div class="flyer-footer-left"><strong>${escapeHtml(store)}</strong><span>${escapeHtml(address || 'Informasi toko akan tampil di sini')}</span></div><div class="flyer-footer-right">${qrDataUrl ? `<img class="flyer-qr" src="${qrDataUrl}" alt="QR Code">` : ''}<span>Scan<br>untuk pesan</span></div></div>${disclaimerMarkup}</div></div>`;
         bindTilePositionDrag();
+        fitPreviewToSafeArea();
         const size = $('promo-pop-preview-size');
-        if (size) size.textContent = `A4 Portrait · 210 × 297 mm · ${rows.length} produk`;
+        if (size) size.textContent = `A4 Portrait · 210 × 297 mm · area aman 1 cm · ${rows.length} produk`;
     }
 
     function enforceA4Portrait() {
@@ -1080,6 +1099,11 @@
             if (!input) return;
             renderSelectedItems();
             renderPreview();
+        });
+        let safeAreaResizeTimer = 0;
+        window.addEventListener('resize', () => {
+            window.clearTimeout(safeAreaResizeTimer);
+            safeAreaResizeTimer = window.setTimeout(fitPreviewToSafeArea, 80);
         });
         $('promo-pop-selected-list')?.addEventListener('click', (event) => {
             const featureButton = event.target.closest('[data-feature-product]');

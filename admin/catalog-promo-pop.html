@@ -134,7 +134,10 @@
         .pop-preview-actions button { width:31px; height:31px; display:grid; place-items:center; border:1px solid #e2e8f0; border-radius:9px; background:#fff; color:#64748b; }
         .pop-preview-actions button:hover { color:var(--pop-orange-dark); border-color:#fdba74; }
         .preview-stage { padding:18px; background:linear-gradient(180deg,#f8fafc,#eef2f7); }
-        .flyer-preview { overflow:hidden; border:1px solid #dbe3ec; border-radius:16px; background:#fff; box-shadow:0 14px 30px rgba(15,23,42,.13); }
+        .flyer-preview { box-sizing:border-box; width:100%; aspect-ratio:210 / 297; min-height:0; overflow:hidden; padding:10mm; border:1px solid #dbe3ec; border-radius:16px; background:#fff; box-shadow:0 14px 30px rgba(15,23,42,.13); }
+        .flyer-preview-content { box-sizing:border-box; width:100%; height:100%; min-height:0; overflow:hidden; border-radius:12px; background:#fff; }
+        .flyer-preview-content-scale { box-sizing:border-box; width:100%; min-height:100%; transform-origin:top left; }
+        .flyer-preview.is-fitting .flyer-preview-content-scale { width:calc(100% / var(--flyer-content-scale,1)); min-height:calc(100% / var(--flyer-content-scale,1)); transform:scale(var(--flyer-content-scale,1)); }
         .pop-print-modal { position:fixed; inset:0; z-index:80; display:grid; place-items:center; padding:18px; background:rgba(15,23,42,.72); }
         .pop-print-modal[hidden] { display:none; }
         .pop-print-dialog { display:grid; grid-template-rows:auto minmax(0,1fr) auto; width:min(100%,980px); max-height:min(94vh,1120px); overflow:hidden; border:1px solid #dbe3ec; border-radius:18px; background:#f1f5f9; box-shadow:0 24px 70px rgba(15,23,42,.3); }
@@ -142,6 +145,7 @@
         .pop-print-dialog-head { border-bottom:1px solid #e2e8f0; }
         .pop-print-dialog-head h3 { margin:0; color:#0f172a; font-size:15px; font-weight:950; }
         .pop-print-dialog-head p { margin:3px 0 0; color:#64748b; font-size:11px; }
+        .pop-print-safe-note { color:#ea580c; font-weight:850; }
         .pop-print-dialog-close { width:32px; height:32px; border:1px solid #e2e8f0; border-radius:9px; background:#fff; color:#64748b; font-size:20px; line-height:1; }
         .pop-print-dialog-close:hover { color:#dc2626; border-color:#fecaca; }
         .pop-print-canvas { min-height:0; overflow:auto; padding:24px; }
@@ -150,7 +154,7 @@
         .pop-print-sheet > img { object-fit:contain; background:#fff; }
         .pop-print-dialog-foot { justify-content:flex-end; border-top:1px solid #e2e8f0; }
         @media (max-width:620px) { .pop-print-modal { padding:0; } .pop-print-dialog { width:100%; max-height:100vh; border:0; border-radius:0; } .pop-print-canvas { padding:12px; } }
-        @media print { @page { size:A4 portrait; margin:5mm; } .pop-print-modal { position:static; display:block; padding:0; background:#fff; } .pop-print-dialog { display:block; width:auto; max-height:none; border:0; border-radius:0; box-shadow:none; } .pop-print-dialog-head,.pop-print-dialog-foot { display:none; } .pop-print-canvas { overflow:visible; padding:0; } .pop-print-sheet { width:200mm; height:287mm; aspect-ratio:auto; margin:0; box-shadow:none; } .pop-print-sheet .flyer-preview,.pop-print-sheet > img { width:200mm; height:287mm; box-shadow:none; } }
+        @media print { @page { size:A4 portrait; margin:0; } .pop-print-modal { position:static; display:block; padding:0; background:#fff; } .pop-print-dialog { display:block; width:auto; max-height:none; border:0; border-radius:0; box-shadow:none; } .pop-print-dialog-head,.pop-print-dialog-foot { display:none; } .pop-print-canvas { overflow:visible; padding:0; } .pop-print-sheet { width:210mm; height:297mm; aspect-ratio:auto; margin:0; box-shadow:none; } .pop-print-sheet .flyer-preview,.pop-print-sheet > img { width:210mm; height:297mm; box-shadow:none; } }
         .flyer-preview-hero { min-height:190px; display:flex; align-items:flex-end; position:relative; padding:22px; color:#fff; background:linear-gradient(135deg,#dc2626,#991b1b); background-position:center; background-size:cover; }
         .flyer-overlay { position:absolute; inset:0; background:linear-gradient(180deg,rgba(15,23,42,.05),rgba(15,23,42,.78)); }
         .flyer-preview-hero h3 { max-width:90%; margin:9px 0 0; color:#fff; font-size:28px; line-height:1.02; font-weight:1000; letter-spacing:-.04em; }
@@ -311,17 +315,17 @@
             </div>
 
             <aside class="pop-preview-column">
-                <section class="pop-card pop-preview-card"><div class="pop-preview-head"><div><h3>Live preview</h3><p>Hasil akhir flyer akan mengikuti struktur ini.</p></div><div class="pop-preview-actions"><button id="promo-pop-zoom-out" type="button" title="Perkecil">−</button><button id="promo-pop-zoom-reset" type="button" title="Reset zoom">100%</button><button id="promo-pop-zoom-in" type="button" title="Perbesar">+</button></div></div><div class="preview-stage"><div id="promo-pop-preview" class="flyer-preview"></div></div><div class="pop-preview-legend"><span id="promo-pop-preview-size">A4 Portrait · Preview</span><span>Live · tersinkron</span></div><div class="pop-inline" style="padding:0 18px 18px;"><button id="promo-pop-print" class="pop-button secondary" type="button" style="flex:1;">Pratinjau cetak</button><button id="promo-pop-png" class="pop-button secondary" type="button" style="flex:1;">Download PNG</button><button id="promo-pop-pdf" class="pop-button green" type="button" style="flex:1;">Generate PDF</button><button id="promo-pop-share" class="pop-button secondary" type="button" style="flex:1;">Share WA</button></div>
+                <section class="pop-card pop-preview-card"><div class="pop-preview-head"><div><h3>Live preview</h3><p>Hasil akhir flyer mengikuti A4 Portrait dengan area aman 1 cm.</p></div><div class="pop-preview-actions"><button id="promo-pop-zoom-out" type="button" title="Perkecil">−</button><button id="promo-pop-zoom-reset" type="button" title="Reset zoom">100%</button><button id="promo-pop-zoom-in" type="button" title="Perbesar">+</button></div></div><div class="preview-stage"><div id="promo-pop-preview" class="flyer-preview"></div></div><div class="pop-preview-legend"><span id="promo-pop-preview-size">A4 Portrait · Preview</span><span>Live · tersinkron</span></div><div class="pop-inline" style="padding:0 18px 18px;"><button id="promo-pop-print" class="pop-button secondary" type="button" style="flex:1;">Pratinjau cetak</button><button id="promo-pop-png" class="pop-button secondary" type="button" style="flex:1;">Download PNG</button><button id="promo-pop-pdf" class="pop-button green" type="button" style="flex:1;">Generate PDF</button><button id="promo-pop-share" class="pop-button secondary" type="button" style="flex:1;">Share WA</button></div>
 </section>
                 <section class="pop-card"><div class="pop-card-head"><div><h3>Campaign tersimpan</h3><p>Draft dan campaign yang sudah dipublish.</p></div><a href="../promo_katalog.html" target="_blank" class="pop-help" style="color:#ea580c;font-weight:900;text-decoration:none;">Lihat publik</a></div><div id="promo-pop-campaign-list" class="pop-campaign-list"></div></section>
-                <p class="pop-footer-note">Tip: gunakan 8–20 produk untuk grid yang mudah dibaca. Produk stok habis diberi peringatan sebelum dipilih.</p>
+                <p class="pop-footer-note">Area aman A4 Portrait memiliki batas 1 cm di setiap sisi. Jumlah produk mengikuti Baris × Kolom dan preview otomatis menyesuaikan agar elemen tetap berada di dalam area cetak.</p>
             </aside>
         </section>
     </main>
 </div>
 <div id="promo-pop-print-modal" class="pop-print-modal" hidden role="dialog" aria-modal="true" aria-labelledby="promo-pop-print-title">
     <div class="pop-print-dialog">
-        <header class="pop-print-dialog-head"><div><h3 id="promo-pop-print-title">Pratinjau cetak</h3><p>A4 Portrait · 210 × 297 mm · margin cetak 5 mm</p></div><button id="promo-pop-print-close" class="pop-print-dialog-close" type="button" aria-label="Tutup pratinjau cetak">×</button></header>
+        <header class="pop-print-dialog-head"><div><h3 id="promo-pop-print-title">Pratinjau cetak</h3><p>A4 Portrait · 210 × 297 mm · area aman 1 cm setiap sisi</p></div><button id="promo-pop-print-close" class="pop-print-dialog-close" type="button" aria-label="Tutup pratinjau cetak">×</button></header>
         <div class="pop-print-canvas"><div id="promo-pop-print-sheet" class="pop-print-sheet"></div></div>
         <footer class="pop-print-dialog-foot"><button id="promo-pop-print-cancel" class="pop-button secondary" type="button">Kembali</button><button id="promo-pop-print-now" class="pop-button primary" type="button">Cetak sekarang</button></footer>
     </div>
@@ -333,6 +337,6 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="js/catalog-promo-pop.js?v=20260826printpreview"></script>
+<script src="js/catalog-promo-pop.js?v=20260826a4safe3"></script>
 </body>
 </html>
