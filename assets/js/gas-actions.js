@@ -135,9 +135,13 @@ const GASActions = {
         
         const result = await response.json();
         
-        // Check for error in response
+        // Preserve the structured backend payload so governance callers can
+        // distinguish price, approval, and authorization failures.
         if (result.error) {
-            throw new Error(result.error);
+            const error = new Error(result.message || result.error);
+            error.code = String(result.error);
+            error.payload = result;
+            throw error;
         }
         
         return result;
@@ -203,6 +207,54 @@ const GASActions = {
                 value: String(value)
             }
         });
+    },
+
+    // ===========================
+    // Catalog Promo POP Governance
+    // ===========================
+
+    async getPromoGovernanceContext(campaignId) {
+        return this.post({
+            action: 'promo_governance_context',
+            data: { campaign_id: String(campaignId || '') }
+        });
+    },
+
+    async listPromoVersions(campaignId) {
+        return this.post({
+            action: 'promo_governance_version_list',
+            data: { campaign_id: String(campaignId || '') }
+        });
+    },
+
+    async listPromoAuditLogs(campaignId, limit) {
+        return this.post({
+            action: 'promo_governance_audit_list',
+            data: { campaign_id: String(campaignId || ''), limit: Number(limit) || 100 }
+        });
+    },
+
+    async listPromoMarginPolicies() {
+        return this.post({
+            action: 'promo_governance_policy_list',
+            data: {}
+        });
+    },
+
+    async createPromoVersion(data) {
+        return this.post({ action: 'promo_governance_version_create', data: { ...(data || {}) } });
+    },
+
+    async restorePromoVersion(data) {
+        return this.post({ action: 'promo_governance_version_restore', data: { ...(data || {}) } });
+    },
+
+    async transitionPromoApproval(data) {
+        return this.post({ action: 'promo_governance_approval_transition', data: { ...(data || {}) } });
+    },
+
+    async upsertPromoMarginPolicy(data) {
+        return this.post({ action: 'promo_governance_policy_upsert', data: { ...(data || {}) } });
     },
 
     // ===========================

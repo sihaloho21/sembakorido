@@ -64,7 +64,9 @@ const SHEET_WHITELIST = [
   'runtime_error_logs', 'notifications', 'notification_reads',
   'blog_posts', 'blog_comments',
   'katalog_promo',  // Sheet untuk manajemen katalog promo
-  'promo_flyers'    // Campaign Catalog Promo POP
+  'promo_flyers',   // Campaign Catalog Promo POP
+  'promo_flyer_versions', 'promo_flyer_approvals', 'promo_flyer_audit_logs',
+  'promo_admin_users', 'promo_role_permissions', 'promo_margin_policies'
 ];
 
 const LOCK_TIMEOUT_MS = 30000;
@@ -112,7 +114,13 @@ const SENSITIVE_GET_SHEETS = {
   runtime_error_logs: true,
   notifications: true,
   notification_reads: true,
-  promo_flyers: true
+  promo_flyers: true,
+  promo_flyer_versions: true,
+  promo_flyer_approvals: true,
+  promo_flyer_audit_logs: true,
+  promo_admin_users: true,
+  promo_role_permissions: true,
+  promo_margin_policies: true
 };
 
 const PUBLIC_POST_RULES = {
@@ -212,12 +220,37 @@ const SCHEMA_REQUIREMENTS = {
     'published_at', 'created_at', 'updated_at', 'created_by', 'sort_order',
     'share_image_url', 'pdf_url', 'qr_url', 'period_text', 'footer_note',
     'show_watermark', 'watermark_text', 'show_qr_code', 'banner_config_json',
-    'grid_config_json',
-    'brochure_name', 'paper_size', 'orientation', 'template_id', 'store_address', 'banner_url',
-    'disclaimer_text', 'show_service', 'ppob_wallets_json', 'show_payment', 'show_disclaimer'
+    'grid_config_json', 'brochure_name', 'paper_size', 'orientation', 'template_id',
+    'store_address', 'banner_url', 'disclaimer_text', 'show_service',
+    'ppob_wallets_json', 'show_payment', 'show_disclaimer',
+    'approval_status', 'current_version_id', 'approved_at', 'approved_by',
+    'minimum_price_policy_id'
   ],
   notification_reads: [
     'id', 'notification_id', 'phone', 'read_at', 'created_at', 'updated_at'
+  ],
+  promo_flyer_versions: [
+    'id', 'campaign_id', 'version_no', 'snapshot_json', 'change_summary',
+    'status', 'created_at', 'created_by', 'request_id', 'is_current'
+  ],
+  promo_flyer_approvals: [
+    'id', 'campaign_id', 'version_id', 'from_status', 'to_status',
+    'decision_note', 'actor', 'actor_role', 'created_at', 'request_id'
+  ],
+  promo_flyer_audit_logs: [
+    'id', 'event_type', 'campaign_id', 'version_id', 'actor', 'actor_role',
+    'request_id', 'details_json', 'created_at'
+  ],
+  promo_admin_users: [
+    'id', 'email', 'display_name', 'role', 'token_hash', 'status',
+    'created_at', 'updated_at', 'created_by'
+  ],
+  promo_role_permissions: [
+    'id', 'role', 'permission', 'allowed', 'created_at', 'updated_at'
+  ],
+  promo_margin_policies: [
+    'id', 'scope', 'scope_key', 'minimum_margin_percent', 'minimum_price',
+    'mode', 'status', 'updated_at', 'updated_by'
   ]
 };
 
@@ -1491,6 +1524,11 @@ function doPost(e) {
       if (limitError) return jsonOutput(limitError);
     }
 
+    if ((action === 'create' || action === 'update') && sheetName === 'promo_flyers') {
+      const priceBoundary = validatePromoFlyerWriteAtBoundary_(action, id, data);
+      if (!priceBoundary.success) return jsonOutput(priceBoundary);
+    }
+
     if (isSheetValidationRequired(actionKey) && (!sheetName || SHEET_WHITELIST.indexOf(sheetName) === -1)) {
       return jsonOutput({ error: 'Invalid sheet: ' + sheetName });
     }
@@ -1659,12 +1697,52 @@ function doPost(e) {
 
     if (action === 'promo_flyer_publish' || action === 'promo_flyer_unpublish') {
       return jsonOutput(withScriptLock(function() {
+        var publishActor = resolveAdminActor(token, adminRole);
         return handlePromoFlyerSetStatus({
           id: id || (data && data.id),
           status: action === 'promo_flyer_publish' ? 'published' : 'draft',
-          actor: (data && data.actor) || adminRole || 'admin'
+          actor: publishActor.actor || (data && data.actor) || adminRole || 'admin',
+          actor_role: publishActor.role || adminRole || 'admin',
+          request_id: (data && data.request_id) || body.request_id || ''
         });
       }));
+    }
+
+    if (action === 'promo_governance_context') {
+      return jsonOutput(handlePromoGovernanceContext(Object.assign({}, data || {}, { __actor: resolveAdminActor(token, adminRole) })));
+    }
+    if (action === 'promo_governance_version_list') {
+      return jsonOutput(handlePromoGovernanceVersionList(Object.assign({}, data || {}, { __actor: resolveAdminActor(token, adminRole) })));
+    }
+    if (action === 'promo_governance_audit_list') {
+      return jsonOutput(handlePromoGovernanceAuditList(Object.assign({}, data || {}, { __actor: resolveAdminActor(token, adminRole) })));
+    }
+    if (action === 'promo_governance_policy_list') {
+      return jsonOutput(handlePromoGovernancePolicyList(Object.assign({}, data || {}, { __actor: resolveAdminActor(token, adminRole) })));
+    }
+    if (action === 'promo_governance_version_create') {
+      return jsonOutput(withScriptLock(function() {
+        return handlePromoGovernanceVersionCreate(Object.assign({}, data || {}, { __actor: resolveAdminActor(token, adminRole), request_id: (data && data.request_id) || body.request_id || '' }));
+      }));
+    }
+    if (action === 'promo_governance_version_restore') {
+      return jsonOutput(withScriptLock(function() {
+        return handlePromoGovernanceVersionRestore(Object.assign({}, data || {}, { __actor: resolveAdminActor(token, adminRole), request_id: (data && data.request_id) || body.request_id || '' }));
+      }));
+    }
+    if (action === 'promo_governance_approval_transition') {
+      return jsonOutput(withScriptLock(function() {
+        return handlePromoGovernanceApprovalTransition(Object.assign({}, data || {}, { __actor: resolveAdminActor(token, adminRole), request_id: (data && data.request_id) || body.request_id || '' }));
+      }));
+    }
+    if (action === 'promo_governance_policy_upsert') {
+      return jsonOutput(withScriptLock(function() {
+        return handlePromoGovernancePolicyUpsert(Object.assign({}, data || {}, { __actor: resolveAdminActor(token, adminRole), request_id: (data && data.request_id) || body.request_id || '' }));
+      }));
+    }
+
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      data.__actor = resolveAdminActor(token, adminRole);
     }
 
     const sheet = getSheet(sheetName);
@@ -1701,7 +1779,13 @@ function doPost(e) {
         return (data && data[h] !== undefined ? data[h] : '');
       });
       sheet.appendRow(row);
-      return jsonOutput({ success: true, created: 1 });
+      var createdResponse = { success: true, created: 1 };
+      if (sheetName === 'promo_flyers') {
+        var createdGovernance = handlePromoFlyerWriteGovernance_('create', String(data && data.id || ''), data && data.__actor, data && data.request_id, 'Campaign created');
+        if (!createdGovernance.success) return jsonOutput(Object.assign({ success: false, created: 1 }, createdGovernance));
+        createdResponse.governance = createdGovernance;
+      }
+      return jsonOutput(createdResponse);
     }
 
     if (action === 'update') {
@@ -1797,6 +1881,14 @@ function doPost(e) {
       if (notificationResult) {
         response.notification = notificationResult;
       }
+      if (sheetName === 'promo_flyers') {
+        var updatedGovernance = handlePromoFlyerWriteGovernance_('update', String(id), data && data.__actor, data && data.request_id, 'Campaign updated');
+        response.governance = updatedGovernance;
+        if (!updatedGovernance.success) {
+          response.success = false;
+          response.error = updatedGovernance.error || 'PROMO_GOVERNANCE_WRITE_FAILED';
+        }
+      }
       if (paylaterErrors.length > 0) {
         response.success = false;
         response.error = 'PAYLATER_SIDE_EFFECT_FAILED';
@@ -1813,6 +1905,7 @@ function doPost(e) {
       const rowIndex = rows.findIndex(function(r) { return String(r[idColIndex]) === String(id); });
       if (rowIndex === -1) return jsonOutput({ error: 'Record not found' });
       sheet.deleteRow(rowIndex + 2);
+      if (sheetName === 'promo_flyers') promoGovernanceAudit_('campaign_deleted', { campaign_id: String(id), request_id: body.request_id || '' }, resolveAdminActor(token, adminRole), { action: 'delete' });
       return jsonOutput({ success: true, deleted: 1 });
     }
 
@@ -4808,6 +4901,14 @@ function isSheetValidationRequired(actionKey) {
     get_paylater_due_notification_scheduler: true,
     run_paylater_postmortem_two_weeks: true,
     get_paylater_postmortem_logs: true,
+    promo_governance_context: true,
+    promo_governance_version_list: true,
+    promo_governance_audit_list: true,
+    promo_governance_policy_list: true,
+    promo_governance_version_create: true,
+    promo_governance_version_restore: true,
+    promo_governance_approval_transition: true,
+    promo_governance_policy_upsert: true,
   };
   return !skip[actionKey];
 }
@@ -4818,19 +4919,31 @@ function isPublicCreateAction(actionKey, sheetName) {
 
 function guardActionAuthorization(actionKey, token, sheetName, adminRole) {
   if (isPublicPostAllowed(actionKey, sheetName)) return null;
-  if (!ADMIN_TOKEN) {
+  const cfg = getAdminAuthorizationConfig();
+  if (cfg.roleEnforce) {
+    const actor = resolveAdminActor(token, adminRole);
+    if (!actor || !actor.authenticated) {
+      return { error: 'Unauthorized', message: 'Token tidak terdaftar atau admin dinonaktifkan' };
+    }
+    const roleError = guardActionRoleAuthorization(actionKey, sheetName, actor.role);
+    if (roleError) return roleError;
+    return null;
+  }
+  const propertyToken = String(PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN') || '').trim();
+  const configuredMasterToken = String(ADMIN_TOKEN || propertyToken).trim();
+  if (!configuredMasterToken) {
     return {
       error: 'ADMIN_TOKEN_NOT_CONFIGURED',
       message: 'Set ADMIN_TOKEN untuk menjalankan aksi ini'
     };
   }
-  if (token !== ADMIN_TOKEN) {
+  if (token !== configuredMasterToken) {
     return {
       error: 'Unauthorized',
       message: 'Token tidak valid'
     };
   }
-  const roleError = guardActionRoleAuthorization(actionKey, sheetName, adminRole);
+  const roleError = guardActionRoleAuthorization(actionKey, sheetName, adminRole || cfg.defaultRole);
   if (roleError) return roleError;
   return null;
 }
@@ -4864,11 +4977,28 @@ function getAdminRoleRank(role) {
 
 function getAdminAuthorizationConfig() {
   const set = getSettingsMap();
-  const defaultRole = normalizeAdminRole(set.admin_default_role || 'operator') || 'operator';
+  const properties = PropertiesService.getScriptProperties();
+  const propertyEnforce = String(properties.getProperty('PROMO_POP_ROLE_ENFORCE') || '').trim();
+  const propertyDefaultRole = String(properties.getProperty('PROMO_POP_DEFAULT_ROLE') || '').trim();
+  const defaultRole = normalizeAdminRole(propertyDefaultRole || set.admin_default_role || 'operator') || 'operator';
   return {
-    roleEnforce: String(set.admin_role_enforce || 'false').toLowerCase() === 'true',
+    roleEnforce: String(propertyEnforce || set.admin_role_enforce || 'false').toLowerCase() === 'true',
     defaultRole: defaultRole
   };
+}
+
+function getRequiredPermissionForAction(actionKey, sheetName) {
+  const key = String(actionKey || '').trim();
+  const normalizedSheet = String(sheetName || '').trim();
+  if (key === 'promo_governance_context' || key === 'promo_governance_version_list' || key === 'promo_governance_audit_list' || key === 'promo_governance_policy_list') return 'promo.read';
+  if (key === 'promo_governance_version_create' || key === 'promo_governance_version_restore') return 'promo.write';
+  if (key === 'promo_governance_approval_transition') return 'promo.review';
+  if (key === 'promo_governance_policy_upsert') return 'promo.policy.manage';
+  if (key === 'promo_flyer_publish' || key === 'promo_flyer_unpublish') return 'promo.publish';
+  if ((key === 'create' || key === 'update' || key === 'bulk_insert') && normalizedSheet === 'promo_flyers') return 'promo.write';
+  if (key === 'get' && normalizedSheet === 'promo_flyers') return 'promo.read';
+  if (key === 'delete' && normalizedSheet === 'promo_flyers') return 'promo.write';
+  return '';
 }
 
 function getRequiredRoleForAction(actionKey, sheetName) {
@@ -4902,25 +5032,61 @@ function getRequiredRoleForAction(actionKey, sheetName) {
   if (key === 'run_paylater_due_notifications') return 'manager';
   if (key === 'run_paylater_postmortem_two_weeks') return 'manager';
 
+  if (key === 'promo_governance_context') return 'operator';
+  if (key === 'promo_governance_version_list') return 'operator';
+  if (key === 'promo_governance_audit_list') return 'operator';
+  if (key === 'promo_governance_policy_list') return 'operator';
+  if (key === 'promo_governance_version_create') return 'manager';
+  if (key === 'promo_governance_version_restore') return 'manager';
+  if (key === 'promo_governance_approval_transition') return 'manager';
+  if (key === 'promo_governance_policy_upsert') return 'superadmin';
+
   if (key === 'credit_account_get') return 'operator';
   if (key === 'get_paylater_limit_scheduler') return 'operator';
   if (key === 'get_paylater_due_notification_scheduler') return 'operator';
   if (key === 'get_paylater_postmortem_logs') return 'operator';
   if (key === 'get_runtime_error_summary') return 'operator';
 
+  if (key === 'get' && normalizedSheet === 'promo_flyers') return 'operator';
   if (sheetName && isGetSheetSensitive(sheetName)) return 'manager';
   return 'manager';
+}
+
+function hasAdminPermission_(role, permission) {
+  const normalizedRole = normalizeAdminRole(role);
+  if (!permission || normalizedRole === 'superadmin') return normalizedRole === 'superadmin' || !permission;
+  try {
+    const rows = promoGovernanceObjects_('promo_role_permissions').filter(function(row) {
+      return normalizeAdminRole(row.role) === normalizedRole && String(row.permission || '').trim() === permission;
+    });
+    if (!rows.length) return null;
+    return rows.some(function(row) { return promoGovernanceBool_(row.allowed, false); });
+  } catch (error) {
+    return null;
+  }
 }
 
 function guardActionRoleAuthorization(actionKey, sheetName, adminRole) {
   const cfg = getAdminAuthorizationConfig();
   if (!cfg.roleEnforce) return null;
 
+  const resolvedRole = normalizeAdminRole(adminRole || cfg.defaultRole || '');
+  const requiredPermission = getRequiredPermissionForAction(actionKey, sheetName);
+  const permissionResult = hasAdminPermission_(resolvedRole, requiredPermission);
+  if (permissionResult === false) {
+    return {
+      error: 'FORBIDDEN_PERMISSION',
+      message: 'Permission tidak diberikan untuk aksi ini',
+      required_permission: requiredPermission,
+      provided_role: resolvedRole || ''
+    };
+  }
+  if (permissionResult === true) return null;
+
   const requiredRole = getRequiredRoleForAction(actionKey, sheetName);
   const requiredRank = getAdminRoleRank(requiredRole);
   if (requiredRank <= 0) return null;
 
-  const resolvedRole = normalizeAdminRole(adminRole || cfg.defaultRole || '');
   const resolvedRank = getAdminRoleRank(resolvedRole);
   if (resolvedRank < requiredRank) {
     return {
@@ -6641,11 +6807,27 @@ function handlePromoFlyerSetStatus(input) {
   if (rowIndex === -1) return { success: false, error: 'PROMO_FLYER_NOT_FOUND' };
 
   const actualRow = rowIndex + 2;
+  const currentCampaign = toObject(headers, rows[rowIndex]);
+  if (nextStatus === 'published') {
+    const priceValidation = validatePromoFlyerPriceCandidate_(currentCampaign, 'publish');
+    if (!priceValidation.success) return priceValidation;
+    const requireApproval = promoGovernanceBool_(promoGovernanceSetting_('promo_pop_require_approval', 'false'), false);
+    const approvalStatus = String(currentCampaign.approval_status || '').toLowerCase();
+    if (requireApproval && approvalStatus !== 'approved') {
+      return { success: false, error: 'PROMO_APPROVAL_REQUIRED', message: 'Campaign harus berstatus approved sebelum dipublikasikan.', approval_status: approvalStatus || 'draft' };
+    }
+  }
   const timestamp = nowIso();
   setCellIfColumnExists(sheet, headers, actualRow, 'status', nextStatus);
   setCellIfColumnExists(sheet, headers, actualRow, 'updated_at', timestamp);
   setCellIfColumnExists(sheet, headers, actualRow, 'published_at', nextStatus === 'published' ? timestamp : '');
   setCellIfColumnExists(sheet, headers, actualRow, 'created_by', payload.actor || 'admin');
+  if (nextStatus === 'published') setCellIfColumnExists(sheet, headers, actualRow, 'approval_status', 'published');
+  try {
+    promoGovernanceAudit_(nextStatus === 'published' ? 'published' : 'unpublished', { campaign_id: flyerId, request_id: payload.request_id || '' }, { actor: payload.actor || 'admin', role: payload.actor_role || 'admin' }, { status: nextStatus });
+  } catch (error) {
+    Logger.log('POP publish audit pending: ' + error.toString());
+  }
 
   const updatedValues = sheet.getRange(actualRow, 1, 1, headers.length).getValues()[0];
   return {
@@ -6654,4 +6836,406 @@ function handlePromoFlyerSetStatus(input) {
     status: nextStatus,
     flyer: normalizePromoFlyerForPublic(toObject(headers, updatedValues))
   };
+}
+
+
+// ========================================
+// CATALOG PROMO POP GOVERNANCE
+// ========================================
+
+function resolveAdminActor(token, hintedRole) {
+  var rawToken = String(token || '').trim();
+  var masterToken = String(ADMIN_TOKEN || PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN') || '').trim();
+  var config = getAdminAuthorizationConfig();
+  if (rawToken && masterToken && rawToken === masterToken) {
+    return { authenticated: true, id: 'admin-master', actor: 'admin-master', email: '', display_name: 'Master Admin', role: 'superadmin', source: 'master_token' };
+  }
+  if (!rawToken) return { authenticated: false, role: '' };
+  var sheet;
+  try { sheet = getSheet('promo_admin_users'); } catch (error) { return { authenticated: false, role: '' }; }
+  var values = sheet.getDataRange().getValues();
+  if (!values || values.length < 2) return { authenticated: false, role: '' };
+  var headers = values[0].map(function(value) { return String(value || '').trim().toLowerCase(); });
+  var tokenHash = sha256Hex_(rawToken);
+  var row = values.slice(1).map(function(item) { return toObject(headers, item); }).find(function(item) {
+    return String(item.token_hash || '').trim() === tokenHash && String(item.status || 'active').toLowerCase() !== 'disabled';
+  });
+  if (!row) return { authenticated: false, role: '' };
+  return {
+    authenticated: true,
+    id: String(row.id || ''),
+    actor: String(row.id || row.email || 'admin'),
+    email: String(row.email || ''),
+    display_name: String(row.display_name || row.email || row.id || 'Admin'),
+    role: normalizeAdminRole(row.role) || 'viewer',
+    source: 'promo_admin_users'
+  };
+}
+
+function sha256Hex_(value) {
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(value || ''), Utilities.Charset.UTF_8);
+  return bytes.map(function(byte) {
+    var normalized = byte < 0 ? byte + 256 : byte;
+    return ('0' + normalized.toString(16)).slice(-2);
+  }).join('');
+}
+
+function promoGovernanceSpreadsheet_() {
+  var id = String(PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') || '').trim();
+  if (id) return SpreadsheetApp.openById(id);
+  var active = SpreadsheetApp.getActiveSpreadsheet();
+  if (active) return active;
+  throw new Error('SPREADSHEET_ID belum diatur dan project tidak terikat ke Spreadsheet.');
+}
+
+function promoGovernanceSheet_(name) {
+  var sheet = promoGovernanceSpreadsheet_().getSheetByName(name);
+  if (!sheet) throw new Error('Sheet governance belum tersedia: ' + name);
+  return sheet;
+}
+
+function promoGovernanceHeaders_(sheet) {
+  if (!sheet || sheet.getLastColumn() < 1 || sheet.getLastRow() < 1) return [];
+  return sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function(value) {
+    return String(value || '').trim().toLowerCase();
+  });
+}
+
+function promoGovernanceObjects_(name) {
+  var sheet = promoGovernanceSheet_(name);
+  var values = sheet.getDataRange().getValues();
+  if (!values || values.length < 2) return [];
+  var headers = promoGovernanceHeaders_(sheet);
+  return values.slice(1).map(function(row) { return toObject(headers, row); });
+}
+
+function promoGovernanceAppend_(name, record) {
+  var sheet = promoGovernanceSheet_(name);
+  var headers = promoGovernanceHeaders_(sheet);
+  sheet.appendRow(headers.map(function(header) { return record[header] === undefined || record[header] === null ? '' : record[header]; }));
+}
+
+function promoGovernanceRequestExists_(name, requestId) {
+  var key = String(requestId || '').trim();
+  if (!key) return null;
+  return promoGovernanceObjects_(name).find(function(row) { return String(row.request_id || '').trim() === key; }) || null;
+}
+
+function promoGovernanceAudit_(eventType, data, actor, details) {
+  var payload = data || {};
+  var principal = actor || { actor: 'system', role: 'system' };
+  var requestId = String(payload.request_id || '').trim();
+  var existing = promoGovernanceRequestExists_('promo_flyer_audit_logs', requestId);
+  if (existing) return existing;
+  var record = {
+    id: genId('pfa'),
+    event_type: String(eventType || 'unknown'),
+    campaign_id: String(payload.campaign_id || ''),
+    version_id: String(payload.version_id || ''),
+    actor: String(principal.actor || 'system'),
+    actor_role: String(principal.role || 'system'),
+    request_id: requestId,
+    details_json: JSON.stringify(details || {}),
+    created_at: nowIso()
+  };
+  promoGovernanceAppend_('promo_flyer_audit_logs', record);
+  return record;
+}
+
+function promoGovernanceCampaign_(campaignId) {
+  var id = String(campaignId || '').trim();
+  if (!id) return null;
+  var sheet = getSheet('promo_flyers');
+  var values = sheet.getDataRange().getValues();
+  if (!values || values.length < 2) return null;
+  var headers = values[0];
+  var idIndex = headers.indexOf('id');
+  if (idIndex === -1) return null;
+  var rowIndex = values.slice(1).findIndex(function(row) { return String(row[idIndex] || '').trim() === id; });
+  if (rowIndex === -1) return null;
+  return { sheet: sheet, headers: headers, rowIndex: rowIndex + 2, data: toObject(headers, values[rowIndex + 1]) };
+}
+
+function promoGovernanceSetting_(key, fallback) {
+  try {
+    var settings = getSettingsMap();
+    return settings[key] === undefined || settings[key] === '' ? fallback : settings[key];
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function promoGovernanceBool_(value, fallback) {
+  if (value === undefined || value === null || value === '') return Boolean(fallback);
+  return String(value).toLowerCase() === 'true' || value === true || value === 1 || String(value) === '1';
+}
+
+function promoGovernancePolicyRows_() {
+  try { return promoGovernanceObjects_('promo_margin_policies'); } catch (error) { return []; }
+}
+
+function promoGovernanceResolvePolicy_(campaign, item) {
+  var policies = promoGovernancePolicyRows_().filter(function(policy) {
+    return String(policy.status || 'active').toLowerCase() !== 'disabled';
+  });
+  var policyId = String(campaign && campaign.minimum_price_policy_id || '').trim();
+  if (policyId) {
+    var exact = policies.find(function(policy) { return String(policy.id || '').trim() === policyId; });
+    if (exact) return exact;
+  }
+  var itemId = String(item && (item.product_id || item.id || item.sku) || '').trim();
+  var categoryId = String(item && (item.category_id || item.category) || '').trim();
+  return policies.find(function(policy) { return String(policy.scope || '').toLowerCase() === 'product' && String(policy.scope_key || '').trim() === itemId; }) ||
+    policies.find(function(policy) { return String(policy.scope || '').toLowerCase() === 'category' && String(policy.scope_key || '').trim() === categoryId; }) ||
+    policies.find(function(policy) { return String(policy.scope || '').toLowerCase() === 'global' || !String(policy.scope || '').trim(); }) ||
+    { id: 'implicit-default', minimum_margin_percent: 0, minimum_price: 0, mode: 'warning', status: 'active' };
+}
+
+function promoGovernanceNumber_(value) {
+  var n = Number(value);
+  return isFinite(n) ? n : 0;
+}
+
+function promoGovernanceMinimumForItem_(campaign, item) {
+  var policy = promoGovernanceResolvePolicy_(campaign, item);
+  var explicitFloor = Math.max(
+    promoGovernanceNumber_(item && (item.minimum_price || item.min_price)),
+    promoGovernanceNumber_(policy.minimum_price)
+  );
+  var cost = promoGovernanceNumber_(item && (item.cost_price || item.hpp || item.cost || item.buy_price || item.modal));
+  var marginPercent = Math.max(0, promoGovernanceNumber_(policy.minimum_margin_percent));
+  var marginFloor = cost > 0 ? cost * (1 + marginPercent / 100) : 0;
+  return { minimum: Math.max(explicitFloor, marginFloor), policy: policy, cost: cost, margin_percent: marginPercent };
+}
+
+function promoGovernanceCandidateItems_(campaign) {
+  var items = parsePromoFlyerItems(campaign && (campaign.items_json || campaign.items));
+  return Array.isArray(items) ? items : [];
+}
+
+function validatePromoFlyerPriceCandidate_(campaign, operation) {
+  var violations = [];
+  var warnings = [];
+  promoGovernanceCandidateItems_(campaign).forEach(function(item) {
+    var pricing = promoGovernanceMinimumForItem_(campaign, item);
+    var promo = promoGovernanceNumber_(item.brochure_promo_price || item.promo_price || item.price);
+    var normal = promoGovernanceNumber_(item.brochure_normal_price || item.normal_price || item.price);
+    if (promo <= 0 || pricing.minimum <= 0 || promo >= pricing.minimum) return;
+    var violation = {
+      product_id: String(item.id || item.product_id || ''),
+      product_name: String(item.brochure_name || item.name || ''),
+      promo_price: promo,
+      normal_price: normal,
+      minimum_allowed: Math.ceil(pricing.minimum),
+      policy_id: String(pricing.policy.id || ''),
+      mode: String(pricing.policy.mode || 'warning').toLowerCase()
+    };
+    if (violation.mode === 'strict') violations.push(violation);
+    else warnings.push(violation);
+  });
+  if (violations.length) {
+    return {
+      success: false,
+      error: 'PRICE_BELOW_MINIMUM',
+      operation: operation || 'write',
+      violations: violations,
+      warnings: warnings,
+      message: violations.length + ' produk berada di bawah minimum price policy.'
+    };
+  }
+  return { success: true, warnings: warnings, violations: [] };
+}
+
+function promoGovernanceCandidateForWrite_(action, id, data) {
+  var candidate = Object.assign({}, data || {});
+  if (action !== 'create') {
+    var current = promoGovernanceCampaign_(id);
+    if (current) candidate = Object.assign({}, current.data, candidate);
+  }
+  candidate.id = String(candidate.id || id || '').trim();
+  return candidate;
+}
+
+function validatePromoFlyerWriteAtBoundary_(action, id, data) {
+  var candidate = promoGovernanceCandidateForWrite_(action, id, data);
+  if (!candidate.id) return { success: false, error: 'PROMO_FLYER_ID_REQUIRED', message: 'Campaign id wajib diisi.' };
+  return validatePromoFlyerPriceCandidate_(candidate, action || 'write');
+}
+
+function promoGovernanceMarkVersionCurrent_(campaignId, currentVersionId) {
+  var sheet = promoGovernanceSheet_('promo_flyer_versions');
+  var values = sheet.getDataRange().getValues();
+  if (!values || values.length < 2) return;
+  var headers = promoGovernanceHeaders_(sheet);
+  var campaignIndex = headers.indexOf('campaign_id');
+  var currentIndex = headers.indexOf('is_current');
+  if (campaignIndex === -1 || currentIndex === -1) return;
+  values.slice(1).forEach(function(row, index) {
+    if (String(row[campaignIndex] || '') === String(campaignId || '')) {
+      sheet.getRange(index + 2, currentIndex + 1).setValue(String(row[headers.indexOf('id')] || '') === String(currentVersionId || '') ? 'true' : 'false');
+    }
+  });
+}
+
+function promoGovernanceCreateVersion_(campaign, changeSummary, actor, requestId, statusOverride) {
+  var campaignId = String(campaign && (campaign.id || campaign.campaign_id) || '').trim();
+  if (!campaignId) return { success: false, error: 'CAMPAIGN_ID_REQUIRED' };
+  var existing = promoGovernanceRequestExists_('promo_flyer_versions', requestId);
+  if (existing) return { success: true, duplicate: true, version: existing };
+  var rows = promoGovernanceObjects_('promo_flyer_versions').filter(function(row) { return String(row.campaign_id || '') === campaignId; });
+  var nextNo = rows.reduce(function(max, row) { return Math.max(max, promoGovernanceNumber_(row.version_no)); }, 0) + 1;
+  var principal = actor || { actor: 'system', role: 'system' };
+  var version = {
+    id: genId('pfv'),
+    campaign_id: campaignId,
+    version_no: nextNo,
+    snapshot_json: JSON.stringify(campaign),
+    change_summary: String(changeSummary || 'Campaign update'),
+    status: String(statusOverride || 'draft').toLowerCase(),
+    created_at: nowIso(),
+    created_by: String(principal.actor || 'system'),
+    request_id: String(requestId || ''),
+    is_current: 'true'
+  };
+  promoGovernanceMarkVersionCurrent_(campaignId, version.id);
+  promoGovernanceAppend_('promo_flyer_versions', version);
+  var current = promoGovernanceCampaign_(campaignId);
+  if (current) {
+    setCellIfColumnExists(current.sheet, current.headers, current.rowIndex, 'current_version_id', version.id);
+    setCellIfColumnExists(current.sheet, current.headers, current.rowIndex, 'approval_status', 'draft');
+    setCellIfColumnExists(current.sheet, current.headers, current.rowIndex, 'approved_at', '');
+    setCellIfColumnExists(current.sheet, current.headers, current.rowIndex, 'approved_by', '');
+  }
+  promoGovernanceAudit_('version_created', { campaign_id: campaignId, version_id: version.id, request_id: requestId }, principal, { version_no: nextNo, change_summary: version.change_summary });
+  return { success: true, version: version };
+}
+
+function handlePromoGovernanceContext(data) {
+  var actor = data && data.__actor;
+  if (!actor || !actor.authenticated) return { success: false, error: 'Unauthorized' };
+  var permissions = {};
+  try {
+    promoGovernanceObjects_('promo_role_permissions').filter(function(row) { return String(row.role || '') === actor.role && promoGovernanceBool_(row.allowed, false); }).forEach(function(row) { permissions[String(row.permission)] = true; });
+  } catch (error) {}
+  return {
+    success: true,
+    actor: { id: actor.id, display_name: actor.display_name, email: actor.email, role: actor.role },
+    permissions: permissions,
+    role_enforce: getAdminAuthorizationConfig().roleEnforce,
+    require_approval: promoGovernanceBool_(promoGovernanceSetting_('promo_pop_require_approval', 'false'), false),
+    policies: promoGovernancePolicyRows_()
+  };
+}
+
+function handlePromoGovernanceVersionList(data) {
+  var campaignId = String(data && data.campaign_id || '').trim();
+  var rows = promoGovernanceObjects_('promo_flyer_versions').filter(function(row) { return !campaignId || String(row.campaign_id || '') === campaignId; });
+  rows.sort(function(a, b) { return promoGovernanceNumber_(b.version_no) - promoGovernanceNumber_(a.version_no); });
+  return { success: true, versions: rows.slice(0, 100) };
+}
+
+function handlePromoGovernanceAuditList(data) {
+  var campaignId = String(data && data.campaign_id || '').trim();
+  var rows = promoGovernanceObjects_('promo_flyer_audit_logs').filter(function(row) { return !campaignId || String(row.campaign_id || '') === campaignId; });
+  return { success: true, logs: rows.slice(-200).reverse() };
+}
+
+function handlePromoGovernancePolicyList() {
+  return { success: true, policies: promoGovernancePolicyRows_() };
+}
+
+function handlePromoGovernanceVersionCreate(data) {
+  var actor = data && data.__actor;
+  var campaign = promoGovernanceCandidateForWrite_('update', data && data.campaign_id, data && data.snapshot ? data.snapshot : data);
+  var validation = validatePromoFlyerPriceCandidate_(campaign, 'version_create');
+  if (!validation.success) return validation;
+  var result = promoGovernanceCreateVersion_(campaign, data.change_summary, actor, data.request_id, 'draft');
+  if (result.success && validation.warnings.length) result.warnings = validation.warnings;
+  return result;
+}
+
+function handlePromoGovernanceVersionRestore(data) {
+  var actor = data && data.__actor;
+  var versionId = String(data && data.version_id || '').trim();
+  var version = promoGovernanceObjects_('promo_flyer_versions').find(function(row) { return String(row.id || '') === versionId; });
+  if (!version) return { success: false, error: 'VERSION_NOT_FOUND' };
+  var campaign = promoGovernanceCampaign_(data.campaign_id || version.campaign_id);
+  if (!campaign) return { success: false, error: 'PROMO_FLYER_NOT_FOUND' };
+  var snapshot;
+  try { snapshot = JSON.parse(String(version.snapshot_json || '{}')); } catch (error) { return { success: false, error: 'VERSION_SNAPSHOT_INVALID' }; }
+  var validation = validatePromoFlyerPriceCandidate_(snapshot, 'restore');
+  if (!validation.success) return validation;
+  var fields = Object.keys(snapshot).filter(function(key) { return ['id', 'created_at', 'created_by', 'published_at', 'status', 'approval_status', 'current_version_id', 'approved_at', 'approved_by'].indexOf(key) === -1; });
+  fields.forEach(function(key) { if (campaign.headers.indexOf(key) !== -1) campaign.sheet.getRange(campaign.rowIndex, campaign.headers.indexOf(key) + 1).setValue(snapshot[key]); });
+  setCellIfColumnExists(campaign.sheet, campaign.headers, campaign.rowIndex, 'status', 'draft');
+  var created = promoGovernanceCreateVersion_(Object.assign({}, snapshot, { id: campaign.data.id, status: 'draft' }), 'Restore version ' + versionId, actor, data.request_id, 'draft');
+  if (created.success) promoGovernanceAudit_('version_restored', { campaign_id: campaign.data.id, version_id: created.version.id, request_id: data.request_id }, actor, { restored_version_id: versionId });
+  return created;
+}
+
+function promoGovernanceAllowedTransition_(fromStatus, toStatus) {
+  var from = String(fromStatus || 'draft').toLowerCase();
+  var to = String(toStatus || '').toLowerCase();
+  var matrix = {
+    draft: { in_review: true },
+    in_review: { approved: true, rejected: true },
+    rejected: { draft: true, in_review: true },
+    approved: { in_review: true },
+    published: { draft: true }
+  };
+  return Boolean(matrix[from] && matrix[from][to]);
+}
+
+function handlePromoGovernanceApprovalTransition(data) {
+  var actor = data && data.__actor;
+  var campaignId = String(data && data.campaign_id || '').trim();
+  var campaign = promoGovernanceCampaign_(campaignId);
+  if (!campaign) return { success: false, error: 'PROMO_FLYER_NOT_FOUND' };
+  var fromStatus = String(campaign.data.approval_status || 'draft').toLowerCase();
+  var toStatus = String(data && data.to_status || '').toLowerCase();
+  if (!promoGovernanceAllowedTransition_(fromStatus, toStatus)) return { success: false, error: 'APPROVAL_TRANSITION_INVALID', from_status: fromStatus, to_status: toStatus };
+  if (toStatus === 'rejected' && !String(data.decision_note || '').trim()) return { success: false, error: 'DECISION_NOTE_REQUIRED' };
+  var validation = validatePromoFlyerPriceCandidate_(campaign.data, 'approval');
+  if (!validation.success && toStatus === 'approved') return validation;
+  var versionId = String(data.version_id || campaign.data.current_version_id || '').trim();
+  setCellIfColumnExists(campaign.sheet, campaign.headers, campaign.rowIndex, 'approval_status', toStatus);
+  if (toStatus === 'approved') {
+    setCellIfColumnExists(campaign.sheet, campaign.headers, campaign.rowIndex, 'approved_at', nowIso());
+    setCellIfColumnExists(campaign.sheet, campaign.headers, campaign.rowIndex, 'approved_by', String(actor.actor || 'system'));
+  } else {
+    setCellIfColumnExists(campaign.sheet, campaign.headers, campaign.rowIndex, 'approved_at', '');
+    setCellIfColumnExists(campaign.sheet, campaign.headers, campaign.rowIndex, 'approved_by', '');
+  }
+  var versionSheet = promoGovernanceSheet_('promo_flyer_versions');
+  var versionHeaders = promoGovernanceHeaders_(versionSheet);
+  var versionRows = versionSheet.getDataRange().getValues();
+  var versionIndex = versionRows.slice(1).findIndex(function(row) { return String(row[versionHeaders.indexOf('id')] || '') === versionId; });
+  if (versionIndex !== -1) setCellIfColumnExists(versionSheet, versionHeaders, versionIndex + 2, 'status', toStatus);
+  promoGovernanceAppend_('promo_flyer_approvals', { id: genId('pfa'), campaign_id: campaignId, version_id: versionId, from_status: fromStatus, to_status: toStatus, decision_note: String(data.decision_note || ''), actor: String(actor.actor || 'system'), actor_role: String(actor.role || 'system'), created_at: nowIso(), request_id: String(data.request_id || '') });
+  promoGovernanceAudit_('approval_changed', { campaign_id: campaignId, version_id: versionId, request_id: data.request_id }, actor, { from_status: fromStatus, to_status: toStatus, decision_note: String(data.decision_note || '') });
+  return { success: true, campaign_id: campaignId, version_id: versionId, approval_status: toStatus, warnings: validation.warnings || [] };
+}
+
+function handlePromoGovernancePolicyUpsert(data) {
+  var policy = data && data.policy ? data.policy : data || {};
+  var id = String(policy.id || '').trim();
+  if (!id) return { success: false, error: 'POLICY_ID_REQUIRED' };
+  var sheet = promoGovernanceSheet_('promo_margin_policies');
+  var headers = promoGovernanceHeaders_(sheet);
+  var values = sheet.getDataRange().getValues();
+  var idIndex = headers.indexOf('id');
+  var rowIndex = values.slice(1).findIndex(function(row) { return String(row[idIndex] || '') === id; });
+  var record = { id: id, scope: String(policy.scope || 'global'), scope_key: String(policy.scope_key || ''), minimum_margin_percent: Math.max(0, promoGovernanceNumber_(policy.minimum_margin_percent)), minimum_price: Math.max(0, promoGovernanceNumber_(policy.minimum_price)), mode: String(policy.mode || 'warning').toLowerCase() === 'strict' ? 'strict' : 'warning', status: String(policy.status || 'active'), updated_at: nowIso(), updated_by: String(data.__actor && data.__actor.actor || 'system') };
+  if (rowIndex === -1) sheet.appendRow(headers.map(function(header) { return record[header] === undefined ? '' : record[header]; }));
+  else headers.forEach(function(header, index) { if (record[header] !== undefined) sheet.getRange(rowIndex + 2, index + 1).setValue(record[header]); });
+  promoGovernanceAudit_('margin_policy_updated', { request_id: data.request_id }, data.__actor, { policy_id: id, mode: record.mode, minimum_margin_percent: record.minimum_margin_percent, minimum_price: record.minimum_price });
+  return { success: true, policy: record };
+}
+
+function handlePromoFlyerWriteGovernance_(action, campaignId, actor, requestId, changeSummary) {
+  var campaign = promoGovernanceCampaign_(campaignId);
+  if (!campaign) return { success: false, error: 'PROMO_FLYER_NOT_FOUND_AFTER_WRITE' };
+  var version = promoGovernanceCreateVersion_(campaign.data, changeSummary || (action === 'create' ? 'Campaign created' : 'Campaign updated'), actor, requestId, 'draft');
+  promoGovernanceAudit_(action === 'create' ? 'campaign_created' : 'campaign_updated', { campaign_id: campaignId, version_id: version.version && version.version.id || '', request_id: requestId }, actor, { action: action });
+  return version;
 }
