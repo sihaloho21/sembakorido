@@ -22,7 +22,7 @@
         button { cursor:pointer; }
         .pop-app { min-height:100vh; }
         .pop-topbar { position:sticky; top:0; z-index:30; background:rgba(255,255,255,.94); backdrop-filter:blur(16px); border-bottom:1px solid var(--pop-line); }
-        .pop-topbar-inner { max-width:1540px; margin:auto; padding:14px 28px; display:flex; align-items:center; justify-content:space-between; gap:18px; }
+        .pop-topbar-inner { max-width:1540px; margin:auto; padding:14px 3cm; display:flex; align-items:center; justify-content:space-between; gap:18px; }
         .pop-brand { display:flex; align-items:center; gap:12px; min-width:0; }
         .pop-logo { width:42px; height:42px; display:grid; place-items:center; flex:none; border-radius:14px; color:#fff; background:linear-gradient(145deg,#fb923c,#ea580c); box-shadow:0 10px 24px rgba(249,115,22,.22); font-size:20px; }
         .pop-brand-kicker { margin:0 0 2px; color:var(--pop-orange-dark); font-size:10px; font-weight:900; letter-spacing:.15em; text-transform:uppercase; }
@@ -38,7 +38,7 @@
         .pop-button.green { color:#fff; background:#059669; box-shadow:0 8px 18px rgba(5,150,105,.18); }
         .pop-button.danger { color:#b91c1c; background:#fff; border-color:#fecaca; }
         .pop-button:disabled { opacity:.55; cursor:not-allowed; transform:none; }
-        .pop-shell { max-width:1540px; margin:0 auto; padding:26px 28px 50px; }
+        .pop-shell { max-width:1540px; margin:0 auto; padding:26px 3cm 50px; }
         .pop-hero { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:22px; }
         .pop-hero h2 { margin:0; font-size:clamp(25px,3vw,38px); line-height:1.05; font-weight:950; letter-spacing:-.05em; }
         .pop-hero p { max-width:680px; margin:10px 0 0; color:var(--pop-muted); font-size:14px; line-height:1.6; }
@@ -134,7 +134,7 @@
         .pop-preview-actions button { width:31px; height:31px; display:grid; place-items:center; border:1px solid #e2e8f0; border-radius:9px; background:#fff; color:#64748b; }
         .pop-preview-actions button:hover { color:var(--pop-orange-dark); border-color:#fdba74; }
         .preview-stage { padding:18px; background:linear-gradient(180deg,#f8fafc,#eef2f7); }
-        .flyer-preview { box-sizing:border-box; width:100%; aspect-ratio:210 / 297; min-height:0; overflow:hidden; padding:10mm; border:1px solid #dbe3ec; border-radius:16px; background:#fff; box-shadow:0 14px 30px rgba(15,23,42,.13); }
+        .flyer-preview { box-sizing:border-box; width:100%; height:auto; aspect-ratio:210 / 297; min-height:0; overflow:hidden; padding:10mm 4mm; border:1px solid #dbe3ec; border-radius:16px; background:#fff; box-shadow:0 14px 30px rgba(15,23,42,.13); }
         .flyer-preview-content { box-sizing:border-box; width:100%; height:100%; min-height:0; overflow:hidden; border-radius:12px; background:#fff; }
         .flyer-preview-content-scale { box-sizing:border-box; width:100%; min-height:100%; transform-origin:top left; }
         .flyer-preview.is-fitting .flyer-preview-content-scale { width:calc(100% / var(--flyer-content-scale,1)); min-height:calc(100% / var(--flyer-content-scale,1)); transform:scale(var(--flyer-content-scale,1)); }
@@ -315,17 +315,17 @@
             </div>
 
             <aside class="pop-preview-column">
-                <section class="pop-card pop-preview-card"><div class="pop-preview-head"><div><h3>Live preview</h3><p>Hasil akhir flyer mengikuti A4 Portrait dengan area aman 1 cm.</p></div><div class="pop-preview-actions"><button id="promo-pop-zoom-out" type="button" title="Perkecil">−</button><button id="promo-pop-zoom-reset" type="button" title="Reset zoom">100%</button><button id="promo-pop-zoom-in" type="button" title="Perbesar">+</button></div></div><div class="preview-stage"><div id="promo-pop-preview" class="flyer-preview"></div></div><div class="pop-preview-legend"><span id="promo-pop-preview-size">A4 Portrait · Preview</span><span>Live · tersinkron</span></div><div class="pop-inline" style="padding:0 18px 18px;"><button id="promo-pop-print" class="pop-button secondary" type="button" style="flex:1;">Pratinjau cetak</button><button id="promo-pop-png" class="pop-button secondary" type="button" style="flex:1;">Download PNG</button><button id="promo-pop-pdf" class="pop-button green" type="button" style="flex:1;">Generate PDF</button><button id="promo-pop-share" class="pop-button secondary" type="button" style="flex:1;">Share WA</button></div>
+                <section class="pop-card pop-preview-card"><div class="pop-preview-head"><div><h3>Live preview</h3><p>Hasil akhir flyer mengikuti ukuran A4 Portrait dengan margin samping 0,4 cm.</p></div><div class="pop-preview-actions"><button id="promo-pop-zoom-out" type="button" title="Perkecil">−</button><button id="promo-pop-zoom-reset" type="button" title="Reset zoom">100%</button><button id="promo-pop-zoom-in" type="button" title="Perbesar">+</button></div></div><div class="preview-stage"><div id="promo-pop-preview" class="flyer-preview"></div></div><div class="pop-preview-legend"><span id="promo-pop-preview-size">A4 Portrait · Preview</span><span>Live · tersinkron</span></div><div class="pop-inline" style="padding:0 18px 18px;"><button id="promo-pop-print" class="pop-button secondary" type="button" style="flex:1;">Pratinjau cetak</button><button id="promo-pop-png" class="pop-button secondary" type="button" style="flex:1;">Download PNG</button><button id="promo-pop-pdf" class="pop-button green" type="button" style="flex:1;">Generate PDF</button><button id="promo-pop-share" class="pop-button secondary" type="button" style="flex:1;">Share WA</button></div>
 </section>
                 <section class="pop-card"><div class="pop-card-head"><div><h3>Campaign tersimpan</h3><p>Draft dan campaign yang sudah dipublish.</p></div><a href="../promo_katalog.html" target="_blank" class="pop-help" style="color:#ea580c;font-weight:900;text-decoration:none;">Lihat publik</a></div><div id="promo-pop-campaign-list" class="pop-campaign-list"></div></section>
-                <p class="pop-footer-note">Area aman A4 Portrait memiliki batas 1 cm di setiap sisi. Jumlah produk mengikuti Baris × Kolom dan preview otomatis menyesuaikan agar elemen tetap berada di dalam area cetak.</p>
+                <p class="pop-footer-note">Preview A4 Portrait memakai margin samping 0,4 cm. Margin halaman desktop berjarak 3 cm dari sisi layar; jumlah produk mengikuti Baris × Kolom dan elemen otomatis menyesuaikan area cetak.</p>
             </aside>
         </section>
     </main>
 </div>
 <div id="promo-pop-print-modal" class="pop-print-modal" hidden role="dialog" aria-modal="true" aria-labelledby="promo-pop-print-title">
     <div class="pop-print-dialog">
-        <header class="pop-print-dialog-head"><div><h3 id="promo-pop-print-title">Pratinjau cetak</h3><p>A4 Portrait · 210 × 297 mm · area aman 1 cm setiap sisi</p></div><button id="promo-pop-print-close" class="pop-print-dialog-close" type="button" aria-label="Tutup pratinjau cetak">×</button></header>
+        <header class="pop-print-dialog-head"><div><h3 id="promo-pop-print-title">Pratinjau cetak</h3><p>A4 Portrait · 210 × 297 mm · margin samping 0,4 cm</p></div><button id="promo-pop-print-close" class="pop-print-dialog-close" type="button" aria-label="Tutup pratinjau cetak">×</button></header>
         <div class="pop-print-canvas"><div id="promo-pop-print-sheet" class="pop-print-sheet"></div></div>
         <footer class="pop-print-dialog-foot"><button id="promo-pop-print-cancel" class="pop-button secondary" type="button">Kembali</button><button id="promo-pop-print-now" class="pop-button primary" type="button">Cetak sekarang</button></footer>
     </div>
@@ -337,6 +337,6 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="js/catalog-promo-pop.js?v=20260826a4safe3"></script>
+<script src="js/catalog-promo-pop.js?v=20260826a4side04"></script>
 </body>
 </html>
