@@ -53,6 +53,7 @@ var PROMO_FLYER_REQUIRED_HEADERS = [
   'banner_url',
   'disclaimer_text',
   'show_service',
+  'ppob_wallets_json',
   'show_payment',
   'show_disclaimer'
 ];

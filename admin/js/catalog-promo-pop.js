@@ -2,6 +2,13 @@
     'use strict';
 
     const SHEET = 'promo_flyers';
+    const PPOB_WALLETS = Object.freeze([
+        { id: 'dana', label: 'DANA', initial: 'D' },
+        { id: 'gopay', label: 'GoPay', initial: 'G' },
+        { id: 'ovo', label: 'OVO', initial: 'O' },
+        { id: 'shopeepay', label: 'ShopeePay', initial: 'S' },
+        { id: 'linkaja', label: 'LinkAja', initial: 'L' }
+    ]);
     const state = {
         products: [],
         campaigns: [],
@@ -99,6 +106,27 @@
     function formatStrikePrice(value) {
         const amount = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(value) || 0);
         return `<del class="strike-price">${escapeHtml(amount)}</del>`;
+    }
+
+    function getSelectedPpobWallets() {
+        return PPOB_WALLETS.filter((wallet) => $(`promo-pop-wallet-${wallet.id}`)?.checked).map((wallet) => wallet.id);
+    }
+
+    function restorePpobWallets(value) {
+        let selected = [];
+        try { selected = Array.isArray(value) ? value : JSON.parse(String(value || '[]')); } catch (error) { selected = []; }
+        const ids = new Set((selected || []).map((item) => String(item || '').trim().toLowerCase()));
+        PPOB_WALLETS.forEach((wallet) => {
+            const checkbox = $(`promo-pop-wallet-${wallet.id}`);
+            if (checkbox) checkbox.checked = ids.has(wallet.id);
+        });
+    }
+
+    function renderPpobWalletMarkup(walletIds, className) {
+        const selected = new Set((walletIds || []).map((item) => String(item || '').trim().toLowerCase()));
+        const wallets = PPOB_WALLETS.filter((wallet) => selected.has(wallet.id));
+        if (!wallets.length) return '';
+        return `<div class="${className || 'flyer-ppob-wallets'}">${wallets.map((wallet) => `<span class="flyer-ppob-wallet"><span class="flyer-ppob-wallet-icon ${wallet.id}">${wallet.initial}</span><span>${escapeHtml(wallet.label)}</span></span>`).join('')}</div>`;
     }
 
     // Brochure-only overrides stay on the campaign item snapshot and never mutate state.products.
@@ -722,15 +750,19 @@
         const renderRetailTile = (item) => `<article class="flyer-retail-tile"><div class="flyer-retail-media flyer-retail-draggable" data-tile-position="image" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'image')}" tabindex="0" role="button" aria-label="Seret atau scroll gambar produk untuk mengubah posisi dan ukuran">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="eager">` : 'POP'}</div><div class="flyer-retail-name flyer-retail-draggable" data-tile-position="name" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'name')}" tabindex="0" role="button" aria-label="Seret atau scroll nama produk untuk mengubah posisi dan ukuran">${escapeHtml(brochureName(item))}</div><div class="flyer-retail-normal flyer-retail-draggable" data-tile-position="normal" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'normal')}" tabindex="0" role="button" aria-label="Seret atau scroll harga coret untuk mengubah posisi dan ukuran">${formatStrikePrice(brochureNormalPrice(item))}</div><div class="flyer-retail-promo flyer-retail-draggable" data-tile-position="promo" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'promo')}" tabindex="0" role="button" aria-label="Seret atau scroll harga promo untuk mengubah posisi dan ukuran">${formatCurrencyMarkup(brochurePromoPrice(item))}</div><div class="flyer-retail-offer flyer-retail-draggable" data-tile-position="offer" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'offer')}" tabindex="0" role="button" aria-label="Seret atau scroll teks promo untuk mengubah posisi dan ukuran">${escapeHtml(brochureOffer(item))}</div></article>`;
         const productMarkup = rows.slice(0, grid.limit).map(layout === 'retail-tile' ? renderRetailTile : renderStandardItem).join('');
         const featuredMarkup = featured.length ? `<div class="flyer-featured"><div class="flyer-media-frame">${featured[0].image ? `<img src="${escapeHtml(safeHttpUrl(featured[0].image))}" alt="" loading="eager">` : 'POP'}</div><div><div class="flyer-featured-label">Produk Unggulan</div><div style="margin-top:4px;color:#334155;font-size:12px;font-weight:900;">${escapeHtml(brochureName(featured[0]))}</div><div class="flyer-item-normal">${formatStrikePrice(brochureNormalPrice(featured[0]))}</div><div class="flyer-item-promo">${formatCurrencyMarkup(brochurePromoPrice(featured[0]))}</div></div></div>` : '';
-        const serviceMarkup = $('promo-pop-show-service')?.checked ? '<div class="flyer-service"><strong style="color:#334155;">MELAYANI TOP UP DIGITAL & PPOB</strong><br>Pulsa · Paket Data · Token PLN · E-Wallet · Bayar Tagihan</div>' : '';
+        const selectedWallets = getSelectedPpobWallets();
+        const walletMarkup = renderPpobWalletMarkup(selectedWallets);
+        const serviceMarkup = $('promo-pop-show-service')?.checked ? `<div class="flyer-service"><strong style="color:#334155;">MELAYANI TOP UP DIGITAL & PPOB</strong><br>Pulsa · Paket Data · Token PLN · E-Wallet · Bayar Tagihan${walletMarkup}</div>` : '';
         const paymentMarkup = $('promo-pop-show-payment')?.checked ? '<div class="flyer-payment">Pembayaran: QRIS · GoPay · DANA · OVO · Transfer Bank</div>' : '';
         const disclaimerMarkup = $('promo-pop-show-disclaimer')?.checked && disclaimer ? `<div class="flyer-payment">${escapeHtml(disclaimer)}</div>` : '';
+        const watermarkText = String($('promo-pop-watermark-text')?.value || '').trim() || 'PaketSembako.com';
+        const watermarkMarkup = $('promo-pop-watermark')?.checked ? `<span class="flyer-watermark">${escapeHtml(watermarkText)}</span>` : '';
         preview.className = `flyer-preview flyer-theme-${escapeHtml(themeClass(theme))} flyer-layout-${escapeHtml(layoutClass(layout))}`;
-        preview.innerHTML = `<div class="flyer-preview-content"><div class="flyer-preview-content-scale"><div class="flyer-preview-hero" ${hero ? `style="background-image:url('${escapeHtml(hero)}')"` : ''}><div class="flyer-overlay"></div><div class="relative z-10"><span class="flyer-kicker">🔥 ${escapeHtml(store).toUpperCase()}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(subtitle)}</p>${period ? `<span class="flyer-period">${escapeHtml(period)}</span>` : ''}</div></div><div class="flyer-preview-meta"><strong>${escapeHtml(badge)}</strong><span>${rows.length} produk promo</span></div><div class="flyer-preview-items">${productMarkup || '<div style="grid-column:1/-1;color:#94a3b8;font-size:11px;text-align:center;padding:28px 0;">Preview produk akan tampil di sini.</div>'}${featuredMarkup}</div>${serviceMarkup}${paymentMarkup}<div class="flyer-preview-footer"><div class="flyer-footer-left"><strong>${escapeHtml(store)}</strong><span>${escapeHtml(address || 'Informasi toko akan tampil di sini')}</span></div><div class="flyer-footer-right">${qrDataUrl ? `<img class="flyer-qr" src="${qrDataUrl}" alt="QR Code">` : ''}<span>Scan<br>untuk pesan</span></div></div>${disclaimerMarkup}</div></div>`;
+        preview.innerHTML = `<div class="flyer-preview-content"><div class="flyer-preview-content-scale"><div class="flyer-preview-hero" ${hero ? `style="background-image:url('${escapeHtml(hero)}')"` : ''}><div class="flyer-overlay"></div><div class="relative z-10"><span class="flyer-kicker">🔥 ${escapeHtml(store).toUpperCase()}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(subtitle)}</p>${period ? `<span class="flyer-period">${escapeHtml(period)}</span>` : ''}</div></div><div class="flyer-preview-meta"><strong>${escapeHtml(badge)}</strong><span>${rows.length} produk promo</span></div><div class="flyer-preview-items">${productMarkup || '<div style="grid-column:1/-1;color:#94a3b8;font-size:11px;text-align:center;padding:28px 0;">Preview produk akan tampil di sini.</div>'}${featuredMarkup}</div>${serviceMarkup}${paymentMarkup}<div class="flyer-preview-footer"><div class="flyer-footer-left"><strong>${escapeHtml(store)}</strong><span>${escapeHtml(address || 'Informasi toko akan tampil di sini')}</span></div><div class="flyer-footer-right">${qrDataUrl ? `<img class="flyer-qr" src="${qrDataUrl}" alt="QR Code">` : ''}<span>Scan<br>untuk pesan</span></div></div>${disclaimerMarkup}${watermarkMarkup}</div></div>`;
         bindTilePositionDrag();
         fitPreviewToSafeArea();
         const size = $('promo-pop-preview-size');
-        if (size) size.textContent = `A4 Portrait · 210 × 297 mm · area aman 1 cm · ${rows.length} produk`;
+        if (size) size.textContent = `A4 Portrait · 210 × 297 mm · margin internal 0,4 cm · ${rows.length} produk`;
     }
 
     function enforceA4Portrait() {
@@ -784,6 +816,7 @@
             footer_note: String($('promo-pop-footer')?.value || '').trim(),
             disclaimer_text: String($('promo-pop-disclaimer')?.value || '').trim(),
             show_service: $('promo-pop-show-service')?.checked ? 'true' : 'false',
+            ppob_wallets_json: JSON.stringify(getSelectedPpobWallets()),
             show_payment: $('promo-pop-show-payment')?.checked ? 'true' : 'false',
             show_disclaimer: $('promo-pop-show-disclaimer')?.checked ? 'true' : 'false',
             show_watermark: $('promo-pop-watermark')?.checked ? 'true' : 'false',
@@ -836,6 +869,7 @@
         $('promo-pop-watermark').checked = String(campaign.show_watermark || '').toLowerCase() === 'true';
         $('promo-pop-watermark-text').value = campaign.watermark_text || '';
         $('promo-pop-show-service').checked = String(campaign.show_service || 'true').toLowerCase() !== 'false';
+        restorePpobWallets(campaign.ppob_wallets_json);
         $('promo-pop-show-payment').checked = String(campaign.show_payment || 'true').toLowerCase() !== 'false';
         $('promo-pop-show-disclaimer').checked = String(campaign.show_disclaimer || 'true').toLowerCase() !== 'false';
         $('promo-pop-start').value = campaign.start_at ? String(campaign.start_at).slice(0, 16) : '';
@@ -886,6 +920,7 @@
         state.layoutClipboard = '';
         state.featuredIds.clear();
         $('promo-pop-form')?.reset();
+        restorePpobWallets([]);
         enforceA4Portrait();
         const heroPreview = $('promo-pop-hero-preview');
         if (heroPreview) { heroPreview.src = ''; heroPreview.style.display = 'none'; }
@@ -1017,6 +1052,7 @@
         document.querySelectorAll('[data-template]').forEach((button) => button.addEventListener('click', () => selectTemplate(button.dataset.template)));
         ['promo-pop-title', 'promo-pop-subtitle', 'promo-pop-theme', 'promo-pop-layout', 'promo-pop-store', 'promo-pop-badge', 'promo-pop-hero', 'promo-pop-period', 'promo-pop-footer', 'promo-pop-qr', 'promo-pop-address', 'promo-pop-disclaimer', 'promo-pop-watermark-text', 'promo-pop-paper', 'promo-pop-orientation'].forEach((id) => $(id)?.addEventListener('input', renderPreview));
         ['promo-pop-watermark', 'promo-pop-show-service', 'promo-pop-show-payment', 'promo-pop-show-disclaimer'].forEach((id) => $(id)?.addEventListener('change', renderPreview));
+        document.querySelectorAll('[data-ppob-wallet]').forEach((input) => input.addEventListener('change', renderPreview));
         $('promo-pop-hero-file')?.addEventListener('change', handleHeroUpload);
         $('promo-pop-zoom-out')?.addEventListener('click', () => setPreviewZoom(-.1));
         $('promo-pop-zoom-in')?.addEventListener('click', () => setPreviewZoom(.1));
