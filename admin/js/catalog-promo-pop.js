@@ -680,27 +680,27 @@
 
     function bindTilePositionDrag() {
         const preview = $('promo-pop-preview');
-        if (!preview || !preview.classList.contains('flyer-layout-retail-tile')) return;
+        if (!preview) return;
         preview.querySelectorAll('[data-tile-position]').forEach((element) => {
-                element.addEventListener('wheel', (event) => {
-                    event.preventDefault();
-                    const field = element.dataset.tilePosition;
-                    const productId = element.dataset.productId;
-                    if (!field || !productId) return;
-                    const productPositions = tilePositionsForProduct(productId);
-                    const current = productPositions[field] || { x: 50, y: 50, scale: 1 };
-                    const scale = Math.min(2, Math.max(.6, (Number(current.scale) || 1) + (event.deltaY < 0 ? .05 : -.05)));
-                    state.tilePositions[productId] = { ...productPositions, [field]: { ...current, scale: Number(scale.toFixed(2)) } };
-                    element.style.transform = `translate(-50%,-50%) scale(${scale})`;
-                    element.title = `Ukuran ${Math.round(scale * 100)}% · Scroll untuk mengubah`;
-                }, { passive: false });
-                element.addEventListener('pointerdown', (event) => {
+            element.addEventListener('wheel', (event) => {
                 event.preventDefault();
                 const field = element.dataset.tilePosition;
                 const productId = element.dataset.productId;
-                const tile = element.closest('.flyer-retail-tile');
-                if (!tile || !field || !productId) return;
-                const rect = tile.getBoundingClientRect();
+                if (!field || !productId) return;
+                const productPositions = tilePositionsForProduct(productId);
+                const current = productPositions[field] || { x: 50, y: 50, scale: 1 };
+                const scale = Math.min(2, Math.max(.6, (Number(current.scale) || 1) + (event.deltaY < 0 ? .05 : -.05)));
+                state.tilePositions[productId] = { ...productPositions, [field]: { ...current, scale: Number(scale.toFixed(2)) } };
+                element.style.transform = `translate(-50%,-50%) scale(${scale})`;
+                element.title = `Ukuran ${Math.round(scale * 100)}% · Scroll untuk mengubah`;
+            }, { passive: false });
+            element.addEventListener('pointerdown', (event) => {
+                event.preventDefault();
+                const field = element.dataset.tilePosition;
+                const productId = element.dataset.productId;
+                const surface = element.closest('[data-position-surface]');
+                if (!surface || !field || !productId) return;
+                const rect = surface.getBoundingClientRect();
                 const move = (moveEvent) => {
                     const x = Math.min(96, Math.max(4, ((moveEvent.clientX - rect.left) / rect.width) * 100));
                     const y = Math.min(96, Math.max(4, ((moveEvent.clientY - rect.top) / rect.height) * 100));
@@ -719,6 +719,7 @@
                 element.addEventListener('pointermove', move);
                 element.addEventListener('pointerup', finish);
                 element.addEventListener('pointercancel', finish);
+                if (element.setPointerCapture) element.setPointerCapture(event.pointerId);
             });
         });
     }
@@ -746,9 +747,21 @@
             const rows = selectedProductRows();
             const featured = rows.filter(item => state.featuredIds.has(String(item.id))).slice(0, 3);
         const qrDataUrl = makeQrDataUrl(qrUrl);
-        const renderStandardItem = (item) => `<article class="flyer-item"><div class="flyer-media-frame">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="eager">` : 'POP'}${item.badge ? `<span class="flyer-item-badge">${escapeHtml(item.badge)}</span>` : ''}</div><div class="flyer-item-name">${escapeHtml(brochureName(item))}</div><div class="flyer-item-normal">${formatStrikePrice(brochureNormalPrice(item))}</div><div class="flyer-item-promo">${formatCurrencyMarkup(brochurePromoPrice(item))}</div>${item.unit ? `<div style="font-size:9px;color:#94a3b8;">${escapeHtml(item.unit)}</div>` : ''}</article>`;
-        const renderRetailTile = (item) => `<article class="flyer-retail-tile"><div class="flyer-retail-media flyer-retail-draggable" data-tile-position="image" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'image')}" tabindex="0" role="button" aria-label="Seret atau scroll gambar produk untuk mengubah posisi dan ukuran">${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="eager">` : 'POP'}</div><div class="flyer-retail-name flyer-retail-draggable" data-tile-position="name" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'name')}" tabindex="0" role="button" aria-label="Seret atau scroll nama produk untuk mengubah posisi dan ukuran">${escapeHtml(brochureName(item))}</div><div class="flyer-retail-normal flyer-retail-draggable" data-tile-position="normal" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'normal')}" tabindex="0" role="button" aria-label="Seret atau scroll harga coret untuk mengubah posisi dan ukuran">${formatStrikePrice(brochureNormalPrice(item))}</div><div class="flyer-retail-promo flyer-retail-draggable" data-tile-position="promo" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'promo')}" tabindex="0" role="button" aria-label="Seret atau scroll harga promo untuk mengubah posisi dan ukuran">${formatCurrencyMarkup(brochurePromoPrice(item))}</div><div class="flyer-retail-offer flyer-retail-draggable" data-tile-position="offer" data-product-id="${escapeHtml(String(item.id))}" style="${tilePositionStyle(item.id, 'offer')}" tabindex="0" role="button" aria-label="Seret atau scroll teks promo untuk mengubah posisi dan ukuran">${escapeHtml(brochureOffer(item))}</div></article>`;
-        const productMarkup = rows.slice(0, grid.limit).map(layout === 'retail-tile' ? renderRetailTile : renderStandardItem).join('');
+        const renderPositionedItem = (item) => {
+            const productId = escapeHtml(String(item.id));
+            const isRetail = layout === 'retail-tile';
+            const itemClass = `flyer-item flyer-positioned-item${isRetail ? ' flyer-retail-tile' : ''}`;
+            const elementClass = (field, legacyClass) => `flyer-positioned-element flyer-positioned-${field}${isRetail ? ` ${legacyClass}` : ''}`;
+            const draggableAttrs = (field, label) => `data-tile-position="${field}" data-product-id="${productId}" style="${tilePositionStyle(item.id, field)}" tabindex="0" role="button" aria-label="Seret atau scroll ${label} untuk mengubah posisi dan ukuran"`;
+            return `<article class="${itemClass}" data-position-surface="${productId}">
+                <div class="${elementClass('media', 'flyer-retail-media')}" ${draggableAttrs('image', 'gambar produk')}>${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="eager">` : 'POP'}${item.badge ? `<span class="flyer-item-badge">${escapeHtml(item.badge)}</span>` : ''}</div>
+                <div class="${elementClass('name', 'flyer-retail-name')}" ${draggableAttrs('name', 'nama produk')}>${escapeHtml(brochureName(item))}</div>
+                <div class="${elementClass('normal', 'flyer-retail-normal')}" ${draggableAttrs('normal', 'harga coret')}>${formatStrikePrice(brochureNormalPrice(item))}</div>
+                <div class="${elementClass('promo', 'flyer-retail-promo')}" ${draggableAttrs('promo', 'harga promo')}>${formatCurrencyMarkup(brochurePromoPrice(item))}</div>
+                <div class="${elementClass('offer', 'flyer-retail-offer')}" ${draggableAttrs('offer', 'teks promo')}>${escapeHtml(brochureOffer(item))}</div>
+            </article>`;
+        };
+        const productMarkup = rows.slice(0, grid.limit).map(renderPositionedItem).join('');
         const featuredMarkup = featured.length ? `<div class="flyer-featured"><div class="flyer-media-frame">${featured[0].image ? `<img src="${escapeHtml(safeHttpUrl(featured[0].image))}" alt="" loading="eager">` : 'POP'}</div><div><div class="flyer-featured-label">Produk Unggulan</div><div style="margin-top:4px;color:#334155;font-size:12px;font-weight:900;">${escapeHtml(brochureName(featured[0]))}</div><div class="flyer-item-normal">${formatStrikePrice(brochureNormalPrice(featured[0]))}</div><div class="flyer-item-promo">${formatCurrencyMarkup(brochurePromoPrice(featured[0]))}</div></div></div>` : '';
         const selectedWallets = getSelectedPpobWallets();
         const walletMarkup = renderPpobWalletMarkup(selectedWallets);
