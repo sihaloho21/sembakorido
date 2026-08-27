@@ -441,6 +441,35 @@
         .pk-pop-layout-horizontal-list .pk-pop-positioned-name { width:56%; text-align:left; }
         .pk-pop-layout-horizontal-list .pk-pop-positioned-offer { width:44%; text-align:left; }
         @media (max-width:640px) { .pk-pop-positioned-item:not(.pk-pop-retail-tile) { min-height:200px; } .pk-pop-layout-bento .pk-pop-positioned-item:first-child,.pk-pop-layout-split-feature .pk-pop-positioned-item:first-child { min-height:260px; } }
+        .pk-pop-preview-card { --pk-pop-accent:#ea580c; --pk-pop-accent-soft:#fff7ed; --pk-pop-price:#dc2626; }
+        .pk-pop-preset-fresh-market { --pk-pop-accent:#15803d; --pk-pop-accent-soft:#f0fdf4; --pk-pop-price:#15803d; }
+        .pk-pop-preset-flash-sale { --pk-pop-accent:#7c3aed; --pk-pop-accent-soft:#f5f3ff; --pk-pop-price:#db2777; }
+        .pk-pop-preset-premium-grocery { --pk-pop-accent:#334155; --pk-pop-accent-soft:#f8fafc; --pk-pop-price:#0f172a; }
+        .pk-pop-preset-minimal-clean { --pk-pop-accent:#334155; --pk-pop-accent-soft:#f8fafc; --pk-pop-price:#0f172a; }
+        .pk-pop-preset-colorful-family { --pk-pop-accent:#b45309; --pk-pop-accent-soft:#fffbeb; --pk-pop-price:#b91c1c; }
+        .pk-pop-preview-card.pk-pop-hero-center .pk-pop-preview-hero-content { width:100%; text-align:center; }
+        .pk-pop-preview-card.pk-pop-hero-left .pk-pop-preview-hero-content { margin-right:auto; text-align:left; }
+        .pk-pop-preview-card.pk-pop-hero-minimal .pk-pop-preview-hero::after { background:linear-gradient(180deg,rgba(15,23,42,.02),rgba(15,23,42,.25)); }
+        .pk-pop-preview-card.pk-pop-hero-center .pk-pop-preview-hero { align-items:center; }
+        .pk-pop-preview-card.pk-pop-badge-ribbon .pk-pop-preview-badge, .pk-pop-preview-card.pk-pop-badge-ribbon .pk-pop-preview-item .pk-pop-preview-badge { border-radius:2px; transform:rotate(-3deg); }
+        .pk-pop-preview-card.pk-pop-badge-burst .pk-pop-preview-badge, .pk-pop-preview-card.pk-pop-badge-burst .pk-pop-preview-item .pk-pop-preview-badge { border-radius:0; clip-path:polygon(50% 0%,61% 10%,75% 5%,82% 19%,96% 25%,90% 39%,100% 50%,90% 61%,96% 75%,82% 81%,75% 95%,61% 90%,50% 100%,39% 90%,25% 95%,18% 81%,4% 75%,10% 61%,0 50%,10% 39%,4% 25%,18% 19%,25% 5%,39% 10%); padding:.55rem; }
+        .pk-pop-preview-card.pk-pop-badge-plain .pk-pop-preview-badge, .pk-pop-preview-card.pk-pop-badge-plain .pk-pop-preview-item .pk-pop-preview-badge { background:transparent; border:1px solid currentColor; color:var(--pk-pop-accent); box-shadow:none; }
+        .pk-pop-preview-card .pk-pop-preview-badge { background:var(--pk-pop-accent); }
+        .pk-pop-preview-card .pk-pop-preview-price, .pk-pop-preview-card .pk-pop-positioned-promo, .pk-pop-preview-card .pk-pop-retail-price { color:var(--pk-pop-price); font-weight:1000; }
+        .pk-pop-preview-card.pk-pop-smart-fit .pk-pop-preview-item-name, .pk-pop-preview-card.pk-pop-smart-fit .pk-pop-positioned-name { font-size:clamp(.62rem,1.7vw,.78rem); }
+        .pk-pop-preview-card.pk-pop-smart-fit .pk-pop-preview-price, .pk-pop-preview-card.pk-pop-smart-fit .pk-pop-positioned-promo { font-size:clamp(1rem,3vw,1.55rem); }
+        .pk-pop-category-heading { grid-column:1/-1; display:flex; align-items:center; gap:.45rem; margin:.45rem .15rem 0; color:var(--pk-pop-accent); font-size:.62rem; font-weight:1000; letter-spacing:.13em; text-transform:uppercase; }
+        .pk-pop-category-heading::after { content:''; height:1px; flex:1; background:currentColor; opacity:.22; }
+        .pk-pop-positioned-item.pk-pop-is-featured { border:2px solid var(--pk-pop-accent); background:var(--pk-pop-accent-soft); }
+        .pk-pop-featured-mark { position:absolute; right:.3rem; top:.3rem; z-index:4; padding:.2rem .32rem; border-radius:999px; color:#fff; background:var(--pk-pop-accent); font-size:.48rem; font-weight:1000; letter-spacing:.04em; }
+        .pk-pop-preview-card.pk-pop-cta-solid .pk-pop-cta-footer { color:#fff; background:var(--pk-pop-accent); }
+        .pk-pop-preview-card.pk-pop-cta-outline .pk-pop-cta-footer { color:var(--pk-pop-accent); border:1px solid var(--pk-pop-accent); }
+        .pk-pop-preview-card.pk-pop-cta-ribbon .pk-pop-cta-footer { color:#fff; background:var(--pk-pop-accent); border-radius:0; }
+        .pk-pop-preview-card.pk-pop-cta-minimal .pk-pop-cta-footer { color:var(--pk-pop-accent); background:transparent; }
+        .pk-pop-preview-card.pk-pop-output-square { aspect-ratio:1 / 1; }
+        .pk-pop-preview-card.pk-pop-output-story { aspect-ratio:9 / 16; }
+        .pk-pop-preview-card.pk-pop-output-landscape { aspect-ratio:16 / 9; }
+        .pk-pop-preview-card.pk-pop-layout-horizontal-list .pk-pop-category-heading { width:100%; }
         .pk-pop-preview-footer { display: flex; justify-content: space-between; gap: .75rem; flex-wrap: wrap; padding: .85rem 1rem; border-top: 1px solid #eef2f7; color: #64748b; font-size: .72rem; }
         .pk-pop-preview-footer a { color: #ea580c; font-weight: 800; text-decoration: none; }
     </style>
@@ -820,6 +849,16 @@
             var layout = String(c.layout || 'auto').toLowerCase().replace(/[^a-z0-9-]/g, '-');
             var gridConfig = {};
             try { gridConfig = JSON.parse(c.grid_config_json || '{}') || {}; } catch (error) { gridConfig = {}; }
+            var visualConfig = {};
+            try { visualConfig = JSON.parse(c.visual_config_json || '{}') || {}; } catch (error) { visualConfig = {}; }
+            var visualPreset = String(visualConfig.preset || 'fresh-market').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            var badgeStyle = String(visualConfig.badgeStyle || 'sticker').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            var heroLayout = String(visualConfig.heroLayout || 'split').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            var ctaStyle = String(visualConfig.ctaStyle || 'solid').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            var smartFit = visualConfig.smartFit !== false;
+            var groupCategories = visualConfig.groupCategories === true;
+            var showFeatured = visualConfig.showFeatured !== false;
+            var outputFormat = String(visualConfig.outputFormat || 'a4').toLowerCase().replace(/[^a-z0-9-]/g, '-');
             var imageFrameHeight = Math.min(220, Math.max(64, Number(gridConfig.image_frame_height) || 105));
             var imageScale = Math.min(1.1, Math.max(.7, Number(gridConfig.image_scale) || 1));
             var gridRows = Math.min(8, Math.max(1, Number(gridConfig.rows) || 4));
@@ -843,6 +882,14 @@
                 color: 'linear-gradient(145deg, #f97316 0%, #991b1b 100%)',
                 theme: theme,
                 layout: layout,
+                visualPreset: visualPreset,
+                badgeStyle: badgeStyle,
+                heroLayout: heroLayout,
+                ctaStyle: ctaStyle,
+                smartFit: smartFit,
+                groupCategories: groupCategories,
+                showFeatured: showFeatured,
+                outputFormat: outputFormat,
                 imageFrameHeight: imageFrameHeight,
                 imageScale: imageScale,
                 gridRows: gridRows,
@@ -865,6 +912,8 @@
                         promoPrice: toNumber(item.brochure_promo_price == null ? (item.promo_price == null ? item.price : item.promo_price) : item.brochure_promo_price),
                         unit: item.unit || item.satuan || '',
                         badge: item.badge || '',
+                        isFeatured: item.is_featured === true || String(item.is_featured || item.isFeatured || '').toLowerCase() === 'true',
+                        category: item.category || item.kategori || item.kelompok || 'Lainnya',
                         offer: item.brochure_offer || item.display_offer || ''
                     };
                 }),
@@ -943,7 +992,15 @@
             var imageStyle = c.heroUrl ? ' style="background-image:url(&quot;' + escapeHtml(c.heroUrl) + '&quot;);background-color:#f97316;"' : ' style="background:' + popThemeGradient(c.theme) + ';"';
             var items = c.items || [];
             var positions = c.tilePositions || normalizeTilePositions();
-            target.innerHTML = '<div class="pk-pop-preview-card pk-pop-layout-' + escapeHtml(c.layout || 'auto') + '"><div class="pk-pop-safe-area">'
+            var visibleItems = items.slice(0, Math.max(1, (Number(c.gridRows) || 4) * (Number(c.gridColumns) || 3)));
+            var visualClasses = 'pk-pop-preview-card pk-pop-layout-' + escapeHtml(c.layout || 'auto')
+                + ' pk-pop-preset-' + escapeHtml(c.visualPreset || 'fresh-market')
+                + ' pk-pop-badge-' + escapeHtml(c.badgeStyle || 'sticker')
+                + ' pk-pop-hero-' + escapeHtml(c.heroLayout || 'split')
+                + ' pk-pop-cta-' + escapeHtml(c.ctaStyle || 'solid')
+                + ' pk-pop-output-' + escapeHtml(c.outputFormat || 'a4')
+                + (c.smartFit ? ' pk-pop-smart-fit' : '');
+            target.innerHTML = '<div class="' + visualClasses + '"><div class="pk-pop-safe-area">'
                 + '<div class="pk-pop-preview-hero"' + imageStyle + '><div class="pk-pop-preview-hero-content">'
                 + '<div class="pk-pop-cover-kicker">' + escapeHtml(c.storeName) + '</div>'
                 + '<h3>' + escapeHtml(c.title) + '</h3>'
@@ -952,16 +1009,21 @@
                 + '</div></div>'
                 + '<div class="pk-pop-preview-meta"><span class="pk-pop-preview-badge">' + escapeHtml(c.badge) + '</span><span>' + items.length + ' produk promo</span></div>'
                 + '<div class="pk-pop-preview-items">'
-                + (items.length ? items.slice(0, Math.max(1, (Number(c.gridRows) || 4) * (Number(c.gridColumns) || 3))).map(function(item) {
+                + (visibleItems.length ? visibleItems.map(function(item, itemIndex) {
                     var itemId = escapeHtml(String(item.id));
+                    var category = String(item.category || item.kategori || '').trim();
+                    var previousCategory = itemIndex > 0 ? String(visibleItems[itemIndex - 1].category || visibleItems[itemIndex - 1].kategori || '').trim() : '';
+                    var categoryHeading = c.groupCategories && category && (itemIndex === 0 || category !== previousCategory) ? '<div class="pk-pop-category-heading">' + escapeHtml(category) + '</div>' : '';
                     var isRetail = (c.layout || '') === 'retail-tile';
-                    var itemClass = 'pk-pop-preview-item pk-pop-positioned-item' + (isRetail ? ' pk-pop-retail-tile' : '');
+                    var isFeatured = c.showFeatured && item.isFeatured === true;
+                    var itemClass = 'pk-pop-preview-item pk-pop-positioned-item' + (isRetail ? ' pk-pop-retail-tile' : '') + (isFeatured ? ' pk-pop-is-featured' : '');
                     var elementClass = function(field, legacyClass) { return 'pk-pop-positioned-element pk-pop-positioned-' + field + (isRetail ? ' ' + legacyClass : ''); };
                     var positionedAttrs = function(field) { return ' style="' + tilePositionStyle(positions, item.id, field) + '"'; };
                     var image = item.image ? '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy" data-fallback-src="https://placehold.co/300x300?text=Produk">' : '<span>POP</span>';
                     var normal = item.normalPrice > item.promoPrice ? '<div class="' + elementClass('normal', 'pk-pop-retail-normal') + '"' + positionedAttrs('normal') + '>' + formatStrikePrice(item.normalPrice) + '</div>' : '';
                     var brochureOffer = item.offer || (item.unit ? ('Harga spesial · ' + item.unit) : (item.badge || 'Promo terbatas'));
-                    return '<article class="' + itemClass + '" data-position-surface="' + itemId + '">'
+                    return categoryHeading + '<article class="' + itemClass + '" data-position-surface="' + itemId + '">'
+                        + (isFeatured ? '<span class="pk-pop-featured-mark">UNGGULAN</span>' : '')
                         + '<div class="' + elementClass('media', 'pk-pop-retail-media') + '"' + positionedAttrs('image') + '>' + image + (item.badge ? '<span class="pk-pop-preview-badge">' + escapeHtml(item.badge) + '</span>' : '') + '</div>'
                         + '<div class="' + elementClass('name', 'pk-pop-retail-name') + '"' + positionedAttrs('name') + '>' + escapeHtml(item.name) + '</div>'
                         + normal
@@ -972,7 +1034,7 @@
                 + '</div>'
                 + (c.showService ? '<div class="pk-pop-service"><strong>MELAYANI TOP UP DIGITAL &amp; PPOB</strong><br>Pulsa · Paket Data · Token PLN · E-Wallet · Bayar Tagihan' + renderPublicWallets(c.ppobWallets) + '</div>' : '')
                 + (c.showPayment ? '<div class="pk-pop-preview-footer"><span>Pembayaran: QRIS · GoPay · DANA · OVO · Transfer Bank</span></div>' : '')
-                + (c.footerNote || c.qrUrl ? '<div class="pk-pop-preview-footer"><span>' + escapeHtml(c.footerNote || 'Stok terbatas. Syarat dan ketentuan berlaku.') + '</span>' + (c.qrUrl ? '<a href="' + escapeHtml(c.qrUrl) + '" target="_blank" rel="noopener noreferrer">Buka katalog promo</a>' : '') + '</div>' : '')
+                + (c.footerNote || c.qrUrl ? '<div class="pk-pop-preview-footer pk-pop-cta-footer"><span>' + escapeHtml(c.footerNote || 'Stok terbatas. Syarat dan ketentuan berlaku.') + '</span>' + (c.qrUrl ? '<a href="' + escapeHtml(c.qrUrl) + '" target="_blank" rel="noopener noreferrer">Buka katalog promo</a>' : '') + '</div>' : '')
                 + (c.showDisclaimer && c.disclaimerText ? '<div class="pk-pop-disclaimer">' + escapeHtml(c.disclaimerText) + '</div>' : '')
                 + (c.showWatermark ? '<span class="pk-pop-watermark">' + escapeHtml(c.watermarkText) + '</span>' : '')
                 + '</div></div>';

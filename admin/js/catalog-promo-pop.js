@@ -21,6 +21,16 @@
         previewZoom: 1,
         tilePositions: { __default: { image: { x: 50, y: 24, scale: 1 }, name: { x: 50, y: 73, scale: 1 }, normal: { x: 78, y: 65, scale: 1 }, promo: { x: 50, y: 86, scale: 1 }, offer: { x: 50, y: 96, scale: 1 } } },
         layoutClipboard: '',
+        visual: {
+            preset: 'fresh-market',
+            badgeStyle: 'sticker',
+            heroLayout: 'split',
+            smartFit: true,
+            groupCategories: false,
+            showFeatured: true,
+            ctaStyle: 'solid',
+            outputFormat: 'a4'
+        },
         governance: {
             actor: '',
             role: '',
@@ -315,8 +325,48 @@
         return String(theme || 'retail-impact').toLowerCase().replace(/[^a-z0-9-]/g, '-');
     }
 
+    const VISUAL_PRESETS = Object.freeze({
+        'fresh-market': { theme: 'fresh-organic', badgeStyle: 'sticker', heroLayout: 'split', ctaStyle: 'solid' },
+        'flash-sale': { theme: 'flash-sale-neon', badgeStyle: 'burst', heroLayout: 'center', ctaStyle: 'ribbon' },
+        premium: { theme: 'modern-minimalist', badgeStyle: 'pill', heroLayout: 'minimal', ctaStyle: 'outline' },
+        minimal: { theme: 'modern-minimalist', badgeStyle: 'plain', heroLayout: 'left', ctaStyle: 'minimal' },
+        colorful: { theme: 'seasonal-festive', badgeStyle: 'ribbon', heroLayout: 'center', ctaStyle: 'solid' }
+    });
+
+    function readVisualSettings() {
+        return {
+            preset: String($('promo-pop-visual-preset')?.value || state.visual.preset || 'fresh-market'),
+            badgeStyle: String($('promo-pop-badge-style')?.value || state.visual.badgeStyle || 'sticker'),
+            heroLayout: String($('promo-pop-hero-layout')?.value || state.visual.heroLayout || 'split'),
+            smartFit: $('promo-pop-smart-fit') ? $('promo-pop-smart-fit').checked : state.visual.smartFit !== false,
+            groupCategories: $('promo-pop-group-categories') ? $('promo-pop-group-categories').checked : state.visual.groupCategories === true,
+            showFeatured: $('promo-pop-show-featured') ? $('promo-pop-show-featured').checked : state.visual.showFeatured !== false,
+            ctaStyle: String($('promo-pop-cta-style')?.value || state.visual.ctaStyle || 'solid'),
+            outputFormat: String($('promo-pop-output-format')?.value || state.visual.outputFormat || 'a4')
+        };
+    }
+
+    function applyVisualPreset(presetId, render = true) {
+        const preset = VISUAL_PRESETS[String(presetId || '')] || VISUAL_PRESETS['fresh-market'];
+        state.visual = { ...state.visual, preset: String(presetId || 'fresh-market'), ...preset };
+        const theme = $('promo-pop-theme');
+        const badgeStyle = $('promo-pop-badge-style');
+        const heroLayout = $('promo-pop-hero-layout');
+        const ctaStyle = $('promo-pop-cta-style');
+        if (theme) theme.value = preset.theme;
+        if (badgeStyle) badgeStyle.value = preset.badgeStyle;
+        if (heroLayout) heroLayout.value = preset.heroLayout;
+        if (ctaStyle) ctaStyle.value = preset.ctaStyle;
+        if (render) renderPreview();
+    }
+
     function layoutClass(layout) {
         return String(layout || 'auto').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    }
+
+    function outputFormatConfig(format) {
+        const configs = { a4: { ratio: '210 / 297', label: 'A4 Portrait', width: 210, height: 297 }, square: { ratio: '1 / 1', label: 'Square 1:1', width: 1080, height: 1080 }, story: { ratio: '9 / 16', label: 'Story 9:16', width: 1080, height: 1920 }, landscape: { ratio: '16 / 9', label: 'Landscape 16:9', width: 1600, height: 900 } };
+        return configs[String(format || 'a4')] || configs.a4;
     }
 
     function safeHttpUrl(value) {
@@ -432,8 +482,13 @@
         }
         state.busy = true;
         setStatus('Membuat PDF A4 berkualitas tinggi...', 'info');
+        let outputField;
+        let previousOutput = 'a4';
         try {
             syncBrochureFieldsFromDom();
+            outputField = $('promo-pop-output-format');
+            previousOutput = outputField?.value || state.visual.outputFormat || 'a4';
+            if (outputField) outputField.value = 'a4';
             renderPreview();
             resetPreviewZoom();
             await waitForPreviewAssets(preview);
@@ -448,9 +503,12 @@
             pdf.addImage(canvas.toDataURL('image/jpeg', .95), 'JPEG', (pageW - width) / 2, (pageH - height) / 2, width, height, undefined, 'FAST');
             const slug = slugify($('promo-pop-title')?.value || 'promo-pop') || 'promo-pop';
             pdf.save(`${slug}-A4.pdf`);
+            if (outputField) outputField.value = previousOutput;
+            renderPreview();
             setStatus('PDF A4 berhasil dibuat dan diunduh.', 'success');
         } catch (error) {
             console.error('generatePdf error:', error);
+            if (outputField) { outputField.value = previousOutput; renderPreview(); }
             setStatus('PDF gagal dibuat. Pastikan gambar banner/produk mengizinkan CORS.', 'error');
         } finally {
             state.busy = false;
@@ -472,7 +530,8 @@
             const canvas = await html2canvas(preview, { scale: 3, useCORS: true, allowTaint: false, imageTimeout: 15000, backgroundColor: '#ffffff', logging: false });
             const slug = slugify($('promo-pop-title')?.value || 'promo-pop') || 'promo-pop';
             const link = document.createElement('a');
-            link.download = `${slug}-POP.png`;
+            const format = outputFormatConfig(state.visual.outputFormat);
+            link.download = `${slug}-${format.label.replace(/[^a-z0-9]+/gi, '-')}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
             setStatus('PNG berhasil dibuat dan diunduh.', 'success');
@@ -920,42 +979,54 @@
         if (!preview) return;
         const crop = getCropSettings();
         const grid = getGridSettings();
+        const visual = readVisualSettings();
+        state.visual = visual;
+        const output = outputFormatConfig(visual.outputFormat);
         preview.style.setProperty('--flyer-media-height', `${crop.frame}px`);
         preview.style.setProperty('--flyer-image-scale', String(crop.scale));
         preview.style.setProperty('--flyer-grid-rows', String(grid.rows));
         preview.style.setProperty('--flyer-grid-columns', String(grid.columns));
-            const rows = selectedProductRows();
-            const featured = rows.filter(item => state.featuredIds.has(String(item.id))).slice(0, 3);
+        preview.style.aspectRatio = output.ratio;
+        const rows = selectedProductRows();
+        const visibleRows = rows.slice(0, grid.limit);
         const qrDataUrl = makeQrDataUrl(qrUrl);
         const renderPositionedItem = (item) => {
             const productId = escapeHtml(String(item.id));
             const isRetail = layout === 'retail-tile';
-            const itemClass = `flyer-item flyer-positioned-item${isRetail ? ' flyer-retail-tile' : ''}`;
+            const isFeatured = visual.showFeatured && state.featuredIds.has(String(item.id));
+            const itemClass = `flyer-item flyer-positioned-item${isRetail ? ' flyer-retail-tile' : ''}${isFeatured ? ' is-featured' : ''}`;
             const elementClass = (field, legacyClass) => `flyer-positioned-element flyer-positioned-${field}${isRetail ? ` ${legacyClass}` : ''}`;
             const draggableAttrs = (field, label) => `data-tile-position="${field}" data-product-id="${productId}" style="${tilePositionStyle(item.id, field)}" tabindex="0" role="button" aria-label="Seret atau scroll ${label} untuk mengubah posisi dan ukuran"`;
+            const badgeClass = `flyer-item-badge flyer-badge-${escapeHtml(visual.badgeStyle)}`;
             return `<article class="${itemClass}" data-position-surface="${productId}">
-                <div class="${elementClass('media', 'flyer-retail-media')}" ${draggableAttrs('image', 'gambar produk')}>${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="eager">` : 'POP'}${item.badge ? `<span class="flyer-item-badge">${escapeHtml(item.badge)}</span>` : ''}</div>
+                ${isFeatured ? '<span class="flyer-featured-mark">UNGGULAN</span>' : ''}
+                <div class="${elementClass('media', 'flyer-retail-media')}" ${draggableAttrs('image', 'gambar produk')}>${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="eager">` : 'POP'}${item.badge ? `<span class="${badgeClass}">${escapeHtml(item.badge)}</span>` : ''}</div>
                 <div class="${elementClass('name', 'flyer-retail-name')}" ${draggableAttrs('name', 'nama produk')}>${escapeHtml(brochureName(item))}</div>
                 <div class="${elementClass('normal', 'flyer-retail-normal')}" ${draggableAttrs('normal', 'harga coret')}>${formatStrikePrice(brochureNormalPrice(item))}</div>
                 <div class="${elementClass('promo', 'flyer-retail-promo')}" ${draggableAttrs('promo', 'harga promo')}>${formatCurrencyMarkup(brochurePromoPrice(item))}</div>
                 <div class="${elementClass('offer', 'flyer-retail-offer')}" ${draggableAttrs('offer', 'teks promo')}>${escapeHtml(brochureOffer(item))}</div>
             </article>`;
         };
-        const productMarkup = rows.slice(0, grid.limit).map(renderPositionedItem).join('');
-        const featuredMarkup = featured.length ? `<div class="flyer-featured"><div class="flyer-media-frame">${featured[0].image ? `<img src="${escapeHtml(safeHttpUrl(featured[0].image))}" alt="" loading="eager">` : 'POP'}</div><div><div class="flyer-featured-label">Produk Unggulan</div><div style="margin-top:4px;color:#334155;font-size:12px;font-weight:900;">${escapeHtml(brochureName(featured[0]))}</div><div class="flyer-item-normal">${formatStrikePrice(brochureNormalPrice(featured[0]))}</div><div class="flyer-item-promo">${formatCurrencyMarkup(brochurePromoPrice(featured[0]))}</div></div></div>` : '';
+        let previousCategory = '';
+        const productMarkup = visibleRows.map((item) => {
+            const category = String(item.category || 'Lainnya').trim() || 'Lainnya';
+            const heading = visual.groupCategories && category !== previousCategory ? `<div class="flyer-category-heading">${escapeHtml(category)}</div>` : '';
+            previousCategory = category;
+            return heading + renderPositionedItem(item);
+        }).join('');
         const selectedWallets = getSelectedPpobWallets();
         const walletMarkup = renderPpobWalletMarkup(selectedWallets);
-        const serviceMarkup = $('promo-pop-show-service')?.checked ? `<div class="flyer-service"><strong style="color:#334155;">MELAYANI TOP UP DIGITAL & PPOB</strong><br>Pulsa · Paket Data · Token PLN · E-Wallet · Bayar Tagihan${walletMarkup}</div>` : '';
+        const serviceMarkup = $('promo-pop-show-service')?.checked ? `<div class="flyer-service"><strong style="color:var(--flyer-accent);">MELAYANI TOP UP DIGITAL & PPOB</strong><br>Pulsa · Paket Data · Token PLN · E-Wallet · Bayar Tagihan${walletMarkup}</div>` : '';
         const paymentMarkup = $('promo-pop-show-payment')?.checked ? '<div class="flyer-payment">Pembayaran: QRIS · GoPay · DANA · OVO · Transfer Bank</div>' : '';
         const disclaimerMarkup = $('promo-pop-show-disclaimer')?.checked && disclaimer ? `<div class="flyer-payment">${escapeHtml(disclaimer)}</div>` : '';
         const watermarkText = String($('promo-pop-watermark-text')?.value || '').trim() || 'PaketSembako.com';
         const watermarkMarkup = $('promo-pop-watermark')?.checked ? `<span class="flyer-watermark">${escapeHtml(watermarkText)}</span>` : '';
-        preview.className = `flyer-preview flyer-theme-${escapeHtml(themeClass(theme))} flyer-layout-${escapeHtml(layoutClass(layout))}`;
-        preview.innerHTML = `<div class="flyer-preview-content"><div class="flyer-preview-content-scale"><div class="flyer-preview-hero" ${hero ? `style="background-image:url('${escapeHtml(hero)}')"` : ''}><div class="flyer-overlay"></div><div class="relative z-10"><span class="flyer-kicker">🔥 ${escapeHtml(store).toUpperCase()}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(subtitle)}</p>${period ? `<span class="flyer-period">${escapeHtml(period)}</span>` : ''}</div></div><div class="flyer-preview-meta"><strong>${escapeHtml(badge)}</strong><span>${rows.length} produk promo</span></div><div class="flyer-preview-items">${productMarkup || '<div style="grid-column:1/-1;color:#94a3b8;font-size:11px;text-align:center;padding:28px 0;">Preview produk akan tampil di sini.</div>'}${featuredMarkup}</div>${serviceMarkup}${paymentMarkup}<div class="flyer-preview-footer"><div class="flyer-footer-left"><strong>${escapeHtml(store)}</strong><span>${escapeHtml(address || 'Informasi toko akan tampil di sini')}</span></div><div class="flyer-footer-right">${qrDataUrl ? `<img class="flyer-qr" src="${qrDataUrl}" alt="QR Code">` : ''}<span>Scan<br>untuk pesan</span></div></div>${disclaimerMarkup}${watermarkMarkup}</div></div>`;
+        preview.className = `flyer-preview flyer-theme-${escapeHtml(themeClass(theme))} flyer-layout-${escapeHtml(layoutClass(layout))} flyer-hero-layout-${escapeHtml(visual.heroLayout)} flyer-output-${escapeHtml(visual.outputFormat)}`;
+        preview.innerHTML = `<div class="flyer-preview-content${visual.smartFit ? ' is-smart-fit' : ''}"><div class="flyer-preview-content-scale"><div class="flyer-preview-hero" ${hero ? `style="background-image:url('${escapeHtml(hero)}')"` : ''}><div class="flyer-overlay"></div><div class="relative z-10"><span class="flyer-kicker">🔥 ${escapeHtml(store).toUpperCase()}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(subtitle)}</p>${period ? `<span class="flyer-period">${escapeHtml(period)}</span>` : ''}</div></div><div class="flyer-preview-meta"><strong>${escapeHtml(badge)}</strong><span>${visibleRows.length} produk promo</span></div><div class="flyer-preview-items">${productMarkup || '<div style="grid-column:1/-1;color:#94a3b8;font-size:11px;text-align:center;padding:28px 0;">Preview produk akan tampil di sini.</div>'}</div>${serviceMarkup}${paymentMarkup}<div class="flyer-preview-footer flyer-cta-${escapeHtml(visual.ctaStyle)}"><div class="flyer-footer-left"><strong>${escapeHtml(store)}</strong><span>${escapeHtml(address || 'Informasi toko akan tampil di sini')}</span><b class="flyer-cta-copy">${escapeHtml($('promo-pop-footer')?.value || 'Pesan sekarang')}</b></div><div class="flyer-footer-right">${qrDataUrl ? `<img class="flyer-qr" src="${qrDataUrl}" alt="QR Code">` : ''}<span>Scan<br>untuk pesan</span></div></div>${disclaimerMarkup}${watermarkMarkup}</div></div>`;
         bindTilePositionDrag();
         fitPreviewToSafeArea();
         const size = $('promo-pop-preview-size');
-        if (size) size.textContent = `A4 Portrait · 210 × 297 mm · margin internal 0,4 cm · ${rows.length} produk`;
+        if (size) size.textContent = `${output.label} · ${visual.outputFormat === 'a4' ? 'margin internal 0,4 cm' : 'format digital adaptif'} · ${visibleRows.length} produk`;
     }
 
     function enforceA4Portrait() {
@@ -1023,6 +1094,7 @@
             request_id: `pop-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
             banner_config_json: JSON.stringify({ top: String($('promo-pop-top-banner')?.value || '').trim(), bottom: String($('promo-pop-bottom-banner')?.value || '').trim() }),
             grid_config_json: JSON.stringify({ layout: String($('promo-pop-layout')?.value || 'auto').trim(), rows: getGridSettings().rows, columns: getGridSettings().columns, image_frame_height: getCropSettings().frame, image_scale: getCropSettings().scale, tile_positions: normalizeTilePositions(state.tilePositions) }),
+            visual_config_json: JSON.stringify(readVisualSettings()),
             created_by: GASActions.getAdminRole() || 'admin',
             updated_at: new Date().toISOString()
         };
@@ -1041,6 +1113,18 @@
         $('promo-pop-layout').value = campaign.layout || 'auto';
         let gridConfig = {};
         try { gridConfig = JSON.parse(campaign.grid_config_json || '{}') || {}; } catch (error) { gridConfig = {}; }
+        let visualConfig = {};
+        try { visualConfig = JSON.parse(campaign.visual_config_json || '{}') || {}; } catch (error) { visualConfig = {}; }
+        state.visual = { ...state.visual, ...visualConfig };
+        const visualFields = {
+            'promo-pop-visual-preset': state.visual.preset,
+            'promo-pop-badge-style': state.visual.badgeStyle,
+            'promo-pop-hero-layout': state.visual.heroLayout,
+            'promo-pop-cta-style': state.visual.ctaStyle,
+            'promo-pop-output-format': state.visual.outputFormat
+        };
+        Object.entries(visualFields).forEach(([id, value]) => { const field = $(id); if (field && value) field.value = value; });
+        ['promo-pop-smart-fit', 'promo-pop-group-categories', 'promo-pop-show-featured'].forEach((id) => { const field = $(id); const key = id.replace('promo-pop-', '').replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()); if (field && Object.prototype.hasOwnProperty.call(state.visual, key)) field.checked = state.visual[key] === true; });
         const frameField = $('promo-pop-image-frame');
         const scaleField = $('promo-pop-image-scale');
         const rowsField = $('promo-pop-grid-rows');
@@ -1117,6 +1201,11 @@
     function resetForm() {
         state.editingId = '';
         state.governance.campaignPolicyId = '';
+        state.visual = { preset: 'fresh-market', badgeStyle: 'sticker', heroLayout: 'split', smartFit: true, groupCategories: false, showFeatured: true, ctaStyle: 'solid', outputFormat: 'a4' };
+        const visualDefaults = { 'promo-pop-visual-preset': 'fresh-market', 'promo-pop-theme': 'fresh-organic', 'promo-pop-badge-style': 'sticker', 'promo-pop-hero-layout': 'split', 'promo-pop-cta-style': 'solid', 'promo-pop-output-format': 'a4' };
+        Object.entries(visualDefaults).forEach(([id, value]) => { const field = $(id); if (field) field.value = value; });
+        ['promo-pop-smart-fit', 'promo-pop-show-featured'].forEach((id) => { const field = $(id); if (field) field.checked = true; });
+        const grouping = $('promo-pop-group-categories'); if (grouping) grouping.checked = false;
         setFormStatusBadge('draft');
         state.templateId = 'promo-grid';
         state.heroDataUrl = '';
@@ -1273,7 +1362,9 @@
         $('promo-pop-prepare-backend')?.addEventListener('click', prepareBackend);
         document.querySelectorAll('[data-template]').forEach((button) => button.addEventListener('click', () => selectTemplate(button.dataset.template)));
         ['promo-pop-title', 'promo-pop-subtitle', 'promo-pop-theme', 'promo-pop-layout', 'promo-pop-store', 'promo-pop-badge', 'promo-pop-hero', 'promo-pop-period', 'promo-pop-footer', 'promo-pop-qr', 'promo-pop-address', 'promo-pop-disclaimer', 'promo-pop-watermark-text', 'promo-pop-paper', 'promo-pop-orientation'].forEach((id) => $(id)?.addEventListener('input', renderPreview));
-        ['promo-pop-watermark', 'promo-pop-show-service', 'promo-pop-show-payment', 'promo-pop-show-disclaimer'].forEach((id) => $(id)?.addEventListener('change', renderPreview));
+        ['promo-pop-visual-preset', 'promo-pop-badge-style', 'promo-pop-hero-layout', 'promo-pop-cta-style', 'promo-pop-output-format'].forEach((id) => $(id)?.addEventListener('change', () => { state.visual = readVisualSettings(); renderPreview(); }));
+        $('promo-pop-visual-preset')?.addEventListener('change', (event) => applyVisualPreset(event.target.value));
+        ['promo-pop-watermark', 'promo-pop-show-service', 'promo-pop-show-payment', 'promo-pop-show-disclaimer', 'promo-pop-smart-fit', 'promo-pop-group-categories', 'promo-pop-show-featured'].forEach((id) => $(id)?.addEventListener('change', renderPreview));
         document.querySelectorAll('[data-ppob-wallet]').forEach((input) => input.addEventListener('change', renderPreview));
         $('promo-pop-hero-file')?.addEventListener('change', handleHeroUpload);
         $('promo-pop-zoom-out')?.addEventListener('click', () => setPreviewZoom(-.1));
@@ -1302,6 +1393,7 @@
         $('promo-pop-image-scale')?.addEventListener('input', renderPreview);
         $('promo-pop-grid-rows')?.addEventListener('input', renderPreview);
         $('promo-pop-grid-columns')?.addEventListener('input', renderPreview);
+        ['promo-pop-image-frame', 'promo-pop-image-scale', 'promo-pop-grid-rows', 'promo-pop-grid-columns'].forEach((id) => $(id)?.addEventListener('change', renderPreview));
         $('promo-pop-product-list')?.addEventListener('click', (event) => {
             const button = event.target.closest('[data-select-product]');
             if (!button) return;

@@ -11,6 +11,8 @@ All governance writes are idempotent where a `request_id` is supplied. All times
 
 ## Sheets and headers
 
+The existing `promo_flyers` campaign sheet may include the optional `visual_config_json` field. It stores the visual preset, badge style, hero composition, smart-fit setting, category grouping, featured-product setting, CTA style, and digital output format. Older rows remain compatible because the field is optional and the migration only appends the missing header.
+
 ### `promo_flyer_versions`
 
 | Column | Purpose |
