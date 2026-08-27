@@ -239,6 +239,12 @@
         .flyer-category-heading { grid-column:1/-1; display:flex; align-items:center; gap:7px; margin:7px 2px 0; color:var(--flyer-accent); font-size:9px; font-weight:1000; letter-spacing:.13em; text-transform:uppercase; }
         .flyer-category-heading::after { content:""; height:1px; flex:1; background:currentColor; opacity:.22; }
         .flyer-positioned-item.is-featured { border:2px solid var(--flyer-accent); background:var(--flyer-accent-soft); }
+        .flyer-positioned-item.is-featured:not(.flyer-retail-tile) { grid-column:span 2; grid-row:span 2; min-height:300px; padding:12px; }
+        .flyer-positioned-item.is-featured:not(.flyer-retail-tile) .flyer-positioned-media { width:78%; height:54%; }
+        .flyer-badge-type-best-seller { background:#7c3aed!important; }
+        .flyer-badge-type-limited-stock { background:#dc2626!important; }
+        .flyer-badge-type-special-price { background:#ea580c!important; }
+        .flyer-badge-type-multi-buy { background:#15803d!important; }
         .flyer-featured-mark { position:absolute; right:5px; top:5px; z-index:4; padding:3px 5px; border-radius:999px; color:#fff; background:var(--flyer-accent); font-size:7px; font-weight:1000; letter-spacing:.04em; }
         .flyer-cta-solid { color:#fff!important; background:var(--flyer-accent)!important; }
         .flyer-cta-outline { color:var(--flyer-accent)!important; background:#fff!important; border:1px solid var(--flyer-accent)!important; }
@@ -443,7 +449,7 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="js/catalog-promo-pop.js?v=20260827-image-bg01"></script>
+<script src="js/catalog-promo-pop.js?v=20260827-brochure-features02"></script>
 </body>
 </html>
 

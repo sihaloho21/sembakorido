@@ -41,7 +41,10 @@ const checks = [
   ['public renderer receives tile anchors', publicHtml.includes('normalizeTileAnchors') && publicHtml.includes('pk-pop-retail-tile-offset-x')],
   ['product-image background toggle is persisted and restored', pop.includes('showImageBackground') && pop.includes('promo-pop-image-background')],
   ['admin preview applies product-image background OFF state', html.includes('flyer-image-background-off') && pop.includes('flyer-image-background-off')],
-  ['public preview applies persisted product-image background OFF state', publicHtml.includes('showImageBackground') && publicHtml.includes('pk-pop-image-background-off')]
+  ['public preview applies persisted product-image background OFF state', publicHtml.includes('showImageBackground') && publicHtml.includes('pk-pop-image-background-off')],
+  ['featured product tile persists and expands visual emphasis', pop.includes('is_featured: state.featuredIds.has') && html.includes('is-featured:not(.flyer-retail-tile)') && publicHtml.includes('pk-pop-is-featured:not(.pk-pop-retail-tile)')],
+  ['semantic promo badge types persist and render publicly', pop.includes('badge_type: brochureBadgeType') && pop.includes('data-promo-badge-type') && publicHtml.includes('badgeType') && publicHtml.includes('pk-pop-badge-type-')],
+  ['promotion mechanics persist and render quantity labels', pop.includes('promo_mechanic: brochureMechanic') && pop.includes('data-promo-mechanic') && pop.includes('data-promo-quantity') && publicHtml.includes('promoMechanic')]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
