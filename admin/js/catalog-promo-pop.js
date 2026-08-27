@@ -20,6 +20,8 @@
         heroDataUrl: '',
         previewZoom: 1,
         tilePositions: { __default: { image: { x: 50, y: 24, scale: 1 }, name: { x: 50, y: 73, scale: 1 }, normal: { x: 78, y: 65, scale: 1 }, promo: { x: 50, y: 86, scale: 1 }, offer: { x: 50, y: 96, scale: 1 } } },
+        tileSizes: {},
+        tileAnchors: {},
         layoutClipboard: '',
         visual: {
             preset: 'fresh-market',
@@ -365,7 +367,13 @@
     }
 
     function outputFormatConfig(format) {
-        const configs = { a4: { ratio: '210 / 297', label: 'A4 Portrait', width: 210, height: 297 }, square: { ratio: '1 / 1', label: 'Square 1:1', width: 1080, height: 1080 }, story: { ratio: '9 / 16', label: 'Story 9:16', width: 1080, height: 1920 }, landscape: { ratio: '16 / 9', label: 'Landscape 16:9', width: 1600, height: 900 } };
+        const configs = {
+            // A4 CSS pixels at 96dpi; digital formats use their nominal export canvas dimensions.
+            a4: { ratio: '210 / 297', label: 'A4 Portrait', width: 210, height: 297, cssWidth: 794, cssHeight: 1123, unit: 'mm' },
+            square: { ratio: '1 / 1', label: 'Square 1:1', width: 1080, height: 1080, cssWidth: 1080, cssHeight: 1080, unit: 'px' },
+            story: { ratio: '9 / 16', label: 'Story 9:16', width: 1080, height: 1920, cssWidth: 1080, cssHeight: 1920, unit: 'px' },
+            landscape: { ratio: '16 / 9', label: 'Landscape 16:9', width: 1600, height: 900, cssWidth: 1600, cssHeight: 900, unit: 'px' }
+        };
         return configs[String(format || 'a4')] || configs.a4;
     }
 
@@ -847,6 +855,59 @@
         return Object.fromEntries(Object.entries(tilePositionsForProduct(productId)).map(([field, position]) => [field, { ...position }]));
     }
 
+    function tileSizeForProduct(productId) {
+        const scale = Number(state.tileSizes[String(productId)]?.scale);
+        return { scale: Math.min(1.8, Math.max(.65, Number.isFinite(scale) && scale > 0 ? scale : 1)) };
+    }
+    function normalizeTileAnchors(value) {
+        const source = value && typeof value === 'object' ? value : {};
+        return Object.fromEntries(Object.entries(source).map(([productId, anchor]) => [String(productId), {
+            x: Math.min(45, Math.max(-45, Number(anchor?.x) || 0)),
+            y: Math.min(45, Math.max(-45, Number(anchor?.y) || 0))
+        }]));
+    }
+    function tileAnchorForProduct(productId) {
+        const anchor = state.tileAnchors[String(productId)] || {};
+        return { x: Number(anchor.x) || 0, y: Number(anchor.y) || 0 };
+    }
+    function tileAnchorStyle(productId) {
+        const anchor = tileAnchorForProduct(productId);
+        return `--retail-tile-offset-x:${anchor.x}%;--retail-tile-offset-y:${anchor.y}%;`;
+    }
+    function elementResizeHandles(field, label) {
+        return ['nw','n','ne','e','se','s','sw','w'].map(direction => `<span class="flyer-element-resize-handle flyer-element-resize-${direction}" data-element-resize="${field}" data-resize-direction="${direction}" aria-label="Ubah ukuran ${label} dari arah ${direction}"></span>`).join('');
+    }
+    function normalizeTileAnchors(value) {
+        const source = value && typeof value === 'object' ? value : {};
+        return Object.fromEntries(Object.entries(source).map(([productId, anchor]) => [String(productId), {
+            x: Math.min(45, Math.max(-45, Number(anchor?.x) || 0)),
+            y: Math.min(45, Math.max(-45, Number(anchor?.y) || 0))
+        }]));
+    }
+    function tileAnchorForProduct(productId) {
+        const anchor = state.tileAnchors[String(productId)] || {};
+        return { x: Number(anchor.x) || 0, y: Number(anchor.y) || 0 };
+    }
+    function tileAnchorStyle(productId) {
+        const anchor = tileAnchorForProduct(productId);
+        return `--retail-tile-offset-x:${anchor.x}%;--retail-tile-offset-y:${anchor.y}%;`;
+    }
+    function elementResizeHandles(field, label) {
+        return ['nw','n','ne','e','se','s','sw','w'].map(direction => `<span class="flyer-element-resize-handle flyer-element-resize-${direction}" data-element-resize="${field}" data-resize-direction="${direction}" aria-label="Ubah ukuran ${label} dari arah ${direction}"></span>`).join('');
+    }
+
+    function normalizeTileSizes(value) {
+        const source = value && typeof value === 'object' ? value : {};
+        return Object.fromEntries(Object.entries(source).map(([productId, item]) => {
+            const scale = Number(item?.scale);
+            return [productId, { scale: Math.min(1.8, Math.max(.65, Number.isFinite(scale) && scale > 0 ? scale : 1)) }];
+        }));
+    }
+
+    function tileSizeStyle(productId) {
+        return `--retail-tile-scale:${tileSizeForProduct(productId).scale};`;
+    }
+
     function renderSelectedItems() {
         const container = $('promo-pop-selected-list');
         const count = $('promo-pop-selected-count');
@@ -920,6 +981,127 @@
     function bindTilePositionDrag() {
         const preview = $('promo-pop-preview');
         if (!preview) return;
+        preview.querySelectorAll('[data-tile-resize]').forEach((handle) => {
+            handle.addEventListener('pointerdown', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const productId = handle.dataset.tileResize;
+                const tile = handle.closest('.flyer-retail-tile');
+                const bounds = tile?.closest('.flyer-preview-items');
+                if (!productId || !tile || !bounds) return;
+                const initial = tileSizeForProduct(productId).scale;
+                const startX = event.clientX;
+                const startY = event.clientY;
+                let lastValid = initial;
+                const applyScaleIfValid = (scale) => {
+                    tile.style.setProperty('--retail-tile-scale', String(scale));
+                    const tileRect = tile.getBoundingClientRect();
+                    const boundsRect = bounds.getBoundingClientRect();
+                    const inside = tileRect.left >= boundsRect.left - 1 && tileRect.top >= boundsRect.top - 1 && tileRect.right <= boundsRect.right + 1 && tileRect.bottom <= boundsRect.bottom + 1;
+                    if (!inside) {
+                        tile.style.setProperty('--retail-tile-scale', String(lastValid));
+                        return;
+                    }
+                    lastValid = scale;
+                };
+                const move = (moveEvent) => {
+                    const delta = ((moveEvent.clientX - startX) + (moveEvent.clientY - startY)) / 2;
+                    const scale = Math.min(1.8, Math.max(.65, Number((initial + delta / 260).toFixed(3))));
+                    applyScaleIfValid(scale);
+                };
+                const finish = () => {
+                    document.body.classList.remove('is-retail-resizing');
+                    handle.removeEventListener('pointermove', move);
+                    handle.removeEventListener('pointerup', finish);
+                    handle.removeEventListener('pointercancel', finish);
+                    state.tileSizes[productId] = { scale: Number(lastValid.toFixed(3)) };
+                    renderPreview();
+                };
+                document.body.classList.add('is-retail-resizing');
+                handle.addEventListener('pointermove', move);
+                handle.addEventListener('pointerup', finish);
+                handle.addEventListener('pointercancel', finish);
+                if (handle.setPointerCapture) handle.setPointerCapture(event.pointerId);
+            });
+        });
+        preview.querySelectorAll('[data-position-surface]').forEach((tile) => {
+            tile.addEventListener('pointerdown', (event) => {
+                if (event.target.closest('[data-tile-position], [data-tile-resize], [data-element-resize]')) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const productId = tile.dataset.positionSurface;
+                const bounds = tile.closest('.flyer-preview-items');
+                if (!productId || !bounds) return;
+                const initial = tileAnchorForProduct(productId);
+                const startX = event.clientX;
+                const startY = event.clientY;
+                const tileRect = tile.getBoundingClientRect();
+                const boundsRect = bounds.getBoundingClientRect();
+                const startScale = tileSizeForProduct(productId).scale;
+                let lastValid = { ...initial };
+                const applyAnchor = (x, y) => {
+                    tile.style.setProperty('--retail-tile-offset-x', `${x}%`);
+                    tile.style.setProperty('--retail-tile-offset-y', `${y}%`);
+                    const rect = tile.getBoundingClientRect();
+                    const inside = rect.left >= boundsRect.left - 1 && rect.top >= boundsRect.top - 1 && rect.right <= boundsRect.right + 1 && rect.bottom <= boundsRect.bottom + 1;
+                    if (!inside) { tile.style.setProperty('--retail-tile-offset-x', `${lastValid.x}%`); tile.style.setProperty('--retail-tile-offset-y', `${lastValid.y}%`); return; }
+                    lastValid = { x, y };
+                };
+                const move = (moveEvent) => {
+                    const x = Math.min(45, Math.max(-45, initial.x + ((moveEvent.clientX - startX) / Math.max(boundsRect.width, 1)) * 100));
+                    const y = Math.min(45, Math.max(-45, initial.y + ((moveEvent.clientY - startY) / Math.max(boundsRect.height, 1)) * 100));
+                    applyAnchor(x, y);
+                };
+                const finish = () => {
+                    tile.classList.remove('is-retail-moving');
+                    tile.removeEventListener('pointermove', move); tile.removeEventListener('pointerup', finish); tile.removeEventListener('pointercancel', finish);
+                    state.tileAnchors[productId] = { x: Number(lastValid.x.toFixed(3)), y: Number(lastValid.y.toFixed(3)) };
+                    renderPreview();
+                };
+                tile.classList.add('is-retail-moving');
+                tile.addEventListener('pointermove', move); tile.addEventListener('pointerup', finish); tile.addEventListener('pointercancel', finish);
+                if (tile.setPointerCapture) tile.setPointerCapture(event.pointerId);
+            });
+        });
+        preview.querySelectorAll('[data-position-surface]').forEach((tile) => {
+            tile.addEventListener('pointerdown', (event) => {
+                if (event.target.closest('[data-tile-position], [data-tile-resize], [data-element-resize]')) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const productId = tile.dataset.positionSurface;
+                const bounds = tile.closest('.flyer-preview-items');
+                if (!productId || !bounds) return;
+                const initial = tileAnchorForProduct(productId);
+                const startX = event.clientX;
+                const startY = event.clientY;
+                const tileRect = tile.getBoundingClientRect();
+                const boundsRect = bounds.getBoundingClientRect();
+                const startScale = tileSizeForProduct(productId).scale;
+                let lastValid = { ...initial };
+                const applyAnchor = (x, y) => {
+                    tile.style.setProperty('--retail-tile-offset-x', `${x}%`);
+                    tile.style.setProperty('--retail-tile-offset-y', `${y}%`);
+                    const rect = tile.getBoundingClientRect();
+                    const inside = rect.left >= boundsRect.left - 1 && rect.top >= boundsRect.top - 1 && rect.right <= boundsRect.right + 1 && rect.bottom <= boundsRect.bottom + 1;
+                    if (!inside) { tile.style.setProperty('--retail-tile-offset-x', `${lastValid.x}%`); tile.style.setProperty('--retail-tile-offset-y', `${lastValid.y}%`); return; }
+                    lastValid = { x, y };
+                };
+                const move = (moveEvent) => {
+                    const x = Math.min(45, Math.max(-45, initial.x + ((moveEvent.clientX - startX) / Math.max(boundsRect.width, 1)) * 100));
+                    const y = Math.min(45, Math.max(-45, initial.y + ((moveEvent.clientY - startY) / Math.max(boundsRect.height, 1)) * 100));
+                    applyAnchor(x, y);
+                };
+                const finish = () => {
+                    tile.classList.remove('is-retail-moving');
+                    tile.removeEventListener('pointermove', move); tile.removeEventListener('pointerup', finish); tile.removeEventListener('pointercancel', finish);
+                    state.tileAnchors[productId] = { x: Number(lastValid.x.toFixed(3)), y: Number(lastValid.y.toFixed(3)) };
+                    renderPreview();
+                };
+                tile.classList.add('is-retail-moving');
+                tile.addEventListener('pointermove', move); tile.addEventListener('pointerup', finish); tile.addEventListener('pointercancel', finish);
+                if (tile.setPointerCapture) tile.setPointerCapture(event.pointerId);
+            });
+        });
         preview.querySelectorAll('[data-tile-position]').forEach((element) => {
             element.addEventListener('wheel', (event) => {
                 event.preventDefault();
@@ -933,16 +1115,102 @@
                 element.style.transform = `translate(-50%,-50%) scale(${scale})`;
                 element.title = `Ukuran ${Math.round(scale * 100)}% · Scroll untuk mengubah`;
             }, { passive: false });
+            element.querySelectorAll('[data-element-resize]').forEach((handle) => {
+                handle.addEventListener('pointerdown', (event) => {
+                    event.preventDefault(); event.stopPropagation();
+                    const field = handle.dataset.elementResize;
+                    const productId = element.dataset.productId;
+                    const surface = element.closest('[data-position-surface]');
+                    const bounds = preview.querySelector('.flyer-preview-items');
+                    if (!field || !productId || !surface || !bounds) return;
+                    const current = tilePositionsForProduct(productId)[field] || { x: 50, y: 50, scale: 1 };
+                    const initial = Number(current.scale) || 1;
+                    const startX = event.clientX, startY = event.clientY;
+                    const startRect = element.getBoundingClientRect();
+                    const boundsRect = bounds.getBoundingClientRect();
+                    let lastValid = initial;
+                    const direction = handle.dataset.resizeDirection || 'se';
+                    const applyScale = (scale) => {
+                        element.style.transform = `translate(-50%,-50%) scale(${scale})`;
+                        const rect = element.getBoundingClientRect();
+                        const inside = rect.left >= boundsRect.left - 1 && rect.top >= boundsRect.top - 1 && rect.right <= boundsRect.right + 1 && rect.bottom <= boundsRect.bottom + 1;
+                        if (!inside) { element.style.transform = `translate(-50%,-50%) scale(${lastValid})`; return; }
+                        lastValid = scale;
+                    };
+                    const move = (moveEvent) => {
+                        const dx = moveEvent.clientX - startX, dy = moveEvent.clientY - startY;
+                        const horizontal = direction.includes('e') ? dx : direction.includes('w') ? -dx : 0;
+                        const vertical = direction.includes('s') ? dy : direction.includes('n') ? -dy : 0;
+                        const delta = direction === 'e' || direction === 'w' ? horizontal : direction === 'n' || direction === 's' ? vertical : (horizontal + vertical) / 2;
+                        const scale = Math.min(2.8, Math.max(.35, Number((initial + delta / Math.max(startRect.width, startRect.height, 1)).toFixed(3))));
+                        applyScale(scale);
+                    };
+                    const finish = () => {
+                        document.body.classList.remove('is-element-resizing');
+                        handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', finish); handle.removeEventListener('pointercancel', finish);
+                        const productPositions = tilePositionsForProduct(productId);
+                        state.tilePositions[productId] = { ...productPositions, [field]: { ...productPositions[field], scale: Number(lastValid.toFixed(3)) } };
+                        renderPreview();
+                    };
+                    document.body.classList.add('is-element-resizing');
+                    handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', finish); handle.addEventListener('pointercancel', finish);
+                    if (handle.setPointerCapture) handle.setPointerCapture(event.pointerId);
+                });
+            });
+            element.querySelectorAll('[data-element-resize]').forEach((handle) => {
+                handle.addEventListener('pointerdown', (event) => {
+                    event.preventDefault(); event.stopPropagation();
+                    const field = handle.dataset.elementResize;
+                    const productId = element.dataset.productId;
+                    const surface = element.closest('[data-position-surface]');
+                    const bounds = preview.querySelector('.flyer-preview-items');
+                    if (!field || !productId || !surface || !bounds) return;
+                    const current = tilePositionsForProduct(productId)[field] || { x: 50, y: 50, scale: 1 };
+                    const initial = Number(current.scale) || 1;
+                    const startX = event.clientX, startY = event.clientY;
+                    const startRect = element.getBoundingClientRect();
+                    const boundsRect = bounds.getBoundingClientRect();
+                    let lastValid = initial;
+                    const direction = handle.dataset.resizeDirection || 'se';
+                    const applyScale = (scale) => {
+                        element.style.transform = `translate(-50%,-50%) scale(${scale})`;
+                        const rect = element.getBoundingClientRect();
+                        const inside = rect.left >= boundsRect.left - 1 && rect.top >= boundsRect.top - 1 && rect.right <= boundsRect.right + 1 && rect.bottom <= boundsRect.bottom + 1;
+                        if (!inside) { element.style.transform = `translate(-50%,-50%) scale(${lastValid})`; return; }
+                        lastValid = scale;
+                    };
+                    const move = (moveEvent) => {
+                        const dx = moveEvent.clientX - startX, dy = moveEvent.clientY - startY;
+                        const horizontal = direction.includes('e') ? dx : direction.includes('w') ? -dx : 0;
+                        const vertical = direction.includes('s') ? dy : direction.includes('n') ? -dy : 0;
+                        const delta = direction === 'e' || direction === 'w' ? horizontal : direction === 'n' || direction === 's' ? vertical : (horizontal + vertical) / 2;
+                        const scale = Math.min(2.8, Math.max(.35, Number((initial + delta / Math.max(startRect.width, startRect.height, 1)).toFixed(3))));
+                        applyScale(scale);
+                    };
+                    const finish = () => {
+                        document.body.classList.remove('is-element-resizing');
+                        handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', finish); handle.removeEventListener('pointercancel', finish);
+                        const productPositions = tilePositionsForProduct(productId);
+                        state.tilePositions[productId] = { ...productPositions, [field]: { ...productPositions[field], scale: Number(lastValid.toFixed(3)) } };
+                        renderPreview();
+                    };
+                    document.body.classList.add('is-element-resizing');
+                    handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', finish); handle.addEventListener('pointercancel', finish);
+                    if (handle.setPointerCapture) handle.setPointerCapture(event.pointerId);
+                });
+            });
             element.addEventListener('pointerdown', (event) => {
                 event.preventDefault();
                 const field = element.dataset.tilePosition;
                 const productId = element.dataset.productId;
                 const surface = element.closest('[data-position-surface]');
-                if (!surface || !field || !productId) return;
-                const rect = surface.getBoundingClientRect();
+                const retail = surface?.classList.contains('flyer-retail-tile');
+                const coordinateSurface = retail ? preview.querySelector('.flyer-preview-items') : surface;
+                if (!surface || !coordinateSurface || !field || !productId) return;
+                const rect = coordinateSurface.getBoundingClientRect();
                 const move = (moveEvent) => {
-                    const x = Math.min(96, Math.max(4, ((moveEvent.clientX - rect.left) / rect.width) * 100));
-                    const y = Math.min(96, Math.max(4, ((moveEvent.clientY - rect.top) / rect.height) * 100));
+                    const x = Math.min(retail ? 135 : 96, Math.max(retail ? -35 : 4, ((moveEvent.clientX - rect.left) / rect.width) * 100));
+                    const y = Math.min(retail ? 135 : 96, Math.max(retail ? -35 : 4, ((moveEvent.clientY - rect.top) / rect.height) * 100));
                     const productPositions = tilePositionsForProduct(productId);
                     state.tilePositions[productId] = { ...productPositions, [field]: { ...productPositions[field], x, y } };
                     element.style.left = `${x}%`;
@@ -986,7 +1254,10 @@
         preview.style.setProperty('--flyer-image-scale', String(crop.scale));
         preview.style.setProperty('--flyer-grid-rows', String(grid.rows));
         preview.style.setProperty('--flyer-grid-columns', String(grid.columns));
+        preview.style.setProperty('--flyer-preview-width', `${output.cssWidth}px`);
+        preview.style.setProperty('--flyer-preview-height', `${output.cssHeight}px`);
         preview.style.aspectRatio = output.ratio;
+        preview.dataset.outputFormat = visual.outputFormat;
         const rows = selectedProductRows();
         const visibleRows = rows.slice(0, grid.limit);
         const qrDataUrl = makeQrDataUrl(qrUrl);
@@ -998,13 +1269,16 @@
             const elementClass = (field, legacyClass) => `flyer-positioned-element flyer-positioned-${field}${isRetail ? ` ${legacyClass}` : ''}`;
             const draggableAttrs = (field, label) => `data-tile-position="${field}" data-product-id="${productId}" style="${tilePositionStyle(item.id, field)}" tabindex="0" role="button" aria-label="Seret atau scroll ${label} untuk mengubah posisi dan ukuran"`;
             const badgeClass = `flyer-item-badge flyer-badge-${escapeHtml(visual.badgeStyle)}`;
-            return `<article class="${itemClass}" data-position-surface="${productId}">
+            const resizeHandle = isRetail ? `<button type="button" class="flyer-tile-resize-handle" data-tile-resize="${productId}" aria-label="Ubah ukuran tile ${escapeHtml(brochureName(item))}" title="Tarik untuk mengubah ukuran tile"></button>` : '';
+            const elementHandles = isRetail ? (field, label) => elementResizeHandles(field, label) : () => '';
+            return `<article class="${itemClass}" data-position-surface="${productId}" style="${isRetail ? tileSizeStyle(item.id) + tileAnchorStyle(item.id) : ''}">
                 ${isFeatured ? '<span class="flyer-featured-mark">UNGGULAN</span>' : ''}
-                <div class="${elementClass('media', 'flyer-retail-media')}" ${draggableAttrs('image', 'gambar produk')}>${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="eager">` : 'POP'}${item.badge ? `<span class="${badgeClass}">${escapeHtml(item.badge)}</span>` : ''}</div>
-                <div class="${elementClass('name', 'flyer-retail-name')}" ${draggableAttrs('name', 'nama produk')}>${escapeHtml(brochureName(item))}</div>
-                <div class="${elementClass('normal', 'flyer-retail-normal')}" ${draggableAttrs('normal', 'harga coret')}>${formatStrikePrice(brochureNormalPrice(item))}</div>
-                <div class="${elementClass('promo', 'flyer-retail-promo')}" ${draggableAttrs('promo', 'harga promo')}>${formatCurrencyMarkup(brochurePromoPrice(item))}</div>
-                <div class="${elementClass('offer', 'flyer-retail-offer')}" ${draggableAttrs('offer', 'teks promo')}>${escapeHtml(brochureOffer(item))}</div>
+                <div class="${elementClass('media', 'flyer-retail-media')}" ${draggableAttrs('image', 'gambar produk')}>${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="eager">` : 'POP'}${item.badge ? `<span class="${badgeClass}">${escapeHtml(item.badge)}</span>` : ''}${elementHandles('image', 'gambar produk')}</div>
+                <div class="${elementClass('name', 'flyer-retail-name')}" ${draggableAttrs('name', 'nama produk')}>${escapeHtml(brochureName(item))}${elementHandles('name', 'nama produk')}</div>
+                <div class="${elementClass('normal', 'flyer-retail-normal')}" ${draggableAttrs('normal', 'harga coret')}>${formatStrikePrice(brochureNormalPrice(item))}${elementHandles('normal', 'harga coret')}</div>
+                <div class="${elementClass('promo', 'flyer-retail-promo')}" ${draggableAttrs('promo', 'harga promo')}>${formatCurrencyMarkup(brochurePromoPrice(item))}${elementHandles('promo', 'harga promo')}</div>
+                <div class="${elementClass('offer', 'flyer-retail-offer')}" ${draggableAttrs('offer', 'teks promo')}>${escapeHtml(brochureOffer(item))}${elementHandles('offer', 'teks promo')}</div>
+                ${resizeHandle}
             </article>`;
         };
         let previousCategory = '';
@@ -1026,7 +1300,12 @@
         bindTilePositionDrag();
         fitPreviewToSafeArea();
         const size = $('promo-pop-preview-size');
-        if (size) size.textContent = `${output.label} · ${visual.outputFormat === 'a4' ? 'margin internal 0,4 cm' : 'format digital adaptif'} · ${visibleRows.length} produk`;
+        if (size) {
+            const dimensions = visual.outputFormat === 'a4'
+                ? `${output.width} × ${output.height} mm`
+                : `${output.width} × ${output.height} px`;
+            size.textContent = `${output.label} · ${dimensions} · ${visual.outputFormat === 'a4' ? 'margin internal 0,4 cm' : 'kanvas digital adaptif'} · ${visibleRows.length} produk`;
+        }
     }
 
     function enforceA4Portrait() {
@@ -1093,7 +1372,7 @@
             minimum_price_policy_id: String($('promo-pop-minimum-price-policy')?.value || state.governance.campaignPolicyId || '').trim(),
             request_id: `pop-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
             banner_config_json: JSON.stringify({ top: String($('promo-pop-top-banner')?.value || '').trim(), bottom: String($('promo-pop-bottom-banner')?.value || '').trim() }),
-            grid_config_json: JSON.stringify({ layout: String($('promo-pop-layout')?.value || 'auto').trim(), rows: getGridSettings().rows, columns: getGridSettings().columns, image_frame_height: getCropSettings().frame, image_scale: getCropSettings().scale, tile_positions: normalizeTilePositions(state.tilePositions) }),
+            grid_config_json: JSON.stringify({ layout: String($('promo-pop-layout')?.value || 'auto').trim(), rows: getGridSettings().rows, columns: getGridSettings().columns, image_frame_height: getCropSettings().frame, image_scale: getCropSettings().scale, tile_positions: normalizeTilePositions(state.tilePositions), tile_sizes: normalizeTileSizes(state.tileSizes), tile_anchors: normalizeTileAnchors(state.tileAnchors) }),
             visual_config_json: JSON.stringify(readVisualSettings()),
             created_by: GASActions.getAdminRole() || 'admin',
             updated_at: new Date().toISOString()
@@ -1134,6 +1413,9 @@
         if (rowsField) rowsField.value = Math.min(8, Math.max(1, Number(gridConfig.rows) || 4));
         if (columnsField) columnsField.value = Math.min(6, Math.max(1, Number(gridConfig.columns) || 3));
         state.tilePositions = normalizeTilePositions(gridConfig.tile_positions);
+        state.tileSizes = normalizeTileSizes(gridConfig.tile_sizes);
+        state.tileAnchors = normalizeTileAnchors(gridConfig.tile_anchors);
+        state.tileAnchors = normalizeTileAnchors(gridConfig.tile_anchors);
         enforceA4Portrait();
         state.templateId = campaign.template_id || 'promo-grid';
         $('promo-pop-store').value = campaign.store_name || '';
@@ -1210,6 +1492,8 @@
         state.templateId = 'promo-grid';
         state.heroDataUrl = '';
         state.tilePositions = normalizeTilePositions();
+        state.tileSizes = {};
+        state.tileAnchors = {};
         state.layoutClipboard = '';
         state.featuredIds.clear();
         $('promo-pop-form')?.reset();
@@ -1487,6 +1771,9 @@
                 const targetId = pasteButton.dataset.pasteLayout || '';
                 if (!sourceId || !targetId || sourceId === targetId || !state.selectedItems.has(sourceId) || !state.selectedItems.has(targetId)) return;
                 state.tilePositions[targetId] = cloneTilePositions(sourceId);
+                state.tileSizes[targetId] = { ...tileSizeForProduct(sourceId) };
+                state.tileAnchors[targetId] = { ...tileAnchorForProduct(sourceId) };
+                state.tileAnchors[targetId] = { ...tileAnchorForProduct(sourceId) };
                 setStatus('Pengaturan layout berhasil ditempel ke produk tujuan.', 'success');
                 renderSelectedItems();
                 renderPreview();

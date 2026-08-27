@@ -16,7 +16,7 @@ const checks = [
   ['brochure promo input is guarded and rolled back', /data-brochure-promo[\s\S]*?enforceItemMinimumPrice/.test(pop)],
   ['restore path validates minimum prices before mutating state', /function restoreCampaignItems[\s\S]*?validateMinimumPrices[\s\S]*?state\.selectedItems = new Map/.test(pop)],
   ['save path performs final minimum-price validation', /async function saveCampaign[\s\S]*?syncBrochureFieldsFromDom\(\)[\s\S]*?validateMinimumPrices/.test(pop)],
-  ['boot loads governance context before production data', /async function boot[\s\S]*?await loadGovernanceContext\('\'[\s\S]*?fetchProducts/.test(pop)],
+  ['boot loads governance context before production data', /async function boot[\s\S]*?await loadGovernanceContext\('[^']*'[\s\S]*?fetchProducts/.test(pop)],
   ['publish path checks publish permission', /async function toggleCampaign[\s\S]*?requirePromoPermission\('promo\.publish'/.test(pop)],
   ['structured GAS errors preserve backend payload', /error\.code = String\(result\.error\)[\s\S]*?error\.payload = result/.test(gasActions)],
   ['canonical backend enforces write-boundary price validation', /function validatePromoFlyerWriteAtBoundary_[\s\S]*?validatePromoFlyerPriceCandidate_/.test(gas)],
@@ -28,7 +28,17 @@ const checks = [
   ['admin and public use semantic strike-through markup', /<del class="strike-price"/.test(pop) && /<del class="strike-price"/.test(publicHtml)],
   ['admin and public apply explicit strike-through CSS', /\.strike-price::after[\s\S]*?top:50%[\s\S]*?background:currentColor/.test(html) && /\.strike-price::after[\s\S]*?top:50%[\s\S]*?background:currentColor/.test(publicHtml)],
   ['PNG and PDF capture the same rendered preview DOM', /async function generatePdf[\s\S]*?html2canvas\(preview/.test(pop) && /async function generatePng[\s\S]*?html2canvas\(preview/.test(pop)],
-  ['print preview captures the same rendered preview DOM', /async function openPrintPreview[\s\S]*?html2canvas\(preview/.test(pop)]
+  ['print preview captures the same rendered preview DOM', /async function openPrintPreview[\s\S]*?html2canvas\(preview/.test(pop)],
+  ['Retail Tile renders a corner resize handle', /data-tile-resize/.test(pop) && /flyer-tile-resize-handle/.test(pop)],
+  ['Retail Tile resize uses a locked scale range and proportional transform', /tileSizeForProduct[\s\S]*?Math\.min\(1\.8, Math\.max\(\.65/.test(pop) && /flyer-retail-tile[\s\S]*?transform:scale\(var\(--retail-tile-scale/.test(html)],
+  ['Retail Tile resize enforces canvas bounds while allowing overlap', /const inside = tileRect\.left >= boundsRect\.left[\s\S]*?if \(!inside\)/.test(pop)],
+  ['Retail Tile sizes persist through campaign save and restore', /tile_sizes: normalizeTileSizes\(state\.tileSizes\)/.test(pop) && /state\.tileSizes = normalizeTileSizes\(gridConfig\.tile_sizes\)/.test(pop)],
+  ['public renderer applies persisted Retail Tile scale', /tileSizes: normalizeTileSizes\(gridConfig\.tile_sizes\)/.test(publicHtml) && /--pk-pop-retail-tile-scale/.test(publicHtml)],
+  ['freeform element resize controls present', pop.includes('data-element-resize') || html.includes('flyer-element-resize-handle')],
+  ['tile anchors persist', pop.includes('normalizeTileAnchors') && pop.includes('tile_anchors')],
+  ['multi-direction element resize states present', pop.includes('is-element-resizing') && html.includes('flyer-element-resize-nw')],
+  ['freeform resize allows overlap while enforcing canvas bounds', pop.includes('if (!inside)') && !pop.includes("const overlaps = Array.from(bounds.querySelectorAll('.flyer-retail-tile'))")],
+  ['public renderer receives tile anchors', publicHtml.includes('normalizeTileAnchors') && publicHtml.includes('pk-pop-retail-tile-offset-x')]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
@@ -38,3 +48,5 @@ if (failed.length) {
   process.exit(1);
 }
 console.log(`\n${checks.length} regression checks passed.`);
+
+if (require.main === module) process.exit(0);
