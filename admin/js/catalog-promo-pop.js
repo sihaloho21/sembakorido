@@ -326,6 +326,23 @@
         return Number.isFinite(quantity) ? Math.max(1, Math.round(quantity)) : 1;
     }
 
+    function brochureSaving(item) {
+        const normal = brochureNormalPrice(item);
+        const promo = brochurePromoPrice(item);
+        if (!(normal > 0) || !(promo >= 0) || promo >= normal) return { amount: 0, percent: 0 };
+        return { amount: Math.max(0, Math.round(normal - promo)), percent: Math.max(0, Math.round(((normal - promo) / normal) * 100)) };
+    }
+
+    function brochureRuleLabel(item) {
+        const mechanic = brochureMechanic(item);
+        const quantity = brochureQuantity(item);
+        if (mechanic === 'multi-buy') return `Beli ${quantity} lebih hemat`;
+        if (mechanic === 'bundle') return `Paket hemat isi ${quantity}`;
+        if (mechanic === 'minimum-spend') return `Min. belanja untuk promo`;
+        if (mechanic === 'channel') return 'Harga khusus member / aplikasi';
+        return '';
+    }
+
     function brochureMechanicLabel(item) {
         const mechanic = brochureMechanic(item);
         const quantity = brochureQuantity(item);
@@ -377,7 +394,16 @@
             showFeatured: $('promo-pop-show-featured') ? $('promo-pop-show-featured').checked : state.visual.showFeatured !== false,
             ctaStyle: String($('promo-pop-cta-style')?.value || state.visual.ctaStyle || 'solid'),
             outputFormat: String($('promo-pop-output-format')?.value || state.visual.outputFormat || 'a4'),
-            showImageBackground: $('promo-pop-image-background') ? $('promo-pop-image-background').checked : state.visual.showImageBackground !== false
+            showImageBackground: $('promo-pop-image-background') ? $('promo-pop-image-background').checked : state.visual.showImageBackground !== false,
+            showSaving: $('promo-pop-show-saving') ? $('promo-pop-show-saving').checked : state.visual.showSaving !== false,
+            safeAreaValidator: $('promo-pop-safe-area') ? $('promo-pop-safe-area').checked : state.visual.safeAreaValidator !== false,
+            pricePanelColor: String($('promo-pop-price-panel-color')?.value || state.visual.pricePanelColor || '#facc15'),
+            pricePanelShape: String($('promo-pop-price-panel-shape')?.value || state.visual.pricePanelShape || 'rounded'),
+            pricePanelLabel: String($('promo-pop-price-panel-label')?.value || state.visual.pricePanelLabel || 'HARGA SPESIAL').trim() || 'HARGA SPESIAL',
+            footerChannels: String($('promo-pop-footer-channels')?.value || state.visual.footerChannels || 'Website · WhatsApp · Instagram').trim(),
+            ornamentsEnabled: $('promo-pop-ornaments') ? $('promo-pop-ornaments').checked : state.visual.ornamentsEnabled !== false,
+            ornamentText: String($('promo-pop-ornament-text')?.value || state.visual.ornamentText || '★ HEMAT BESAR ★').trim(),
+            sectionStyle: String($('promo-pop-section-style')?.value || state.visual.sectionStyle || 'label')
         };
     }
 
@@ -1281,6 +1307,25 @@
         });
     }
 
+    function updateSafeAreaStatus(preview, enabled) {
+        if (!preview) return;
+        if (!enabled) { delete preview.dataset.safeArea; preview.removeAttribute('title'); return; }
+        const canvas = preview.getBoundingClientRect();
+        const margin = 2;
+        const overflow = Array.from(preview.querySelectorAll('[data-position-surface]')).some((node) => {
+            const rect = node.getBoundingClientRect();
+            return rect.left < canvas.left - margin || rect.top < canvas.top - margin || rect.right > canvas.right + margin || rect.bottom > canvas.bottom + margin;
+        });
+        preview.dataset.safeArea = overflow ? 'warning' : 'ok';
+        preview.title = overflow ? 'Ada elemen yang melewati safe-area canvas. Periksa sebelum export.' : 'Semua elemen berada di dalam safe-area canvas.';
+    }
+
+    function visualOrnamentMarkup(visual) {
+        if (!visual || visual.ornamentsEnabled === false) return '';
+        const text = String(visual.ornamentText || '★ HEMAT BESAR ★').trim();
+        return text ? `<span class="flyer-campaign-ornament">${escapeHtml(text)}</span>` : '';
+    }
+
     function renderPreview() {
         const title = $('promo-pop-title')?.value || 'Promo Spesial';
         const subtitle = $('promo-pop-subtitle')?.value || 'Harga terbaik untuk kebutuhan harian';
@@ -1293,6 +1338,8 @@
         const qrUrl = safeHttpUrl($('promo-pop-qr')?.value || '');
         const address = $('promo-pop-address')?.value || '';
         const disclaimer = $('promo-pop-disclaimer')?.value || '';
+        const footerChannels = String($('promo-pop-footer-channels')?.value || 'Website · WhatsApp · Instagram').trim();
+        const ornamentMarkup = visualOrnamentMarkup(readVisualSettings());
         const preview = $('promo-pop-preview');
         if (!preview) return;
         const crop = getCropSettings();
@@ -1301,6 +1348,8 @@
         state.visual = visual;
         const output = outputFormatConfig(visual.outputFormat);
         const imageBackgroundClass = visual.showImageBackground ? '' : ' flyer-image-background-off';
+        const pricePanelShapeClass = ` flyer-price-panel-${escapeHtml(visual.pricePanelShape || 'rounded')}`;
+        preview.style.setProperty('--flyer-price-panel-color', visual.pricePanelColor || '#facc15');
         preview.style.setProperty('--flyer-media-height', `${crop.frame}px`);
         preview.style.setProperty('--flyer-image-scale', String(crop.scale));
         preview.style.setProperty('--flyer-grid-rows', String(grid.rows));
@@ -1327,8 +1376,8 @@
                 <div class="${elementClass('media', 'flyer-retail-media')}" ${draggableAttrs('image', 'gambar produk')}>${item.image ? `<img src="${escapeHtml(safeHttpUrl(item.image))}" alt="" loading="eager">` : 'POP'}<span class="${badgeClass}">${escapeHtml(brochureBadgeLabel(item))}</span>${elementHandles('image', 'gambar produk')}</div>
                 <div class="${elementClass('name', 'flyer-retail-name')}" ${draggableAttrs('name', 'nama produk')}>${escapeHtml(brochureName(item))}${elementHandles('name', 'nama produk')}</div>
                 <div class="${elementClass('normal', 'flyer-retail-normal')}" ${draggableAttrs('normal', 'harga coret')}>${formatStrikePrice(brochureNormalPrice(item))}${elementHandles('normal', 'harga coret')}</div>
-                <div class="${elementClass('promo', 'flyer-retail-promo')}" ${draggableAttrs('promo', 'harga promo')}>${formatCurrencyMarkup(brochurePromoPrice(item))}${elementHandles('promo', 'harga promo')}</div>
-                <div class="${elementClass('offer', 'flyer-retail-offer')}" ${draggableAttrs('offer', 'teks promo')}>${escapeHtml(brochureMechanicLabel(item))}${elementHandles('offer', 'teks promo')}</div>
+                <div class="${elementClass('promo', `flyer-retail-promo${pricePanelShapeClass}`)}" ${draggableAttrs('promo', 'harga promo')}><span class="flyer-price-panel-label">${escapeHtml(visual.pricePanelLabel || 'HARGA SPESIAL')}</span>${formatCurrencyMarkup(brochurePromoPrice(item))}${visual.showSaving && brochureSaving(item).percent > 0 ? `<span class="flyer-saving-label">HEMAT ${brochureSaving(item).percent}%</span>` : ''}${elementHandles('promo', 'harga promo')}</div>
+                <div class="${elementClass('offer', 'flyer-retail-offer')}" ${draggableAttrs('offer', 'teks promo')}>${escapeHtml(brochureRuleLabel(item) || brochureMechanicLabel(item))}${elementHandles('offer', 'teks promo')}</div>
                 ${resizeHandle}
             </article>`;
         };
@@ -1347,9 +1396,10 @@
         const watermarkText = String($('promo-pop-watermark-text')?.value || '').trim() || 'PaketSembako.com';
         const watermarkMarkup = $('promo-pop-watermark')?.checked ? `<span class="flyer-watermark">${escapeHtml(watermarkText)}</span>` : '';
         preview.className = `flyer-preview${imageBackgroundClass} flyer-theme-${escapeHtml(themeClass(theme))} flyer-layout-${escapeHtml(layoutClass(layout))} flyer-hero-layout-${escapeHtml(visual.heroLayout)} flyer-output-${escapeHtml(visual.outputFormat)}`;
-        preview.innerHTML = `<div class="flyer-preview-content${visual.smartFit ? ' is-smart-fit' : ''}"><div class="flyer-preview-content-scale"><div class="flyer-preview-hero" ${hero ? `style="background-image:url('${escapeHtml(hero)}')"` : ''}><div class="flyer-overlay"></div><div class="relative z-10"><span class="flyer-kicker">🔥 ${escapeHtml(store).toUpperCase()}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(subtitle)}</p>${period ? `<span class="flyer-period">${escapeHtml(period)}</span>` : ''}</div></div><div class="flyer-preview-meta"><strong>${escapeHtml(badge)}</strong><span>${visibleRows.length} produk promo</span></div><div class="flyer-preview-items">${productMarkup || '<div style="grid-column:1/-1;color:#94a3b8;font-size:11px;text-align:center;padding:28px 0;">Preview produk akan tampil di sini.</div>'}</div>${serviceMarkup}${paymentMarkup}<div class="flyer-preview-footer flyer-cta-${escapeHtml(visual.ctaStyle)}"><div class="flyer-footer-left"><strong>${escapeHtml(store)}</strong><span>${escapeHtml(address || 'Informasi toko akan tampil di sini')}</span><b class="flyer-cta-copy">${escapeHtml($('promo-pop-footer')?.value || 'Pesan sekarang')}</b></div><div class="flyer-footer-right">${qrDataUrl ? `<img class="flyer-qr" src="${qrDataUrl}" alt="QR Code">` : ''}<span>Scan<br>untuk pesan</span></div></div>${disclaimerMarkup}${watermarkMarkup}</div></div>`;
+        preview.innerHTML = `<div class="flyer-preview-content${visual.smartFit ? ' is-smart-fit' : ''}"><div class="flyer-preview-content-scale"><div class="flyer-preview-hero" ${hero ? `style="background-image:url('${escapeHtml(hero)}')"` : ''}><div class="flyer-overlay"></div>${ornamentMarkup}<div class="relative z-10"><span class="flyer-kicker">🔥 ${escapeHtml(store).toUpperCase()}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(subtitle)}</p>${period ? `<span class="flyer-period">${escapeHtml(period)}</span>` : ''}</div></div><div class="flyer-preview-meta"><strong>${escapeHtml(badge)}</strong><span>${visibleRows.length} produk promo</span></div><div class="flyer-preview-items">${productMarkup || '<div style="grid-column:1/-1;color:#94a3b8;font-size:11px;text-align:center;padding:28px 0;">Preview produk akan tampil di sini.</div>'}</div>${serviceMarkup}${paymentMarkup}<div class="flyer-preview-footer flyer-cta-${escapeHtml(visual.ctaStyle)}"><div class="flyer-footer-left"><strong>${escapeHtml(store)}</strong><span>${escapeHtml(address || 'Informasi toko akan tampil di sini')}</span><span class="flyer-footer-channels">${escapeHtml(footerChannels)}</span><b class="flyer-cta-copy">${escapeHtml($('promo-pop-footer')?.value || 'Pesan sekarang')}</b></div><div class="flyer-footer-right">${qrDataUrl ? `<img class="flyer-qr" src="${qrDataUrl}" alt="QR Code">` : ''}<span>Scan<br>untuk pesan</span></div></div>${disclaimerMarkup}${watermarkMarkup}</div></div>`;
         bindTilePositionDrag();
         fitPreviewToSafeArea();
+        updateSafeAreaStatus(preview, visual.safeAreaValidator);
         const size = $('promo-pop-preview-size');
         if (size) {
             const dimensions = visual.outputFormat === 'a4'
@@ -1454,10 +1504,16 @@
             'promo-pop-badge-style': state.visual.badgeStyle,
             'promo-pop-hero-layout': state.visual.heroLayout,
             'promo-pop-cta-style': state.visual.ctaStyle,
-            'promo-pop-output-format': state.visual.outputFormat
+            'promo-pop-output-format': state.visual.outputFormat,
+            'promo-pop-price-panel-color': state.visual.pricePanelColor,
+            'promo-pop-price-panel-shape': state.visual.pricePanelShape,
+            'promo-pop-price-panel-label': state.visual.pricePanelLabel,
+            'promo-pop-footer-channels': state.visual.footerChannels,
+            'promo-pop-ornament-text': state.visual.ornamentText,
+            'promo-pop-section-style': state.visual.sectionStyle
         };
         Object.entries(visualFields).forEach(([id, value]) => { const field = $(id); if (field && value) field.value = value; });
-        ['promo-pop-smart-fit', 'promo-pop-group-categories', 'promo-pop-show-featured', 'promo-pop-image-background'].forEach((id) => { const field = $(id); const key = id.replace('promo-pop-', '').replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()); if (field && Object.prototype.hasOwnProperty.call(state.visual, key)) field.checked = state.visual[key] === true; });
+        ['promo-pop-smart-fit', 'promo-pop-group-categories', 'promo-pop-show-featured', 'promo-pop-image-background', 'promo-pop-show-saving', 'promo-pop-safe-area', 'promo-pop-ornaments'].forEach((id) => { const field = $(id); const key = id.replace('promo-pop-', '').replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()); if (field && Object.prototype.hasOwnProperty.call(state.visual, key)) field.checked = state.visual[key] === true; });
         const frameField = $('promo-pop-image-frame');
         const scaleField = $('promo-pop-image-scale');
         const rowsField = $('promo-pop-grid-rows');
@@ -1537,10 +1593,10 @@
     function resetForm() {
         state.editingId = '';
         state.governance.campaignPolicyId = '';
-        state.visual = { preset: 'fresh-market', badgeStyle: 'sticker', heroLayout: 'split', smartFit: true, groupCategories: false, showFeatured: true, ctaStyle: 'solid', outputFormat: 'a4', showImageBackground: true };
-        const visualDefaults = { 'promo-pop-visual-preset': 'fresh-market', 'promo-pop-theme': 'fresh-organic', 'promo-pop-badge-style': 'sticker', 'promo-pop-hero-layout': 'split', 'promo-pop-cta-style': 'solid', 'promo-pop-output-format': 'a4' };
+        state.visual = { preset: 'fresh-market', badgeStyle: 'sticker', heroLayout: 'split', smartFit: true, groupCategories: false, showFeatured: true, ctaStyle: 'solid', outputFormat: 'a4', showImageBackground: true, showSaving: true, safeAreaValidator: true, pricePanelColor: '#facc15', pricePanelShape: 'rounded', pricePanelLabel: 'HARGA SPESIAL', footerChannels: 'Website · WhatsApp · Instagram', ornamentsEnabled: true, ornamentText: '★ HEMAT BESAR ★', sectionStyle: 'label' };
+        const visualDefaults = { 'promo-pop-visual-preset': 'fresh-market', 'promo-pop-theme': 'fresh-organic', 'promo-pop-badge-style': 'sticker', 'promo-pop-hero-layout': 'split', 'promo-pop-cta-style': 'solid', 'promo-pop-output-format': 'a4', 'promo-pop-price-panel-color': '#facc15', 'promo-pop-price-panel-shape': 'rounded', 'promo-pop-price-panel-label': 'HARGA SPESIAL', 'promo-pop-footer-channels': 'Website · WhatsApp · Instagram', 'promo-pop-ornament-text': '★ HEMAT BESAR ★', 'promo-pop-section-style': 'label' };
         Object.entries(visualDefaults).forEach(([id, value]) => { const field = $(id); if (field) field.value = value; });
-        ['promo-pop-smart-fit', 'promo-pop-show-featured', 'promo-pop-image-background'].forEach((id) => { const field = $(id); if (field) field.checked = true; });
+        ['promo-pop-smart-fit', 'promo-pop-show-featured', 'promo-pop-image-background', 'promo-pop-show-saving', 'promo-pop-safe-area', 'promo-pop-ornaments'].forEach((id) => { const field = $(id); if (field) field.checked = true; });
         const grouping = $('promo-pop-group-categories'); if (grouping) grouping.checked = false;
         setFormStatusBadge('draft');
         state.templateId = 'promo-grid';
@@ -1699,10 +1755,10 @@
         $('promo-pop-save-top')?.addEventListener('click', () => $('promo-pop-form')?.requestSubmit());
         $('promo-pop-prepare-backend')?.addEventListener('click', prepareBackend);
         document.querySelectorAll('[data-template]').forEach((button) => button.addEventListener('click', () => selectTemplate(button.dataset.template)));
-        ['promo-pop-title', 'promo-pop-subtitle', 'promo-pop-theme', 'promo-pop-layout', 'promo-pop-store', 'promo-pop-badge', 'promo-pop-hero', 'promo-pop-period', 'promo-pop-footer', 'promo-pop-qr', 'promo-pop-address', 'promo-pop-disclaimer', 'promo-pop-watermark-text', 'promo-pop-paper', 'promo-pop-orientation'].forEach((id) => $(id)?.addEventListener('input', renderPreview));
-        ['promo-pop-visual-preset', 'promo-pop-badge-style', 'promo-pop-hero-layout', 'promo-pop-cta-style', 'promo-pop-output-format'].forEach((id) => $(id)?.addEventListener('change', () => { state.visual = readVisualSettings(); renderPreview(); }));
+        ['promo-pop-title', 'promo-pop-subtitle', 'promo-pop-theme', 'promo-pop-layout', 'promo-pop-store', 'promo-pop-badge', 'promo-pop-hero', 'promo-pop-period', 'promo-pop-footer', 'promo-pop-qr', 'promo-pop-address', 'promo-pop-disclaimer', 'promo-pop-watermark-text', 'promo-pop-paper', 'promo-pop-orientation', 'promo-pop-price-panel-label', 'promo-pop-footer-channels', 'promo-pop-ornament-text'].forEach((id) => $(id)?.addEventListener('input', renderPreview));
+        ['promo-pop-visual-preset', 'promo-pop-badge-style', 'promo-pop-hero-layout', 'promo-pop-cta-style', 'promo-pop-output-format', 'promo-pop-price-panel-color', 'promo-pop-price-panel-shape'].forEach((id) => $(id)?.addEventListener('change', () => { state.visual = readVisualSettings(); renderPreview(); }));
         $('promo-pop-visual-preset')?.addEventListener('change', (event) => applyVisualPreset(event.target.value));
-        ['promo-pop-watermark', 'promo-pop-show-service', 'promo-pop-show-payment', 'promo-pop-show-disclaimer', 'promo-pop-smart-fit', 'promo-pop-group-categories', 'promo-pop-show-featured', 'promo-pop-image-background'].forEach((id) => $(id)?.addEventListener('change', () => { state.visual = readVisualSettings(); renderPreview(); }));
+        ['promo-pop-watermark', 'promo-pop-show-service', 'promo-pop-show-payment', 'promo-pop-show-disclaimer', 'promo-pop-smart-fit', 'promo-pop-group-categories', 'promo-pop-show-featured', 'promo-pop-image-background', 'promo-pop-show-saving', 'promo-pop-safe-area', 'promo-pop-ornaments'].forEach((id) => $(id)?.addEventListener('change', () => { state.visual = readVisualSettings(); renderPreview(); }));
         document.querySelectorAll('[data-ppob-wallet]').forEach((input) => input.addEventListener('change', renderPreview));
         $('promo-pop-hero-file')?.addEventListener('change', handleHeroUpload);
         $('promo-pop-zoom-out')?.addEventListener('click', () => setPreviewZoom(-.1));
