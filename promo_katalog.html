@@ -422,6 +422,8 @@
         .pk-pop-retail-price { color:#dc2626; font-size:1.55rem; font-weight:1000; line-height:.95; white-space:nowrap; }
         .pk-pop-retail-offer { width:90%; color:#111827; font-size:.7rem; font-weight:950; line-height:1.1; text-align:center; }
         .pk-pop-layout-retail-tile .pk-pop-preview-item { padding:0; border:0; border-radius:0; }
+        .pk-pop-layout-retail-tile .pk-pop-preview-item.pk-pop-retail-tile { transform:translate(var(--pk-pop-retail-tile-offset-x,0%),var(--pk-pop-retail-tile-offset-y,0%)) scale(var(--pk-pop-retail-tile-scale,1)); transform-origin:center center; z-index:1; overflow:visible; }
+        .pk-pop-layout-retail-tile .pk-pop-preview-item.pk-pop-retail-tile:hover { z-index:2; }
         .pk-pop-layout-retail-tile .pk-pop-preview-item:nth-child(even) .pk-pop-retail-tile { background:#f6cf84; }
         @media (max-width:640px) { .pk-pop-retail-tile { min-height:250px; } .pk-pop-retail-price { font-size:1.3rem; } }
         /* Public POP output mirrors the admin’s independently positioned product elements. */
@@ -816,6 +818,26 @@
             };
         }
 
+        function normalizeTileAnchors(value) {
+            var source = value && typeof value === 'object' ? value : {};
+            var result = {};
+            Object.keys(source).forEach(function(id) { var a = source[id] || {}; result[String(id)] = { x: Math.min(45, Math.max(-45, Number(a.x) || 0)), y: Math.min(45, Math.max(-45, Number(a.y) || 0)) }; });
+            return result;
+        }
+        function tileAnchorStyle(anchors, productId) {
+            var a = anchors && anchors[String(productId)] || {x:0,y:0};
+            return '--pk-pop-retail-tile-offset-x:' + (Number(a.x) || 0) + '%;--pk-pop-retail-tile-offset-y:' + (Number(a.y) || 0) + '%;';
+        }
+        function normalizeTileAnchors(value) {
+            var source = value && typeof value === 'object' ? value : {};
+            var result = {};
+            Object.keys(source).forEach(function(id) { var a = source[id] || {}; result[String(id)] = { x: Math.min(45, Math.max(-45, Number(a.x) || 0)), y: Math.min(45, Math.max(-45, Number(a.y) || 0)) }; });
+            return result;
+        }
+        function tileAnchorStyle(anchors, productId) {
+            var a = anchors && anchors[String(productId)] || {x:0,y:0};
+            return '--pk-pop-retail-tile-offset-x:' + (Number(a.x) || 0) + '%;--pk-pop-retail-tile-offset-y:' + (Number(a.y) || 0) + '%;';
+        }
         function normalizeTilePositions(value) {
             var defaults = { image:{x:50,y:24,scale:1}, name:{x:50,y:73,scale:1}, normal:{x:78,y:65,scale:1}, promo:{x:50,y:86,scale:1}, offer:{x:50,y:96,scale:1} };
             function normalizeFields(source) {
@@ -832,6 +854,23 @@
             Object.keys(source).forEach(function(productId) { if (productId !== '__default') result[productId] = normalizeFields(source[productId]); });
             result.__default = normalizeFields(source.__default);
             return result;
+        }
+
+        function normalizeTileSizes(value) {
+            var source = value && typeof value === 'object' ? value : {};
+            var result = {};
+            Object.keys(source).forEach(function(productId) {
+                var scale = Number(source[productId] && source[productId].scale);
+                result[productId] = { scale: Math.min(1.8, Math.max(.65, Number.isFinite(scale) && scale > 0 ? scale : 1)) };
+            });
+            return result;
+        }
+
+        function tileSizeStyle(sizes, productId) {
+            var item = sizes && sizes[String(productId)];
+            var scale = item && Number(item.scale);
+            scale = Math.min(1.8, Math.max(.65, Number.isFinite(scale) && scale > 0 ? scale : 1));
+            return '--pk-pop-retail-tile-scale:' + scale + ';';
         }
 
         function tilePositionStyle(positions, productId, key, extra) {
@@ -898,6 +937,9 @@
                 gridRows: gridRows,
                 gridColumns: gridColumns,
                 tilePositions: normalizeTilePositions(gridConfig.tile_positions),
+                tileSizes: normalizeTileSizes(gridConfig.tile_sizes),
+                tileAnchors: normalizeTileAnchors(gridConfig.tile_anchors),
+                tileAnchors: normalizeTileAnchors(gridConfig.tile_anchors),
                 showService: parseBoolean(c.show_service, true),
                 showPayment: parseBoolean(c.show_payment, true),
                 showDisclaimer: parseBoolean(c.show_disclaimer, true),
@@ -1020,12 +1062,13 @@
                     var isRetail = (c.layout || '') === 'retail-tile';
                     var isFeatured = c.showFeatured && item.isFeatured === true;
                     var itemClass = 'pk-pop-preview-item pk-pop-positioned-item' + (isRetail ? ' pk-pop-retail-tile' : '') + (isFeatured ? ' pk-pop-is-featured' : '');
+                    var tileScale = isRetail ? tileSizeStyle(c.tileSizes, item.id) + tileAnchorStyle(c.tileAnchors, item.id) : '';
                     var elementClass = function(field, legacyClass) { return 'pk-pop-positioned-element pk-pop-positioned-' + field + (isRetail ? ' ' + legacyClass : ''); };
                     var positionedAttrs = function(field) { return ' style="' + tilePositionStyle(positions, item.id, field) + '"'; };
                     var image = item.image ? '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy" data-fallback-src="https://placehold.co/300x300?text=Produk">' : '<span>POP</span>';
                     var normal = item.normalPrice > item.promoPrice ? '<div class="' + elementClass('normal', 'pk-pop-retail-normal') + '"' + positionedAttrs('normal') + '>' + formatStrikePrice(item.normalPrice) + '</div>' : '';
                     var brochureOffer = item.offer || (item.unit ? ('Harga spesial · ' + item.unit) : (item.badge || 'Promo terbatas'));
-                    return categoryHeading + '<article class="' + itemClass + '" data-position-surface="' + itemId + '">'
+                    return categoryHeading + '<article class="' + itemClass + '" data-position-surface="' + itemId + '" style="' + tileScale + '">'
                         + (isFeatured ? '<span class="pk-pop-featured-mark">UNGGULAN</span>' : '')
                         + '<div class="' + elementClass('media', 'pk-pop-retail-media') + '"' + positionedAttrs('image') + '>' + image + (item.badge ? '<span class="pk-pop-preview-badge">' + escapeHtml(item.badge) + '</span>' : '') + '</div>'
                         + '<div class="' + elementClass('name', 'pk-pop-retail-name') + '"' + positionedAttrs('name') + '>' + escapeHtml(item.name) + '</div>'
