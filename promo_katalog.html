@@ -401,6 +401,9 @@
         .pk-pop-preview-items { display: grid; grid-template-columns: repeat(var(--pk-pop-grid-columns,3), minmax(0, 1fr)); grid-template-rows: repeat(var(--pk-pop-grid-rows,4), minmax(0, auto)); gap: .75rem; padding: 1rem; }
         .pk-pop-preview-item { min-width: 0; padding: .65rem; border: 1px solid #eef2f7; border-radius: .8rem; }
         .pk-pop-preview-image { height: var(--pk-pop-image-height,105px); display: grid; place-items: center; overflow: visible; border-radius: .6rem; background: #fff7ed; color: #c2410c; font-size: .7rem; font-weight: 900; }
+        .pk-pop-preview-card.pk-pop-image-background-off .pk-pop-preview-image,
+        .pk-pop-preview-card.pk-pop-image-background-off .pk-pop-positioned-media,
+        .pk-pop-preview-card.pk-pop-image-background-off .pk-pop-retail-media { background: transparent; }
         .pk-pop-preview-image img { width: auto; height: auto; max-width: calc(100% - 8px); max-height: calc(100% - 8px); object-fit: contain; object-position: center; transform: scale(var(--pk-pop-image-scale,1)); transform-origin: center; }
         .pk-pop-preview-item-name { margin-top: .55rem; color: #1f2937; font-size: .78rem; font-weight: 800; line-height: 1.35; }
         .pk-pop-currency { display:inline-flex; align-items:baseline; gap:2px; white-space:nowrap; }
@@ -901,6 +904,7 @@
             var groupCategories = visualConfig.groupCategories === true;
             var showFeatured = visualConfig.showFeatured !== false;
             var outputFormat = String(visualConfig.outputFormat || 'a4').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            var showImageBackground = visualConfig.showImageBackground !== false;
             var imageFrameHeight = Math.min(220, Math.max(64, Number(gridConfig.image_frame_height) || 105));
             var imageScale = Math.min(1.1, Math.max(.7, Number(gridConfig.image_scale) || 1));
             var gridRows = Math.min(8, Math.max(1, Number(gridConfig.rows) || 4));
@@ -932,6 +936,7 @@
                 groupCategories: groupCategories,
                 showFeatured: showFeatured,
                 outputFormat: outputFormat,
+                showImageBackground: showImageBackground,
                 imageFrameHeight: imageFrameHeight,
                 imageScale: imageScale,
                 gridRows: gridRows,
@@ -1044,6 +1049,7 @@
                 + ' pk-pop-hero-' + escapeHtml(c.heroLayout || 'split')
                 + ' pk-pop-cta-' + escapeHtml(c.ctaStyle || 'solid')
                 + ' pk-pop-output-' + escapeHtml(c.outputFormat || 'a4')
+                + (c.showImageBackground === false ? ' pk-pop-image-background-off' : '')
                 + (c.smartFit ? ' pk-pop-smart-fit' : '');
             target.innerHTML = '<div class="' + visualClasses + '"><div class="pk-pop-safe-area">'
                 + '<div class="pk-pop-preview-hero"' + imageStyle + '><div class="pk-pop-preview-hero-content">'

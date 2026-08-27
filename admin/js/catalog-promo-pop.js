@@ -31,7 +31,8 @@
             groupCategories: false,
             showFeatured: true,
             ctaStyle: 'solid',
-            outputFormat: 'a4'
+            outputFormat: 'a4',
+            showImageBackground: true
         },
         governance: {
             actor: '',
@@ -344,7 +345,8 @@
             groupCategories: $('promo-pop-group-categories') ? $('promo-pop-group-categories').checked : state.visual.groupCategories === true,
             showFeatured: $('promo-pop-show-featured') ? $('promo-pop-show-featured').checked : state.visual.showFeatured !== false,
             ctaStyle: String($('promo-pop-cta-style')?.value || state.visual.ctaStyle || 'solid'),
-            outputFormat: String($('promo-pop-output-format')?.value || state.visual.outputFormat || 'a4')
+            outputFormat: String($('promo-pop-output-format')?.value || state.visual.outputFormat || 'a4'),
+            showImageBackground: $('promo-pop-image-background') ? $('promo-pop-image-background').checked : state.visual.showImageBackground !== false
         };
     }
 
@@ -1250,6 +1252,7 @@
         const visual = readVisualSettings();
         state.visual = visual;
         const output = outputFormatConfig(visual.outputFormat);
+        const imageBackgroundClass = visual.showImageBackground ? '' : ' flyer-image-background-off';
         preview.style.setProperty('--flyer-media-height', `${crop.frame}px`);
         preview.style.setProperty('--flyer-image-scale', String(crop.scale));
         preview.style.setProperty('--flyer-grid-rows', String(grid.rows));
@@ -1295,7 +1298,7 @@
         const disclaimerMarkup = $('promo-pop-show-disclaimer')?.checked && disclaimer ? `<div class="flyer-payment">${escapeHtml(disclaimer)}</div>` : '';
         const watermarkText = String($('promo-pop-watermark-text')?.value || '').trim() || 'PaketSembako.com';
         const watermarkMarkup = $('promo-pop-watermark')?.checked ? `<span class="flyer-watermark">${escapeHtml(watermarkText)}</span>` : '';
-        preview.className = `flyer-preview flyer-theme-${escapeHtml(themeClass(theme))} flyer-layout-${escapeHtml(layoutClass(layout))} flyer-hero-layout-${escapeHtml(visual.heroLayout)} flyer-output-${escapeHtml(visual.outputFormat)}`;
+        preview.className = `flyer-preview${imageBackgroundClass} flyer-theme-${escapeHtml(themeClass(theme))} flyer-layout-${escapeHtml(layoutClass(layout))} flyer-hero-layout-${escapeHtml(visual.heroLayout)} flyer-output-${escapeHtml(visual.outputFormat)}`;
         preview.innerHTML = `<div class="flyer-preview-content${visual.smartFit ? ' is-smart-fit' : ''}"><div class="flyer-preview-content-scale"><div class="flyer-preview-hero" ${hero ? `style="background-image:url('${escapeHtml(hero)}')"` : ''}><div class="flyer-overlay"></div><div class="relative z-10"><span class="flyer-kicker">🔥 ${escapeHtml(store).toUpperCase()}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(subtitle)}</p>${period ? `<span class="flyer-period">${escapeHtml(period)}</span>` : ''}</div></div><div class="flyer-preview-meta"><strong>${escapeHtml(badge)}</strong><span>${visibleRows.length} produk promo</span></div><div class="flyer-preview-items">${productMarkup || '<div style="grid-column:1/-1;color:#94a3b8;font-size:11px;text-align:center;padding:28px 0;">Preview produk akan tampil di sini.</div>'}</div>${serviceMarkup}${paymentMarkup}<div class="flyer-preview-footer flyer-cta-${escapeHtml(visual.ctaStyle)}"><div class="flyer-footer-left"><strong>${escapeHtml(store)}</strong><span>${escapeHtml(address || 'Informasi toko akan tampil di sini')}</span><b class="flyer-cta-copy">${escapeHtml($('promo-pop-footer')?.value || 'Pesan sekarang')}</b></div><div class="flyer-footer-right">${qrDataUrl ? `<img class="flyer-qr" src="${qrDataUrl}" alt="QR Code">` : ''}<span>Scan<br>untuk pesan</span></div></div>${disclaimerMarkup}${watermarkMarkup}</div></div>`;
         bindTilePositionDrag();
         fitPreviewToSafeArea();
@@ -1403,7 +1406,7 @@
             'promo-pop-output-format': state.visual.outputFormat
         };
         Object.entries(visualFields).forEach(([id, value]) => { const field = $(id); if (field && value) field.value = value; });
-        ['promo-pop-smart-fit', 'promo-pop-group-categories', 'promo-pop-show-featured'].forEach((id) => { const field = $(id); const key = id.replace('promo-pop-', '').replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()); if (field && Object.prototype.hasOwnProperty.call(state.visual, key)) field.checked = state.visual[key] === true; });
+        ['promo-pop-smart-fit', 'promo-pop-group-categories', 'promo-pop-show-featured', 'promo-pop-image-background'].forEach((id) => { const field = $(id); const key = id.replace('promo-pop-', '').replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()); if (field && Object.prototype.hasOwnProperty.call(state.visual, key)) field.checked = state.visual[key] === true; });
         const frameField = $('promo-pop-image-frame');
         const scaleField = $('promo-pop-image-scale');
         const rowsField = $('promo-pop-grid-rows');
@@ -1483,10 +1486,10 @@
     function resetForm() {
         state.editingId = '';
         state.governance.campaignPolicyId = '';
-        state.visual = { preset: 'fresh-market', badgeStyle: 'sticker', heroLayout: 'split', smartFit: true, groupCategories: false, showFeatured: true, ctaStyle: 'solid', outputFormat: 'a4' };
+        state.visual = { preset: 'fresh-market', badgeStyle: 'sticker', heroLayout: 'split', smartFit: true, groupCategories: false, showFeatured: true, ctaStyle: 'solid', outputFormat: 'a4', showImageBackground: true };
         const visualDefaults = { 'promo-pop-visual-preset': 'fresh-market', 'promo-pop-theme': 'fresh-organic', 'promo-pop-badge-style': 'sticker', 'promo-pop-hero-layout': 'split', 'promo-pop-cta-style': 'solid', 'promo-pop-output-format': 'a4' };
         Object.entries(visualDefaults).forEach(([id, value]) => { const field = $(id); if (field) field.value = value; });
-        ['promo-pop-smart-fit', 'promo-pop-show-featured'].forEach((id) => { const field = $(id); if (field) field.checked = true; });
+        ['promo-pop-smart-fit', 'promo-pop-show-featured', 'promo-pop-image-background'].forEach((id) => { const field = $(id); if (field) field.checked = true; });
         const grouping = $('promo-pop-group-categories'); if (grouping) grouping.checked = false;
         setFormStatusBadge('draft');
         state.templateId = 'promo-grid';
@@ -1648,7 +1651,7 @@
         ['promo-pop-title', 'promo-pop-subtitle', 'promo-pop-theme', 'promo-pop-layout', 'promo-pop-store', 'promo-pop-badge', 'promo-pop-hero', 'promo-pop-period', 'promo-pop-footer', 'promo-pop-qr', 'promo-pop-address', 'promo-pop-disclaimer', 'promo-pop-watermark-text', 'promo-pop-paper', 'promo-pop-orientation'].forEach((id) => $(id)?.addEventListener('input', renderPreview));
         ['promo-pop-visual-preset', 'promo-pop-badge-style', 'promo-pop-hero-layout', 'promo-pop-cta-style', 'promo-pop-output-format'].forEach((id) => $(id)?.addEventListener('change', () => { state.visual = readVisualSettings(); renderPreview(); }));
         $('promo-pop-visual-preset')?.addEventListener('change', (event) => applyVisualPreset(event.target.value));
-        ['promo-pop-watermark', 'promo-pop-show-service', 'promo-pop-show-payment', 'promo-pop-show-disclaimer', 'promo-pop-smart-fit', 'promo-pop-group-categories', 'promo-pop-show-featured'].forEach((id) => $(id)?.addEventListener('change', renderPreview));
+        ['promo-pop-watermark', 'promo-pop-show-service', 'promo-pop-show-payment', 'promo-pop-show-disclaimer', 'promo-pop-smart-fit', 'promo-pop-group-categories', 'promo-pop-show-featured', 'promo-pop-image-background'].forEach((id) => $(id)?.addEventListener('change', () => { state.visual = readVisualSettings(); renderPreview(); }));
         document.querySelectorAll('[data-ppob-wallet]').forEach((input) => input.addEventListener('change', renderPreview));
         $('promo-pop-hero-file')?.addEventListener('change', handleHeroUpload);
         $('promo-pop-zoom-out')?.addEventListener('click', () => setPreviewZoom(-.1));
