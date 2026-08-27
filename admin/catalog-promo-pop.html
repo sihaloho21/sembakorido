@@ -55,12 +55,13 @@
         .pop-status { min-height:42px; display:flex; align-items:center; margin-bottom:18px; }
         .pop-workspace { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(380px,.85fr); gap:20px; align-items:start; }
         .pop-editor { display:grid; gap:16px; min-width:0; }
-        .pop-card { background:var(--pop-surface); border:1px solid var(--pop-line); border-radius:var(--pop-radius); box-shadow:var(--pop-shadow); }
-        .pop-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:20px 22px 14px; }
+        .pop-card { position:relative; overflow:hidden; background:var(--pop-surface); border:1px solid var(--pop-line); border-radius:var(--pop-radius); box-shadow:var(--pop-shadow); }
+        .pop-card::before { content:""; display:block; height:4px; background:linear-gradient(90deg,var(--pop-orange),#fbbf24,#34d399); opacity:.9; }
+        .pop-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:20px 22px 14px; background:linear-gradient(180deg,#fff 0%,#fffaf5 100%); }
         .pop-card-head h3 { margin:0; font-size:16px; font-weight:950; letter-spacing:-.025em; }
         .pop-card-head p { margin:5px 0 0; color:var(--pop-muted); font-size:12px; line-height:1.45; }
         .pop-card-body { padding:0 22px 22px; }
-        .pop-section-tag { display:inline-flex; align-items:center; gap:5px; margin-bottom:8px; color:var(--pop-orange-dark); font-size:10px; font-weight:950; letter-spacing:.12em; text-transform:uppercase; }
+        .pop-section-tag { display:inline-flex; align-items:center; gap:6px; margin-bottom:8px; padding:5px 8px; border:1px solid #fed7aa; border-radius:999px; color:var(--pop-orange-dark); background:#fff7ed; font-size:10px; font-weight:950; letter-spacing:.12em; text-transform:uppercase; }
         .pop-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
         .pop-field { display:flex; flex-direction:column; gap:6px; min-width:0; }
         .pop-field.full { grid-column:1/-1; }
@@ -175,8 +176,8 @@
         .currency-price { display:inline-flex; align-items:baseline; gap:2px; white-space:nowrap; }
         .currency-prefix { font-size:.2em; line-height:1; font-weight:900; }
         .currency-amount { font-size:1em; line-height:1; font-weight:inherit; }
-        .flyer-item-normal { margin-top:4px; color:#94a3b8; font-size:10px; }
-        .flyer-item-normal, .flyer-item-normal .strike-price, .flyer-retail-normal, .flyer-retail-normal .strike-price { text-decoration-line:line-through; text-decoration-thickness:2px; text-decoration-color:currentColor; text-decoration-skip-ink:none; }
+        .flyer-item-normal { margin-top:4px; color:#94a3b8; font-size:10px; white-space:nowrap; }
+        .flyer-item-normal .strike-price, .flyer-retail-normal .strike-price, .flyer-positioned-normal .strike-price { display:inline-block; color:inherit; text-decoration-line:line-through; text-decoration-thickness:2px; text-decoration-color:currentColor; text-decoration-skip-ink:none; -webkit-text-decoration-line:line-through; -webkit-text-decoration-thickness:2px; }
         .flyer-item-promo { color:#ea580c; font-size:18px; font-weight:950; line-height:1; }
         .flyer-featured { grid-column:1/-1; display:grid; grid-template-columns:82px 1fr; gap:10px; padding:10px; border:1px solid #fed7aa; border-radius:11px; background:#fff7ed; }
         .flyer-featured .flyer-media-frame { height:var(--flyer-media-height,82px); margin:0; }
@@ -233,6 +234,7 @@
         .flyer-cta-ribbon { color:#fff!important; background:var(--flyer-accent)!important; border-radius:0!important; }
         .flyer-cta-minimal { color:var(--flyer-accent)!important; background:transparent!important; }
         .flyer-preview .flyer-positioned-promo, .flyer-preview .flyer-retail-promo { color:var(--flyer-price); }
+        .flyer-preview .flyer-positioned-normal { color:#94a3b8; font-size:10px; white-space:nowrap; }
         .flyer-cta-copy { display:block; margin-top:4px; font-size:9px; font-weight:1000; letter-spacing:.02em; }
         .flyer-preview-footer.flyer-cta-ribbon { padding-top:10px; padding-bottom:10px; }
         .flyer-theme-blue .flyer-preview-hero { background:linear-gradient(135deg,#2563eb,#1d4ed8); }

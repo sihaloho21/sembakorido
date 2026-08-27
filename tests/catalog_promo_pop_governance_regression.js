@@ -7,6 +7,7 @@ const gasActions = fs.readFileSync(path.join(root, 'assets/js/gas-actions.js'), 
 const gas = fs.readFileSync(path.join(root, 'docs/gas_v63_blog_support.gs'), 'utf8');
 const migration = fs.readFileSync(path.join(root, 'docs/migrate_catalog_promo_pop_governance.gs'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'admin/catalog-promo-pop.html'), 'utf8');
+const publicHtml = fs.readFileSync(path.join(root, 'promo_katalog.html'), 'utf8');
 
 const checks = [
   ['bulk pricing has write permission guard', /function applyBulkPricing[\s\S]*?requirePromoPermission\('promo\.write'/.test(pop)],
@@ -23,7 +24,11 @@ const checks = [
   ['migration contains canonical role-permission columns', /promo_role_permissions:[\s\S]*?'id', 'role', 'permission', 'allowed', 'created_at', 'updated_at'/.test(migration)],
   ['migration seeds deterministic permission ids', /id: 'prp-'/.test(migration)],
   ['production page keeps A4 portrait invariants', /A4 Portrait[\s\S]*?0,4 cm/.test(html) && /promo-pop-paper/.test(html) && /promo-pop-orientation/.test(html)],
-  ['production page loads GAS adapter before POP controller', /gas-actions\.js[\s\S]*?catalog-promo-pop\.js/.test(html)]
+  ['production page loads GAS adapter before POP controller', /gas-actions\.js[\s\S]*?catalog-promo-pop\.js/.test(html)],
+  ['admin and public use semantic strike-through markup', /<del class="strike-price"/.test(pop) && /<del class="strike-price"/.test(publicHtml)],
+  ['admin and public apply explicit strike-through CSS', /\.flyer-item-normal \.strike-price[\s\S]*?text-decoration-line:line-through/.test(html) && /\.pk-pop-preview-normal \.strike-price[\s\S]*?text-decoration-line:line-through/.test(publicHtml)],
+  ['PNG and PDF capture the same rendered preview DOM', /async function generatePdf[\s\S]*?html2canvas\(preview/.test(pop) && /async function generatePng[\s\S]*?html2canvas\(preview/.test(pop)],
+  ['print preview captures the same rendered preview DOM', /async function openPrintPreview[\s\S]*?html2canvas\(preview/.test(pop)]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);

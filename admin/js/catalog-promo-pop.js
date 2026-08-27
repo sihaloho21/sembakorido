@@ -172,7 +172,7 @@
 
     function formatStrikePrice(value) {
         const amount = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(value) || 0);
-        return `<del class="strike-price">${escapeHtml(amount)}</del>`;
+        return `<del class="strike-price" aria-label="Harga normal ${escapeHtml(amount)}">${escapeHtml(amount)}</del>`;
     }
 
     function numericPrice(value) {
