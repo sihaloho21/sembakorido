@@ -44,7 +44,13 @@ const checks = [
   ['public preview applies persisted product-image background OFF state', publicHtml.includes('showImageBackground') && publicHtml.includes('pk-pop-image-background-off')],
   ['featured product tile persists and expands visual emphasis', pop.includes('is_featured: state.featuredIds.has') && html.includes('is-featured:not(.flyer-retail-tile)') && publicHtml.includes('pk-pop-is-featured:not(.pk-pop-retail-tile)')],
   ['semantic promo badge types persist and render publicly', pop.includes('badge_type: brochureBadgeType') && pop.includes('data-promo-badge-type') && publicHtml.includes('badgeType') && publicHtml.includes('pk-pop-badge-type-')],
-  ['promotion mechanics persist and render quantity labels', pop.includes('promo_mechanic: brochureMechanic') && pop.includes('data-promo-mechanic') && pop.includes('data-promo-quantity') && publicHtml.includes('promoMechanic')]
+  ['promotion mechanics persist and render quantity labels', pop.includes('promo_mechanic: brochureMechanic') && pop.includes('data-promo-mechanic') && pop.includes('data-promo-quantity') && publicHtml.includes('promoMechanic')],
+  ['saving calculator derives amount and percentage', pop.includes('function brochureSaving') && publicHtml.includes('savingPercent') && publicHtml.includes('savingAmount')],
+  ['configurable price panel persists and renders publicly', pop.includes('pricePanelColor') && pop.includes('pricePanelShape') && pop.includes('pricePanelLabel') && publicHtml.includes('pk-pop-price-panel-')],
+  ['safe-area validator warns without blocking freeform overlap', pop.includes('function updateSafeAreaStatus') && pop.includes('safeAreaValidator') && pop.includes('dataset.safeArea')],
+  ['footer channels and ornaments persist in visual settings', pop.includes('footerChannels') && pop.includes('ornamentsEnabled') && html.includes('promo-pop-footer-channels') && html.includes('promo-pop-ornaments')],
+  ['public renderer mirrors footer channels and ornament settings', publicHtml.includes('footerChannels') && publicHtml.includes('ornamentsEnabled') && publicHtml.includes('pk-pop-campaign-ornament')],
+  ['public renderer supports configurable category section styles', publicHtml.includes('sectionStyle') && publicHtml.includes('pk-pop-section-band') && publicHtml.includes('pk-pop-section-minimal')]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);

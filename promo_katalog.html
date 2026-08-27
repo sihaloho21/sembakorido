@@ -422,7 +422,16 @@
         .pk-pop-retail-media img { display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; }
         .pk-pop-retail-name { width:82%; text-align:center; font-size:.72rem; font-weight:900; line-height:1.12; }
         .pk-pop-retail-normal { color:#111827; font-size:.65rem; font-weight:900; white-space:nowrap; }
-        .pk-pop-retail-price { color:#dc2626; font-size:1.55rem; font-weight:1000; line-height:.95; white-space:nowrap; }
+        .pk-pop-retail-price { color:#dc2626; font-size:1.55rem; font-weight:1000; line-height:.95; white-space:nowrap; background:var(--pk-price-panel-color,#facc15); padding:.35rem .5rem; border-radius:.65rem; display:flex; flex-direction:column; align-items:flex-start; gap:.12rem; }
+        .pk-pop-price-panel-square .pk-pop-retail-price { border-radius:0; }
+        .pk-pop-price-panel-pill .pk-pop-retail-price { border-radius:999px; }
+        .pk-pop-price-panel-burst .pk-pop-retail-price { border-radius:28% 72% 58% 42% / 42% 38% 62% 58%; }
+        .pk-pop-campaign-ornament { position:absolute; top:8px; right:10px; z-index:4; padding:4px 8px; border:2px solid currentColor; border-radius:999px; color:var(--pk-accent,#b91c1c); background:#fff; font-size:8px; font-weight:1000; transform:rotate(7deg); }
+        .pk-pop-footer-channels { display:block; color:#64748b; font-size:.62rem; font-weight:800; }
+        .pk-pop-section-band .pk-pop-category-heading { grid-column:1/-1; background:var(--pk-accent,#b91c1c); color:#fff; padding:5px 8px; font-weight:1000; }
+        .pk-pop-section-minimal .pk-pop-category-heading { border-bottom:1px solid #cbd5e1; color:#475569; background:transparent; }
+        .pk-pop-price-panel-label { font-size:.42rem; letter-spacing:.05em; color:#713f12; font-weight:900; }
+        .pk-pop-saving-label { font-size:.48rem; color:#991b1b; font-weight:1000; letter-spacing:.03em; }
         .pk-pop-retail-offer { width:90%; color:#111827; font-size:.7rem; font-weight:950; line-height:1.1; text-align:center; }
         .pk-pop-layout-retail-tile .pk-pop-preview-item { padding:0; border:0; border-radius:0; }
         .pk-pop-layout-retail-tile .pk-pop-preview-item.pk-pop-retail-tile { transform:translate(var(--pk-pop-retail-tile-offset-x,0%),var(--pk-pop-retail-tile-offset-y,0%)) scale(var(--pk-pop-retail-tile-scale,1)); transform-origin:center center; z-index:1; overflow:visible; }
@@ -911,6 +920,15 @@
             var showFeatured = visualConfig.showFeatured !== false;
             var outputFormat = String(visualConfig.outputFormat || 'a4').toLowerCase().replace(/[^a-z0-9-]/g, '-');
             var showImageBackground = visualConfig.showImageBackground !== false;
+            var showSaving = visualConfig.showSaving !== false;
+            var safeAreaValidator = visualConfig.safeAreaValidator !== false;
+            var pricePanelColor = String(visualConfig.pricePanelColor || '#facc15');
+            var pricePanelShape = String(visualConfig.pricePanelShape || 'rounded').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            var pricePanelLabel = String(visualConfig.pricePanelLabel || 'HARGA SPESIAL').trim() || 'HARGA SPESIAL';
+            var footerChannels = String(visualConfig.footerChannels || 'Website · WhatsApp · Instagram').trim();
+            var ornamentsEnabled = visualConfig.ornamentsEnabled !== false;
+            var ornamentText = String(visualConfig.ornamentText || '★ HEMAT BESAR ★').trim();
+            var sectionStyle = String(visualConfig.sectionStyle || 'label').toLowerCase().replace(/[^a-z0-9-]/g, '-');
             var imageFrameHeight = Math.min(220, Math.max(64, Number(gridConfig.image_frame_height) || 105));
             var imageScale = Math.min(1.1, Math.max(.7, Number(gridConfig.image_scale) || 1));
             var gridRows = Math.min(8, Math.max(1, Number(gridConfig.rows) || 4));
@@ -943,6 +961,15 @@
                 showFeatured: showFeatured,
                 outputFormat: outputFormat,
                 showImageBackground: showImageBackground,
+                showSaving: showSaving,
+                safeAreaValidator: safeAreaValidator,
+                pricePanelColor: pricePanelColor,
+                pricePanelShape: pricePanelShape,
+                pricePanelLabel: pricePanelLabel,
+                footerChannels: footerChannels,
+                ornamentsEnabled: ornamentsEnabled,
+                ornamentText: ornamentText,
+                sectionStyle: sectionStyle,
                 imageFrameHeight: imageFrameHeight,
                 imageScale: imageScale,
                 gridRows: gridRows,
@@ -973,7 +1000,9 @@
                         promoQuantity: Math.max(1, Math.round(Number(item.promo_quantity || item.promoQuantity || 1) || 1)),
                         isFeatured: item.is_featured === true || String(item.is_featured || item.isFeatured || '').toLowerCase() === 'true',
                         category: item.category || item.kategori || item.kelompok || 'Lainnya',
-                        offer: item.brochure_offer || item.display_offer || ''
+                        offer: item.brochure_offer || item.display_offer || '',
+                        savingAmount: Math.max(0, toNumber(item.brochure_normal_price == null ? item.normal_price : item.brochure_normal_price) - toNumber(item.brochure_promo_price == null ? item.promo_price : item.brochure_promo_price)),
+                        savingPercent: (toNumber(item.brochure_normal_price == null ? item.normal_price : item.brochure_normal_price) > 0 && toNumber(item.brochure_promo_price == null ? item.promo_price : item.brochure_promo_price) < toNumber(item.brochure_normal_price == null ? item.normal_price : item.brochure_normal_price)) ? Math.round((1 - toNumber(item.brochure_promo_price == null ? item.promo_price : item.brochure_promo_price) / toNumber(item.brochure_normal_price == null ? item.normal_price : item.brochure_normal_price)) * 100) : 0
                     };
                 }),
                 featured: false
@@ -1058,10 +1087,12 @@
                 + ' pk-pop-hero-' + escapeHtml(c.heroLayout || 'split')
                 + ' pk-pop-cta-' + escapeHtml(c.ctaStyle || 'solid')
                 + ' pk-pop-output-' + escapeHtml(c.outputFormat || 'a4')
+                + ' pk-pop-price-panel-' + escapeHtml(c.pricePanelShape || 'rounded')
+                + ' pk-pop-section-' + escapeHtml(c.sectionStyle || 'label')
                 + (c.showImageBackground === false ? ' pk-pop-image-background-off' : '')
                 + (c.smartFit ? ' pk-pop-smart-fit' : '');
-            target.innerHTML = '<div class="' + visualClasses + '"><div class="pk-pop-safe-area">'
-                + '<div class="pk-pop-preview-hero"' + imageStyle + '><div class="pk-pop-preview-hero-content">'
+            target.innerHTML = '<div class="' + visualClasses + '" style="--pk-price-panel-color:' + escapeHtml(c.pricePanelColor || '#facc15') + '"><div class="pk-pop-safe-area">'
+                + '<div class="pk-pop-preview-hero"' + imageStyle + '>' + (c.ornamentsEnabled !== false && c.ornamentText ? '<span class="pk-pop-campaign-ornament">' + escapeHtml(c.ornamentText) + '</span>' : '') + '<div class="pk-pop-preview-hero-content">'
                 + '<div class="pk-pop-cover-kicker">' + escapeHtml(c.storeName) + '</div>'
                 + '<h3>' + escapeHtml(c.title) + '</h3>'
                 + (c.subtitle ? '<p>' + escapeHtml(c.subtitle) + '</p>' : '')
@@ -1084,19 +1115,20 @@
                     var normal = item.normalPrice > item.promoPrice ? '<div class="' + elementClass('normal', 'pk-pop-retail-normal') + '"' + positionedAttrs('normal') + '>' + formatStrikePrice(item.normalPrice) + '</div>' : '';
                     var brochureOffer = item.offer || (item.unit ? ('Harga spesial · ' + item.unit) : (item.badge || 'Promo terbatas'));
                     var badgeLabel = item.badgeType === 'best-seller' ? 'BEST SELLER' : item.badgeType === 'limited-stock' ? 'STOK TERBATAS' : item.badgeType === 'special-price' ? 'HARGA SPESIAL' : item.badgeType === 'multi-buy' ? (item.promoQuantity + ' LEBIH HEMAT') : (item.badge || 'PROMO');
-                    var mechanicLabel = item.promoMechanic === 'multi-buy' ? (item.promoQuantity + ' lebih hemat') : item.promoMechanic === 'bundle' ? ('Paket ' + item.promoQuantity) : item.promoMechanic === 'minimum-spend' ? 'Hemat dengan minimum belanja' : brochureOffer;
+                    var mechanicLabel = item.promoMechanic === 'multi-buy' ? ('Beli ' + item.promoQuantity + ' lebih hemat') : item.promoMechanic === 'bundle' ? ('Paket hemat isi ' + item.promoQuantity) : item.promoMechanic === 'minimum-spend' ? 'Min. belanja untuk promo' : item.promoMechanic === 'channel' ? 'Harga khusus member / aplikasi' : brochureOffer;
                     return categoryHeading + '<article class="' + itemClass + '" data-position-surface="' + itemId + '" style="' + tileScale + '">'
                         + (isFeatured ? '<span class="pk-pop-featured-mark">UNGGULAN</span>' : '')
                         + '<div class="' + elementClass('media', 'pk-pop-retail-media') + '"' + positionedAttrs('image') + '>' + image + '<span class="pk-pop-preview-badge pk-pop-badge-type-' + escapeHtml(item.badgeType) + '">' + escapeHtml(badgeLabel) + '</span></div>'
                         + '<div class="' + elementClass('name', 'pk-pop-retail-name') + '"' + positionedAttrs('name') + '>' + escapeHtml(item.name) + '</div>'
                         + normal
-                        + '<div class="' + elementClass('promo', 'pk-pop-retail-price') + '"' + positionedAttrs('promo') + '>' + formatRupiahMarkup(item.promoPrice) + '</div>'
+                        + '<div class="' + elementClass('promo', 'pk-pop-retail-price') + '"' + positionedAttrs('promo') + '><span class="pk-pop-price-panel-label">' + escapeHtml(c.pricePanelLabel || 'HARGA SPESIAL') + '</span>' + formatRupiahMarkup(item.promoPrice) + (c.showSaving && item.savingPercent > 0 ? '<span class="pk-pop-saving-label">HEMAT ' + item.savingPercent + '%</span>' : '') + '</div>'
                         + '<div class="' + elementClass('offer', 'pk-pop-retail-offer') + '"' + positionedAttrs('offer') + '>' + escapeHtml(mechanicLabel) + '</div>'
                         + '</article>';
                 }).join('') : '<div class="text-sm text-slate-500" style="grid-column:1/-1;text-align:center;padding:2rem 0;">Detail produk belum tersedia.</div>')
                 + '</div>'
                 + (c.showService ? '<div class="pk-pop-service"><strong>MELAYANI TOP UP DIGITAL &amp; PPOB</strong><br>Pulsa · Paket Data · Token PLN · E-Wallet · Bayar Tagihan' + renderPublicWallets(c.ppobWallets) + '</div>' : '')
                 + (c.showPayment ? '<div class="pk-pop-preview-footer"><span>Pembayaran: QRIS · GoPay · DANA · OVO · Transfer Bank</span></div>' : '')
+                + (c.footerChannels ? '<div class="pk-pop-preview-footer"><span class="pk-pop-footer-channels">' + escapeHtml(c.footerChannels) + '</span></div>' : '')
                 + (c.footerNote || c.qrUrl ? '<div class="pk-pop-preview-footer pk-pop-cta-footer"><span>' + escapeHtml(c.footerNote || 'Stok terbatas. Syarat dan ketentuan berlaku.') + '</span>' + (c.qrUrl ? '<a href="' + escapeHtml(c.qrUrl) + '" target="_blank" rel="noopener noreferrer">Buka katalog promo</a>' : '') + '</div>' : '')
                 + (c.showDisclaimer && c.disclaimerText ? '<div class="pk-pop-disclaimer">' + escapeHtml(c.disclaimerText) + '</div>' : '')
                 + (c.showWatermark ? '<span class="pk-pop-watermark">' + escapeHtml(c.watermarkText) + '</span>' : '')
