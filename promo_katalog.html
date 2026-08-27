@@ -469,6 +469,12 @@
         .pk-pop-category-heading { grid-column:1/-1; display:flex; align-items:center; gap:.45rem; margin:.45rem .15rem 0; color:var(--pk-pop-accent); font-size:.62rem; font-weight:1000; letter-spacing:.13em; text-transform:uppercase; }
         .pk-pop-category-heading::after { content:''; height:1px; flex:1; background:currentColor; opacity:.22; }
         .pk-pop-positioned-item.pk-pop-is-featured { border:2px solid var(--pk-pop-accent); background:var(--pk-pop-accent-soft); }
+        .pk-pop-positioned-item.pk-pop-is-featured:not(.pk-pop-retail-tile) { grid-column:span 2; grid-row:span 2; min-height:300px; padding:.75rem; }
+        .pk-pop-positioned-item.pk-pop-is-featured:not(.pk-pop-retail-tile) .pk-pop-positioned-media { width:78%; height:54%; }
+        .pk-pop-badge-type-best-seller { background:#7c3aed!important; }
+        .pk-pop-badge-type-limited-stock { background:#dc2626!important; }
+        .pk-pop-badge-type-special-price { background:#ea580c!important; }
+        .pk-pop-badge-type-multi-buy { background:#15803d!important; }
         .pk-pop-featured-mark { position:absolute; right:.3rem; top:.3rem; z-index:4; padding:.2rem .32rem; border-radius:999px; color:#fff; background:var(--pk-pop-accent); font-size:.48rem; font-weight:1000; letter-spacing:.04em; }
         .pk-pop-preview-card.pk-pop-cta-solid .pk-pop-cta-footer { color:#fff; background:var(--pk-pop-accent); }
         .pk-pop-preview-card.pk-pop-cta-outline .pk-pop-cta-footer { color:var(--pk-pop-accent); border:1px solid var(--pk-pop-accent); }
@@ -962,6 +968,9 @@
                         promoPrice: toNumber(item.brochure_promo_price == null ? (item.promo_price == null ? item.price : item.promo_price) : item.brochure_promo_price),
                         unit: item.unit || item.satuan || '',
                         badge: item.badge || '',
+                        badgeType: String(item.badge_type || item.badgeType || 'special').toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+                        promoMechanic: String(item.promo_mechanic || item.promoMechanic || 'single').toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+                        promoQuantity: Math.max(1, Math.round(Number(item.promo_quantity || item.promoQuantity || 1) || 1)),
                         isFeatured: item.is_featured === true || String(item.is_featured || item.isFeatured || '').toLowerCase() === 'true',
                         category: item.category || item.kategori || item.kelompok || 'Lainnya',
                         offer: item.brochure_offer || item.display_offer || ''
@@ -1074,13 +1083,15 @@
                     var image = item.image ? '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy" data-fallback-src="https://placehold.co/300x300?text=Produk">' : '<span>POP</span>';
                     var normal = item.normalPrice > item.promoPrice ? '<div class="' + elementClass('normal', 'pk-pop-retail-normal') + '"' + positionedAttrs('normal') + '>' + formatStrikePrice(item.normalPrice) + '</div>' : '';
                     var brochureOffer = item.offer || (item.unit ? ('Harga spesial · ' + item.unit) : (item.badge || 'Promo terbatas'));
+                    var badgeLabel = item.badgeType === 'best-seller' ? 'BEST SELLER' : item.badgeType === 'limited-stock' ? 'STOK TERBATAS' : item.badgeType === 'special-price' ? 'HARGA SPESIAL' : item.badgeType === 'multi-buy' ? (item.promoQuantity + ' LEBIH HEMAT') : (item.badge || 'PROMO');
+                    var mechanicLabel = item.promoMechanic === 'multi-buy' ? (item.promoQuantity + ' lebih hemat') : item.promoMechanic === 'bundle' ? ('Paket ' + item.promoQuantity) : item.promoMechanic === 'minimum-spend' ? 'Hemat dengan minimum belanja' : brochureOffer;
                     return categoryHeading + '<article class="' + itemClass + '" data-position-surface="' + itemId + '" style="' + tileScale + '">'
                         + (isFeatured ? '<span class="pk-pop-featured-mark">UNGGULAN</span>' : '')
-                        + '<div class="' + elementClass('media', 'pk-pop-retail-media') + '"' + positionedAttrs('image') + '>' + image + (item.badge ? '<span class="pk-pop-preview-badge">' + escapeHtml(item.badge) + '</span>' : '') + '</div>'
+                        + '<div class="' + elementClass('media', 'pk-pop-retail-media') + '"' + positionedAttrs('image') + '>' + image + '<span class="pk-pop-preview-badge pk-pop-badge-type-' + escapeHtml(item.badgeType) + '">' + escapeHtml(badgeLabel) + '</span></div>'
                         + '<div class="' + elementClass('name', 'pk-pop-retail-name') + '"' + positionedAttrs('name') + '>' + escapeHtml(item.name) + '</div>'
                         + normal
                         + '<div class="' + elementClass('promo', 'pk-pop-retail-price') + '"' + positionedAttrs('promo') + '>' + formatRupiahMarkup(item.promoPrice) + '</div>'
-                        + '<div class="' + elementClass('offer', 'pk-pop-retail-offer') + '"' + positionedAttrs('offer') + '>' + escapeHtml(brochureOffer) + '</div>'
+                        + '<div class="' + elementClass('offer', 'pk-pop-retail-offer') + '"' + positionedAttrs('offer') + '>' + escapeHtml(mechanicLabel) + '</div>'
                         + '</article>';
                 }).join('') : '<div class="text-sm text-slate-500" style="grid-column:1/-1;text-align:center;padding:2rem 0;">Detail produk belum tersedia.</div>')
                 + '</div>'
