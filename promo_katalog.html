@@ -407,7 +407,10 @@
         .pk-pop-currency-prefix { font-size:.2em; line-height:1; font-weight:900; }
         .pk-pop-currency-amount { font-size:1em; line-height:1; font-weight:inherit; }
         .pk-pop-preview-normal { margin-top: .3rem; color: #94a3b8; font-size: 10px; white-space:nowrap; }
-        .pk-pop-preview-normal .strike-price, .pk-pop-retail-normal .strike-price, .pk-pop-positioned-normal .strike-price { display:inline-block; color:inherit; text-decoration-line:line-through; text-decoration-thickness:2px; text-decoration-color:currentColor; text-decoration-skip-ink:none; -webkit-text-decoration-line:line-through; -webkit-text-decoration-thickness:2px; }
+        /* Explicit strike line keeps the normal price aligned in browser, PNG, PDF, and print captures. */
+        .strike-price { position:relative; display:inline-block; vertical-align:middle; text-decoration:none !important; text-decoration-line:none !important; white-space:nowrap; }
+        .strike-price::after { content:""; position:absolute; left:0; right:0; top:50%; height:2px; border-radius:999px; background:currentColor; transform:translateY(-50%); pointer-events:none; }
+        .pk-pop-preview-normal .strike-price, .pk-pop-retail-normal .strike-price, .pk-pop-positioned-normal .strike-price { color:inherit; }
         .pk-pop-preview-price { color: #ea580c; font-size: 1.15rem; line-height:1; font-weight: 900; }
         .pk-pop-layout-retail-tile .pk-pop-preview-items { grid-template-columns:repeat(var(--pk-pop-grid-columns,2),minmax(0,1fr)); gap:.5rem; padding:.5rem; background:#b91c1c; }
         .pk-pop-retail-tile { position:relative; min-height:280px; overflow:hidden; border:3px solid #b91c1c; border-radius:.75rem; background:#f9d58b; color:#111827; }

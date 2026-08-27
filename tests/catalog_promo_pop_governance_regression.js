@@ -26,7 +26,7 @@ const checks = [
   ['production page keeps A4 portrait invariants', /A4 Portrait[\s\S]*?0,4 cm/.test(html) && /promo-pop-paper/.test(html) && /promo-pop-orientation/.test(html)],
   ['production page loads GAS adapter before POP controller', /gas-actions\.js[\s\S]*?catalog-promo-pop\.js/.test(html)],
   ['admin and public use semantic strike-through markup', /<del class="strike-price"/.test(pop) && /<del class="strike-price"/.test(publicHtml)],
-  ['admin and public apply explicit strike-through CSS', /\.flyer-item-normal \.strike-price[\s\S]*?text-decoration-line:line-through/.test(html) && /\.pk-pop-preview-normal \.strike-price[\s\S]*?text-decoration-line:line-through/.test(publicHtml)],
+  ['admin and public apply explicit strike-through CSS', /\.strike-price::after[\s\S]*?top:50%[\s\S]*?background:currentColor/.test(html) && /\.strike-price::after[\s\S]*?top:50%[\s\S]*?background:currentColor/.test(publicHtml)],
   ['PNG and PDF capture the same rendered preview DOM', /async function generatePdf[\s\S]*?html2canvas\(preview/.test(pop) && /async function generatePng[\s\S]*?html2canvas\(preview/.test(pop)],
   ['print preview captures the same rendered preview DOM', /async function openPrintPreview[\s\S]*?html2canvas\(preview/.test(pop)]
 ];
