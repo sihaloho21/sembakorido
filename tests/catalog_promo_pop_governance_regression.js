@@ -38,7 +38,10 @@ const checks = [
   ['tile anchors persist', pop.includes('normalizeTileAnchors') && pop.includes('tile_anchors')],
   ['multi-direction element resize states present', pop.includes('is-element-resizing') && html.includes('flyer-element-resize-nw')],
   ['freeform resize allows overlap while enforcing canvas bounds', pop.includes('if (!inside)') && !pop.includes("const overlaps = Array.from(bounds.querySelectorAll('.flyer-retail-tile'))")],
-  ['public renderer receives tile anchors', publicHtml.includes('normalizeTileAnchors') && publicHtml.includes('pk-pop-retail-tile-offset-x')]
+  ['public renderer receives tile anchors', publicHtml.includes('normalizeTileAnchors') && publicHtml.includes('pk-pop-retail-tile-offset-x')],
+  ['product-image background toggle is persisted and restored', pop.includes('showImageBackground') && pop.includes('promo-pop-image-background')],
+  ['admin preview applies product-image background OFF state', html.includes('flyer-image-background-off') && pop.includes('flyer-image-background-off')],
+  ['public preview applies persisted product-image background OFF state', publicHtml.includes('showImageBackground') && publicHtml.includes('pk-pop-image-background-off')]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
