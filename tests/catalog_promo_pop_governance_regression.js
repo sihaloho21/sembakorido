@@ -50,7 +50,11 @@ const checks = [
   ['safe-area validator warns without blocking freeform overlap', pop.includes('function updateSafeAreaStatus') && pop.includes('safeAreaValidator') && pop.includes('dataset.safeArea')],
   ['footer channels and ornaments persist in visual settings', pop.includes('footerChannels') && pop.includes('ornamentsEnabled') && html.includes('promo-pop-footer-channels') && html.includes('promo-pop-ornaments')],
   ['public renderer mirrors footer channels and ornament settings', publicHtml.includes('footerChannels') && publicHtml.includes('ornamentsEnabled') && publicHtml.includes('pk-pop-campaign-ornament')],
-  ['public renderer supports configurable category section styles', publicHtml.includes('sectionStyle') && publicHtml.includes('pk-pop-section-band') && publicHtml.includes('pk-pop-section-minimal')]
+  ['public renderer supports configurable category section styles', publicHtml.includes('sectionStyle') && publicHtml.includes('pk-pop-section-band') && publicHtml.includes('pk-pop-section-minimal')],
+  ['Campaign Identity Studio fields persist and restore', pop.includes('campaignType') && pop.includes('campaignMood') && pop.includes('campaignAudience') && pop.includes('headlineVariant') && pop.includes('trustSignal')],
+  ['Campaign Identity Studio controls are present in section 01', html.includes('promo-pop-campaign-type') && html.includes('promo-pop-campaign-mood') && html.includes('promo-pop-campaign-audience') && html.includes('promo-pop-headline-variant')],
+  ['campaign mood and type classes reach admin preview', pop.includes('flyer-mood-') && pop.includes('flyer-campaign-type-') && pop.includes('identityHeadline')],
+  ['public renderer mirrors campaign identity and headline variants', publicHtml.includes('campaignMood') && publicHtml.includes('identityHeadline') && publicHtml.includes('pk-pop-mood-') && publicHtml.includes('pk-pop-identity-signals')]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);

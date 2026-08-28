@@ -32,7 +32,15 @@
             showFeatured: true,
             ctaStyle: 'solid',
             outputFormat: 'a4',
-            showImageBackground: true
+            showImageBackground: true,
+            campaignType: 'weekly-promo',
+            campaignMood: 'retail-aggressive',
+            campaignAudience: 'general',
+            communicationStyle: 'persuasive',
+            headlineVariant: 'value',
+            eventLabel: '',
+            urgency: 'none',
+            trustSignal: 'none'
         },
         governance: {
             actor: '',
@@ -376,6 +384,53 @@
         return String(theme || 'retail-impact').toLowerCase().replace(/[^a-z0-9-]/g, '-');
     }
 
+    const CAMPAIGN_IDENTITY_LABELS = Object.freeze({
+        campaignType: { 'weekly-promo': 'Promo Mingguan', 'flash-sale': 'Flash Sale', payday: 'Payday / Akhir Bulan', seasonal: 'Seasonal / Hari Raya', clearance: 'Clearance / Stok Terbatas', bundle: 'Paket Hemat', launching: 'Launching Produk' },
+        campaignMood: { 'retail-aggressive': 'Retail Aggressive', premium: 'Premium', minimal: 'Minimal', seasonal: 'Seasonal', 'family-friendly': 'Family-friendly', fresh: 'Fresh' },
+        audience: { general: 'Semua pelanggan', family: 'Keluarga', students: 'Anak kos / mahasiswa', warung: 'Warung dan usaha kecil', member: 'Pelanggan member', reseller: 'Reseller / grosir' },
+        communication: { persuasive: 'Persuasif', friendly: 'Santai dan ramah', premium: 'Elegan', urgent: 'Singkat dan urgent', informative: 'Informatif' },
+        urgency: { none: '', week: 'Berlaku minggu ini', 'ending-soon': 'Segera berakhir', today: 'Hanya hari ini', stock: 'Stok terbatas', seasonal: 'Selama periode event' },
+        trust: { none: '', stock: 'Selama persediaan ada', 'price-change': 'Harga dapat berubah sewaktu-waktu', member: 'Khusus pelanggan member', official: 'Produk resmi dan terkurasi' }
+    });
+
+    const HEADLINE_VARIANTS = Object.freeze({
+        value: 'Belanja Hemat, Kebutuhan Lengkap',
+        price: 'Harga Miring Minggu Ini',
+        family: 'Hemat untuk Keluarga',
+        seasonal: 'Rayakan Momen dengan Harga Spesial',
+        urgent: 'Serbu Sebelum Kehabisan'
+    });
+
+    function identityLabel(group, value) {
+        return CAMPAIGN_IDENTITY_LABELS[group]?.[String(value || '')] || String(value || '');
+    }
+
+    function identityHeadline(visual, fallback) {
+        const variant = String(visual?.headlineVariant || 'custom');
+        return variant === 'custom' ? String(fallback || 'Promo Spesial') : (HEADLINE_VARIANTS[variant] || String(fallback || 'Promo Spesial'));
+    }
+
+    function campaignIdentityClass(visual) {
+        return ` flyer-mood-${themeClass(visual?.campaignMood || 'retail-aggressive')} flyer-campaign-type-${themeClass(visual?.campaignType || 'weekly-promo')}`;
+    }
+
+    function campaignConceptSummary(visual) {
+        const parts = [identityLabel('campaignType', visual.campaignType), identityLabel('campaignMood', visual.campaignMood), identityLabel('audience', visual.campaignAudience), visual.eventLabel].filter(Boolean);
+        return parts.join(' · ');
+    }
+
+    function identitySignalMarkup(visual) {
+        const signals = [identityLabel('urgency', visual.urgency), identityLabel('trust', visual.trustSignal)].filter(Boolean);
+        return signals.length ? `<div class="flyer-identity-signals">${signals.map((signal) => `<span>${escapeHtml(signal)}</span>`).join('')}</div>` : '';
+    }
+
+    function updateCampaignConceptSummary(visual) {
+        const summary = $('promo-pop-concept-summary');
+        if (!summary) return;
+        const text = campaignConceptSummary(visual);
+        summary.textContent = text || 'Konsep campaign akan tampil di sini.';
+    }
+
     const VISUAL_PRESETS = Object.freeze({
         'fresh-market': { theme: 'fresh-organic', badgeStyle: 'sticker', heroLayout: 'split', ctaStyle: 'solid' },
         'flash-sale': { theme: 'flash-sale-neon', badgeStyle: 'burst', heroLayout: 'center', ctaStyle: 'ribbon' },
@@ -395,6 +450,14 @@
             ctaStyle: String($('promo-pop-cta-style')?.value || state.visual.ctaStyle || 'solid'),
             outputFormat: String($('promo-pop-output-format')?.value || state.visual.outputFormat || 'a4'),
             showImageBackground: $('promo-pop-image-background') ? $('promo-pop-image-background').checked : state.visual.showImageBackground !== false,
+            campaignType: String($('promo-pop-campaign-type')?.value || state.visual.campaignType || 'weekly-promo'),
+            campaignMood: String($('promo-pop-campaign-mood')?.value || state.visual.campaignMood || 'retail-aggressive'),
+            campaignAudience: String($('promo-pop-campaign-audience')?.value || state.visual.campaignAudience || 'general'),
+            communicationStyle: String($('promo-pop-communication-style')?.value || state.visual.communicationStyle || 'persuasive'),
+            headlineVariant: String($('promo-pop-headline-variant')?.value || state.visual.headlineVariant || 'value'),
+            eventLabel: String($('promo-pop-event-label')?.value || state.visual.eventLabel || '').trim(),
+            urgency: String($('promo-pop-urgency')?.value || state.visual.urgency || 'none'),
+            trustSignal: String($('promo-pop-trust-signal')?.value || state.visual.trustSignal || 'none'),
             showSaving: $('promo-pop-show-saving') ? $('promo-pop-show-saving').checked : state.visual.showSaving !== false,
             safeAreaValidator: $('promo-pop-safe-area') ? $('promo-pop-safe-area').checked : state.visual.safeAreaValidator !== false,
             pricePanelColor: String($('promo-pop-price-panel-color')?.value || state.visual.pricePanelColor || '#facc15'),
@@ -1346,6 +1409,10 @@
         const grid = getGridSettings();
         const visual = readVisualSettings();
         state.visual = visual;
+        const conceptHeadline = identityHeadline(visual, title);
+        const conceptSummary = campaignConceptSummary(visual);
+        const signalMarkup = identitySignalMarkup(visual);
+        updateCampaignConceptSummary(visual);
         const output = outputFormatConfig(visual.outputFormat);
         const imageBackgroundClass = visual.showImageBackground ? '' : ' flyer-image-background-off';
         const pricePanelShapeClass = ` flyer-price-panel-${escapeHtml(visual.pricePanelShape || 'rounded')}`;
@@ -1395,8 +1462,8 @@
         const disclaimerMarkup = $('promo-pop-show-disclaimer')?.checked && disclaimer ? `<div class="flyer-payment">${escapeHtml(disclaimer)}</div>` : '';
         const watermarkText = String($('promo-pop-watermark-text')?.value || '').trim() || 'PaketSembako.com';
         const watermarkMarkup = $('promo-pop-watermark')?.checked ? `<span class="flyer-watermark">${escapeHtml(watermarkText)}</span>` : '';
-        preview.className = `flyer-preview${imageBackgroundClass} flyer-theme-${escapeHtml(themeClass(theme))} flyer-layout-${escapeHtml(layoutClass(layout))} flyer-hero-layout-${escapeHtml(visual.heroLayout)} flyer-output-${escapeHtml(visual.outputFormat)}`;
-        preview.innerHTML = `<div class="flyer-preview-content${visual.smartFit ? ' is-smart-fit' : ''}"><div class="flyer-preview-content-scale"><div class="flyer-preview-hero" ${hero ? `style="background-image:url('${escapeHtml(hero)}')"` : ''}><div class="flyer-overlay"></div>${ornamentMarkup}<div class="relative z-10"><span class="flyer-kicker">🔥 ${escapeHtml(store).toUpperCase()}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(subtitle)}</p>${period ? `<span class="flyer-period">${escapeHtml(period)}</span>` : ''}</div></div><div class="flyer-preview-meta"><strong>${escapeHtml(badge)}</strong><span>${visibleRows.length} produk promo</span></div><div class="flyer-preview-items">${productMarkup || '<div style="grid-column:1/-1;color:#94a3b8;font-size:11px;text-align:center;padding:28px 0;">Preview produk akan tampil di sini.</div>'}</div>${serviceMarkup}${paymentMarkup}<div class="flyer-preview-footer flyer-cta-${escapeHtml(visual.ctaStyle)}"><div class="flyer-footer-left"><strong>${escapeHtml(store)}</strong><span>${escapeHtml(address || 'Informasi toko akan tampil di sini')}</span><span class="flyer-footer-channels">${escapeHtml(footerChannels)}</span><b class="flyer-cta-copy">${escapeHtml($('promo-pop-footer')?.value || 'Pesan sekarang')}</b></div><div class="flyer-footer-right">${qrDataUrl ? `<img class="flyer-qr" src="${qrDataUrl}" alt="QR Code">` : ''}<span>Scan<br>untuk pesan</span></div></div>${disclaimerMarkup}${watermarkMarkup}</div></div>`;
+        preview.className = `flyer-preview${imageBackgroundClass}${campaignIdentityClass(visual)} flyer-theme-${escapeHtml(themeClass(theme))} flyer-layout-${escapeHtml(layoutClass(layout))} flyer-hero-layout-${escapeHtml(visual.heroLayout)} flyer-output-${escapeHtml(visual.outputFormat)}`;
+        preview.innerHTML = `<div class="flyer-preview-content${visual.smartFit ? ' is-smart-fit' : ''}"><div class="flyer-preview-content-scale"><div class="flyer-preview-hero" ${hero ? `style="background-image:url('${escapeHtml(hero)}')"` : ''}><div class="flyer-overlay"></div>${ornamentMarkup}<div class="relative z-10"><span class="flyer-kicker">🔥 ${escapeHtml(store).toUpperCase()}</span>${visual.eventLabel ? `<span class="flyer-event-label">${escapeHtml(visual.eventLabel)}</span>` : ''}<h3>${escapeHtml(conceptHeadline)}</h3>${title !== conceptHeadline ? `<p class="flyer-campaign-title">${escapeHtml(title)}</p>` : ''}<p>${escapeHtml(subtitle)}</p>${period ? `<span class="flyer-period">${escapeHtml(period)}</span>` : ''}${signalMarkup}</div></div><div class="flyer-preview-meta"><strong>${escapeHtml(badge)}</strong><span>${visibleRows.length} produk promo</span><small>${escapeHtml(conceptSummary)}</small></div><div class="flyer-preview-items">${productMarkup || '<div style="grid-column:1/-1;color:#94a3b8;font-size:11px;text-align:center;padding:28px 0;">Preview produk akan tampil di sini.</div>'}</div>${serviceMarkup}${paymentMarkup}<div class="flyer-preview-footer flyer-cta-${escapeHtml(visual.ctaStyle)}"><div class="flyer-footer-left"><strong>${escapeHtml(store)}</strong><span>${escapeHtml(address || 'Informasi toko akan tampil di sini')}</span><span class="flyer-footer-channels">${escapeHtml(footerChannels)}</span><b class="flyer-cta-copy">${escapeHtml($('promo-pop-footer')?.value || 'Pesan sekarang')}</b></div><div class="flyer-footer-right">${qrDataUrl ? `<img class="flyer-qr" src="${qrDataUrl}" alt="QR Code">` : ''}<span>Scan<br>untuk pesan</span></div></div>${disclaimerMarkup}${watermarkMarkup}</div></div>`;
         bindTilePositionDrag();
         fitPreviewToSafeArea();
         updateSafeAreaStatus(preview, visual.safeAreaValidator);
@@ -1508,6 +1575,14 @@
             'promo-pop-price-panel-color': state.visual.pricePanelColor,
             'promo-pop-price-panel-shape': state.visual.pricePanelShape,
             'promo-pop-price-panel-label': state.visual.pricePanelLabel,
+            'promo-pop-campaign-type': state.visual.campaignType || 'weekly-promo',
+            'promo-pop-campaign-mood': state.visual.campaignMood || 'retail-aggressive',
+            'promo-pop-campaign-audience': state.visual.campaignAudience || 'general',
+            'promo-pop-communication-style': state.visual.communicationStyle || 'persuasive',
+            'promo-pop-headline-variant': state.visual.headlineVariant || 'value',
+            'promo-pop-event-label': state.visual.eventLabel || '',
+            'promo-pop-urgency': state.visual.urgency || 'none',
+            'promo-pop-trust-signal': state.visual.trustSignal || 'none',
             'promo-pop-footer-channels': state.visual.footerChannels,
             'promo-pop-ornament-text': state.visual.ornamentText,
             'promo-pop-section-style': state.visual.sectionStyle
@@ -1593,7 +1668,7 @@
     function resetForm() {
         state.editingId = '';
         state.governance.campaignPolicyId = '';
-        state.visual = { preset: 'fresh-market', badgeStyle: 'sticker', heroLayout: 'split', smartFit: true, groupCategories: false, showFeatured: true, ctaStyle: 'solid', outputFormat: 'a4', showImageBackground: true, showSaving: true, safeAreaValidator: true, pricePanelColor: '#facc15', pricePanelShape: 'rounded', pricePanelLabel: 'HARGA SPESIAL', footerChannels: 'Website · WhatsApp · Instagram', ornamentsEnabled: true, ornamentText: '★ HEMAT BESAR ★', sectionStyle: 'label' };
+        state.visual = { preset: 'fresh-market', badgeStyle: 'sticker', heroLayout: 'split', smartFit: true, groupCategories: false, showFeatured: true, ctaStyle: 'solid', outputFormat: 'a4', showImageBackground: true, campaignType: 'weekly-promo', campaignMood: 'retail-aggressive', campaignAudience: 'general', communicationStyle: 'persuasive', headlineVariant: 'value', eventLabel: '', urgency: 'none', trustSignal: 'none', showSaving: true, safeAreaValidator: true, pricePanelColor: '#facc15', pricePanelShape: 'rounded', pricePanelLabel: 'HARGA SPESIAL', footerChannels: 'Website · WhatsApp · Instagram', ornamentsEnabled: true, ornamentText: '★ HEMAT BESAR ★', sectionStyle: 'label' };
         const visualDefaults = { 'promo-pop-visual-preset': 'fresh-market', 'promo-pop-theme': 'fresh-organic', 'promo-pop-badge-style': 'sticker', 'promo-pop-hero-layout': 'split', 'promo-pop-cta-style': 'solid', 'promo-pop-output-format': 'a4', 'promo-pop-price-panel-color': '#facc15', 'promo-pop-price-panel-shape': 'rounded', 'promo-pop-price-panel-label': 'HARGA SPESIAL', 'promo-pop-footer-channels': 'Website · WhatsApp · Instagram', 'promo-pop-ornament-text': '★ HEMAT BESAR ★', 'promo-pop-section-style': 'label' };
         Object.entries(visualDefaults).forEach(([id, value]) => { const field = $(id); if (field) field.value = value; });
         ['promo-pop-smart-fit', 'promo-pop-show-featured', 'promo-pop-image-background', 'promo-pop-show-saving', 'promo-pop-safe-area', 'promo-pop-ornaments'].forEach((id) => { const field = $(id); if (field) field.checked = true; });
@@ -1755,8 +1830,8 @@
         $('promo-pop-save-top')?.addEventListener('click', () => $('promo-pop-form')?.requestSubmit());
         $('promo-pop-prepare-backend')?.addEventListener('click', prepareBackend);
         document.querySelectorAll('[data-template]').forEach((button) => button.addEventListener('click', () => selectTemplate(button.dataset.template)));
-        ['promo-pop-title', 'promo-pop-subtitle', 'promo-pop-theme', 'promo-pop-layout', 'promo-pop-store', 'promo-pop-badge', 'promo-pop-hero', 'promo-pop-period', 'promo-pop-footer', 'promo-pop-qr', 'promo-pop-address', 'promo-pop-disclaimer', 'promo-pop-watermark-text', 'promo-pop-paper', 'promo-pop-orientation', 'promo-pop-price-panel-label', 'promo-pop-footer-channels', 'promo-pop-ornament-text'].forEach((id) => $(id)?.addEventListener('input', renderPreview));
-        ['promo-pop-visual-preset', 'promo-pop-badge-style', 'promo-pop-hero-layout', 'promo-pop-cta-style', 'promo-pop-output-format', 'promo-pop-price-panel-color', 'promo-pop-price-panel-shape'].forEach((id) => $(id)?.addEventListener('change', () => { state.visual = readVisualSettings(); renderPreview(); }));
+        ['promo-pop-title', 'promo-pop-subtitle', 'promo-pop-theme', 'promo-pop-layout', 'promo-pop-store', 'promo-pop-badge', 'promo-pop-hero', 'promo-pop-period', 'promo-pop-footer', 'promo-pop-qr', 'promo-pop-address', 'promo-pop-disclaimer', 'promo-pop-watermark-text', 'promo-pop-paper', 'promo-pop-orientation', 'promo-pop-price-panel-label', 'promo-pop-footer-channels', 'promo-pop-ornament-text', 'promo-pop-event-label'].forEach((id) => $(id)?.addEventListener('input', renderPreview));
+        ['promo-pop-visual-preset', 'promo-pop-badge-style', 'promo-pop-hero-layout', 'promo-pop-cta-style', 'promo-pop-output-format', 'promo-pop-price-panel-color', 'promo-pop-price-panel-shape', 'promo-pop-campaign-type', 'promo-pop-campaign-mood', 'promo-pop-campaign-audience', 'promo-pop-communication-style', 'promo-pop-headline-variant', 'promo-pop-urgency', 'promo-pop-trust-signal', 'promo-pop-section-style'].forEach((id) => $(id)?.addEventListener('change', () => { state.visual = readVisualSettings(); renderPreview(); }));
         $('promo-pop-visual-preset')?.addEventListener('change', (event) => applyVisualPreset(event.target.value));
         ['promo-pop-watermark', 'promo-pop-show-service', 'promo-pop-show-payment', 'promo-pop-show-disclaimer', 'promo-pop-smart-fit', 'promo-pop-group-categories', 'promo-pop-show-featured', 'promo-pop-image-background', 'promo-pop-show-saving', 'promo-pop-safe-area', 'promo-pop-ornaments'].forEach((id) => $(id)?.addEventListener('change', () => { state.visual = readVisualSettings(); renderPreview(); }));
         document.querySelectorAll('[data-ppob-wallet]').forEach((input) => input.addEventListener('change', renderPreview));
