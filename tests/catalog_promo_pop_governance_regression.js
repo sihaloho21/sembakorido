@@ -58,7 +58,14 @@ const checks = [
   ['instant campaign identity presets define Retail Aggressive, Premium, and Seasonal', pop.includes('CAMPAIGN_IDENTITY_PRESETS') && pop.includes("'retail-aggressive'") && pop.includes('premium:') && pop.includes('seasonal:')],
   ['instant preset controls are present in the Campaign Identity Studio', html.includes('data-campaign-identity-preset="retail-aggressive"') && html.includes('data-campaign-identity-preset="premium"') && html.includes('data-campaign-identity-preset="seasonal"')],
   ['instant presets apply grouped identity and visual settings', pop.includes('function applyCampaignIdentityPreset') && pop.includes('applyVisualPreset(preset.visualPreset, false)') && pop.includes('updateCampaignIdentityPresetButtons')],
-  ['instant preset buttons are wired to the admin event flow', pop.includes("[data-campaign-identity-preset]") && pop.includes('applyCampaignIdentityPreset(button.dataset.campaignIdentityPreset)')]
+  ['instant preset buttons are wired to the admin event flow', pop.includes("[data-campaign-identity-preset]") && pop.includes('applyCampaignIdentityPreset(button.dataset.campaignIdentityPreset)')],
+  ['output presets define print and digital starting points', pop.includes('OUTPUT_PRESETS') && pop.includes('a4-retail-flyer') && pop.includes('instagram-square') && pop.includes('whatsapp-story')],
+  ['output preset controls are present in Section 02', html.includes('data-output-preset="a4-retail-flyer"') && html.includes('data-output-preset="instagram-square"') && html.includes('data-output-preset="whatsapp-story"')],
+  ['print and digital profiles are separated while A4 remains print standard', html.includes('promo-pop-output-profile') && pop.includes("profile === 'print'") && /generatePdf[\s\S]*format: 'a4'/.test(pop) && /openPrintPreview[\s\S]*outputField\) outputField\.value = 'a4'/.test(pop)],
+  ['margins default to 0.4 cm and persist in visual config', html.includes('promo-pop-margin-top') && html.includes('value="0.4"') && pop.includes('marginTop') && pop.includes('marginLeft') && pop.includes('visual_config_json: JSON.stringify(readVisualSettings())')],
+  ['safe-area display and non-blocking validation are both wired', html.includes('promo-pop-safe-area-display') && pop.includes('safeAreaDisplay') && pop.includes('flyer-safe-area-guide') && pop.includes('updateSafeAreaStatus')],
+  ['density presets map to grid dimensions and manual edits become Custom', pop.includes('OUTPUT_DENSITY_PRESETS') && pop.includes('applyDensityPreset') && pop.includes("density: 'custom'") && html.includes('promo-pop-density')],
+  ['public renderer mirrors profile, density, margins, and safe-area display', publicHtml.includes('outputProfile') && publicHtml.includes('density') && publicHtml.includes('marginTop') && publicHtml.includes('pk-pop-safe-area-guide') && publicHtml.includes('pk-pop-density-')]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);

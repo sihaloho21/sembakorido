@@ -380,8 +380,13 @@
         .pk-pop-cover-items { color: rgba(255,255,255,.86); font-size: .7rem; font-weight: 700; }
         .pk-pop-no-link { cursor: default; }
         .pk-pop-preview { height: 100%; overflow: auto; padding: 1rem; background: #f3f4f6; }
-        .pk-pop-preview-card { position:relative; width:min(100%, 760px); aspect-ratio:210 / 297; min-height:0; margin:0 auto; overflow:hidden; border-radius:1rem; background:white; box-shadow:0 8px 30px rgba(15,23,42,.12); padding:4mm; }
-        .pk-pop-safe-area { position:relative; width:100%; height:100%; min-height:0; overflow:hidden; background:#fff; }
+        .pk-pop-preview-card { position:relative; width:min(100%, 760px); aspect-ratio:210 / 297; min-height:0; margin:0 auto; overflow:hidden; border-radius:1rem; background:white; box-shadow:0 8px 30px rgba(15,23,42,.12); padding:0; }
+        .pk-pop-safe-area { position:relative; box-sizing:border-box; width:100%; height:100%; min-height:0; overflow:hidden; background:#fff; padding:var(--pk-pop-margin-top,.4cm) var(--pk-pop-margin-right,.4cm) var(--pk-pop-margin-bottom,.4cm) var(--pk-pop-margin-left,.4cm); }
+        .pk-pop-safe-area-guide { display:none; position:absolute; inset:var(--pk-pop-margin-top,.4cm) var(--pk-pop-margin-right,.4cm) var(--pk-pop-margin-bottom,.4cm) var(--pk-pop-margin-left,.4cm); z-index:30; border:1px dashed rgba(234,88,12,.62); pointer-events:none; }
+        .pk-pop-preview-card[data-safe-area-display="true"] .pk-pop-safe-area-guide { display:block; }
+        .pk-pop-preview-card.pk-pop-density-compact .pk-pop-preview-items { gap:.3rem; padding:.5rem; }
+        .pk-pop-preview-card.pk-pop-density-spacious .pk-pop-preview-items { gap:.75rem; padding:1rem; }
+        .pk-pop-preview-card.pk-pop-density-hero-focus .pk-pop-preview-items { gap:1rem; padding:1.125rem; }
         .pk-pop-preview-card .pk-pop-preview-hero { min-height:22%; }
         .pk-pop-preview-card .pk-pop-preview-items { min-height:0; }
         .pk-pop-service { padding:.55rem 1rem; border-top:1px solid #eef2f7; color:#334155; font-size:.68rem; line-height:1.45; text-align:center; }
@@ -946,6 +951,16 @@
             var groupCategories = visualConfig.groupCategories === true;
             var showFeatured = visualConfig.showFeatured !== false;
             var outputFormat = String(visualConfig.outputFormat || 'a4').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            var outputProfile = String(visualConfig.outputProfile || 'print').toLowerCase() === 'digital' ? 'digital' : 'print';
+            var density = String(visualConfig.density || gridConfig.density || '').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            var densityValues = { compact: [5, 4], balanced: [4, 3], spacious: [3, 3], 'hero-focus': [2, 2] };
+            if (!densityValues[density] && density !== 'custom') density = 'balanced';
+            var margin = function(value) { var n = Number(value); return Math.min(5, Math.max(0, isFinite(n) ? n : .4)); };
+            var marginTop = margin(visualConfig.marginTop);
+            var marginRight = margin(visualConfig.marginRight);
+            var marginBottom = margin(visualConfig.marginBottom);
+            var marginLeft = margin(visualConfig.marginLeft);
+            var safeAreaDisplay = visualConfig.safeAreaDisplay === true;
             var showImageBackground = visualConfig.showImageBackground !== false;
             var showSaving = visualConfig.showSaving !== false;
             var safeAreaValidator = visualConfig.safeAreaValidator !== false;
@@ -995,6 +1010,13 @@
                 groupCategories: groupCategories,
                 showFeatured: showFeatured,
                 outputFormat: outputFormat,
+                outputProfile: outputProfile,
+                density: density,
+                marginTop: marginTop,
+                marginRight: marginRight,
+                marginBottom: marginBottom,
+                marginLeft: marginLeft,
+                safeAreaDisplay: safeAreaDisplay,
                 showImageBackground: showImageBackground,
                 showSaving: showSaving,
                 safeAreaValidator: safeAreaValidator,
@@ -1135,9 +1157,10 @@
                 + ' pk-pop-mood-' + escapeHtml(c.campaignMood || 'retail-aggressive')
                 + ' pk-pop-campaign-type-' + escapeHtml(c.campaignType || 'weekly-promo')
                 + ' pk-pop-audience-' + escapeHtml(c.campaignAudience || 'general')
+                + ' pk-pop-density-' + escapeHtml(c.density || 'balanced')
                 + (c.showImageBackground === false ? ' pk-pop-image-background-off' : '')
                 + (c.smartFit ? ' pk-pop-smart-fit' : '');
-            target.innerHTML = '<div class="' + visualClasses + '" style="--pk-price-panel-color:' + escapeHtml(c.pricePanelColor || '#facc15') + '"><div class="pk-pop-safe-area">'
+            target.innerHTML = '<div class="' + visualClasses + '" data-safe-area-display="' + (c.safeAreaDisplay ? 'true' : 'false') + '" style="--pk-price-panel-color:' + escapeHtml(c.pricePanelColor || '#facc15') + ';--pk-pop-margin-top:' + c.marginTop + 'cm;--pk-pop-margin-right:' + c.marginRight + 'cm;--pk-pop-margin-bottom:' + c.marginBottom + 'cm;--pk-pop-margin-left:' + c.marginLeft + 'cm"><div class="pk-pop-safe-area"><div class="pk-pop-safe-area-guide" aria-hidden="true"></div>'
                 + '<div class="pk-pop-preview-hero"' + imageStyle + '>' + (c.ornamentsEnabled !== false && c.ornamentText ? '<span class="pk-pop-campaign-ornament">' + escapeHtml(c.ornamentText) + '</span>' : '') + '<div class="pk-pop-preview-hero-content">'
                 + '<div class="pk-pop-cover-kicker">' + escapeHtml(c.storeName) + '</div>'
                 + (c.eventLabel ? '<span class="pk-pop-event-label">' + escapeHtml(c.eventLabel) + '</span>' : '')
