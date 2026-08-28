@@ -452,7 +452,8 @@
         .pk-pop-positioned-normal { color:#94a3b8; font-size:10px; font-weight:800; line-height:1; white-space:nowrap; }
         .pk-pop-positioned-promo { color:#ea580c; font-size:1.15rem; line-height:1; font-weight:900; white-space:nowrap; }
         .pk-pop-positioned-offer { width:90%; color:#64748b; font-size:.68rem; font-weight:800; line-height:1.1; text-align:center; }
-        .pk-pop-positioned-item .pk-pop-preview-badge { position:absolute; top:.25rem; left:.25rem; z-index:3; }
+        .pk-pop-positioned-item .pk-pop-preview-badge-shelf { position:absolute; top:calc(-2.1rem - var(--pk-pop-badge-gap,8px)); right:8px; z-index:6; display:table; max-width:calc(100% - 14px); padding:3px; border:1px solid rgba(255,255,255,.85); border-radius:999px; background:rgba(255,255,255,.92); box-shadow:0 2px 5px rgba(15,23,42,.16); pointer-events:none; }
+        .pk-pop-positioned-item .pk-pop-preview-badge-shelf .pk-pop-preview-badge { position:static; display:block; max-width:100%; margin:0; }
         .pk-pop-layout-bento .pk-pop-positioned-item:first-child { grid-column:span 2; min-height:300px; }
         .pk-pop-layout-mosaic-grid .pk-pop-positioned-item:nth-child(4n+1) { grid-column:span 2; }
         .pk-pop-layout-bento .pk-pop-positioned-item:first-child .pk-pop-positioned-media,
@@ -952,6 +953,8 @@
             var showFeatured = visualConfig.showFeatured !== false;
             var outputFormat = String(visualConfig.outputFormat || 'a4').toLowerCase().replace(/[^a-z0-9-]/g, '-');
             var outputProfile = String(visualConfig.outputProfile || 'print').toLowerCase() === 'digital' ? 'digital' : 'print';
+            var badgeGapNumber = Number(visualConfig.badgeGap);
+            var badgeGap = Math.min(24, Math.max(0, isFinite(badgeGapNumber) ? badgeGapNumber : 8));
             var density = String(visualConfig.density || gridConfig.density || '').toLowerCase().replace(/[^a-z0-9-]/g, '-');
             var densityValues = { compact: [5, 4], balanced: [4, 3], spacious: [3, 3], 'hero-focus': [2, 2] };
             if (!densityValues[density] && density !== 'custom') density = 'balanced';
@@ -1011,6 +1014,7 @@
                 showFeatured: showFeatured,
                 outputFormat: outputFormat,
                 outputProfile: outputProfile,
+                badgeGap: badgeGap,
                 density: density,
                 marginTop: marginTop,
                 marginRight: marginRight,
@@ -1160,7 +1164,7 @@
                 + ' pk-pop-density-' + escapeHtml(c.density || 'balanced')
                 + (c.showImageBackground === false ? ' pk-pop-image-background-off' : '')
                 + (c.smartFit ? ' pk-pop-smart-fit' : '');
-            target.innerHTML = '<div class="' + visualClasses + '" data-safe-area-display="' + (c.safeAreaDisplay ? 'true' : 'false') + '" style="--pk-price-panel-color:' + escapeHtml(c.pricePanelColor || '#facc15') + ';--pk-pop-margin-top:' + c.marginTop + 'cm;--pk-pop-margin-right:' + c.marginRight + 'cm;--pk-pop-margin-bottom:' + c.marginBottom + 'cm;--pk-pop-margin-left:' + c.marginLeft + 'cm"><div class="pk-pop-safe-area"><div class="pk-pop-safe-area-guide" aria-hidden="true"></div>'
+            target.innerHTML = '<div class="' + visualClasses + '" data-safe-area-display="' + (c.safeAreaDisplay ? 'true' : 'false') + '" style="--pk-price-panel-color:' + escapeHtml(c.pricePanelColor || '#facc15') + ';--pk-pop-badge-gap:' + badgeGap + 'px;--pk-pop-margin-top:' + c.marginTop + 'cm;--pk-pop-margin-right:' + c.marginRight + 'cm;--pk-pop-margin-bottom:' + c.marginBottom + 'cm;--pk-pop-margin-left:' + c.marginLeft + 'cm"><div class="pk-pop-safe-area"><div class="pk-pop-safe-area-guide" aria-hidden="true"></div>'
                 + '<div class="pk-pop-preview-hero"' + imageStyle + '>' + (c.ornamentsEnabled !== false && c.ornamentText ? '<span class="pk-pop-campaign-ornament">' + escapeHtml(c.ornamentText) + '</span>' : '') + '<div class="pk-pop-preview-hero-content">'
                 + '<div class="pk-pop-cover-kicker">' + escapeHtml(c.storeName) + '</div>'
                 + (c.eventLabel ? '<span class="pk-pop-event-label">' + escapeHtml(c.eventLabel) + '</span>' : '')
@@ -1191,7 +1195,8 @@
                     var mechanicLabel = item.promoMechanic === 'multi-buy' ? ('Beli ' + item.promoQuantity + ' lebih hemat') : item.promoMechanic === 'bundle' ? ('Paket hemat isi ' + item.promoQuantity) : item.promoMechanic === 'minimum-spend' ? 'Min. belanja untuk promo' : item.promoMechanic === 'channel' ? 'Harga khusus member / aplikasi' : brochureOffer;
                     return categoryHeading + '<article class="' + itemClass + '" data-position-surface="' + itemId + '" style="' + tileScale + '">'
                         + (isFeatured ? '<span class="pk-pop-featured-mark">UNGGULAN</span>' : '')
-                        + '<div class="' + elementClass('media', 'pk-pop-retail-media') + '"' + positionedAttrs('image') + '>' + image + '<span class="pk-pop-preview-badge pk-pop-badge-type-' + escapeHtml(item.badgeType) + '">' + escapeHtml(badgeLabel) + '</span></div>'
+                        + '<span class="pk-pop-preview-badge-shelf"><span class="pk-pop-preview-badge pk-pop-badge-type-' + escapeHtml(item.badgeType) + '">' + escapeHtml(badgeLabel) + '</span></span>'
+                        + '<div class="' + elementClass('media', 'pk-pop-retail-media') + '"' + positionedAttrs('image') + '>' + image + '</div>'
                         + '<div class="' + elementClass('name', 'pk-pop-retail-name') + '"' + positionedAttrs('name') + '>' + escapeHtml(item.name) + '</div>'
                         + normal
                         + '<div class="' + elementClass('promo', 'pk-pop-retail-price') + '"' + positionedAttrs('promo') + '><span class="pk-pop-price-panel-label">' + escapeHtml(c.pricePanelLabel || 'HARGA SPESIAL') + '</span>' + formatRupiahMarkup(item.promoPrice) + (c.showSaving && item.savingPercent > 0 ? '<span class="pk-pop-saving-label">HEMAT ' + item.savingPercent + '%</span>' : '') + '</div>'

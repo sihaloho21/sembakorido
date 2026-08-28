@@ -67,7 +67,9 @@ const checks = [
   ['density presets map to grid dimensions and manual edits become Custom', pop.includes('OUTPUT_DENSITY_PRESETS') && pop.includes('applyDensityPreset') && pop.includes("density: 'custom'") && html.includes('promo-pop-density')],
   ['public renderer mirrors profile, density, margins, and safe-area display', publicHtml.includes('outputProfile') && publicHtml.includes('density') && publicHtml.includes('marginTop') && publicHtml.includes('pk-pop-safe-area-guide') && publicHtml.includes('pk-pop-density-')],
   ['promo badge is rendered outside the product image element', /flyer-item-badge-shelf[\s\S]*flyer-retail-media/.test(pop) && !/flyer-retail-media[^<]*>[\s\S]*flyer-item-badge/.test(pop)],
-  ['detached badge shelf has independent spacing and stacking', html.includes('.flyer-item-badge-shelf') && html.includes('top:-75px') && html.includes('right:8px') && html.includes('z-index:6')]
+  ['detached badge shelf has independent spacing and stacking', html.includes('.flyer-item-badge-shelf') && html.includes('top:-75px') && html.includes('right:8px') && html.includes('z-index:6')],
+  ['badge gap control is bounded, persisted, and applied live', html.includes('promo-pop-badge-gap') && pop.includes('clampBadgeGap') && pop.includes('badgeGap:') && pop.includes('--flyer-badge-gap') && pop.includes('visual_config_json: JSON.stringify(readVisualSettings())')],
+  ['public renderer mirrors dynamic detached badge gap', publicHtml.includes('badgeGap') && publicHtml.includes('--pk-pop-badge-gap') && publicHtml.includes('pk-pop-preview-badge-shelf') && publicHtml.includes('badgeLabel') ]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);

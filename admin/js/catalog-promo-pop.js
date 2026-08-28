@@ -483,6 +483,19 @@
         return values;
     }
 
+    function clampBadgeGap(value, fallback = 8) {
+        const number = Number(value);
+        return Number.isFinite(number) ? Math.min(24, Math.max(0, number)) : fallback;
+    }
+
+    function setBadgeGapField(value) {
+        const gap = clampBadgeGap(value);
+        const field = $('promo-pop-badge-gap');
+        if (field) field.value = String(Math.round(gap));
+        const output = $('promo-pop-badge-gap-output');
+        if (output) output.textContent = `${Math.round(gap)} px`;
+    }
+
     function setMarginFields(margins) {
         const values = margins || {};
         [['top', values.top], ['right', values.right], ['bottom', values.bottom], ['left', values.left]].forEach(([side, value]) => {
@@ -549,6 +562,7 @@
             ctaStyle: String($('promo-pop-cta-style')?.value || state.visual.ctaStyle || 'solid'),
             outputFormat: String($('promo-pop-output-format')?.value || state.visual.outputFormat || 'a4'),
             outputProfile: String($('promo-pop-output-profile')?.value || state.visual.outputProfile || 'print'),
+            badgeGap: clampBadgeGap($('promo-pop-badge-gap')?.value, state.visual.badgeGap ?? 8),
             density: String($('promo-pop-density')?.value || state.visual.density || densityForGrid($('promo-pop-grid-rows')?.value || 4, $('promo-pop-grid-columns')?.value || 3)),
             safeAreaDisplay: $('promo-pop-safe-area-display') ? $('promo-pop-safe-area-display').checked : state.visual.safeAreaDisplay === true,
             ...(() => { const margins = readMarginSettings(); return { marginTop: margins.top, marginRight: margins.right, marginBottom: margins.bottom, marginLeft: margins.left }; })(),
@@ -1613,6 +1627,7 @@
         preview.style.setProperty('--flyer-grid-rows', String(grid.rows));
         preview.style.setProperty('--flyer-grid-columns', String(grid.columns));
         preview.style.setProperty('--flyer-density-gap', `${(OUTPUT_DENSITY_PRESETS[visual.density] || OUTPUT_DENSITY_PRESETS.balanced).gap}px`);
+        preview.style.setProperty('--flyer-badge-gap', `${visual.badgeGap}px`);
         preview.style.setProperty('--flyer-density-padding', `${(OUTPUT_DENSITY_PRESETS[visual.density] || OUTPUT_DENSITY_PRESETS.balanced).padding}px`);
         preview.style.setProperty('--flyer-margin-top', `${visual.marginTop}cm`);
         preview.style.setProperty('--flyer-margin-right', `${visual.marginRight}cm`);
@@ -1776,6 +1791,7 @@
             'promo-pop-cta-style': state.visual.ctaStyle,
             'promo-pop-output-format': state.visual.outputFormat,
             'promo-pop-output-profile': state.visual.outputProfile || 'print',
+            'promo-pop-badge-gap': state.visual.badgeGap ?? 8,
             'promo-pop-density': state.visual.density || densityForGrid(gridConfig.rows || 4, gridConfig.columns || 3),
             'promo-pop-price-panel-color': state.visual.pricePanelColor,
             'promo-pop-price-panel-shape': state.visual.pricePanelShape,
@@ -1803,6 +1819,7 @@
         if (rowsField) rowsField.value = Math.min(8, Math.max(1, Number(gridConfig.rows) || 4));
         if (columnsField) columnsField.value = Math.min(6, Math.max(1, Number(gridConfig.columns) || 3));
         setMarginFields({ top: state.visual.marginTop, right: state.visual.marginRight, bottom: state.visual.marginBottom, left: state.visual.marginLeft });
+        setBadgeGapField(state.visual.badgeGap ?? 8);
         updateOutputPresetButtons('');
         state.tilePositions = normalizeTilePositions(gridConfig.tile_positions);
         state.tileSizes = normalizeTileSizes(gridConfig.tile_sizes);
@@ -1875,9 +1892,9 @@
     function resetForm() {
         state.editingId = '';
         state.governance.campaignPolicyId = '';
-        state.visual = { preset: 'fresh-market', badgeStyle: 'sticker', heroLayout: 'split', smartFit: true, groupCategories: false, showFeatured: true, ctaStyle: 'solid', outputFormat: 'a4', outputProfile: 'print', density: 'balanced', safeAreaDisplay: false, marginTop: 0.4, marginRight: 0.4, marginBottom: 0.4, marginLeft: 0.4, showImageBackground: true, campaignType: 'weekly-promo', campaignMood: 'retail-aggressive', campaignAudience: 'general', communicationStyle: 'persuasive', headlineVariant: 'value', eventLabel: '', urgency: 'none', trustSignal: 'none', showSaving: true, safeAreaValidator: true, pricePanelColor: '#facc15', pricePanelShape: 'rounded', pricePanelLabel: 'HARGA SPESIAL', footerChannels: 'Website · WhatsApp · Instagram', ornamentsEnabled: true, ornamentText: '★ HEMAT BESAR ★', sectionStyle: 'label' };
+        state.visual = { preset: 'fresh-market', badgeStyle: 'sticker', heroLayout: 'split', smartFit: true, groupCategories: false, showFeatured: true, ctaStyle: 'solid', outputFormat: 'a4', outputProfile: 'print', density: 'balanced', badgeGap: 8, safeAreaDisplay: false, marginTop: 0.4, marginRight: 0.4, marginBottom: 0.4, marginLeft: 0.4, showImageBackground: true, campaignType: 'weekly-promo', campaignMood: 'retail-aggressive', campaignAudience: 'general', communicationStyle: 'persuasive', headlineVariant: 'value', eventLabel: '', urgency: 'none', trustSignal: 'none', showSaving: true, safeAreaValidator: true, pricePanelColor: '#facc15', pricePanelShape: 'rounded', pricePanelLabel: 'HARGA SPESIAL', footerChannels: 'Website · WhatsApp · Instagram', ornamentsEnabled: true, ornamentText: '★ HEMAT BESAR ★', sectionStyle: 'label' };
         updateCampaignIdentityPresetButtons('');
-        const visualDefaults = { 'promo-pop-visual-preset': 'fresh-market', 'promo-pop-theme': 'fresh-organic', 'promo-pop-badge-style': 'sticker', 'promo-pop-hero-layout': 'split', 'promo-pop-cta-style': 'solid', 'promo-pop-output-format': 'a4', 'promo-pop-output-profile': 'print', 'promo-pop-density': 'balanced', 'promo-pop-margin-top': '0.4', 'promo-pop-margin-right': '0.4', 'promo-pop-margin-bottom': '0.4', 'promo-pop-margin-left': '0.4', 'promo-pop-price-panel-color': '#facc15', 'promo-pop-price-panel-shape': 'rounded', 'promo-pop-price-panel-label': 'HARGA SPESIAL', 'promo-pop-footer-channels': 'Website · WhatsApp · Instagram', 'promo-pop-ornament-text': '★ HEMAT BESAR ★', 'promo-pop-section-style': 'label' };
+        const visualDefaults = { 'promo-pop-visual-preset': 'fresh-market', 'promo-pop-theme': 'fresh-organic', 'promo-pop-badge-style': 'sticker', 'promo-pop-hero-layout': 'split', 'promo-pop-cta-style': 'solid', 'promo-pop-output-format': 'a4', 'promo-pop-output-profile': 'print', 'promo-pop-density': 'balanced', 'promo-pop-badge-gap': '8', 'promo-pop-margin-top': '0.4', 'promo-pop-margin-right': '0.4', 'promo-pop-margin-bottom': '0.4', 'promo-pop-margin-left': '0.4', 'promo-pop-price-panel-color': '#facc15', 'promo-pop-price-panel-shape': 'rounded', 'promo-pop-price-panel-label': 'HARGA SPESIAL', 'promo-pop-footer-channels': 'Website · WhatsApp · Instagram', 'promo-pop-ornament-text': '★ HEMAT BESAR ★', 'promo-pop-section-style': 'label' };
         Object.entries(visualDefaults).forEach(([id, value]) => { const field = $(id); if (field) field.value = value; });
         ['promo-pop-smart-fit', 'promo-pop-show-featured', 'promo-pop-image-background', 'promo-pop-show-saving', 'promo-pop-safe-area', 'promo-pop-ornaments'].forEach((id) => { const field = $(id); if (field) field.checked = true; });
         const safeAreaDisplay = $('promo-pop-safe-area-display'); if (safeAreaDisplay) safeAreaDisplay.checked = false;
@@ -2085,6 +2102,7 @@
         });
         $('promo-pop-image-frame')?.addEventListener('input', renderPreview);
         $('promo-pop-image-scale')?.addEventListener('input', renderPreview);
+        $('promo-pop-badge-gap')?.addEventListener('input', () => { setBadgeGapField($('promo-pop-badge-gap').value); state.visual = readVisualSettings(); renderPreview(); });
         $('promo-pop-grid-columns')?.addEventListener('input', () => { if ($('promo-pop-density')) $('promo-pop-density').value = 'custom'; state.visual = { ...state.visual, density: 'custom' }; updateOutputPresetButtons(''); renderPreview(); });
         $('promo-pop-grid-rows')?.addEventListener('input', () => { if ($('promo-pop-density')) $('promo-pop-density').value = 'custom'; state.visual = { ...state.visual, density: 'custom' }; updateOutputPresetButtons(''); renderPreview(); });
         ['promo-pop-image-frame', 'promo-pop-image-scale', 'promo-pop-grid-rows', 'promo-pop-grid-columns', 'promo-pop-margin-top', 'promo-pop-margin-right', 'promo-pop-margin-bottom', 'promo-pop-margin-left'].forEach((id) => $(id)?.addEventListener('change', (event) => {
