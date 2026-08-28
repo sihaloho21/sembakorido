@@ -54,7 +54,11 @@ const checks = [
   ['Campaign Identity Studio fields persist and restore', pop.includes('campaignType') && pop.includes('campaignMood') && pop.includes('campaignAudience') && pop.includes('headlineVariant') && pop.includes('trustSignal')],
   ['Campaign Identity Studio controls are present in section 01', html.includes('promo-pop-campaign-type') && html.includes('promo-pop-campaign-mood') && html.includes('promo-pop-campaign-audience') && html.includes('promo-pop-headline-variant')],
   ['campaign mood and type classes reach admin preview', pop.includes('flyer-mood-') && pop.includes('flyer-campaign-type-') && pop.includes('identityHeadline')],
-  ['public renderer mirrors campaign identity and headline variants', publicHtml.includes('campaignMood') && publicHtml.includes('identityHeadline') && publicHtml.includes('pk-pop-mood-') && publicHtml.includes('pk-pop-identity-signals')]
+  ['public renderer mirrors campaign identity and headline variants', publicHtml.includes('campaignMood') && publicHtml.includes('identityHeadline') && publicHtml.includes('pk-pop-mood-') && publicHtml.includes('pk-pop-identity-signals')],
+  ['instant campaign identity presets define Retail Aggressive, Premium, and Seasonal', pop.includes('CAMPAIGN_IDENTITY_PRESETS') && pop.includes("'retail-aggressive'") && pop.includes('premium:') && pop.includes('seasonal:')],
+  ['instant preset controls are present in the Campaign Identity Studio', html.includes('data-campaign-identity-preset="retail-aggressive"') && html.includes('data-campaign-identity-preset="premium"') && html.includes('data-campaign-identity-preset="seasonal"')],
+  ['instant presets apply grouped identity and visual settings', pop.includes('function applyCampaignIdentityPreset') && pop.includes('applyVisualPreset(preset.visualPreset, false)') && pop.includes('updateCampaignIdentityPresetButtons')],
+  ['instant preset buttons are wired to the admin event flow', pop.includes("[data-campaign-identity-preset]") && pop.includes('applyCampaignIdentityPreset(button.dataset.campaignIdentityPreset)')]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
