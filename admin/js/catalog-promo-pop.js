@@ -484,6 +484,85 @@
         if (render) renderPreview();
     }
 
+    const CAMPAIGN_IDENTITY_PRESETS = Object.freeze({
+        'retail-aggressive': {
+            label: 'Retail Aggressive',
+            description: 'Harga kuat, urgensi tinggi, dan badge yang langsung terlihat.',
+            visualPreset: 'flash-sale', theme: 'flash-sale-neon', badgeStyle: 'burst', heroLayout: 'center', ctaStyle: 'ribbon',
+            campaignType: 'flash-sale', campaignMood: 'retail-aggressive', campaignAudience: 'general', communicationStyle: 'urgent',
+            headlineVariant: 'urgent', eventLabel: 'PROMO TERBATAS', urgency: 'ending-soon', trustSignal: 'stock',
+            groupCategories: false, showFeatured: true, showSaving: true, safeAreaValidator: true,
+            pricePanelColor: '#facc15', pricePanelShape: 'burst', pricePanelLabel: 'HARGA SPESIAL',
+            footerChannels: 'Website · WhatsApp · Instagram', ornamentsEnabled: true, ornamentText: '★ HEMAT BESAR ★', sectionStyle: 'band'
+        },
+        premium: {
+            label: 'Premium',
+            description: 'Elegan, lapang, dan fokus pada kualitas serta kepercayaan.',
+            visualPreset: 'premium', theme: 'modern-minimalist', badgeStyle: 'pill', heroLayout: 'minimal', ctaStyle: 'outline',
+            campaignType: 'weekly-promo', campaignMood: 'premium', campaignAudience: 'member', communicationStyle: 'premium',
+            headlineVariant: 'value', eventLabel: 'PREMIUM SELECTION', urgency: 'week', trustSignal: 'official',
+            groupCategories: true, showFeatured: true, showSaving: true, safeAreaValidator: true,
+            pricePanelColor: '#e2e8f0', pricePanelShape: 'pill', pricePanelLabel: 'PREMIUM VALUE',
+            footerChannels: 'Website · WhatsApp · Instagram', ornamentsEnabled: false, ornamentText: 'CURATED VALUE', sectionStyle: 'minimal'
+        },
+        seasonal: {
+            label: 'Seasonal',
+            description: 'Meriah, hangat, dan siap dipakai untuk event atau momen khusus.',
+            visualPreset: 'colorful', theme: 'seasonal-festive', badgeStyle: 'ribbon', heroLayout: 'center', ctaStyle: 'solid',
+            campaignType: 'seasonal', campaignMood: 'seasonal', campaignAudience: 'family', communicationStyle: 'friendly',
+            headlineVariant: 'seasonal', eventLabel: 'EDISI SPESIAL', urgency: 'seasonal', trustSignal: 'stock',
+            groupCategories: true, showFeatured: true, showSaving: true, safeAreaValidator: true,
+            pricePanelColor: '#fde047', pricePanelShape: 'burst', pricePanelLabel: 'HARGA SPESIAL',
+            footerChannels: 'Website · WhatsApp · Instagram', ornamentsEnabled: true, ornamentText: '★ RAYAKAN & HEMAT ★', sectionStyle: 'band'
+        }
+    });
+
+    function setPresetField(id, value) {
+        const field = $(id);
+        if (!field || value === undefined) return;
+        if (field.type === 'checkbox') field.checked = value === true;
+        else field.value = String(value);
+    }
+
+    function updateCampaignIdentityPresetButtons(activeId) {
+        document.querySelectorAll('[data-campaign-identity-preset]').forEach((button) => {
+            const active = String(button.dataset.campaignIdentityPreset || '') === String(activeId || '');
+            button.classList.toggle('selected', active);
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    }
+
+    function applyCampaignIdentityPreset(presetId, render = true) {
+        const id = String(presetId || 'retail-aggressive');
+        const preset = CAMPAIGN_IDENTITY_PRESETS[id] || CAMPAIGN_IDENTITY_PRESETS['retail-aggressive'];
+        applyVisualPreset(preset.visualPreset, false);
+        const values = {
+            'promo-pop-theme': preset.theme, 'promo-pop-badge-style': preset.badgeStyle, 'promo-pop-hero-layout': preset.heroLayout, 'promo-pop-cta-style': preset.ctaStyle,
+            'promo-pop-campaign-type': preset.campaignType, 'promo-pop-campaign-mood': preset.campaignMood, 'promo-pop-campaign-audience': preset.campaignAudience,
+            'promo-pop-communication-style': preset.communicationStyle, 'promo-pop-headline-variant': preset.headlineVariant, 'promo-pop-event-label': preset.eventLabel,
+            'promo-pop-urgency': preset.urgency, 'promo-pop-trust-signal': preset.trustSignal, 'promo-pop-price-panel-color': preset.pricePanelColor,
+            'promo-pop-price-panel-shape': preset.pricePanelShape, 'promo-pop-price-panel-label': preset.pricePanelLabel, 'promo-pop-footer-channels': preset.footerChannels,
+            'promo-pop-ornament-text': preset.ornamentText, 'promo-pop-section-style': preset.sectionStyle, 'promo-pop-group-categories': preset.groupCategories,
+            'promo-pop-show-featured': preset.showFeatured, 'promo-pop-show-saving': preset.showSaving, 'promo-pop-safe-area': preset.safeAreaValidator, 'promo-pop-ornaments': preset.ornamentsEnabled
+        };
+        Object.entries(values).forEach(([fieldId, value]) => setPresetField(fieldId, value));
+        state.visual = { ...state.visual, ...preset, preset: preset.visualPreset };
+        delete state.visual.label;
+        delete state.visual.description;
+        updateCampaignConceptSummary(state.visual);
+        updateCampaignIdentityPresetButtons(id);
+        if (render) renderPreview();
+        setStatus(`${preset.label} diterapkan. Anda masih dapat menyesuaikan setiap field secara manual.`, 'success');
+    }
+
+    function inferCampaignIdentityPreset(visual) {
+        const current = visual || state.visual || {};
+        const match = Object.entries(CAMPAIGN_IDENTITY_PRESETS).find(([, preset]) => (
+            current.campaignMood === preset.campaignMood && current.campaignType === preset.campaignType && current.headlineVariant === preset.headlineVariant
+        ));
+        return match ? match[0] : '';
+    }
+
     function layoutClass(layout) {
         return String(layout || 'auto').toLowerCase().replace(/[^a-z0-9-]/g, '-');
     }
@@ -1566,6 +1645,7 @@
         let visualConfig = {};
         try { visualConfig = JSON.parse(campaign.visual_config_json || '{}') || {}; } catch (error) { visualConfig = {}; }
         state.visual = { ...state.visual, ...visualConfig };
+        updateCampaignIdentityPresetButtons(inferCampaignIdentityPreset(state.visual));
         const visualFields = {
             'promo-pop-visual-preset': state.visual.preset,
             'promo-pop-badge-style': state.visual.badgeStyle,
@@ -1669,6 +1749,7 @@
         state.editingId = '';
         state.governance.campaignPolicyId = '';
         state.visual = { preset: 'fresh-market', badgeStyle: 'sticker', heroLayout: 'split', smartFit: true, groupCategories: false, showFeatured: true, ctaStyle: 'solid', outputFormat: 'a4', showImageBackground: true, campaignType: 'weekly-promo', campaignMood: 'retail-aggressive', campaignAudience: 'general', communicationStyle: 'persuasive', headlineVariant: 'value', eventLabel: '', urgency: 'none', trustSignal: 'none', showSaving: true, safeAreaValidator: true, pricePanelColor: '#facc15', pricePanelShape: 'rounded', pricePanelLabel: 'HARGA SPESIAL', footerChannels: 'Website · WhatsApp · Instagram', ornamentsEnabled: true, ornamentText: '★ HEMAT BESAR ★', sectionStyle: 'label' };
+        updateCampaignIdentityPresetButtons('');
         const visualDefaults = { 'promo-pop-visual-preset': 'fresh-market', 'promo-pop-theme': 'fresh-organic', 'promo-pop-badge-style': 'sticker', 'promo-pop-hero-layout': 'split', 'promo-pop-cta-style': 'solid', 'promo-pop-output-format': 'a4', 'promo-pop-price-panel-color': '#facc15', 'promo-pop-price-panel-shape': 'rounded', 'promo-pop-price-panel-label': 'HARGA SPESIAL', 'promo-pop-footer-channels': 'Website · WhatsApp · Instagram', 'promo-pop-ornament-text': '★ HEMAT BESAR ★', 'promo-pop-section-style': 'label' };
         Object.entries(visualDefaults).forEach(([id, value]) => { const field = $(id); if (field) field.value = value; });
         ['promo-pop-smart-fit', 'promo-pop-show-featured', 'promo-pop-image-background', 'promo-pop-show-saving', 'promo-pop-safe-area', 'promo-pop-ornaments'].forEach((id) => { const field = $(id); if (field) field.checked = true; });
@@ -1830,8 +1911,14 @@
         $('promo-pop-save-top')?.addEventListener('click', () => $('promo-pop-form')?.requestSubmit());
         $('promo-pop-prepare-backend')?.addEventListener('click', prepareBackend);
         document.querySelectorAll('[data-template]').forEach((button) => button.addEventListener('click', () => selectTemplate(button.dataset.template)));
+        document.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-campaign-identity-preset]');
+            if (!button) return;
+            event.preventDefault();
+            applyCampaignIdentityPreset(button.dataset.campaignIdentityPreset);
+        });
         ['promo-pop-title', 'promo-pop-subtitle', 'promo-pop-theme', 'promo-pop-layout', 'promo-pop-store', 'promo-pop-badge', 'promo-pop-hero', 'promo-pop-period', 'promo-pop-footer', 'promo-pop-qr', 'promo-pop-address', 'promo-pop-disclaimer', 'promo-pop-watermark-text', 'promo-pop-paper', 'promo-pop-orientation', 'promo-pop-price-panel-label', 'promo-pop-footer-channels', 'promo-pop-ornament-text', 'promo-pop-event-label'].forEach((id) => $(id)?.addEventListener('input', renderPreview));
-        ['promo-pop-visual-preset', 'promo-pop-badge-style', 'promo-pop-hero-layout', 'promo-pop-cta-style', 'promo-pop-output-format', 'promo-pop-price-panel-color', 'promo-pop-price-panel-shape', 'promo-pop-campaign-type', 'promo-pop-campaign-mood', 'promo-pop-campaign-audience', 'promo-pop-communication-style', 'promo-pop-headline-variant', 'promo-pop-urgency', 'promo-pop-trust-signal', 'promo-pop-section-style'].forEach((id) => $(id)?.addEventListener('change', () => { state.visual = readVisualSettings(); renderPreview(); }));
+        ['promo-pop-visual-preset', 'promo-pop-badge-style', 'promo-pop-hero-layout', 'promo-pop-cta-style', 'promo-pop-output-format', 'promo-pop-price-panel-color', 'promo-pop-price-panel-shape', 'promo-pop-campaign-type', 'promo-pop-campaign-mood', 'promo-pop-campaign-audience', 'promo-pop-communication-style', 'promo-pop-headline-variant', 'promo-pop-urgency', 'promo-pop-trust-signal', 'promo-pop-section-style'].forEach((id) => $(id)?.addEventListener('change', () => { state.visual = readVisualSettings(); updateCampaignIdentityPresetButtons(inferCampaignIdentityPreset(state.visual)); renderPreview(); }));
         $('promo-pop-visual-preset')?.addEventListener('change', (event) => applyVisualPreset(event.target.value));
         ['promo-pop-watermark', 'promo-pop-show-service', 'promo-pop-show-payment', 'promo-pop-show-disclaimer', 'promo-pop-smart-fit', 'promo-pop-group-categories', 'promo-pop-show-featured', 'promo-pop-image-background', 'promo-pop-show-saving', 'promo-pop-safe-area', 'promo-pop-ornaments'].forEach((id) => $(id)?.addEventListener('change', () => { state.visual = readVisualSettings(); renderPreview(); }));
         document.querySelectorAll('[data-ppob-wallet]').forEach((input) => input.addEventListener('change', renderPreview));
