@@ -388,6 +388,7 @@
                             <label class="pop-field"><span class="pop-label">Mulai promo</span><input id="promo-pop-start" class="pop-input" type="datetime-local"></label>
                             <label class="pop-field"><span class="pop-label">Selesai promo</span><input id="promo-pop-end" class="pop-input" type="datetime-local"></label>
                             <label class="pop-field full"><span class="pop-label">Deskripsi singkat</span><textarea id="promo-pop-description" class="pop-textarea" placeholder="Jelaskan konteks promo secara singkat..."></textarea></label>
+                            <div class="pop-field full campaign-identity-studio"><div class="pop-identity-head"><div><span class="pop-label">Campaign Identity Studio</span><span class="pop-help">Tentukan karakter komunikasi sebelum mengatur produk dan layout.</span></div><span class="pop-identity-chip">Konsep aktif</span></div><div class="pop-form-grid pop-form-grid-identity"><label class="pop-field"><span class="pop-label">Jenis campaign</span><select id="promo-pop-campaign-type" class="pop-select"><option value="weekly-promo">Promo Mingguan</option><option value="flash-sale">Flash Sale</option><option value="payday">Payday / Akhir Bulan</option><option value="seasonal">Seasonal / Hari Raya</option><option value="clearance">Clearance / Stok Terbatas</option><option value="bundle">Paket Hemat</option><option value="launching">Launching Produk</option></select></label><label class="pop-field"><span class="pop-label">Mood visual</span><select id="promo-pop-campaign-mood" class="pop-select"><option value="retail-aggressive">Retail Aggressive · Harga kuat</option><option value="premium">Premium · Elegan</option><option value="minimal">Minimal · Bersih</option><option value="seasonal">Seasonal · Meriah</option><option value="family-friendly">Family-friendly · Hangat</option><option value="fresh">Fresh · Natural</option></select></label><label class="pop-field"><span class="pop-label">Target pelanggan</span><select id="promo-pop-campaign-audience" class="pop-select"><option value="general">Semua pelanggan</option><option value="family">Keluarga</option><option value="students">Anak kos / mahasiswa</option><option value="warung">Warung dan usaha kecil</option><option value="member">Pelanggan member</option><option value="reseller">Reseller / grosir</option></select></label><label class="pop-field"><span class="pop-label">Gaya bahasa</span><select id="promo-pop-communication-style" class="pop-select"><option value="persuasive">Persuasif</option><option value="friendly">Santai dan ramah</option><option value="premium">Elegan</option><option value="urgent">Singkat dan urgent</option><option value="informative">Informatif</option></select></label><label class="pop-field"><span class="pop-label">Variasi headline</span><select id="promo-pop-headline-variant" class="pop-select"><option value="value">Belanja Hemat, Kebutuhan Lengkap</option><option value="price">Harga Miring Minggu Ini</option><option value="family">Hemat untuk Keluarga</option><option value="seasonal">Rayakan Momen dengan Harga Spesial</option><option value="urgent">Serbu Sebelum Kehabisan</option><option value="custom">Gunakan judul campaign</option></select></label><label class="pop-field"><span class="pop-label">Label event / edisi</span><input id="promo-pop-event-label" class="pop-input" placeholder="Edisi Agustus · Campaign #07"></label><label class="pop-field"><span class="pop-label">Urgensi promo</span><select id="promo-pop-urgency" class="pop-select"><option value="none">Tanpa label urgensi</option><option value="week">Berlaku minggu ini</option><option value="ending-soon">Segera berakhir</option><option value="today">Hanya hari ini</option><option value="stock">Stok terbatas</option><option value="seasonal">Selama periode event</option></select></label><label class="pop-field"><span class="pop-label">Sinyal kepercayaan</span><select id="promo-pop-trust-signal" class="pop-select"><option value="none">Tidak ditampilkan</option><option value="stock">Selama persediaan ada</option><option value="price-change">Harga dapat berubah sewaktu-waktu</option><option value="member">Khusus pelanggan member</option><option value="official">Produk resmi dan terkurasi</option></select></label></div><div id="promo-pop-concept-summary" class="pop-concept-summary" aria-live="polite"></div></div>
                         </div></div>
                     </section>
 
@@ -461,7 +462,7 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="js/catalog-promo-pop.js?v=20260827-roadmap-v1"></script>
+<script src="js/catalog-promo-pop.js?v=20260828identity1"></script>
 </body>
 </html>
 
@@ -473,4 +474,21 @@
 <style>
 @media print { .flyer-element-resize-handle, .flyer-tile-resize-handle { display:none !important; } }
 .flyer-preview.is-exporting .flyer-element-resize-handle, .flyer-preview.is-exporting .flyer-tile-resize-handle { display:none !important; }
+</style>
+
+<style>
+.campaign-identity-studio { margin-top: 4px; padding: 14px; border: 1px solid #fed7aa; border-radius: 16px; background: linear-gradient(135deg,#fff7ed,#fff); }
+.pop-identity-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.pop-identity-chip { border-radius:999px; padding:5px 9px; background:#ffedd5; color:#c2410c; font-size:10px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; white-space:nowrap; }
+.pop-form-grid-identity { grid-template-columns: repeat(4,minmax(0,1fr)); gap:10px; }
+.pop-concept-summary { margin-top:12px; padding:10px 12px; border-radius:12px; background:#1f2937; color:#fff; font-size:11px; font-weight:800; letter-spacing:.01em; }
+.flyer-event-label { display:inline-block; margin:4px 0; padding:3px 7px; border-radius:999px; background:rgba(255,255,255,.18); font-size:8px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+.flyer-campaign-title { opacity:.75; font-size:.68em !important; margin-top:-3px !important; }
+.flyer-identity-signals { display:flex; flex-wrap:wrap; gap:4px; margin-top:7px; }
+.flyer-identity-signals span { display:inline-flex; padding:3px 6px; border:1px solid rgba(255,255,255,.45); border-radius:999px; font-size:7px; font-weight:800; }
+.flyer-mood-premium .flyer-preview-hero { letter-spacing:.02em; }
+.flyer-mood-minimal .flyer-overlay { opacity:.28; }
+.flyer-mood-seasonal .flyer-preview-hero::after { content:'✦'; position:absolute; right:10%; top:14%; font-size:28px; opacity:.45; }
+.flyer-mood-family-friendly .flyer-preview-hero { filter:saturate(1.08); }
+@media (max-width: 900px) { .pop-form-grid-identity { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 </style>
