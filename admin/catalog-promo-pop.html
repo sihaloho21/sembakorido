@@ -200,7 +200,9 @@
         .flyer-preview.flyer-image-background-off .flyer-media-frame > img { background:transparent; }
         .flyer-featured .flyer-media-frame > img { max-width:calc(100% - 10px); max-height:calc(100% - 10px); padding:5px; }
         .flyer-layout-bento .flyer-item:first-child .flyer-media-frame { height:max(170px,var(--flyer-media-height,82px)); }
-        .flyer-item-badge { position:absolute; top:4px; left:4px; max-width:calc(100% - 8px); line-height:1.1; }
+        .flyer-item-badge-shelf { position:relative; z-index:6; display:table; max-width:calc(100% - 14px); margin:0 0 7px auto; padding:3px; border:1px solid rgba(255,255,255,.85); border-radius:999px; background:rgba(255,255,255,.92); box-shadow:0 2px 5px rgba(15,23,42,.16); pointer-events:none; }
+        .flyer-item-badge { display:block; max-width:100%; line-height:1.1; }
+        .flyer-positioned-item .flyer-item-badge-shelf { position:absolute; top:-75px; right:8px; margin:0; }
         .flyer-item-name { min-height:29px; overflow:hidden; color:#334155; font-size:10px; font-weight:850; line-height:1.35; }
         .currency-price { display:inline-flex; align-items:baseline; gap:2px; white-space:nowrap; }
         .currency-prefix { font-size:.2em; line-height:1; font-weight:900; }
@@ -343,7 +345,7 @@
         .flyer-positioned-normal { color:#94a3b8; font-size:10px; font-weight:850; line-height:1; white-space:nowrap; }
         .flyer-positioned-promo { color:#ea580c; font-size:18px; font-weight:950; line-height:1; white-space:nowrap; }
         .flyer-positioned-offer { width:90%; color:#64748b; font-size:9px; font-weight:850; line-height:1.1; text-align:center; }
-        .flyer-positioned-item .flyer-item-badge { position:absolute; top:4px; left:4px; z-index:3; }
+        .flyer-positioned-item .flyer-item-badge-shelf { z-index:6; }
         .flyer-layout-bento .flyer-positioned-item:first-child { min-height:300px; }
         .flyer-layout-bento .flyer-positioned-item:first-child .flyer-positioned-media,
         .flyer-layout-split-feature .flyer-positioned-item:first-child .flyer-positioned-media { width:78%; height:54%; }
@@ -499,7 +501,7 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="js/catalog-promo-pop.js?v=20260828output4"></script>
+<script src="js/catalog-promo-pop.js?v=20260828badge1"></script>
 </body>
 </html>
 
