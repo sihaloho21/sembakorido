@@ -65,7 +65,9 @@ const checks = [
   ['margins default to 0.4 cm and persist in visual config', html.includes('promo-pop-margin-top') && html.includes('value="0.4"') && pop.includes('marginTop') && pop.includes('marginLeft') && pop.includes('visual_config_json: JSON.stringify(readVisualSettings())')],
   ['safe-area display and non-blocking validation are both wired', html.includes('promo-pop-safe-area-display') && pop.includes('safeAreaDisplay') && pop.includes('flyer-safe-area-guide') && pop.includes('updateSafeAreaStatus')],
   ['density presets map to grid dimensions and manual edits become Custom', pop.includes('OUTPUT_DENSITY_PRESETS') && pop.includes('applyDensityPreset') && pop.includes("density: 'custom'") && html.includes('promo-pop-density')],
-  ['public renderer mirrors profile, density, margins, and safe-area display', publicHtml.includes('outputProfile') && publicHtml.includes('density') && publicHtml.includes('marginTop') && publicHtml.includes('pk-pop-safe-area-guide') && publicHtml.includes('pk-pop-density-')]
+  ['public renderer mirrors profile, density, margins, and safe-area display', publicHtml.includes('outputProfile') && publicHtml.includes('density') && publicHtml.includes('marginTop') && publicHtml.includes('pk-pop-safe-area-guide') && publicHtml.includes('pk-pop-density-')],
+  ['promo badge is rendered outside the product image element', /flyer-item-badge-shelf[\s\S]*flyer-retail-media/.test(pop) && !/flyer-retail-media[^<]*>[\s\S]*flyer-item-badge/.test(pop)],
+  ['detached badge shelf has independent spacing and stacking', html.includes('.flyer-item-badge-shelf') && html.includes('top:-75px') && html.includes('right:8px') && html.includes('z-index:6')]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
