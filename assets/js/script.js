@@ -2111,6 +2111,23 @@ function renderProducts(products) {
     grid.innerHTML = cardsHtml;
 }
 
+function sortProductsByAvailability(products) {
+    return products
+        .map((product, index) => ({ product, index }))
+        .sort((a, b) => {
+            const aAvailable = !a.product.isHidden && Number(a.product.stok) > 0;
+            const bAvailable = !b.product.isHidden && Number(b.product.stok) > 0;
+
+            if (aAvailable !== bAvailable) {
+                return aAvailable ? -1 : 1;
+            }
+
+            // Keep the API order for products with the same availability.
+            return a.index - b.index;
+        })
+        .map(({ product }) => product);
+}
+
 function filterProducts() {
     const searchInput = document.getElementById('search-input');
     const query = searchInput ? normalizeSearch(searchInput.value) : '';
@@ -2122,6 +2139,11 @@ function filterProducts() {
             productCategory.toLowerCase() === selectedCategory.toLowerCase();
         return matchesSearch && matchesCategory;
     });
+
+    if (normalizeCategoryLabel(currentCategory) === 'Semua') {
+        filteredProducts = sortProductsByAvailability(filteredProducts);
+    }
+
     currentPage = 1; // Reset to first page on filter
     renderProducts(filteredProducts);
     renderPagination(filteredProducts.length);
