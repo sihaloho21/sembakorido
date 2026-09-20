@@ -2024,23 +2024,10 @@ function renderProducts(products) {
         const hasVariations = p.variations && p.variations.length > 0;
 
         const productId = p.productId;
-        const isLiked = isProductInWishlist(productId);
-        const wishlistLabel = isLiked ? 'Hapus dari wishlist' : 'Tambah ke wishlist';
-        const heartIcon = isLiked 
-            ? '<svg class="w-3 h-3 md:w-5 md:h-5 text-red-500 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>'
-            : '<svg class="w-3 h-3 md:w-5 md:h-5 text-gray-400 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>';
-
-        // Kelas tambahan untuk produk hidden
         const hiddenCardClass = isHiddenProd ? ' opacity-70 pointer-events-none select-none' : '';
         const hiddenBanner = isHiddenProd
             ? `<div class="absolute inset-x-0 top-0 z-30 bg-gray-700/90 text-white text-[9px] md:text-[10px] font-bold text-center py-1 flex items-center justify-center gap-1"><svg class="w-2.5 h-2.5 md:w-3 md:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>Tidak Tersedia</div>`
             : '';
-        const wishlistButtonAttrs = isHiddenProd
-            ? 'disabled aria-disabled="true" tabindex="-1"'
-            : `data-action="toggle-wishlist" data-product-id="${productId}"`;
-        const wishlistButtonClass = isHiddenProd
-            ? 'product-card-wishlist absolute top-2 right-1 md:top-2 md:right-3 z-20 p-2 bg-white/90 rounded-full shadow-md transition opacity-60 cursor-not-allowed'
-            : 'product-card-wishlist absolute top-2 right-1 md:top-2 md:right-3 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition active:scale-95';
         const imageActionAttrs = isHiddenProd ? '' : `data-action="show-detail" data-product-id="${productId}"`;
         const imageInteractiveClass = isHiddenProd ? 'cursor-default' : 'cursor-pointer hover:opacity-90';
         const inlineCartState = !isHiddenProd && !hasVariations
@@ -2064,11 +2051,6 @@ function renderProducts(products) {
 	                <div class="lazy-image-wrapper bg-white relative" style="aspect-ratio: 4 / 3;">
 	                    <div class="skeleton skeleton-product-image"></div>
 	                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="product-card-image w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="https://placehold.co/500x500?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
-	                    
-	                    <!-- Wishlist Heart Button -->
-	                    <button id="wishlist-btn-${productId}" ${wishlistButtonAttrs} class="${wishlistButtonClass}" aria-label="${wishlistLabel}" title="${wishlistLabel}">
-	                        ${heartIcon}
-	                    </button>
 	                </div>
                     <div class="p-2 md:p-3">
 	                    <div class="flex flex-col mb-1 md:mb-2">
@@ -3834,8 +3816,6 @@ function updateModalQty(delta) {
 }
 
 function showDetail(p) {
-    // Tutup modal wishlist jika sedang terbuka agar tidak menumpuk
-    closeWishlistModal();
 
     const resolvedProduct = resolveProductForModal(p);
     if (resolvedProduct) {
@@ -4414,8 +4394,6 @@ function refreshDetailModal(product) {
 }
 
 function showDetail(p) {
-    closeWishlistModal();
-
     const resolvedProduct = resolveProductForModal(p);
     if (resolvedProduct) {
         p = resolvedProduct;
@@ -5330,9 +5308,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             switch (action) {
-                case 'toggle-wishlist':
-                    if (productId) toggleWishlist(productId);
-                    break;
                 case 'show-detail':
                     if (product) showDetail(product);
                     break;
@@ -5653,32 +5628,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (variation) selectVariation(variation, index);
         });
     }
-
-    // Wishlist delegation
-    const wishlistContainer = document.getElementById('wishlist-items-container');
-    if (wishlistContainer) {
-        wishlistContainer.addEventListener('click', (event) => {
-            const actionEl = event.target.closest('[data-action]');
-            if (!actionEl || actionEl.disabled) return;
-            const action = actionEl.getAttribute('data-action');
-            const productId = actionEl.getAttribute('data-product-id');
-            const product = findProductById(productId);
-
-            if (action === 'wishlist-toggle' && productId) {
-                toggleWishlist(productId);
-                return;
-            }
-            if (action === 'wishlist-buy' && isProductInteractionLocked(product)) {
-                event.preventDefault();
-                event.stopPropagation();
-                return;
-            }
-            if (action === 'wishlist-buy' && product) {
-                showDetail(product);
-            }
-        });
-    }
-
     // Reward "Tukar" button delegation (items rendered dynamically)
     const rewardItemsList = document.getElementById('reward-items-list');
     if (rewardItemsList) {
@@ -7229,231 +7178,6 @@ function buildClaimRewardErrorMessage(error) {
     return 'Gagal memproses penukaran. Silakan coba lagi.';
 }
 
-
-/**
- * ==========================================
- * WISHLIST (DAFTAR KEINGINAN) FEATURE
- * ==========================================
- */
-
-const WISHLIST_KEY = 'gos_wishlist';
-
-/**
- * Mengambil daftar ID produk di Wishlist dari localStorage.
- * @returns {Array<string>} Array berisi ID produk.
- */
-function getWishlist() {
-    const wishlistJson = localStorage.getItem(WISHLIST_KEY);
-    return wishlistJson ? JSON.parse(wishlistJson) : [];
-}
-
-/**
- * Menyimpan daftar ID produk ke localStorage.
- * @param {Array<string>} wishlist - Array ID produk.
- */
-function saveWishlist(wishlist) {
-    localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist));
-    updateWishlistCount();
-}
-
-/**
- * Menambah atau menghapus produk dari Wishlist.
- * @param {string} productId - ID unik produk.
- */
-function toggleWishlist(productId) {
-    let wishlist = getWishlist();
-    const index = wishlist.indexOf(productId);
-
-    if (index > -1) {
-        // Produk sudah ada, hapus (Unlike)
-        wishlist.splice(index, 1);
-        showToast('Produk dihapus dari Wishlist.');
-    } else {
-        // Produk belum ada, tambah (Like)
-        wishlist.push(productId);
-        showToast('Produk ditambahkan ke Wishlist!');
-    }
-
-    saveWishlist(wishlist);
-    // Perbarui tampilan ikon di kartu produk yang bersangkutan
-    updateProductWishlistIcon(productId);
-    
-    // Jika modal wishlist terbuka, refresh isinya
-    const wishlistModal = document.getElementById('wishlist-modal');
-    if (wishlistModal && !wishlistModal.classList.contains('hidden')) {
-        renderWishlistItems();
-    }
-}
-
-/**
- * Memeriksa apakah produk ada di Wishlist.
- * @param {string} productId - ID unik produk.
- * @returns {boolean} True jika ada di Wishlist.
- */
-function isProductInWishlist(productId) {
-    return getWishlist().includes(productId);
-}
-
-/**
- * Memperbarui angka Wishlist di header.
- */
-function updateWishlistCount() {
-    const count = getWishlist().length;
-    const countElement = document.getElementById('wishlist-count');
-    if (countElement) {
-        countElement.textContent = count;
-        if (count > 0) {
-            countElement.classList.remove('hidden');
-        } else {
-            countElement.classList.add('hidden');
-        }
-    }
-}
-
-/**
- * Memperbarui ikon Heart di kartu produk tanpa re-render
- * @param {string} productId - ID unik produk
- */
-function updateProductWishlistIcon(productId) {
-    const button = document.getElementById(`wishlist-btn-${productId}`);
-    if (!button) return;
-
-    const isLiked = isProductInWishlist(productId);
-    const wishlistLabel = isLiked ? 'Hapus dari wishlist' : 'Tambah ke wishlist';
-    const heartIcon = isLiked 
-        ? '<svg class="w-5 h-5 text-red-500 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>'
-        : '<svg class="w-5 h-5 text-gray-400 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>';
-    
-    button.innerHTML = heartIcon;
-    button.setAttribute('aria-label', wishlistLabel);
-    button.setAttribute('title', wishlistLabel);
-}
-
-/**
- * Membuka modal Wishlist
- */
-function openWishlistModal() {
-    const modal = document.getElementById('wishlist-modal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        document.body.classList.add('modal-active');
-        renderWishlistItems();
-    }
-}
-
-/**
- * Menutup modal Wishlist
- */
-function closeWishlistModal() {
-    const modal = document.getElementById('wishlist-modal');
-    if (modal) {
-        modal.classList.add('hidden');
-        document.body.classList.remove('modal-active');
-    }
-}
-
-/**
- * Mengambil data produk lengkap dan merender item Wishlist.
- */
-async function renderWishlistItems() {
-    const wishlistIds = getWishlist();
-    const container = document.getElementById('wishlist-items-container');
-    
-    console.log('🔍 Rendering wishlist items:', { wishlistIds, containerFound: !!container });
-    
-    if (!container) return;
-
-    if (wishlistIds.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-10">
-                <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                </svg>
-                <p class="text-gray-500 font-semibold">Wishlist Anda kosong.</p>
-                <p class="text-gray-400 text-sm mt-2">Tambahkan produk favorit Anda!</p>
-            </div>
-        `;
-        return;
-    }
-
-    // Use global allProducts which already has complete structure with hargaGajian, etc.
-    // If allProducts is empty, fetch it first
-    if (!allProducts || allProducts.length === 0) {
-        console.log('📦 Fetching products for wishlist...');
-        try {
-            await fetchProducts();
-            console.log('✅ Products fetched:', allProducts.length);
-        } catch (error) {
-            console.error('❌ Failed to fetch products:', error);
-            container.innerHTML = '<p class="text-center text-red-500 py-4">Gagal memuat produk. Silakan refresh halaman.</p>';
-            return;
-        }
-    }
-    
-    // ✅ FIX: Normalize IDs to string for comparison
-    const wishlistSet = new Set(wishlistIds.map(id => String(id).trim()));
-    console.log('🔍 Wishlist Set:', Array.from(wishlistSet));
-    
-    const wishlistProducts = allProducts.filter(p => {
-        const productId = String(p.productId || '').trim();
-        const isInWishlist = wishlistSet.has(productId);
-        if (isInWishlist) {
-            console.log('✅ Found wishlist product:', productId, p.nama);
-        }
-        return isInWishlist;
-    });
-
-    console.log('📊 Wishlist products found:', wishlistProducts.length);
-
-    if (wishlistProducts.length === 0) {
-        container.innerHTML = '<p class="text-center text-gray-500 py-4">Produk tidak ditemukan. Mungkin produk sudah tidak tersedia.</p>';
-        return;
-    }
-
-    container.innerHTML = wishlistProducts.map(p => {
-        const productId = p.productId;
-        const harga = parseFloat(p.harga_tunai || p.harga || 0);
-        const imageUrl = p.gambar ? String(p.gambar).split(',')[0].trim() : '';
-        const safeImage = sanitizeUrl(imageUrl, 'https://placehold.co/100x100?text=Produk');
-        const isHiddenProd = isProductInteractionLocked(p);
-        const buyButtonAttrs = isHiddenProd
-            ? 'disabled aria-disabled="true" tabindex="-1"'
-            : `data-action="wishlist-buy" data-product-id="${productId}"`;
-        const buyButtonClass = isHiddenProd
-            ? 'bg-gray-200 text-gray-400 text-xs font-bold px-3 py-1.5 rounded-lg cursor-not-allowed'
-            : 'bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95';
-        const availabilityHtml = isHiddenProd
-            ? '<p class="text-[10px] text-gray-500 font-semibold mt-1">Sedang Tidak Tersedia</p>'
-            : '';
-        return `
-            <div class="flex items-center justify-between p-4 border-b border-gray-100 hover:bg-gray-50 transition">
-                <div class="flex items-center gap-3 flex-1">
-                    <img src="${safeImage}" alt="${escapeHtml(p.nama)}" class="w-16 h-16 object-cover rounded-lg shadow-sm" data-fallback-src="https://placehold.co/100x100?text=Produk">
-                    <div class="flex-1">
-                        <p class="font-semibold text-sm text-gray-800">${escapeHtml(p.nama)}</p>
-                        <p class="text-xs text-green-600 font-bold mt-1">Rp ${harga.toLocaleString('id-ID')}</p>
-                        ${availabilityHtml}
-                    </div>
-                </div>
-                <div class="flex gap-2">
-                    <button type="button" data-action="wishlist-toggle" data-product-id="${productId}" class="text-red-500 hover:text-red-700 p-2 transition active:scale-95" title="Hapus dari Wishlist">
-                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                    </button>
-                    <button type="button" ${buyButtonAttrs} class="${buyButtonClass}">
-                        ${isHiddenProd ? 'Tidak Tersedia' : 'Beli'}
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    console.log('✅ Wishlist rendered successfully');
-}
-
-// Panggil saat website pertama kali dimuat
-document.addEventListener('DOMContentLoaded', updateWishlistCount);
-
-// ============ QRIS MODAL FUNCTIONS ============
 function showQRISModal() {
     const modal = document.getElementById('qris-modal');
     if (modal) {
