@@ -2014,9 +2014,9 @@ function renderProducts(products) {
         if (p.hargaCoret > p.harga) {
             const diskon = Math.round(((p.hargaCoret - p.harga) / p.hargaCoret) * 100);
             hargaCoretHtml = `
-                <span class="ml-auto inline-flex shrink-0 flex-col items-end gap-0.5">
-                    <span class="product-card-discount-badge inline-flex items-center rounded-sm bg-red-500 px-1.5 py-0.5 text-[6px] font-bold leading-none text-white md:rounded md:px-2 md:py-1 md:text-[8px]" style="line-height:1;">-${diskon}%</span>
+                <span class="product-card-sale-meta inline-flex items-center gap-1.5">
                     <span class="product-card-old-price text-[9px] leading-tight text-gray-400 line-through md:text-xs">Rp ${p.hargaCoret.toLocaleString('id-ID')}</span>
+                    <span class="product-card-discount-badge inline-flex items-center rounded bg-red-500 px-1.5 py-0.5 text-[6px] font-bold leading-none text-white md:px-2 md:py-1 md:text-[8px]" style="line-height:1;">-${diskon}%</span>
                 </span>
             `;
         }
@@ -2058,7 +2058,7 @@ function renderProducts(products) {
 	                        ${stokLabel}
 	                    </div>
 	                    <div class="flex flex-col mb-2 md:mb-3">
-                        <div class="flex flex-wrap items-center gap-x-1.5 gap-y-1 md:gap-x-2">
+                        <div class="product-card-price-row flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 md:gap-x-2">
                             <p class="product-card-sale-price text-[14px] font-bold leading-tight text-green-700 md:text-lg">Rp ${p.harga.toLocaleString('id-ID')}</p>
                             ${hargaCoretHtml}
                         </div>
