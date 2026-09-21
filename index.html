@@ -2731,6 +2731,20 @@
             .product-card-cart-add-button { width: 2.25rem; height: 2.25rem; }
         }
         @media (min-width: 768px) {
+            .product-card-price-row {
+                width: 100%;
+                min-height: 2.35rem;
+                align-items: flex-start;
+                justify-content: space-between;
+            }
+            .product-card-sale-meta {
+                flex-direction: column;
+                align-items: flex-end;
+                justify-content: center;
+                gap: 0.2rem;
+                margin-left: auto;
+            }
+            .product-card-discount-badge { order: -1; }
             .product-card-sale-price { font-size: 18px; }
             .product-card-old-price { font-size: 12px; }
             .product-card-discount-badge { font-size: 8px; }
@@ -4416,7 +4430,7 @@
             </div>
         </div>
     </div>
-    <script src="assets/js/script.js?v=20260921b"></script>
+    <script src="assets/js/script.js?v=20260921c"></script>
     <script src="assets/js/transaction-badge.js"></script>
 
     <script>
