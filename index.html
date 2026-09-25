@@ -4152,6 +4152,65 @@
     </div>
     <!-- /Modal: Tentang Paket Sembako -->
 
+    <!-- Modal: Syarat & Ketentuan -->
+    <div id="terms-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="terms-modal-title" tabindex="-1" data-modal>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 text-white p-6 rounded-t-2xl flex justify-between items-center z-10" style="background: linear-gradient(to right, #16a34a, #0034ff);">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center" aria-hidden="true">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h6.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <div>
+                        <h3 id="terms-modal-title" class="text-xl font-bold">Syarat &amp; Ketentuan</h3>
+                        <p class="text-sm text-white/80">Ketentuan penggunaan Paket Sembako</p>
+                    </div>
+                </div>
+                <button type="button" data-action="close-terms" class="bg-white/20 hover:bg-white/30 p-2 rounded-xl transition" aria-label="Tutup modal Syarat dan Ketentuan">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-5 text-sm text-gray-600 leading-relaxed">
+                <div class="rounded-xl border border-green-100 bg-green-50/70 p-4">
+                    <p>Dengan mengakses dan menggunakan situs Paket Sembako, Anda menyatakan telah membaca, memahami, dan menyetujui syarat &amp; ketentuan berikut.</p>
+                </div>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-800 mb-2">1. Ketentuan Umum</h4>
+                    <p>Paket Sembako menyediakan layanan belanja kebutuhan pokok secara online. Pengguna wajib memberikan informasi yang benar dan menggunakan layanan ini untuk keperluan yang sah serta tidak merugikan pihak lain.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-800 mb-2">2. Produk, Harga, dan Ketersediaan</h4>
+                    <p>Kami berusaha menampilkan informasi produk, harga, stok, dan foto secara akurat. Ketersediaan produk dapat berubah sewaktu-waktu. Harga dan total pembayaran yang berlaku adalah yang ditampilkan saat pesanan dikonfirmasi, termasuk biaya pengiriman apabila ada.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-800 mb-2">3. Pesanan dan Pembayaran</h4>
+                    <p>Pesanan diproses setelah data penerima dan metode pembayaran dikonfirmasi. Pengguna bertanggung jawab memastikan detail pesanan sudah benar. Pesanan yang belum dibayar atau tidak dapat dikonfirmasi dapat ditunda atau dibatalkan sesuai kondisi operasional.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-800 mb-2">4. Pengiriman</h4>
+                    <p>Waktu pengiriman merupakan estimasi dan dapat dipengaruhi oleh ketersediaan produk, alamat tujuan, cuaca, hari libur, serta kondisi operasional. Pengguna wajib memastikan alamat dan nomor kontak dapat dihubungi agar pesanan dapat diterima dengan baik.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-800 mb-2">5. Pembatalan dan Keluhan</h4>
+                    <p>Permintaan pembatalan, kekurangan, atau kerusakan produk dapat disampaikan sesegera mungkin melalui WhatsApp <a href="https://wa.me/628993370200" target="_blank" rel="noopener noreferrer" class="font-semibold text-green-600 hover:text-green-700">0899-3370-200</a> dengan menyertakan nomor pesanan dan bukti yang diperlukan. Penyelesaian akan ditinjau berdasarkan kondisi pesanan dan kebijakan operasional yang berlaku.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-800 mb-2">6. Perubahan Ketentuan</h4>
+                    <p>Paket Sembako dapat memperbarui syarat &amp; ketentuan ini untuk menyesuaikan layanan dan peraturan yang berlaku. Versi terbaru akan ditampilkan pada halaman ini dan berlaku sejak dipublikasikan.</p>
+                </section>
+
+                <button type="button" data-action="close-terms" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-green-100">Saya Mengerti</button>
+            </div>
+        </div>
+    </div>
+    <!-- /Modal: Syarat & Ketentuan -->
+
     <!-- Mobile Bottom Navigation -->
     <nav id="mobile-bottom-navigation" class="mobile-bottom-navigation md:hidden fixed bottom-0 left-0 right-0 z-50" aria-label="Navigasi utama">
         <div class="mobile-bottom-navigation__shell">
@@ -4254,7 +4313,7 @@
                     <h3 class="text-base font-bold text-white mb-4 uppercase">Jelajahi Paket Sembako</h3>
                     <ul class="space-y-2">
                         <li><button type="button" data-action="open-about" class="text-gray-300 hover:text-green-400 text-sm transition-colors text-left">Tentang Kami</button></li>
-                        <li><button type="button" class="text-gray-300 hover:text-green-400 text-sm transition-colors text-left cursor-not-allowed opacity-70" aria-disabled="true" disabled>Syarat & Ketentuan</button></li>
+                        <li><button type="button" data-action="open-terms" class="text-gray-300 hover:text-green-400 text-sm transition-colors text-left">Syarat &amp; Ketentuan</button></li>
                         <li><button type="button" class="text-gray-300 hover:text-green-400 text-sm transition-colors text-left cursor-not-allowed opacity-70" aria-disabled="true" disabled>Kebijakan Privasi</button></li>
                         <li><a href="/blog.html" class="text-gray-300 hover:text-green-400 text-sm transition-colors">Blog</a></li>
                     </ul>
@@ -4576,10 +4635,33 @@
                 }
             });
 
+            // Modal: Syarat & Ketentuan
+            bindAll('[data-action="open-terms"]', () => {
+                const modal = document.getElementById('terms-modal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    document.body.classList.add('modal-active');
+                    modal.focus();
+                }
+            });
+            bindAll('[data-action="close-terms"]', () => {
+                const modal = document.getElementById('terms-modal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    document.body.classList.remove('modal-active');
+                }
+            });
+
             // Tutup modal about saat klik backdrop
             document.getElementById('about-modal')?.addEventListener('click', (e) => {
                 if (e.target === document.getElementById('about-modal')) {
                     document.getElementById('about-modal').classList.add('hidden');
+                    document.body.classList.remove('modal-active');
+                }
+            });
+            document.getElementById('terms-modal')?.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('terms-modal')) {
+                    document.getElementById('terms-modal').classList.add('hidden');
                     document.body.classList.remove('modal-active');
                 }
             });
