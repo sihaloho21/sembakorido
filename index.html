@@ -4211,6 +4211,75 @@
     </div>
     <!-- /Modal: Syarat & Ketentuan -->
 
+    <!-- Modal: Kebijakan Privasi -->
+    <div id="privacy-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="privacy-modal-title" tabindex="-1" data-modal>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 text-white p-6 rounded-t-2xl flex justify-between items-center z-10" style="background: linear-gradient(to right, #16a34a, #0034ff);">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center" aria-hidden="true">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v2h8z"/></svg>
+                    </div>
+                    <div>
+                        <h3 id="privacy-modal-title" class="text-xl font-bold">Kebijakan Privasi</h3>
+                        <p class="text-sm text-white/80">Perlindungan data pengguna Paket Sembako</p>
+                    </div>
+                </div>
+                <button type="button" data-action="close-privacy" class="bg-white/20 hover:bg-white/30 p-2 rounded-xl transition" aria-label="Tutup modal Kebijakan Privasi">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-5 text-sm text-gray-600 leading-relaxed">
+                <div class="rounded-xl border border-green-100 bg-green-50/70 p-4">
+                    <p>Kebijakan Privasi ini menjelaskan bagaimana Paket Sembako mengumpulkan, menggunakan, menyimpan, dan melindungi informasi saat Anda menggunakan situs dan layanan kami.</p>
+                </div>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-800 mb-2">1. Informasi yang Kami Kumpulkan</h4>
+                    <p>Kami dapat menerima informasi yang Anda berikan saat membuat pesanan atau menghubungi kami, seperti nama, nomor WhatsApp, alamat pengiriman, detail pesanan, dan informasi komunikasi. Kami juga dapat menerima data teknis dasar seperti perangkat, browser, serta aktivitas yang diperlukan untuk menjalankan situs.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-800 mb-2">2. Penggunaan Informasi</h4>
+                    <p>Informasi digunakan untuk memproses dan mengirimkan pesanan, menghubungi Anda terkait transaksi, memberikan dukungan pelanggan, menjaga keamanan layanan, meningkatkan pengalaman belanja, serta menjalankan program poin atau promosi yang Anda ikuti.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-800 mb-2">3. Penyimpanan dan Perlindungan Data</h4>
+                    <p>Kami berupaya melindungi informasi dari akses, perubahan, atau penggunaan yang tidak sah melalui langkah pengamanan yang wajar. Sebagian preferensi dan data sesi dapat disimpan pada browser Anda, termasuk melalui <em>localStorage</em>. Tidak ada metode penyimpanan atau transmisi melalui internet yang dapat dijamin sepenuhnya aman.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-800 mb-2">4. Berbagi Informasi</h4>
+                    <p>Informasi hanya dibagikan sejauh diperlukan untuk memenuhi pesanan, menyediakan layanan, memenuhi kewajiban hukum, atau melindungi keamanan pengguna dan layanan. Kami tidak menjual informasi pribadi pengguna.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-800 mb-2">5. Tautan dan Layanan Pihak Ketiga</h4>
+                    <p>Situs dapat memuat tautan atau menggunakan layanan pihak ketiga, seperti WhatsApp, penyedia pembayaran, analitik, atau layanan pengiriman. Penggunaan informasi oleh pihak ketiga mengikuti kebijakan privasi masing-masing dan perlu ditinjau sebelum Anda menggunakan layanannya.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-800 mb-2">6. Hak dan Pilihan Anda</h4>
+                    <p>Anda dapat meminta informasi mengenai data yang terkait dengan pesanan Anda, memperbarui data yang tidak tepat, atau menyampaikan pertanyaan privasi kepada kami. Beberapa data mungkin perlu dipertahankan untuk keperluan transaksi, keamanan, atau kewajiban hukum.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-800 mb-2">7. Pembaruan Kebijakan</h4>
+                    <p>Kebijakan Privasi ini dapat diperbarui dari waktu ke waktu. Perubahan akan ditampilkan pada halaman ini dan berlaku sejak dipublikasikan. Jika Anda terus menggunakan layanan setelah pembaruan, penggunaan tersebut dianggap sebagai penerimaan terhadap kebijakan yang telah diperbarui.</p>
+                </section>
+
+                <div class="rounded-xl bg-gray-50 p-4">
+                    <h4 class="text-base font-bold text-gray-800 mb-2">Hubungi Kami</h4>
+                    <p>Untuk pertanyaan atau permintaan terkait privasi, silakan hubungi WhatsApp <a href="https://wa.me/628993370200" target="_blank" rel="noopener noreferrer" class="font-semibold text-green-600 hover:text-green-700">0899-3370-200</a>.</p>
+                </div>
+
+                <button type="button" data-action="close-privacy" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-green-100">Saya Mengerti</button>
+            </div>
+        </div>
+    </div>
+    <!-- /Modal: Kebijakan Privasi -->
+
     <!-- Mobile Bottom Navigation -->
     <nav id="mobile-bottom-navigation" class="mobile-bottom-navigation md:hidden fixed bottom-0 left-0 right-0 z-50" aria-label="Navigasi utama">
         <div class="mobile-bottom-navigation__shell">
@@ -4314,7 +4383,7 @@
                     <ul class="space-y-2">
                         <li><button type="button" data-action="open-about" class="text-gray-300 hover:text-green-400 text-sm transition-colors text-left">Tentang Kami</button></li>
                         <li><button type="button" data-action="open-terms" class="text-gray-300 hover:text-green-400 text-sm transition-colors text-left">Syarat &amp; Ketentuan</button></li>
-                        <li><button type="button" class="text-gray-300 hover:text-green-400 text-sm transition-colors text-left cursor-not-allowed opacity-70" aria-disabled="true" disabled>Kebijakan Privasi</button></li>
+                        <li><button type="button" data-action="open-privacy" class="text-gray-300 hover:text-green-400 text-sm transition-colors text-left">Kebijakan Privasi</button></li>
                         <li><a href="/blog.html" class="text-gray-300 hover:text-green-400 text-sm transition-colors">Blog</a></li>
                     </ul>
                 </div>
@@ -4652,6 +4721,23 @@
                 }
             });
 
+            // Modal: Kebijakan Privasi
+            bindAll('[data-action="open-privacy"]', () => {
+                const modal = document.getElementById('privacy-modal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    document.body.classList.add('modal-active');
+                    modal.focus();
+                }
+            });
+            bindAll('[data-action="close-privacy"]', () => {
+                const modal = document.getElementById('privacy-modal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    document.body.classList.remove('modal-active');
+                }
+            });
+
             // Tutup modal about saat klik backdrop
             document.getElementById('about-modal')?.addEventListener('click', (e) => {
                 if (e.target === document.getElementById('about-modal')) {
@@ -4662,6 +4748,12 @@
             document.getElementById('terms-modal')?.addEventListener('click', (e) => {
                 if (e.target === document.getElementById('terms-modal')) {
                     document.getElementById('terms-modal').classList.add('hidden');
+                    document.body.classList.remove('modal-active');
+                }
+            });
+            document.getElementById('privacy-modal')?.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('privacy-modal')) {
+                    document.getElementById('privacy-modal').classList.add('hidden');
                     document.body.classList.remove('modal-active');
                 }
             });
