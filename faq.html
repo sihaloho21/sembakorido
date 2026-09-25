@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Pertanyaan yang sering diajukan tentang belanja, pembayaran, pengiriman, dan layanan Paket Sembako.">
+    <link rel="icon" href="assets/img/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="assets/img/favicon-32x32.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+    <title>FAQ – Paket Sembako</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1e293b; background: #f5f5f0; }
+        a { color: inherit; }
+        .site-header { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+        .header-inner { max-width: 1040px; height: 68px; margin: auto; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+        .brand { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; }
+        .brand img { width: auto; height: 40px; object-fit: contain; }
+        .brand-name { color: #16a34a; font-size: 1rem; font-weight: 800; }
+        .back-link { display: inline-flex; align-items: center; gap: 6px; padding: 9px 15px; border-radius: 10px; color: #fff; background: linear-gradient(135deg, #16a34a, #1d4ed8); font-size: .8rem; font-weight: 700; text-decoration: none; transition: opacity .2s; }
+        .back-link:hover { opacity: .88; }
+        .hero { position: relative; overflow: hidden; padding: 68px 20px 54px; color: #fff; text-align: center; background: linear-gradient(135deg, #16a34a 0%, #0f4c9e 60%, #1d4ed8 100%); }
+        .hero::before { content: ''; position: absolute; inset: 0; opacity: .35; background-image: radial-gradient(circle at 20% 30%, #fff 0 2px, transparent 3px), radial-gradient(circle at 80% 70%, #fff 0 2px, transparent 3px); background-size: 80px 80px, 120px 120px; }
+        .hero-inner { position: relative; max-width: 680px; margin: auto; }
+        .badge { display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; color: #fff; background: rgba(255,255,255,.16); font-size: .78rem; font-weight: 700; }
+        .badge svg { width: 15px; height: 15px; }
+        h1 { margin: 16px 0 10px; font-size: clamp(1.8rem, 4vw, 2.7rem); line-height: 1.15; }
+        .hero p { max-width: 580px; margin: auto; color: rgba(255,255,255,.88); line-height: 1.65; }
+        main { max-width: 800px; margin: auto; padding: 44px 20px 64px; }
+        .intro { margin-bottom: 24px; color: #64748b; text-align: center; line-height: 1.7; }
+        .faq-list { display: grid; gap: 12px; }
+        .faq-item { overflow: hidden; border: 1px solid #e5e7eb; border-radius: 16px; background: #fff; box-shadow: 0 3px 14px rgba(15,23,42,.04); transition: border-color .2s, box-shadow .2s; }
+        .faq-item[open] { border-color: #86efac; box-shadow: 0 6px 20px rgba(22,163,74,.09); }
+        .faq-question { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px; color: #1e293b; font-size: .98rem; font-weight: 800; cursor: pointer; list-style: none; }
+        .faq-question::-webkit-details-marker { display: none; }
+        .faq-question::after { content: '+'; flex: 0 0 auto; color: #16a34a; font-size: 1.5rem; font-weight: 400; line-height: 1; }
+        .faq-item[open] .faq-question::after { content: '−'; }
+        .faq-answer { padding: 0 20px 20px; color: #64748b; line-height: 1.7; }
+        .faq-answer p { margin: 0; }
+        .faq-answer a { color: #16a34a; font-weight: 700; text-decoration: none; }
+        .faq-answer a:hover { text-decoration: underline; }
+        .contact-card { margin-top: 34px; padding: 25px; border-radius: 20px; color: #fff; text-align: center; background: linear-gradient(135deg, #14532d, #1d4ed8); }
+        .contact-card h2 { margin: 0 0 7px; font-size: 1.2rem; }
+        .contact-card p { margin: 0 0 17px; color: rgba(255,255,255,.85); line-height: 1.6; }
+        .contact-button { display: inline-flex; align-items: center; gap: 8px; padding: 11px 17px; border-radius: 10px; color: #14532d; background: #fff; font-weight: 800; text-decoration: none; }
+        .contact-button:hover { background: #f0fdf4; }
+        .contact-button svg { width: 17px; height: 17px; }
+        footer { padding: 24px 20px; color: #64748b; background: #fff; border-top: 1px solid #e5e7eb; text-align: center; font-size: .82rem; line-height: 1.6; }
+        footer p { margin: 0; }
+        footer a { color: #16a34a; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+        @media (max-width: 520px) { .header-inner { height: 60px; padding: 0 14px; } .brand img { height: 34px; } .brand-name { font-size: .9rem; } .back-link { padding: 8px 10px; font-size: .74rem; } .hero { padding-top: 50px; } .faq-question { padding: 17px; font-size: .92rem; } .faq-answer { padding: 0 17px 17px; } }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="index.html" class="brand" aria-label="Kembali ke Paket Sembako">
+                <img src="assets/img/logo.png" alt="Paket Sembako">
+                <span class="brand-name">Paket Sembako</span>
+            </a>
+            <a href="index.html" class="back-link">Kembali Belanja</a>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-inner">
+            <span class="badge">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9.247a4.75 4.75 0 017.544 0M12 14.25h.01M12 20.25a8.25 8.25 0 100-16.5 8.25 8.25 0 000 16.5z"/></svg>
+                Pusat Bantuan
+            </span>
+            <h1>Pertanyaan yang Sering Diajukan</h1>
+            <p>Temukan jawaban tentang pemesanan, pembayaran, pengiriman, dan layanan Paket Sembako.</p>
+        </div>
+    </section>
+
+    <main>
+        <p class="intro">Belum menemukan jawaban yang Anda cari? Hubungi tim kami melalui WhatsApp. Kami siap membantu.</p>
+        <div class="faq-list">
+            <details class="faq-item">
+                <summary class="faq-question">Bagaimana cara melakukan pemesanan?</summary>
+                <div class="faq-answer"><p>Pilih produk yang ingin dibeli, masukkan ke keranjang, periksa kembali jumlah dan alamat pengiriman, lalu ikuti langkah checkout sampai pesanan berhasil dikonfirmasi.</p></div>
+            </details>
+            <details class="faq-item">
+                <summary class="faq-question">Apakah saya harus membuat akun untuk berbelanja?</summary>
+                <div class="faq-answer"><p>Anda dapat menjelajahi katalog tanpa akun. Untuk pengalaman yang lebih mudah, akun membantu menyimpan informasi pelanggan, memeriksa pesanan, dan menggunakan fitur layanan yang tersedia.</p></div>
+            </details>
+            <details class="faq-item">
+                <summary class="faq-question">Metode pembayaran apa saja yang tersedia?</summary>
+                <div class="faq-answer"><p>Metode pembayaran yang tersedia ditampilkan pada saat checkout. Pastikan nominal dan instruksi pembayaran telah sesuai sebelum menyelesaikan transaksi.</p></div>
+            </details>
+            <details class="faq-item">
+                <summary class="faq-question">Berapa lama pesanan dikirim?</summary>
+                <div class="faq-answer"><p>Pengiriman umumnya diproses sesuai estimasi yang ditampilkan saat pesanan. Waktu dapat berubah karena ketersediaan produk, alamat tujuan, cuaca, hari libur, atau kondisi operasional.</p></div>
+            </details>
+            <details class="faq-item">
+                <summary class="faq-question">Apakah tersedia harga grosir?</summary>
+                <div class="faq-answer"><p>Beberapa produk memiliki pilihan harga grosir. Ketentuan jumlah minimum dan harga grosir akan ditampilkan pada halaman produk jika tersedia.</p></div>
+            </details>
+            <details class="faq-item">
+                <summary class="faq-question">Bagaimana cara mengecek status pesanan?</summary>
+                <div class="faq-answer"><p>Gunakan halaman <a href="transaksi.html">Transaksi</a> untuk melihat riwayat dan status pesanan. Pastikan Anda menggunakan sesi browser yang sama dengan saat melakukan pemesanan.</p></div>
+            </details>
+            <details class="faq-item">
+                <summary class="faq-question">Apa yang harus dilakukan jika produk rusak atau tidak sesuai?</summary>
+                <div class="faq-answer"><p>Hubungi kami sesegera mungkin melalui WhatsApp dengan menyertakan nomor pesanan, foto produk, dan penjelasan masalah. Tim kami akan meninjau laporan dan membantu menentukan penyelesaian yang sesuai.</p></div>
+            </details>
+            <details class="faq-item">
+                <summary class="faq-question">Apakah pesanan dapat dibatalkan?</summary>
+                <div class="faq-answer"><p>Permintaan pembatalan dapat disampaikan secepatnya. Pesanan yang sudah diproses atau dikirim mungkin tidak dapat dibatalkan. Silakan hubungi kami untuk bantuan dan lihat ketentuan yang berlaku sebelum mengajukan pembatalan.</p></div>
+            </details>
+        </div>
+
+        <div class="contact-card">
+            <h2>Masih Punya Pertanyaan?</h2>
+            <p>Tim Paket Sembako siap membantu Anda melalui WhatsApp.</p>
+            <a href="https://wa.me/628993370200" target="_blank" rel="noopener noreferrer" class="contact-button">
+                <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                Tanya via WhatsApp
+            </a>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 <a href="index.html">Paket Sembako</a> – Paket Sembako Murah. Semua Hak Dilindungi.</p>
+        <p><a href="index.html">Beranda</a> &nbsp;·&nbsp; <a href="cara-belanja.html">Cara Belanja</a> &nbsp;·&nbsp; <a href="https://wa.me/628993370200" target="_blank" rel="noopener noreferrer">Hubungi Kami</a></p>
+    </footer>
+</body>
+</html>
