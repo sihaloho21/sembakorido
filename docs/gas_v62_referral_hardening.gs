@@ -4092,13 +4092,15 @@ function runPaylaterPostmortemTwoWeeks(data) {
   ensureSchema(true);
   const asOfDate = data.as_of_date || nowIso();
   const windowDays = Math.max(7, Math.min(60, parseInt(data.window_days || 14, 10) || 14));
-  const cutoffMs = getUtcDateStart(asOfDate).getTime() - (windowDays * 24 * 60 * 60 * 1000);
+  const asOfStartMs = getUtcDateStart(asOfDate).getTime();
+  const asOfEndMs = asOfStartMs + (24 * 60 * 60 * 1000) - 1;
+  const cutoffMs = asOfStartMs - (windowDays * 24 * 60 * 60 * 1000);
 
   const invRows = getRowsAsObjects('credit_invoices').rows;
   const windowInvoices = invRows.filter(function(row) {
     const createdAt = new Date(row.created_at || 0);
     if (Number.isNaN(createdAt.getTime())) return false;
-    return createdAt.getTime() >= cutoffMs;
+    return createdAt.getTime() >= cutoffMs && createdAt.getTime() <= asOfEndMs;
   });
 
   const totals = {
