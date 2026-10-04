@@ -41,7 +41,7 @@ Website seharusnya memenuhi kondisi berikut:
 
 | ID | Area | Prioritas | Dampak | Owner yang disarankan | Status awal |
 | --- | --- | --- | --- | --- | --- |
-| SEC-01 | Data produksi di repository publik | P0 | Kebocoran PII dan pelanggaran privasi | Engineering + owner data | Terbuka |
+| SEC-01 | Data produksi di repository publik | P0 | Kebocoran PII dan pelanggaran privasi | Engineering + owner data | Selesai |
 | SEC-02 | Token/credential dalam artefak dokumentasi | P0 | Akses tidak sah ke backend atau sheet | Engineering + owner backend | Terbuka |
 | QA-01 | `npm test` gagal | P0 | Quality gate tidak dapat dipercaya | Frontend | Selesai |
 | QA-02 | Test integrasi PayLater gagal | P0 | Risiko salah hitung invoice/postmortem | Backend/QA | Selesai |
@@ -110,6 +110,8 @@ Website seharusnya memenuhi kondisi berikut:
 - Jangan menyimpan token dalam screenshot, JSON hasil run, dokumentasi, issue, atau commit.
 
 - Tambahkan secret scanner di pre-commit dan CI.
+
+**Status implementasi:** Repository dan history publik sudah dibersihkan dari artefak token; rotasi/revoke credential di layanan eksternal masih menunggu tindakan owner layanan.
 
 **Acceptance criteria:**
 
@@ -689,7 +691,7 @@ Setelah deploy, jalankan test read-only dan order dummy yang aman:
 
 Perbaikan dianggap selesai bila:
 
-- [ ] Tidak ada PII/token produksi di repository atau history publik.
+- [x] Tidak ada PII/token produksi di repository atau history publik.
 
 - [ ] Semua secret aktif disimpan di secret manager/environment variable.
 

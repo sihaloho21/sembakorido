@@ -40,6 +40,9 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Sensitive File Scan
+        run: npm run test:sensitive-files
+
       - name: Build Bundle
         run: npm run build:bundle
 

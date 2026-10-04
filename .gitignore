@@ -1,3 +1,17 @@
 node_modules/
 *.min.min.js
 *.min.min.css
+
+# Production data and credentials must never be committed.
+.env
+.env.*
+Paket Sembako - claims.csv
+Paket Sembako - orders.csv
+Paket Sembako - pembelian.csv
+Paket Sembako - suppliers.csv
+Paket Sembako - biaya_bulanan.csv
+Paket Sembako - user_points.csv
+Paket Sembako - users.csv
+docs/run_sheet_stage1_3_*token_provided*.json
+*.export.csv
+*.backup.csv
