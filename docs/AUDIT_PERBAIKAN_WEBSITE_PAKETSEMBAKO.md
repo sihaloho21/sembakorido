@@ -43,7 +43,7 @@ Website seharusnya memenuhi kondisi berikut:
 | --- | --- | --- | --- | --- | --- |
 | SEC-01 | Data produksi di repository publik | P0 | Kebocoran PII dan pelanggaran privasi | Engineering + owner data | Terbuka |
 | SEC-02 | Token/credential dalam artefak dokumentasi | P0 | Akses tidak sah ke backend atau sheet | Engineering + owner backend | Terbuka |
-| QA-01 | `npm test` gagal | P0 | Quality gate tidak dapat dipercaya | Frontend | Terbuka |
+| QA-01 | `npm test` gagal | P0 | Quality gate tidak dapat dipercaya | Frontend | Selesai |
 | QA-02 | Test integrasi PayLater gagal | P0 | Risiko salah hitung invoice/postmortem | Backend/QA | Terbuka |
 | OPS-01 | Status toko live sedang tutup | P0 | Checkout tidak menghasilkan pesanan | Operasional | Verifikasi |
 | API-01 | Proxy `/api/products` tidak sama dengan deployment | P1 | Arsitektur drift dan debugging sulit | Backend/DevOps | Terbuka |
@@ -693,7 +693,7 @@ Perbaikan dianggap selesai bila:
 
 - [ ] Semua secret aktif disimpan di secret manager/environment variable.
 
-- [ ] `npm test` lulus.
+- [x] `npm test` lulus.
 
 - [ ] Test PayLater lulus secara deterministik.
 

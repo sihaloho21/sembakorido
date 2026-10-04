@@ -76,9 +76,8 @@ function lintHtml(file) {
     if (hrefVoid) {
       report(file, lineNo, 'javascript:void(0) link found');
     }
-    const idMatches = line.match(/\bid="([^"]+)"/g) || [];
-    idMatches.forEach((m) => {
-      const id = m.slice(4, -1);
+    const idMatches = [...line.matchAll(/(?:^|\s)id="([^"]+)"/g)];
+    idMatches.forEach(([, id]) => {
       idCounts.set(id, (idCounts.get(id) || 0) + 1);
     });
   });
@@ -158,7 +157,16 @@ function lintJs(file) {
   }
 }
 
+function lintDuplicateIdParser() {
+  const sample = '<article data-id="dynamic-1"><div id="stable-id"></div></article>';
+  const ids = [...sample.matchAll(/(?:^|\s)id="([^"]+)"/g)].map(([, id]) => id);
+  if (ids.length !== 1 || ids[0] !== 'stable-id') {
+    report('scripts/lint-basic.js', 1, 'Duplicate id parser regression');
+  }
+}
+
 walk(root);
+lintDuplicateIdParser();
 
 if (issues > 0) {
   console.error(`\nFound ${issues} issue(s).`);

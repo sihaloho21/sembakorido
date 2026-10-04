@@ -614,7 +614,11 @@ function renderNotificationCenterList() {
     const hiddenItems = items.slice(2);
     const hiddenCount = hiddenItems.length;
 
-    listEl.innerHTML = `
+    listEl.innerHTML = buildNotificationCenterListMarkup(visibleItems, hiddenItems, hiddenCount);
+}
+
+function buildNotificationCenterListMarkup(visibleItems, hiddenItems, hiddenCount) {
+    return `
         <div class="space-y-3">
             ${visibleItems.map((item) => createNotificationItemHtml(item, false)).join('')}
         </div>

@@ -3213,10 +3213,14 @@ async function fetchNotifications() {
         allNotifications = [];
         updateNotificationStats([]);
         if (tbody) {
-            const message = String(error && error.message || '').toLowerCase().includes('sheet not found')
-                ? 'Sheet notifications belum tersedia. Deploy schema notifikasi terlebih dahulu.'
-                : `Gagal memuat notifikasi: ${escapeHtml(error.message || 'Unknown error')}`;
-            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-red-500">${message}</td></tr>`;
+            tbody.innerHTML = '<tr><td id="notification-load-error" colspan="6" class="px-6 py-10 text-center text-red-500"></td></tr>';
+            const errorCell = document.getElementById('notification-load-error');
+            const isMissingSheet = String(error && error.message || '').toLowerCase().includes('sheet not found');
+            if (errorCell) {
+                errorCell.textContent = isMissingSheet
+                    ? 'Sheet notifications belum tersedia. Deploy schema notifikasi terlebih dahulu.'
+                    : `Gagal memuat notifikasi: ${error && error.message || 'Unknown error'}`;
+            }
         }
         if (syncEl) syncEl.textContent = 'Gagal dimuat';
     }
