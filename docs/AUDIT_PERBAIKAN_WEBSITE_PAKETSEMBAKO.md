@@ -45,7 +45,7 @@ Website seharusnya memenuhi kondisi berikut:
 | SEC-02 | Token/credential dalam artefak dokumentasi | P0 | Akses tidak sah ke backend atau sheet | Engineering + owner backend | Terbuka |
 | QA-01 | `npm test` gagal | P0 | Quality gate tidak dapat dipercaya | Frontend | Selesai |
 | QA-02 | Test integrasi PayLater gagal | P0 | Risiko salah hitung invoice/postmortem | Backend/QA | Selesai |
-| OPS-01 | Status toko live sedang tutup | P0 | Checkout tidak menghasilkan pesanan | Operasional | Verifikasi |
+| OPS-01 | Status toko live sedang tutup | P0 | Checkout tidak menghasilkan pesanan | Operasional | Source diperbaiki; deploy GAS perlu diverifikasi |
 | API-01 | Proxy `/api/products` tidak sama dengan deployment | P1 | Arsitektur drift dan debugging sulit | Backend/DevOps | Terbuka |
 | SEO-01 | Sitemap produk menggunakan fragment | P1 | Produk sulit diindeks | SEO/Frontend | Terbuka |
 | SEO-02 | Tidak ada halaman produk dan JSON-LD unik | P1 | Kehilangan trafik long-tail/rich result | SEO/Frontend | Terbuka |
@@ -207,9 +207,9 @@ Saat audit, website menampilkan **“Toko Sedang Tutup”** dan menyatakan bahwa
 
 - Sediakan CTA “Ingatkan saya saat toko buka” atau kontak WhatsApp.
 
-- Jangan hanya menyimpan status tutup di `localStorage`; status operasional harus berasal dari backend.
+- [x] Status operasional dibaca dari endpoint `public_store_status` berbasis sheet `settings`; `localStorage` hanya menjadi fallback last-known saat API gagal.
 
-- Pastikan admin dapat mengubah status dengan audit log.
+- [x] Admin menulis `store_closed` melalui `GASActions.upsertSetting`; audit log deployment/backend tetap perlu dikonfirmasi di layanan GAS.
 
 **Acceptance criteria:**
 
@@ -218,6 +218,8 @@ Saat audit, website menampilkan **“Toko Sedang Tutup”** dan menyatakan bahwa
 - Saat toko buka, add-to-cart dan checkout dapat digunakan tanpa hard refresh khusus.
 
 - Saat toko tutup, pesan pengguna konsisten di katalog, product detail, cart, dan checkout.
+
+**Status implementasi 5 Oktober 2026:** Source frontend, admin, dan GAS v63 sudah diubah ke backend-first. Deployment GAS v63 dan verifikasi dua browser/device masih diperlukan sebelum OPS-01 ditutup penuh.
 
 ## 4. P1 — Perbaikan arsitektur dan discoverability
 

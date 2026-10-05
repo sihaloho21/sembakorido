@@ -296,6 +296,23 @@ const CONFIG = {
         localStorage.setItem(this.STORAGE_KEYS.STORE_CLOSED, closed ? 'true' : 'false');
     },
 
+    async refreshStoreStatus() {
+        const url = `${this.getMainApiUrl()}?action=public_store_status&_t=${Date.now()}`;
+        try {
+            const response = await fetch(url, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const payload = await response.json();
+            if (!payload || payload.success !== true || typeof payload.store_closed !== 'boolean') {
+                throw new Error('Invalid store status payload');
+            }
+            this.setStoreClosed(payload.store_closed);
+            return payload.store_closed;
+        } catch (error) {
+            console.warn('[CONFIG] Store status unavailable; using last-known local value.', error);
+            return this.isStoreClosed();
+        }
+    },
+
 
     
     /**

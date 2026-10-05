@@ -652,6 +652,7 @@ async function fetchProducts() {
         renderCategoryFilters(); // Render dynamic categories
         filterProducts();
         updateCartUI();
+        await CONFIG.refreshStoreStatus();
         checkStoreStatus();
         startNotificationLoop();
     } catch (error) {

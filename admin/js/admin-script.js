@@ -214,8 +214,8 @@ function closeSidebarOnMobile() {
 }
 
 // ============ DASHBOARD FUNCTIONS ============
-function loadStoreStatus() {
-    const isClosed = CONFIG.isStoreClosed();
+async function loadStoreStatus() {
+    const isClosed = await CONFIG.refreshStoreStatus();
     const toggle = document.getElementById('store-closed-toggle');
     const label = document.getElementById('store-status-label');
     
@@ -231,12 +231,24 @@ function loadStoreStatus() {
     }
 }
 
-function toggleStoreStatus() {
+async function toggleStoreStatus() {
     const toggle = document.getElementById('store-closed-toggle');
+    if (!toggle || toggle.disabled) return;
     const isClosed = toggle.checked;
-    CONFIG.setStoreClosed(isClosed);
-    loadStoreStatus();
-    showAdminToast(isClosed ? 'Toko sekarang TUTUP' : 'Toko sekarang BUKA', isClosed ? 'warning' : 'success');
+    toggle.disabled = true;
+    try {
+        const result = await GASActions.upsertSetting('store_closed', isClosed ? 'true' : 'false');
+        if (!result || result.success !== true) throw new Error(result && (result.message || result.error) || 'Backend menolak perubahan status toko.');
+        CONFIG.setStoreClosed(isClosed);
+        await loadStoreStatus();
+        showAdminToast(isClosed ? 'Toko sekarang TUTUP' : 'Toko sekarang BUKA', isClosed ? 'warning' : 'success');
+    } catch (error) {
+        toggle.checked = !isClosed;
+        await loadStoreStatus();
+        showAdminToast(`Gagal mengubah status toko: ${error.message || error}`, 'error');
+    } finally {
+        toggle.disabled = false;
+    }
 }
 
 async function updateDashboardStats() {

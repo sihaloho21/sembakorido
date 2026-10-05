@@ -312,6 +312,9 @@ function doGet(e) {
   if (action === 'public_promo_flyers') {
     return jsonOutput(handlePublicPromoFlyers(params));
   }
+  if (action === 'public_store_status') {
+    return jsonOutput(handlePublicStoreStatus());
+  }
 
   if (!sheetName || SHEET_WHITELIST.indexOf(sheetName) === -1) {
     return jsonOutput({ error: 'Invalid sheet' });
@@ -2538,6 +2541,15 @@ function handleUpsertSetting(data) {
 
   s.sheet.getRange(rowNo, valIdx + 1).setValue(value);
   return { success: true, affected: 1, key: key, value: value };
+}
+
+function handlePublicStoreStatus() {
+  var settings = getSettingsMap();
+  var rawClosed = String(settings.store_closed || 'false').trim().toLowerCase();
+  return {
+    success: true,
+    store_closed: rawClosed === 'true' || rawClosed === '1' || rawClosed === 'yes' || rawClosed === 'ya'
+  };
 }
 
 function handleNotifyReferralAlert(data) {
