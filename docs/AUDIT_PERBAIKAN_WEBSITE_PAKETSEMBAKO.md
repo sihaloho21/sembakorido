@@ -111,7 +111,7 @@ Website seharusnya memenuhi kondisi berikut:
 
 - Tambahkan secret scanner di pre-commit dan CI.
 
-**Status implementasi:** Repository dan history publik sudah dibersihkan dari artefak token; rotasi/revoke credential di layanan eksternal masih menunggu tindakan owner layanan.
+**Status implementasi:** Repository dan history publik sudah dibersihkan dari artefak token. Sensitive-file scan sudah menjadi gate CI dan runbook rotasi tersedia di [`docs/SECURITY_CREDENTIAL_ROTATION.md`](SECURITY_CREDENTIAL_ROTATION.md). Rotasi/revoke credential di layanan eksternal masih menunggu tindakan owner layanan.
 
 **Acceptance criteria:**
 
@@ -122,6 +122,8 @@ Website seharusnya memenuhi kondisi berikut:
 - Test lokal menerima token melalui environment variable.
 
 - Log test otomatis melakukan redaction terhadap token, nomor telepon, email, dan ID pengguna.
+
+**Evidence repository:** commit `c003efc` membersihkan artefak produksi/token dari history, dan commit berikutnya mempertahankan `npm run test:sensitive-files` sebagai gate CI. Acceptance terakhir—token lama ditolak dan access log layanan eksternal ditinjau—belum dapat diverifikasi dari repository.
 
 ### QA-01 — Pulihkan `npm test`
 
@@ -750,4 +752,3 @@ Perbaikan SEO, performa, dan accessibility tetap penting, tetapi tidak boleh men
 [3]: https://developers.google.com/search/docs/crawling-indexing/url-structure "Google Search Central: URL structure best practices"
 
 [4]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP "MDN: Content Security Policy"
-
