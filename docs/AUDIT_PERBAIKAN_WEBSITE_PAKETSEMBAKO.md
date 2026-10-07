@@ -221,7 +221,7 @@ Saat audit, website menampilkan **“Toko Sedang Tutup”** dan menyatakan bahwa
 
 - Saat toko tutup, pesan pengguna konsisten di katalog, product detail, cart, dan checkout.
 
-**Status implementasi 5 Oktober 2026:** Source frontend, admin, dan GAS v63 sudah diubah ke backend-first. Deployment GAS v63 dan verifikasi dua browser/device masih diperlukan sebelum OPS-01 ditutup penuh.
+**Status implementasi 5 Oktober 2026:** Source frontend, admin, dan GAS v63 sudah diubah ke backend-first. Panduan deployment dan evidence tersedia di [`docs/OPS-01_DEPLOYMENT_VERIFICATION.md`](OPS-01_DEPLOYMENT_VERIFICATION.md). Deployment GAS v63 dan verifikasi dua browser/device masih diperlukan sebelum OPS-01 ditutup penuh.
 
 ## 4. P1 — Perbaikan arsitektur dan discoverability
 
