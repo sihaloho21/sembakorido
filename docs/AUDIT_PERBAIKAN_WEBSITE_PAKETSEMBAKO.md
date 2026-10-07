@@ -46,7 +46,7 @@ Website seharusnya memenuhi kondisi berikut:
 | QA-01 | `npm test` gagal | P0 | Quality gate tidak dapat dipercaya | Frontend | Selesai |
 | QA-02 | Test integrasi PayLater gagal | P0 | Risiko salah hitung invoice/postmortem | Backend/QA | Selesai |
 | OPS-01 | Status toko live sedang tutup | P0 | Checkout tidak menghasilkan pesanan | Operasional | Source diperbaiki; deploy GAS perlu diverifikasi |
-| API-01 | Proxy `/api/products` tidak sama dengan deployment | P1 | Arsitektur drift dan debugging sulit | Backend/DevOps | Terbuka |
+| API-01 | Proxy `/api/products` tidak sama dengan deployment | P1 | Arsitektur drift dan debugging sulit | Backend/DevOps | Source diperkeras; deployment proxy live masih terbuka |
 | SEO-01 | Sitemap produk menggunakan fragment | P1 | Produk sulit diindeks | SEO/Frontend | Terbuka |
 | SEO-02 | Tidak ada halaman produk dan JSON-LD unik | P1 | Kehilangan trafik long-tail/rich result | SEO/Frontend | Terbuka |
 | SEC-03 | Tidak ada CSP/HSTS/Permissions Policy yang memadai | P1 | Defense-in-depth lemah | DevOps/Security | Terbuka |
@@ -227,7 +227,7 @@ Saat audit, website menampilkan **“Toko Sedang Tutup”** dan menyatakan bahwa
 
 ### API-01 — Pilih satu arsitektur API
 
-Source `server.js` menyediakan route `/api/products` sebagai proxy same-origin. Namun endpoint live `https://paketsembako.com/api/products` mengembalikan `404`, sedangkan frontend mengonfigurasi Google Apps Script sebagai `MAIN_API` dan `ADMIN_API`.
+Source `server.js` menyediakan route `/api/products` sebagai proxy same-origin. Namun endpoint live `https://paketsembako.com/api/products` mengembalikan `404`, sedangkan frontend mengonfigurasi Google Apps Script sebagai `MAIN_API` dan `ADMIN_API`. Keputusan API-01 saat ini adalah mempertahankan GAS-direct sebagai arsitektur production sampai service Node proxy benar-benar dideploy; proxy tidak boleh dianggap live hanya karena route tersedia di source.
 
 **Masalah:** terdapat dua pola yang tidak jelas:
 
@@ -258,6 +258,8 @@ Source `server.js` menyediakan route `/api/products` sebagai proxy same-origin. 
 - Error upstream menghasilkan status dan payload yang terdokumentasi.
 
 - Monitoring dapat membedakan error frontend, proxy, dan upstream.
+
+**Status implementasi 7 Oktober 2026:** Proxy source sudah diperkeras dengan timeout 10 detik, cache 60 detik, dan error schema `CATALOG_UPSTREAM_ERROR`, `CATALOG_UPSTREAM_TIMEOUT`, atau `CATALOG_API_UNAVAILABLE`. Smoke test lokal membuktikan contract error berjalan, tetapi upstream katalog yang dikonfigurasi mengembalikan HTTP `404`; deployment `/api/products` live dan migrasi frontend belum dilakukan. Endpoint upstream resmi harus dikonfirmasi terlebih dahulu, bukan ditebak dari route lama.
 
 ### SEO-01 — Ganti sitemap fragment dengan URL produk nyata
 

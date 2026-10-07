@@ -11,6 +11,7 @@ const PORT = Number(process.env.PORT) || 8080;
 const FEATURE_API_BASE_URL = (process.env.FEATURE_SEMBAKO_API_URL || 'https://paket-sembako-online-943127658752.asia-southeast1.run.app').replace(/\/$/, '');
 const ONE_HOUR_SECONDS = 60 * 60;
 const CATALOG_PROXY_CACHE_SECONDS = 60;
+const CATALOG_PROXY_TIMEOUT_MS = 10000;
 let catalogProxyCache = null;
 const THIRTY_DAYS_SECONDS = 30 * 24 * 60 * 60;
 
@@ -174,6 +175,24 @@ function pipeWithCompression(res, source, encoding) {
     pipeline(source, res, () => undefined);
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = CATALOG_PROXY_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+function sendCatalogProxyError(res, statusCode, code, message) {
+    sendTextResponse(res, statusCode, JSON.stringify({
+        success: false,
+        error: code,
+        message
+    }), 'application/json; charset=UTF-8');
+}
+
 const server = http.createServer(async (req, res) => {
     if (!req.url) {
         sendTextResponse(res, 400, 'Bad Request');
@@ -199,12 +218,12 @@ const server = http.createServer(async (req, res) => {
                 return;
             }
 
-            const upstream = await fetch(`${FEATURE_API_BASE_URL}/api/catalog/products${query}`, {
+            const upstream = await fetchWithTimeout(`${FEATURE_API_BASE_URL}/api/catalog/products${query}`, {
                 headers: { Accept: 'application/json' }
             });
             const body = await upstream.text();
             if (!upstream.ok) {
-                sendTextResponse(res, upstream.status, body || 'Upstream API error', 'application/json; charset=UTF-8');
+                sendCatalogProxyError(res, upstream.status, 'CATALOG_UPSTREAM_ERROR', 'Catalog upstream request failed');
                 return;
             }
 
@@ -216,7 +235,13 @@ const server = http.createServer(async (req, res) => {
             sendTextResponse(res, 200, body, 'application/json; charset=UTF-8');
         } catch (error) {
             console.error('Catalog proxy error:', error);
-            sendTextResponse(res, 502, JSON.stringify({ success: false, error: 'Catalog API unavailable' }), 'application/json; charset=UTF-8');
+            const isTimeout = error && error.name === 'AbortError';
+            sendCatalogProxyError(
+                res,
+                502,
+                isTimeout ? 'CATALOG_UPSTREAM_TIMEOUT' : 'CATALOG_API_UNAVAILABLE',
+                isTimeout ? 'Catalog upstream request timed out' : 'Catalog API unavailable'
+            );
         }
         return;
     }
