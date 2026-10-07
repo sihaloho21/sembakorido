@@ -43,6 +43,99 @@ const slugify = (value) =>
     .trim()
     .replace(/[-\s]+/g, "-");
 
+const escapeHtml = (value) =>
+  String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const escapeJson = (value) => JSON.stringify(value).replace(/</g, "\\u003c");
+
+const formatCurrency = (value) => {
+  const amount = Number.parseInt(String(value || "").replace(/[^0-9-]/g, ""), 10);
+  return Number.isFinite(amount) && amount > 0
+    ? `Rp ${amount.toLocaleString("id-ID")}`
+    : "Harga tersedia di katalog";
+};
+
+const renderProductPage = (product) => {
+  const name = escapeHtml(product.nama);
+  const description = escapeHtml(product.deskripsi || `Produk ${product.nama} dari Paket Sembako.`);
+  const image = escapeHtml(product.gambar || "https://placehold.co/800x600?text=Produk");
+  const canonical = `${domain}/produk/${product.slug}/`;
+  const price = Number.parseInt(String(product.harga || "").replace(/[^0-9-]/g, ""), 10);
+  const availability = Number.parseInt(product.stok, 10) > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock";
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.nama,
+    description: product.deskripsi || `Produk ${product.nama} dari Paket Sembako.`,
+    image: product.gambar ? [product.gambar] : undefined,
+    sku: product.id || product.slug,
+    brand: { "@type": "Brand", name: "Paket Sembako" },
+    offers: Number.isFinite(price) && price > 0 ? {
+      "@type": "Offer",
+      url: canonical,
+      priceCurrency: "IDR",
+      price: String(price),
+      availability
+    } : undefined
+  };
+
+  return `<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${name} — Paket Sembako</title>
+  <meta name="description" content="${description}">
+  <link rel="canonical" href="${canonical}">
+  <meta property="og:type" content="product">
+  <meta property="og:title" content="${name} — Paket Sembako">
+  <meta property="og:description" content="${description}">
+  <meta property="og:url" content="${canonical}">
+  <meta property="og:image" content="${image}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${name} — Paket Sembako">
+  <meta name="twitter:description" content="${description}">
+  <meta name="twitter:image" content="${image}">
+  <script type="application/ld+json">${escapeJson(structuredData)}</script>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: #f8fafc; color: #172033; }
+    main { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; }
+    .crumbs { margin-bottom: 24px; font-size: 14px; }
+    .crumbs a { color: #15803d; }
+    .card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; padding: 24px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgb(15 23 42 / 8%); }
+    img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #f1f5f9; border-radius: 14px; }
+    h1 { margin-top: 0; font-size: clamp(28px, 5vw, 44px); line-height: 1.1; }
+    .price { color: #15803d; font-size: 28px; font-weight: 800; }
+    .stock { color: #475569; }
+    .cta { display: inline-block; margin-top: 20px; padding: 12px 18px; border-radius: 999px; background: #16a34a; color: white; text-decoration: none; font-weight: 700; }
+    @media (max-width: 700px) { .card { grid-template-columns: 1fr; padding: 16px; } main { padding: 20px 14px 48px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Beranda</a> / <span>${name}</span></nav>
+    <article class="card">
+      <div><img src="${image}" alt="${name}" width="800" height="600"></div>
+      <div>
+        <h1>${name}</h1>
+        <p class="price">${formatCurrency(product.harga)}</p>
+        <p class="stock">${Number.parseInt(product.stok, 10) > 0 ? "Stok tersedia" : "Stok sedang habis"}</p>
+        <p>${description.replace(/\n/g, "<br>")}</p>
+        <a class="cta" href="/#produk-${encodeURIComponent(product.slug)}">Lihat di katalog</a>
+      </div>
+    </article>
+  </main>
+</body>
+</html>
+`;
+};
+
 const parseCsv = (text) => {
   const rows = [];
   let row = [];
@@ -107,6 +200,7 @@ const parseLastmod = (row) => {
 };
 
 const products = [];
+const usedSlugs = new Set();
 const productsCsv = path.join(__dirname, "..", "Paket Sembako - products.csv");
 if (fs.existsSync(productsCsv)) {
   const csvText = fs.readFileSync(productsCsv, "utf8");
@@ -118,10 +212,22 @@ if (fs.existsSync(productsCsv)) {
       row[key] = cells[idx] || "";
     });
     if (!row.nama) return;
-    const slug = row.slug ? slugify(row.slug) : slugify(row.nama);
-    if (!slug) return;
+    const baseSlug = row.slug ? slugify(row.slug) : slugify(row.nama);
+    if (!baseSlug) return;
+    let slug = baseSlug;
+    if (usedSlugs.has(slug)) {
+      const suffix = slugify(row.id) || String(products.length + 1);
+      slug = `${baseSlug}-${suffix}`;
+    }
+    usedSlugs.add(slug);
     products.push({
-      loc: `${domain}/#produk-${slug}`,
+      slug,
+      nama: row.nama,
+      harga: row.harga,
+      gambar: row.gambar,
+      stok: row.stok,
+      deskripsi: row.deskripsi,
+      loc: `${domain}/produk/${slug}/`,
       changefreq: "weekly",
       priority: "0.5",
       lastmod: parseLastmod(row)
@@ -133,6 +239,13 @@ const pagesSitemap = buildUrlset(pages);
 const productsSitemap = buildUrlset(products);
 
 const root = path.resolve(__dirname, "..");
+const productRoot = path.join(root, "produk");
+fs.mkdirSync(productRoot, { recursive: true });
+products.forEach((product) => {
+  const productDir = path.join(productRoot, product.slug);
+  fs.mkdirSync(productDir, { recursive: true });
+  fs.writeFileSync(path.join(productDir, "index.html"), renderProductPage(product));
+});
 fs.writeFileSync(path.join(root, "sitemap-pages.xml"), pagesSitemap);
 fs.writeFileSync(path.join(root, "sitemap-products.xml"), productsSitemap);
 

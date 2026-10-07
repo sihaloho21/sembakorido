@@ -47,7 +47,7 @@ Website seharusnya memenuhi kondisi berikut:
 | QA-02 | Test integrasi PayLater gagal | P0 | Risiko salah hitung invoice/postmortem | Backend/QA | Selesai |
 | OPS-01 | Status toko live sedang tutup | P0 | Checkout tidak menghasilkan pesanan | Operasional | Source diperbaiki; deploy GAS perlu diverifikasi |
 | API-01 | Proxy `/api/products` tidak sama dengan deployment | P1 | Arsitektur drift dan debugging sulit | Backend/DevOps | Source diperkeras; deployment proxy live masih terbuka |
-| SEO-01 | Sitemap produk menggunakan fragment | P1 | Produk sulit diindeks | SEO/Frontend | Terbuka |
+| SEO-01 | Sitemap produk menggunakan fragment | P1 | Produk sulit diindeks | SEO/Frontend | Source diperbaiki; deploy dan validasi live masih terbuka |
 | SEO-02 | Tidak ada halaman produk dan JSON-LD unik | P1 | Kehilangan trafik long-tail/rich result | SEO/Frontend | Terbuka |
 | SEC-03 | Tidak ada CSP/HSTS/Permissions Policy yang memadai | P1 | Defense-in-depth lemah | DevOps/Security | Terbuka |
 | PERF-01 | HTML dan inline CSS terlalu besar | P1 | Initial load dan parsing berat | Frontend | Terbuka |
@@ -284,6 +284,7 @@ Source `server.js` menyediakan route `/api/products` sebagai proxy same-origin. 
 - Jangan memasukkan route akun, transaksi, notifikasi, atau checkout ke sitemap publik.
 
 - Generate sitemap dari data produk yang berstatus aktif dan memiliki canonical URL.
+- Generate halaman statis `produk/<slug>/index.html` dari sumber katalog non-PII yang sama agar URL dapat dibuka tanpa `localStorage`.
 
 **Acceptance criteria:**
 
@@ -294,6 +295,8 @@ Source `server.js` menyediakan route `/api/products` sebagai proxy same-origin. 
 - Sitemap tidak mengandung URL fragment.
 
 - URL produk aktif tidak memerlukan `localStorage` untuk menampilkan konten utama.
+
+**Status implementasi 7 Oktober 2026:** Generator sitemap sekarang menghasilkan URL `/produk/<slug>/` tanpa fragment dan membuat halaman statis produk dengan title, description, canonical, Open Graph, dan konten produk dasar. Route live dan validasi Google Search Console masih perlu dilakukan setelah deploy.
 
 ### SEO-02 — Tambahkan metadata produk dan structured data
 
