@@ -48,7 +48,7 @@ Website seharusnya memenuhi kondisi berikut:
 | OPS-01 | Status toko live sedang tutup | P0 | Checkout tidak menghasilkan pesanan | Operasional | Source diperbaiki; deploy GAS perlu diverifikasi |
 | API-01 | Proxy `/api/products` tidak sama dengan deployment | P1 | Arsitektur drift dan debugging sulit | Backend/DevOps | Source diperkeras; deployment proxy live masih terbuka |
 | SEO-01 | Sitemap produk menggunakan fragment | P1 | Produk sulit diindeks | SEO/Frontend | Source diperbaiki; deploy dan validasi live masih terbuka |
-| SEO-02 | Tidak ada halaman produk dan JSON-LD unik | P1 | Kehilangan trafik long-tail/rich result | SEO/Frontend | Terbuka |
+| SEO-02 | Tidak ada halaman produk dan JSON-LD unik | P1 | Kehilangan trafik long-tail/rich result | SEO/Frontend | Source diperbaiki; validasi live/Search Console masih terbuka |
 | SEC-03 | Tidak ada CSP/HSTS/Permissions Policy yang memadai | P1 | Defense-in-depth lemah | DevOps/Security | Terbuka |
 | PERF-01 | HTML dan inline CSS terlalu besar | P1 | Initial load dan parsing berat | Frontend | Terbuka |
 | PERF-02 | Aset gambar besar | P1 | Pengguna mobile mengunduh terlalu banyak | Frontend/Design | Terbuka |
@@ -327,6 +327,8 @@ Untuk setiap halaman produk, sediakan:
 - Tidak ada harga palsu atau harga checkout yang berbeda tanpa penjelasan.
 
 - Produk habis stok menampilkan `OutOfStock` atau status yang sesuai.
+
+**Status implementasi 10 Oktober 2026:** Halaman produk statis sekarang memiliki metadata unik, URL gambar absolut HTTPS, Product JSON-LD dengan Offer IDR dan availability, BreadcrumbList, serta daftar varian yang konsisten dengan katalog. Homepage memiliki Organization JSON-LD dengan logo dan kontak publik. Regression test `npm run test:seo` memeriksa seluruh 15 halaman produk. Validasi Rich Results/Search Console dan deployment live masih perlu dilakukan.
 
 ## 5. P1 — Keamanan aplikasi dan backend
 

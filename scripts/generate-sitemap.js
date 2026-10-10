@@ -60,29 +60,78 @@ const formatCurrency = (value) => {
     : "Harga tersedia di katalog";
 };
 
+const parseJsonArray = (value) => {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+const getImageUrls = (value) => String(value || "")
+  .split(",")
+  .map((url) => url.trim())
+  .filter((url) => /^https:\/\//i.test(url));
+
+const toPrice = (value) => {
+  const price = Number.parseInt(String(value || "").replace(/[^0-9-]/g, ""), 10);
+  return Number.isFinite(price) && price > 0 ? price : null;
+};
+
 const renderProductPage = (product) => {
   const name = escapeHtml(product.nama);
   const description = escapeHtml(product.deskripsi || `Produk ${product.nama} dari Paket Sembako.`);
-  const image = escapeHtml(product.gambar || "https://placehold.co/800x600?text=Produk");
+  const imageUrls = getImageUrls(product.gambar);
+  const image = escapeHtml(imageUrls[0] || "https://placehold.co/800x600?text=Produk");
   const canonical = `${domain}/produk/${product.slug}/`;
-  const price = Number.parseInt(String(product.harga || "").replace(/[^0-9-]/g, ""), 10);
-  const availability = Number.parseInt(product.stok, 10) > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock";
+  const price = toPrice(product.harga);
+  const variations = parseJsonArray(product.variasi)
+    .map((variation) => ({
+      name: String(variation.nama || variation.name || "").trim(),
+      sku: String(variation.sku || "").trim(),
+      price: toPrice(variation.harga || variation.price),
+      stock: Number.parseInt(variation.stok, 10) || 0
+    }))
+    .filter((variation) => variation.name && variation.price);
+  const offers = (variations.length ? variations : [{
+    name: product.nama,
+    sku: product.id || product.slug,
+    price,
+    stock: Number.parseInt(product.stok, 10) || 0
+  }]).filter((offer) => offer.price).map((offer) => ({
+    "@type": "Offer",
+    url: canonical,
+    name: offer.name,
+    sku: offer.sku || product.slug,
+    priceCurrency: "IDR",
+    price: String(offer.price),
+    availability: offer.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+    itemCondition: "https://schema.org/NewCondition"
+  }));
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.nama,
     description: product.deskripsi || `Produk ${product.nama} dari Paket Sembako.`,
-    image: product.gambar ? [product.gambar] : undefined,
+    image: imageUrls.length ? imageUrls : undefined,
     sku: product.id || product.slug,
+    category: product.kategori || undefined,
     brand: { "@type": "Brand", name: "Paket Sembako" },
-    offers: Number.isFinite(price) && price > 0 ? {
-      "@type": "Offer",
-      url: canonical,
-      priceCurrency: "IDR",
-      price: String(price),
-      availability
-    } : undefined
+    offers: offers.length ? offers : undefined
   };
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Beranda", item: `${domain}/` },
+      { "@type": "ListItem", position: 2, name: product.nama, item: canonical }
+    ]
+  };
+  const variantMarkup = variations.length
+    ? `<section class="variants" aria-labelledby="variants-title"><h2 id="variants-title">Pilihan ukuran</h2><ul>${variations.map((variation) => `<li><strong>${escapeHtml(variation.name)}</strong> — ${formatCurrency(variation.price)} — ${variation.stock > 0 ? "Stok tersedia" : "Stok habis"}</li>`).join("")}</ul></section>`
+    : "";
 
   return `<!doctype html>
 <html lang="id">
@@ -102,6 +151,7 @@ const renderProductPage = (product) => {
   <meta name="twitter:description" content="${description}">
   <meta name="twitter:image" content="${image}">
   <script type="application/ld+json">${escapeJson(structuredData)}</script>
+  <script type="application/ld+json">${escapeJson(breadcrumbData)}</script>
   <style>
     :root { color-scheme: light; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     body { margin: 0; background: #f8fafc; color: #172033; }
@@ -113,6 +163,10 @@ const renderProductPage = (product) => {
     h1 { margin-top: 0; font-size: clamp(28px, 5vw, 44px); line-height: 1.1; }
     .price { color: #15803d; font-size: 28px; font-weight: 800; }
     .stock { color: #475569; }
+    .variants { margin-top: 24px; padding-top: 18px; border-top: 1px solid #e2e8f0; }
+    .variants h2 { margin: 0 0 8px; font-size: 17px; }
+    .variants ul { margin: 0; padding-left: 20px; color: #475569; }
+    .variants li + li { margin-top: 6px; }
     .cta { display: inline-block; margin-top: 20px; padding: 12px 18px; border-radius: 999px; background: #16a34a; color: white; text-decoration: none; font-weight: 700; }
     @media (max-width: 700px) { .card { grid-template-columns: 1fr; padding: 16px; } main { padding: 20px 14px 48px; } }
   </style>
@@ -127,13 +181,14 @@ const renderProductPage = (product) => {
         <p class="price">${formatCurrency(product.harga)}</p>
         <p class="stock">${Number.parseInt(product.stok, 10) > 0 ? "Stok tersedia" : "Stok sedang habis"}</p>
         <p>${description.replace(/\n/g, "<br>")}</p>
+        ${variantMarkup}
         <a class="cta" href="/#produk-${encodeURIComponent(product.slug)}">Lihat di katalog</a>
       </div>
     </article>
   </main>
 </body>
 </html>
-`;
+`.replace(/^[ \t]+$/gm, "");
 };
 
 const parseCsv = (text) => {
@@ -227,6 +282,8 @@ if (fs.existsSync(productsCsv)) {
       gambar: row.gambar,
       stok: row.stok,
       deskripsi: row.deskripsi,
+      kategori: row.kategori,
+      variasi: row.variasi,
       loc: `${domain}/produk/${slug}/`,
       changefreq: "weekly",
       priority: "0.5",
