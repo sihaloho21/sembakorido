@@ -49,7 +49,7 @@ Website seharusnya memenuhi kondisi berikut:
 | API-01 | Proxy `/api/products` tidak sama dengan deployment | P1 | Arsitektur drift dan debugging sulit | Backend/DevOps | Source diperkeras; deployment proxy live masih terbuka |
 | SEO-01 | Sitemap produk menggunakan fragment | P1 | Produk sulit diindeks | SEO/Frontend | Source diperbaiki; deploy dan validasi live masih terbuka |
 | SEO-02 | Tidak ada halaman produk dan JSON-LD unik | P1 | Kehilangan trafik long-tail/rich result | SEO/Frontend | Source diperbaiki; validasi live/Search Console masih terbuka |
-| SEC-03 | Tidak ada CSP/HSTS/Permissions Policy yang memadai | P1 | Defense-in-depth lemah | DevOps/Security | Terbuka |
+| SEC-03 | Tidak ada CSP/HSTS/Permissions Policy yang memadai | P1 | Defense-in-depth lemah | DevOps/Security | Header baseline source selesai; observasi CSP live masih terbuka |
 | PERF-01 | HTML dan inline CSS terlalu besar | P1 | Initial load dan parsing berat | Frontend | Terbuka |
 | PERF-02 | Aset gambar besar | P1 | Pengguna mobile mengunduh terlalu banyak | Frontend/Design | Terbuka |
 | UX-01 | Checkout dan status toko perlu fallback | P1 | Konversi dan kejelasan transaksi rendah | Product/Frontend | Terbuka |
@@ -353,6 +353,8 @@ Karena halaman masih memiliki inline CSS/JS dan event handler, jangan langsung m
 1. Tambahkan `Strict-Transport-Security` setelah seluruh domain/subdomain siap HTTPS.
 
 1. Tambahkan `Permissions-Policy` untuk camera, microphone, geolocation, payment, dan fitur lain sesuai kebutuhan aktual.
+
+**Status implementasi 10 Oktober 2026:** Header baseline sekarang dipasang pada server Node dan `netlify.toml`: CSP masih `Content-Security-Policy-Report-Only` karena source memakai inline CSS/JS dan alur GAS/WhatsApp perlu diobservasi; HSTS `max-age=31536000` dan Permissions Policy sudah diterapkan. Policy mematikan object embed, camera, microphone, payment, serta membatasi geolocation, clipboard, dan fullscreen ke origin sendiri. Pemeriksaan otomatis `npm run test:security-headers` memvalidasi response runtime dan konfigurasi Netlify. Tahap tersisa: kumpulkan violation CSP di halaman utama, akun, admin, dan checkout; kemudian migrasikan inline code ke nonce/hash atau file eksternal sebelum enforcement CSP.
 
 **Acceptance criteria:**
 

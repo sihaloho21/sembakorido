@@ -15,6 +15,27 @@ const CATALOG_PROXY_TIMEOUT_MS = 10000;
 let catalogProxyCache = null;
 const THIRTY_DAYS_SECONDS = 30 * 24 * 60 * 60;
 
+const SECURITY_HEADERS = {
+    'Content-Security-Policy-Report-Only': [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+        "frame-ancestors 'self'",
+        "script-src 'self' 'unsafe-inline' https://script.google.com https://script.googleusercontent.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+        "img-src 'self' data: https://ik.imagekit.io https://i.ibb.co.com https://placehold.co https://via.placeholder.com",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        "connect-src 'self' https://script.google.com https://script.googleusercontent.com https://paket-sembako-online-943127658752.asia-southeast1.run.app https://nominatim.openstreetmap.org",
+        "frame-src 'self'",
+        "form-action 'self' https://wa.me"
+    ].join('; '),
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self), payment=(), clipboard-read=(self), clipboard-write=(self), fullscreen=(self)',
+    'Strict-Transport-Security': 'max-age=31536000',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'SAMEORIGIN',
+    'Referrer-Policy': 'strict-origin-when-cross-origin'
+};
+
 const MIME_TYPES = {
     '.css': 'text/css; charset=UTF-8',
     '.eot': 'application/vnd.ms-fontobject',
@@ -194,6 +215,7 @@ function sendCatalogProxyError(res, statusCode, code, message) {
 }
 
 const server = http.createServer(async (req, res) => {
+    Object.entries(SECURITY_HEADERS).forEach(([name, value]) => res.setHeader(name, value));
     if (!req.url) {
         sendTextResponse(res, 400, 'Bad Request');
         return;
