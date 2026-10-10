@@ -50,7 +50,7 @@ Website seharusnya memenuhi kondisi berikut:
 | SEO-01 | Sitemap produk menggunakan fragment | P1 | Produk sulit diindeks | SEO/Frontend | Source diperbaiki; deploy dan validasi live masih terbuka |
 | SEO-02 | Tidak ada halaman produk dan JSON-LD unik | P1 | Kehilangan trafik long-tail/rich result | SEO/Frontend | Source diperbaiki; validasi live/Search Console masih terbuka |
 | SEC-03 | Tidak ada CSP/HSTS/Permissions Policy yang memadai | P1 | Defense-in-depth lemah | DevOps/Security | Header baseline source selesai; observasi CSP live masih terbuka |
-| PERF-01 | HTML dan inline CSS terlalu besar | P1 | Initial load dan parsing berat | Frontend | Terbuka |
+| PERF-01 | HTML dan inline CSS terlalu besar | P1 | Initial load dan parsing berat | Frontend | Source diperbaiki; dampak live menunggu deploy |
 | PERF-02 | Aset gambar besar | P1 | Pengguna mobile mengunduh terlalu banyak | Frontend/Design | Terbuka |
 | UX-01 | Checkout dan status toko perlu fallback | P1 | Konversi dan kejelasan transaksi rendah | Product/Frontend | Terbuka |
 | A11Y-01 | Modal, label tombol, dan focus management | P2 | Aksesibilitas rendah dan error penggunaan | Frontend/QA | Terbuka |
@@ -451,6 +451,8 @@ Pengukuran source menunjukkan:
 - Hapus CSS duplikat dan selector yang tidak terpakai.
 
 - Pastikan `tailwind-fallback.css` tidak ikut mengirim rule yang juga ada di `tailwind.min.css` tanpa kebutuhan browser yang jelas.
+
+**Status implementasi 10 Oktober 2026:** Inline CSS pada `index.html`, `akun.html`, dan `promo_katalog.html` dipindahkan ke tiga asset CSS minified yang dapat di-cache. Total HTML ketiga halaman turun dari 489.570 byte menjadi 324.950 byte (-164.620 byte / -33,6%); inline CSS turun dari 164.760 karakter menjadi 0. Detail audit sebelum/sesudah ada di [`docs/PERFORMANCE_AUDIT_2026-10-10.md`](PERFORMANCE_AUDIT_2026-10-10.md). Hasil live baru dapat diukur ulang setelah deployment commit ini.
 
 ### PERF-02 — Optimalkan gambar
 
