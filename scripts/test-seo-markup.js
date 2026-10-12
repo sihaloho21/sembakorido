@@ -37,7 +37,7 @@ for (const file of productPages) {
 }
 
 const homepage = fs.readFileSync(path.join(root, "index.html"), "utf8");
-if (!homepage.includes('"@type": "Organization"') || !homepage.includes('https://paketsembako.com/assets/img/logo-share.png')) {
+if (!homepage.includes('"@type": "Organization"') || !homepage.includes('https://paketsembako.com/assets/img/logo-optimized.webp')) {
   fail("homepage Organization schema or absolute logo is missing");
 }
 

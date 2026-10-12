@@ -474,6 +474,8 @@ Pengukuran source menunjukkan:
 
 - Audit apakah logo dirujuk dua kali dan apakah salah satu referensi dapat dihapus.
 
+**Status implementasi 12 Oktober 2026:** `logo.png` dan `logo-share.png` yang identik tidak lagi dirujuk halaman; keduanya digantikan `assets/img/logo-optimized.webp` berukuran 77.204 byte, turun 92,7% dari satu PNG 1.058.482 byte. Dimensi intrinsik ditambahkan pada logo dan gambar UI lokal, sementara empty basket, gift box, QRIS, dan thumbnail katalog admin diberi `loading="lazy"` serta `decoding="async"` secara selektif. GIF timeline order tetap on-demand saat modal tracking dibuka, dan PDF katalog tetap on-demand setelah pengguna memilih katalog. Regression test tersedia melalui `npm run test:image-performance` dan sudah masuk ke `npm test`. Detail: [`docs/PERFORMANCE_AUDIT_2026-10-12.md`](PERFORMANCE_AUDIT_2026-10-12.md). Verifikasi payload live dilakukan setelah deployment.
+
 ### PERF-03 — Kurangi API request dan tambah observability
 
 `ApiService` sudah memiliki cache dan request deduplication, tetapi perlu dibuktikan dengan telemetry nyata.
