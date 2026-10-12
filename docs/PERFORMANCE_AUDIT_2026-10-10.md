@@ -78,3 +78,7 @@ CI juga harus mengulang pengukuran setelah deployment. Acceptance live PERF-01:
 ## Kesimpulan
 
 PERF-01 menghasilkan pengurangan HTML source sebesar **164.620 byte atau 33,6%** pada tiga halaman utama dan menghapus **164.760 karakter inline CSS**. Dampak terhadap pengguna production belum final sampai commit dideploy dan baseline live diukur ulang dengan metode yang sama.
+
+## Catatan CI setelah push
+
+CI pertama untuk commit PERF-01 gagal pada `check-tailwind-up-to-date.js`, walaupun local quality gate lulus. Investigasi menunjukkan workflow GitHub Actions memulihkan `assets/css/tailwind.min.css` dan `assets/js/*.min.js` dari `actions/cache` sebelum menjalankan test. Cache tersebut dapat menimpa tracked artifact dengan output lama. Workflow diperbaiki agar cache hanya menyimpan `node_modules/.cache`; tracked build outputs tidak lagi dipulihkan dari cache. Setelah perbaikan, local quality gate tetap lulus dan CI akan memvalidasi commit berikutnya tanpa sumber cache yang stale.

@@ -28,10 +28,7 @@ jobs:
       - name: Cache build artifacts
         uses: actions/cache@v4
         with:
-          path: |
-            node_modules/.cache
-            assets/css/tailwind.min.css
-            assets/js/*.min.js
+          path: node_modules/.cache
           key: ${{ runner.os }}-build-cache-${{ hashFiles('package-lock.json', 'tailwind.config.js', 'assets/css/tailwind-input.css', 'assets/js/**/*.js') }}
           restore-keys: |
             ${{ runner.os }}-build-cache-${{ hashFiles('package-lock.json', 'tailwind.config.js', 'assets/css/tailwind-input.css') }}
