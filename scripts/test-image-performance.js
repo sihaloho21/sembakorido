@@ -6,10 +6,16 @@ const root = path.resolve(__dirname, "..");
 const optimizedLogo = path.join(root, "assets/img/logo-optimized.webp");
 const logoStats = fs.statSync(optimizedLogo);
 const logoBytes = fs.readFileSync(optimizedLogo);
+const criticalPromo = path.join(root, "assets/img/promo-critical.webp");
+const criticalPromoStats = fs.statSync(criticalPromo);
+const criticalPromoBytes = fs.readFileSync(criticalPromo);
 
 assert(logoStats.size < 100 * 1024, "optimized logo must remain below 100 KB");
 assert.strictEqual(logoBytes.toString("ascii", 0, 4), "RIFF", "optimized logo must be a RIFF WebP");
 assert.strictEqual(logoBytes.toString("ascii", 8, 12), "WEBP", "optimized logo must be WebP");
+assert(criticalPromoStats.size < 100 * 1024, "critical promo banner must remain below 100 KB");
+assert.strictEqual(criticalPromoBytes.toString("ascii", 0, 4), "RIFF", "critical promo banner must be a RIFF WebP");
+assert.strictEqual(criticalPromoBytes.toString("ascii", 8, 12), "WEBP", "critical promo banner must be WebP");
 
 for (const file of ["index.html", "akun.html", "promo_katalog.html", "admin_katalog.html"]) {
   const html = fs.readFileSync(path.join(root, file), "utf8");
@@ -20,6 +26,8 @@ for (const file of ["index.html", "akun.html", "promo_katalog.html", "admin_kata
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const account = fs.readFileSync(path.join(root, "akun.html"), "utf8");
 const adminCatalog = fs.readFileSync(path.join(root, "admin_katalog.html"), "utf8");
+assert(index.includes('rel="preload" as="image" href="assets/img/promo-critical.webp"'), "homepage must preload the critical promo banner");
+assert(index.includes('src="assets/img/promo-critical.webp"'), "homepage must render the local critical promo banner fallback");
 const hasAttributes = (html, marker, attributes) => {
   const tag = html.split("\n").find((line) => line.includes(marker) && line.includes("<img")) || "";
   return attributes.every((attribute) => tag.includes(attribute));

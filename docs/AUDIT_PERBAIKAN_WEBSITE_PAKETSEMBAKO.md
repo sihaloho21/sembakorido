@@ -426,6 +426,12 @@ Frontend boleh menampilkan kalkulasi awal, tetapi backend harus menghitung ulang
 
 ## 6. P1 — Performa dan reliability frontend
 
+### PERF-00 — Optimalkan banner LCP homepage
+
+**Status implementasi 13 Oktober 2026: Selesai di source dan diverifikasi production.** Banner kritis pertama dipra-render di HTML, dipreload dari asset WebP same-origin `assets/img/promo-critical.webp`, dan tidak lagi menunggu fetch katalog/banner API untuk mulai tampil. Carousel tetap mengambil konten authoritative dari API; snapshot lokal hanya dipakai sebagai critical fallback dan untuk banner aktif yang cocok.
+
+Regression check masuk ke `npm test`. Lighthouse post-deploy final menunjukkan LCP mobile turun dari 10,4 s menjadi 4,2 s dan desktop dari 5,5 s menjadi 2,8 s. Detail dan artefak ada di [`docs/LIGHTHOUSE_AUDIT_HOMEPAGE_2026-10-13.md`](LIGHTHOUSE_AUDIT_HOMEPAGE_2026-10-13.md). Snapshot perlu diperbarui ketika banner utama berubah.
+
 ### PERF-01 — Kurangi initial HTML dan inline CSS
 
 Pengukuran source menunjukkan:

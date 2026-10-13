@@ -176,3 +176,36 @@ Rencana aman:
 - Mobile JSON: `audits/lighthouse-2026-10-12/homepage-mobile.report.json`
 - Desktop HTML: `audits/lighthouse-2026-10-12/homepage-desktop.report.html`
 - Desktop JSON: `audits/lighthouse-2026-10-12/homepage-desktop.report.json`
+
+
+## Verifikasi P0 banner LCP — 13 Oktober 2026
+
+Implementasi yang dipush:
+
+- banner kritis pertama dipra-render di HTML homepage;
+- asset banner aktif disimpan sebagai `assets/img/promo-critical.webp` same-origin;
+- `rel="preload"` dan `fetchpriority="high"` diterapkan hanya pada banner kritis;
+- fetch carousel dijalankan segera tanpa menunggu `DOMContentLoaded` bila container sudah tersedia;
+- fallback lokal tetap terlihat saat endpoint banners lambat/gagal;
+- carousel tetap mengambil daftar banner authoritative dari API dan menggunakan asset lokal hanya untuk banner kritis yang cocok dengan source aktif;
+- regression check ditambahkan ke `npm test` melalui `test-image-performance.js`.
+
+### Hasil Lighthouse post-deploy final
+
+| Profil | Baseline Performance | Final Performance | Baseline LCP | Final LCP | Baseline Speed Index | Final Speed Index |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Mobile 412×915 | 60 | **71** | 10,4 s | **4,2 s** | 17,8 s | **13,2 s** |
+| Desktop 1350×900 | 61 | **65** | 5,5 s | **2,8 s** | 6,2 s | 6,2 s |
+
+Hasil final juga menunjukkan mobile TTI turun dari 11,0 s menjadi 8,2 s. Nilai Lighthouse tetap dapat berfluktuasi karena TTFB, cache, dan katalog dinamis, tetapi kedua profil menunjukkan perbaikan LCP setelah snapshot lokal diterapkan.
+
+### Catatan operasional
+
+`promo-critical.webp` adalah snapshot banner aktif pada 13 Oktober 2026. Saat banner pertama di dashboard diganti dengan asset berbeda, asset snapshot perlu diperbarui atau mekanisme build-time image snapshot perlu dijalankan agar fallback kritis tetap sinkron dengan konten promosi.
+
+Artefak post-deploy final:
+
+- Mobile HTML: `audits/lighthouse-2026-10-13-p0-final/homepage-mobile.report.html`
+- Mobile JSON: `audits/lighthouse-2026-10-13-p0-final/homepage-mobile.report.json`
+- Desktop HTML: `audits/lighthouse-2026-10-13-p0-final/homepage-desktop.report.html`
+- Desktop JSON: `audits/lighthouse-2026-10-13-p0-final/homepage-desktop.report.json`
