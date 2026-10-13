@@ -7,6 +7,8 @@
 var escapeHtml = (window.FrontendSanitize && window.FrontendSanitize.escapeHtml) || ((value) => String(value || ''));
 var sanitizeUrl = (window.FrontendSanitize && window.FrontendSanitize.sanitizeUrl) || ((url) => String(url || ''));
 var ensureImageFallbackHandler = (window.FrontendSanitize && window.FrontendSanitize.ensureImageFallbackHandler) || (() => {});
+const CRITICAL_PROMO_SOURCE_TOKEN = '89e4f2107469771.5fa81a797ee6a';
+const CRITICAL_PROMO_LOCAL_ASSET = 'assets/img/promo-critical.webp';
 
 function optimizePromoImageUrl(url, width, height) {
     const safeUrl = sanitizeUrl(url, 'https://placehold.co/1200x400?text=Banner+Promosi');
@@ -170,7 +172,11 @@ class PromotionalBannerCarousel {
         const safeCtaText = escapeHtml(banner.cta_text || '');
         const safeLink = sanitizeUrl(banner.cta_url, '#');
         const safeImage = sanitizeUrl(banner.image_url, 'https://placehold.co/1200x400?text=Banner+Promosi');
-        const optimizedImage = optimizePromoImageUrl(safeImage, 1200, 400);
+        const usesCriticalLocalAsset = index === 0 && safeImage.includes(CRITICAL_PROMO_SOURCE_TOKEN);
+        const optimizedImage = usesCriticalLocalAsset
+            ? CRITICAL_PROMO_LOCAL_ASSET
+            : optimizePromoImageUrl(safeImage, 1200, 400);
+        const imageWidth = usesCriticalLocalAsset ? 711 : 1200;
         const imageLoading = index === 0 ? 'eager' : 'lazy';
         const fetchPriority = index === 0 ? 'high' : 'low';
         
@@ -185,7 +191,7 @@ class PromotionalBannerCarousel {
                     ${hasLink ? `<a href="${safeLink}" class="promo-banner-link">` : ''}
                         <div class="promo-banner-image-container lazy-image-wrapper">
                             <div class="skeleton skeleton-banner"></div>
-                            <img src="${optimizedImage}" alt="${safeTitle || 'Banner Promosi'}" class="promo-banner-image" loading="${imageLoading}" fetchpriority="${fetchPriority}" decoding="async" width="1200" height="400" data-fallback-src="https://placehold.co/1200x400?text=Banner+Promosi" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+                            <img src="${optimizedImage}" alt="${safeTitle || 'Banner Promosi'}" class="promo-banner-image" loading="${imageLoading}" fetchpriority="${fetchPriority}" decoding="async" width="${imageWidth}" height="400" data-fallback-src="https://placehold.co/1200x400?text=Banner+Promosi" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
                         </div>
                         ${hasCaption ? `
                         <div class="promo-banner-caption">
