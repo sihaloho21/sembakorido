@@ -29,6 +29,7 @@ class PromotionalBannerCarousel {
         this.autoRotateInterval = null;
         this.autoRotateEnabled = false;
         this.isTransitioning = false;
+        this.fetchFailed = false;
         this.autoRotateDelay = 5000; // 5 detik per slide
         this.init();
     }
@@ -39,12 +40,13 @@ class PromotionalBannerCarousel {
             ensureImageFallbackHandler();
             this.render();
             this.setupEventListeners();
-        } else {
+        } else if (!this.fetchFailed) {
             this.hideContainer();
         }
     }
 
     async fetchBanners() {
+        this.fetchFailed = false;
         try {
             const apiUrl = CONFIG.getMainApiUrl();
             console.log('🔄 [PROMO-BANNER] Fetching banners from:', apiUrl);
@@ -96,6 +98,7 @@ class PromotionalBannerCarousel {
         } catch (error) {
             console.error('❌ [PROMO-BANNER] Error fetching banners:', error);
             this.banners = [];
+            this.fetchFailed = true;
         }
     }
 
@@ -383,14 +386,21 @@ class PromotionalBannerCarousel {
     }
 }
 
-// Initialize promotional banner carousel when DOM is ready
+// The script is loaded at the end of index.html, so start immediately when
+// the critical banner container already exists. This avoids waiting for the
+// DOMContentLoaded event before opening the banners request.
 let promoBannerCarousel;
-if (document.readyState === 'loading') {
+const startPromoBannerCarousel = () => {
+    promoBannerCarousel = new PromotionalBannerCarousel();
+};
+if (document.getElementById('promo-banner-carousel-container')) {
+    startPromoBannerCarousel();
+} else if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        promoBannerCarousel = new PromotionalBannerCarousel();
+        startPromoBannerCarousel();
     });
 } else {
-    promoBannerCarousel = new PromotionalBannerCarousel();
+    startPromoBannerCarousel();
 }
 
 // Handle window resize
