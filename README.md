@@ -58,7 +58,6 @@ Setelah server berjalan, buka URL berikut di browser:
 | Katalog promo publik | [http://localhost:8000/promo_katalog.html](http://localhost:8000/promo_katalog.html) |
 | Login admin | [http://localhost:8000/admin/login.html](http://localhost:8000/admin/login.html) |
 | Admin dashboard | [http://localhost:8000/admin/index.html](http://localhost:8000/admin/index.html) |
-| Admin Catalog Promo POP | [http://localhost:8000/admin/catalog-promo-pop.html](http://localhost:8000/admin/catalog-promo-pop.html) |
 
 > Jangan membuka halaman menggunakan `file://`. Jalankan server HTTP lokal karena beberapa browser membatasi module JavaScript, request lintas origin, dan asset ketika halaman dibuka langsung dari filesystem.
 
@@ -103,9 +102,9 @@ Perubahan endpoint melalui pengaturan admin akan dipakai oleh request berikutnya
 > Nilai `ADMIN_TOKEN` adalah kredensial backend dan **tidak boleh** ditulis ke source code, README, commit, atau repository publik. Gunakan token dari deployment GAS yang sesuai hanya pada halaman login admin atau melalui environment variable untuk script pengujian lokal.
 
 ## Catalog Promo POP
-Builder tersedia di `admin/catalog-promo-pop.html`. Live preview dan export memakai A4 Portrait dengan margin internal 0,4 cm pada keempat sisi; jarak halaman builder pada desktop tetap 3 cm dari sisi kiri dan kanan layar. Pilihan e-wallet PPOB disimpan pada kolom `ppob_wallets_json` di sheet `promo_flyers`, sehingga hanya DANA, GoPay, OVO, ShopeePay, dan LinkAja yang dipilih admin yang dirender. Watermark dapat diaktifkan dan diberi teks khusus dari panel admin, lalu ikut pada preview, print preview, PNG, dan PDF.
+UI admin Catalog Promo POP sedang dinonaktifkan sementara dan tidak lagi disajikan dari situs. Kode Google Apps Script, endpoint/backend, serta skema data terkait sengaja tetap dipertahankan untuk kemungkinan penggunaan kembali di masa mendatang. Dokumentasi teknis historis tetap tersedia di `docs/`.
 
-Jika spreadsheet yang sudah ada belum memiliki kolom baru tersebut, jalankan `runPromoFlyerSchemaDeployment()` dari `docs/deploy_promo_flyers_schema.gs` pada project Apps Script yang terhubung ke spreadsheet target. Script bersifat idempotent dan hanya menambahkan header yang belum ada.
+Jika perlu menyiapkan atau memperbaiki skema pada spreadsheet yang sudah ada, jalankan `runPromoFlyerSchemaDeployment()` dari `docs/deploy_promo_flyers_schema.gs` pada project Apps Script yang terhubung ke spreadsheet target. Script bersifat idempotent dan hanya menambahkan header yang belum ada.
 
 ## Struktur Direktori Utama
 
@@ -113,7 +112,7 @@ Jika spreadsheet yang sudah ada belum memiliki kolom baru tersebut, jalankan `ru
 | --- | --- |
 | `index.html` | Halaman storefront utama. |
 | `akun.html`, `transaksi.html`, `notifikasi.html` | Halaman akun, riwayat transaksi, dan riwayat notifikasi pelanggan. |
-| `admin/` | Halaman dan script panel admin, termasuk builder Catalog Promo POP. |
+| `admin/` | Halaman dan script panel admin. |
 | `assets/css/` | Tailwind source, CSS hasil build, dan style frontend. |
 | `assets/js/` | Controller halaman, konfigurasi API, service, dan bundle JavaScript. |
 | `docs/` | Dokumentasi dan source Google Apps Script. |
