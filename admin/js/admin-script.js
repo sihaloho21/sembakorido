@@ -5280,6 +5280,66 @@ async function editUserPoints(phone, currentPoints) {
     }
 }
 
+// ============ CATEGORY SHOWCASE SETTINGS (PRD PHASE 1-2) ============
+const CATEGORY_SHOWCASE_SETTING_KEY = 'category_showcase_config';
+const CATEGORY_SHOWCASE_PRESETS = [5, 10, 15, 20, 30];
+function categoryShowcaseCategoryNames() {
+    const names = new Set();
+    (Array.isArray(allCategories) ? allCategories : []).forEach((row) => { const name = String(row && (row.nama || row.name || row.kategori || row.category) || '').trim(); if (name) names.add(name); });
+    (Array.isArray(allProducts) ? allProducts : []).forEach((row) => { const name = String(row && (row.kategori || row.category) || '').trim(); if (name) names.add(name); });
+    return Array.from(names).sort((a, b) => a.localeCompare(b, 'id'));
+}
+function parseCategoryShowcaseConfig(value) {
+    try {
+        const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+        if (!parsed || typeof parsed !== 'object') throw new Error('config object required');
+        const seen = new Set();
+        const categories = (Array.isArray(parsed.categories) ? parsed.categories : []).map((row, index) => {
+            const category = String(row && row.category || '').replace(/\s+/g, ' ').trim();
+            const max = Number(row && row.max_products);
+            const key = category.toLocaleLowerCase('id');
+            if (!category || seen.has(key) || !Number.isInteger(max) || max < 1 || max > 50) return null;
+            seen.add(key); return { category, enabled: row.enabled === true || String(row.enabled).toLowerCase() === 'true', sort_order: Number(row.sort_order) || index + 1, max_products: max };
+        }).filter(Boolean);
+        return { version: Number(parsed.version) || 1, enabled: parsed.enabled === true || String(parsed.enabled).toLowerCase() === 'true', categories };
+    } catch (error) { return { version: 1, enabled: false, categories: [] }; }
+}
+function categoryShowcaseProductCount(category) { const target = String(category || '').trim().toLocaleLowerCase('id'); return (Array.isArray(allProducts) ? allProducts : []).filter((product) => String(product.kategori || product.category || '').trim().toLocaleLowerCase('id') === target).length; }
+function renderCategoryShowcaseRows(config) {
+    const body = document.getElementById('category-showcase-config-rows'); if (!body) return;
+    const names = categoryShowcaseCategoryNames(); const rows = Array.isArray(config.categories) ? config.categories : [];
+    if (!rows.length) { body.innerHTML = '<tr><td colspan="7" class="px-4 py-6 text-center text-gray-500">Belum ada kategori showcase. Tambahkan kategori untuk memulai.</td></tr>'; return; }
+    body.innerHTML = rows.map((row, index) => {
+        const count = categoryShowcaseProductCount(row.category); const missing = !names.some((name) => name.toLocaleLowerCase('id') === row.category.toLocaleLowerCase('id'));
+        const options = Array.from(new Set([...names, row.category])).map((name) => `<option value="${escapeAttr(name)}" ${name.toLocaleLowerCase('id') === row.category.toLocaleLowerCase('id') ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('');
+        const preset = CATEGORY_SHOWCASE_PRESETS.includes(Number(row.max_products));
+        return `<tr data-category-showcase-row class="border-t border-gray-100"><td class="px-4 py-3"><input type="checkbox" data-showcase-enabled ${row.enabled ? 'checked' : ''} aria-label="Tampilkan ${escapeAttr(row.category)}"></td><td class="px-4 py-3"><select data-showcase-category class="w-full rounded-lg border border-gray-200 p-2 text-sm">${options}</select></td><td class="px-4 py-3"><input data-showcase-order type="number" min="1" step="1" value="${Number(row.sort_order) || index + 1}" class="w-20 rounded-lg border border-gray-200 p-2"></td><td class="px-4 py-3"><select data-showcase-max class="w-24 rounded-lg border border-gray-200 p-2">${CATEGORY_SHOWCASE_PRESETS.map((value) => `<option value="${value}" ${value === Number(row.max_products) ? 'selected' : ''}>${value}</option>`).join('')}<option value="custom" ${preset ? '' : 'selected'}>Khusus</option></select><input data-showcase-custom type="number" min="1" max="50" value="${preset ? '' : Number(row.max_products)}" placeholder="1–50" class="${preset ? 'hidden ' : ''}mt-2 w-24 rounded-lg border border-gray-200 p-2"></td><td class="px-4 py-3 text-sm font-semibold">${count}</td><td class="px-4 py-3 text-xs ${missing ? 'text-red-600' : count ? 'text-green-700' : 'text-amber-700'}">${missing ? 'Kategori tidak ditemukan' : count ? 'Siap ditampilkan' : 'Tidak ada produk'}</td><td class="px-4 py-3 text-right"><button type="button" data-action="category-showcase-remove" class="text-xs font-bold text-red-600 hover:underline">Hapus</button></td></tr>`;
+    }).join('');
+    body.querySelectorAll('[data-showcase-max]').forEach((select) => select.addEventListener('change', () => select.parentElement.querySelector('[data-showcase-custom]')?.classList.toggle('hidden', select.value !== 'custom')));
+    const warning = document.getElementById('category-showcase-warning'); if (warning) { warning.textContent = rows.length > 6 ? 'Lebih dari 6 section terkonfigurasi dapat membuat beranda panjang.' : ''; warning.classList.toggle('hidden', rows.length <= 6); }
+}
+async function loadCategoryShowcaseConfig(settingsRows) {
+    if (!Array.isArray(allCategories) || allCategories.length === 0) { try { await fetchCategories(); } catch (error) {} }
+    if (!Array.isArray(allProducts) || allProducts.length === 0) { try { await fetchAdminProducts(); } catch (error) {} }
+    const config = parseCategoryShowcaseConfig(getLatestSettingValue(settingsRows, CATEGORY_SHOWCASE_SETTING_KEY, ''));
+    const enabled = document.getElementById('category-showcase-enabled'); if (enabled) enabled.checked = config.enabled; renderCategoryShowcaseRows(config);
+}
+function collectCategoryShowcaseConfig() {
+    const body = document.getElementById('category-showcase-config-rows'); const seen = new Set();
+    const categories = Array.from(body ? body.querySelectorAll('[data-category-showcase-row]') : []).map((row, index) => {
+        const category = String(row.querySelector('[data-showcase-category]')?.value || '').trim(); const key = category.toLocaleLowerCase('id'); const select = row.querySelector('[data-showcase-max]'); const max = select?.value === 'custom' ? Number(row.querySelector('[data-showcase-custom]')?.value) : Number(select?.value);
+        if (!category || seen.has(key)) throw new Error('Kategori showcase tidak boleh duplikat.'); if (!Number.isInteger(max) || max < 1 || max > 50) throw new Error('Jumlah produk harus berupa bilangan bulat 1–50.'); seen.add(key);
+        return { category, enabled: Boolean(row.querySelector('[data-showcase-enabled]')?.checked), sort_order: Number(row.querySelector('[data-showcase-order]')?.value) || index + 1, max_products: max };
+    }).sort((a, b) => a.sort_order - b.sort_order);
+    return { version: 1, enabled: Boolean(document.getElementById('category-showcase-enabled')?.checked), categories };
+}
+function addCategoryShowcaseRow() {
+    const current = Array.from(document.querySelectorAll('[data-showcase-category]')).map((select) => select.value); const currentKeys = current.map((name) => name.toLocaleLowerCase('id')); const category = categoryShowcaseCategoryNames().find((name) => !currentKeys.includes(name.toLocaleLowerCase('id')));
+    if (!category) return showAdminToast('Semua kategori sudah ditambahkan atau data kategori belum tersedia.', 'warning');
+    const rows = document.getElementById('category-showcase-config-rows'); if (rows && rows.querySelector('td[colspan]')) rows.innerHTML = '';
+    const config = { version: 1, enabled: Boolean(document.getElementById('category-showcase-enabled')?.checked), categories: [...current.map((name, index) => ({ category: name, enabled: false, sort_order: index + 1, max_products: 10 })), { category, enabled: true, sort_order: current.length + 1, max_products: 10 }] }; renderCategoryShowcaseRows(config);
+}
+async function saveCategoryShowcaseConfig() { try { await GASActions.upsertSetting(CATEGORY_SHOWCASE_SETTING_KEY, JSON.stringify(collectCategoryShowcaseConfig())); showAdminToast('Konfigurasi showcase berhasil disimpan di server.', 'success'); } catch (error) { showAdminToast(error.message || 'Gagal menyimpan konfigurasi showcase.', 'error'); } }
 // ============ SETTINGS FUNCTIONS ============
 async function loadSettings() {
     const config = CONFIG.getAllConfig();
@@ -5315,6 +5375,7 @@ async function loadSettings() {
     }
 
     const rows = await fetchSettingsRowsFromSheet();
+    await loadCategoryShowcaseConfig(rows);
     const adminRoleEnforceEl = document.getElementById('admin-role-enforce');
     const paylaterEnabledEl = document.getElementById('paylater-enabled');
     const paylaterPilotEnabledEl = document.getElementById('paylater-pilot-enabled');
@@ -5933,6 +5994,18 @@ function bindAdminActions() {
 
         if (action === 'save-settings') {
             saveSettings();
+            return;
+        }
+        if (action === 'category-showcase-add') {
+            addCategoryShowcaseRow();
+            return;
+        }
+        if (action === 'category-showcase-save') {
+            saveCategoryShowcaseConfig();
+            return;
+        }
+        if (action === 'category-showcase-remove') {
+            trigger.closest('[data-category-showcase-row]')?.remove();
             return;
         }
 

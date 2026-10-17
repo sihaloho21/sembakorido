@@ -12,6 +12,7 @@ const sources = [
   'assets/js/tiered-pricing-logic.min.js',
   'assets/js/image-slider.min.js',
   'assets/js/promo-banner-carousel.min.js',
+  'assets/js/category-showcase.js',
   'assets/js/sanitize.min.js',
   'assets/js/script.min.js'
 ];

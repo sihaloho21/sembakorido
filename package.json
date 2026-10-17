@@ -7,6 +7,7 @@
     "test:api": "node scripts/test-api-integration.mjs",
     "test:seo": "node scripts/test-seo-markup.js",
     "test:security-headers": "node scripts/test-security-headers.js",
+    "test:category-showcase": "node tests/category_showcase_config_test.js",
     "test:image-performance": "node scripts/test-image-performance.js",
     "broadcast:enqueue": "node scripts/run-broadcast-promo-job.js enqueue",
     "broadcast:send": "node scripts/run-broadcast-promo-job.js send",

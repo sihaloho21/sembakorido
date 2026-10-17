@@ -648,9 +648,13 @@ async function fetchProducts() {
                 isHidden: isHidden
             };
         });
+        window.categoryShowcaseProducts = allProducts;
         syncCartWithStockLimits();
         renderCategoryFilters(); // Render dynamic categories
         filterProducts();
+        if (window.CategoryShowcase) {
+            window.CategoryShowcase.loadPublicConfig().then(window.CategoryShowcase.render);
+        }
         updateCartUI();
         await CONFIG.refreshStoreStatus();
         checkStoreStatus();
