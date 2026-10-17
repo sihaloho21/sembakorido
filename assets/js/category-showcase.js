@@ -142,6 +142,9 @@
             const input = document.getElementById(id);
             if (input) input.value = '';
         });
+        if (typeof window.prioritizeAvailableProductsOnNextFilter === 'function') {
+            window.prioritizeAvailableProductsOnNextFilter();
+        }
         if (typeof window.setCategory === 'function') window.setCategory(category);
         const target = document.getElementById('product-grid');
         if (target) {

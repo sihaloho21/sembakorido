@@ -47,6 +47,7 @@ let currentCategory = 'Semua';
 let currentPage = 1;
 const itemsPerPage = 12;
 let filteredProducts = [];
+let prioritizeAvailableOnNextFilter = false;
 let storeClosed = CONFIG.isStoreClosed();
 let selectedVariation = null;
 let currentModalProduct = null;
@@ -2127,7 +2128,9 @@ function filterProducts() {
         return matchesSearch && matchesCategory;
     });
 
-    if (normalizeCategoryLabel(currentCategory) === 'Semua') {
+    const shouldPrioritizeAvailable = normalizeCategoryLabel(currentCategory) === 'Semua' || prioritizeAvailableOnNextFilter;
+    prioritizeAvailableOnNextFilter = false;
+    if (shouldPrioritizeAvailable) {
         filteredProducts = sortProductsByAvailability(filteredProducts);
     }
 
@@ -2412,6 +2415,10 @@ function setCategory(cat) {
     closeCategoryFilterSheet();
     filterProducts();
 }
+
+window.prioritizeAvailableProductsOnNextFilter = function () {
+    prioritizeAvailableOnNextFilter = true;
+};
 
 function addToCart(p, event, qty = 1) {
     if (isProductInteractionLocked(p)) {

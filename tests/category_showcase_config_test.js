@@ -44,4 +44,7 @@ assert.deepEqual(sortProductsByAvailability(products).map((product) => product.i
     'available-1', 'available-2', 'hidden', 'out-of-stock', 'hidden-zero-stock'
 ]);
 
+assert.match(source, /prioritizeAvailableProductsOnNextFilter/);
+assert.match(source, /window\.setCategory\(category\)/);
+
 console.log('category showcase config tests: PASS');
