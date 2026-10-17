@@ -102,9 +102,9 @@ Perubahan endpoint melalui pengaturan admin akan dipakai oleh request berikutnya
 > Nilai `ADMIN_TOKEN` adalah kredensial backend dan **tidak boleh** ditulis ke source code, README, commit, atau repository publik. Gunakan token dari deployment GAS yang sesuai hanya pada halaman login admin atau melalui environment variable untuk script pengujian lokal.
 
 ## Catalog Promo POP
-UI admin Catalog Promo POP sedang dinonaktifkan sementara dan tidak lagi disajikan dari situs. Kode Google Apps Script, endpoint/backend, serta skema data terkait sengaja tetap dipertahankan untuk kemungkinan penggunaan kembali di masa mendatang. Dokumentasi teknis historis tetap tersedia di `docs/`.
+UI admin Catalog Promo POP dan generator Brosur telah dihapus. CRUD, publish/unpublish, approval, version history, audit, dan kebijakan harga khusus POP juga dipensiunkan dari source GAS. Endpoint baca `public_promo_flyers` tetap aktif karena masih dipakai `promo_katalog.html`; skema/field yang dibutuhkan renderer publik tetap tersedia. Identitas admin bersama untuk otorisasi fitur lain juga tidak dihapus.
 
-Jika perlu menyiapkan atau memperbaiki skema pada spreadsheet yang sudah ada, jalankan `runPromoFlyerSchemaDeployment()` dari `docs/deploy_promo_flyers_schema.gs` pada project Apps Script yang terhubung ke spreadsheet target. Script bersifat idempotent dan hanya menambahkan header yang belum ada.
+Kode sumber GAS terbaru adalah `docs/gas_v63_blog_support.gs`. Jika perlu menyiapkan atau memverifikasi skema katalog publik pada spreadsheet yang sudah ada, jalankan `runPromoFlyerSchemaDeployment()` dari `docs/deploy_promo_flyers_schema.gs` pada project Apps Script yang terhubung ke spreadsheet target. Script bersifat idempotent dan hanya menambahkan header yang belum ada; kolom/data lama di Spreadsheet tidak dihapus.
 
 ## Struktur Direktori Utama
 

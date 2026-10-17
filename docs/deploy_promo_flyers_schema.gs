@@ -1,5 +1,5 @@
 /**
- * Catalog Promo POP — Schema Deployment Script
+ * Katalog Promo Publik — Schema Deployment Script
  *
  * Jalankan fungsi runPromoFlyerSchemaDeployment() satu kali dari Apps Script
  * setelah source GAS utama terbaru sudah ditempelkan ke project aktif.
@@ -10,9 +10,10 @@
  *
  * Script ini idempotent: aman dijalankan berulang kali. Kolom yang sudah ada
  * tidak dihapus atau dipindahkan. Kolom yang hilang hanya ditambahkan di akhir.
+ * Kolom legacy Brosur/governance dan data pada Spreadsheet tidak dihapus oleh script ini.
  */
 
-var PROMO_FLYER_SCHEMA_VERSION = '20260824.1';
+var PROMO_FLYER_SCHEMA_VERSION = '20261017.1';
 
 var PROMO_FLYER_REQUIRED_HEADERS = [
   'id',
@@ -44,13 +45,7 @@ var PROMO_FLYER_REQUIRED_HEADERS = [
   'show_qr_code',
   'banner_config_json',
   'grid_config_json',
-  // Metadata brochure generator (PRD MVP)
-  'brochure_name',
-  'paper_size',
-  'orientation',
-  'template_id',
-  'store_address',
-  'banner_url',
+  'visual_config_json',
   'disclaimer_text',
   'show_service',
   'ppob_wallets_json',

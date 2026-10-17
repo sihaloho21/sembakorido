@@ -1,9 +1,11 @@
-# Catatan Status — Generator Brosur
+# Catatan Status — Generator Brosur dan Promo POP
 
-**Status:** UI generator brosur admin dinonaktifkan pada 17 Oktober 2026.
+**Status:** UI generator brosur dan UI admin Catalog Promo POP dinonaktifkan pada Oktober 2026.
 
-Halaman `/admin-brosur.html` dan controller khusus `assets/js/brosur.js` telah dihapus dari frontend. Tautan ke fitur tersebut juga dihapus dari dashboard admin dan toolbar Kelola Produk. URL lama seharusnya mengembalikan HTTP 404 setelah deployment.
+Halaman `/admin-brosur.html`, controller khusus `assets/js/brosur.js`, halaman admin Catalog Promo POP beserta controllernya telah dihapus. CRUD admin `promo_flyers`, publish/unpublish, approval, version history, audit, validasi harga, dan kebijakan margin terkait juga dipensiunkan dari source GAS aktif `docs/gas_v63_blog_support.gs`.
 
-Penghapusan ini hanya mencakup UI admin generator brosur. Kode Google Apps Script, endpoint/backend dan skema `promo_flyers`, modul API bersama (`assets/js/gas-actions.js` dan `assets/js/api-service.js`), serta katalog publik `promo_katalog.html` tetap dipertahankan.
+Endpoint baca `public_promo_flyers` tetap dipertahankan karena `promo_katalog.html` masih menampilkannya. Konfigurasi publik seperti `grid_config_json`, `visual_config_json`, watermark, disclaimer, dan pilihan layanan juga tetap menjadi bagian skema aktif. `promo_admin_users` serta pemeriksaan token/role admin bersama tidak dihapus karena masih digunakan otorisasi endpoint lain.
 
-Detail implementasi terdahulu pada dokumen ini telah dipensiunkan karena mengacu pada UI dan controller yang tidak lagi ada. Riwayat perubahan lama masih dapat ditinjau melalui Git.
+File `docs/deploy_promo_flyers_schema.gs` hanya memastikan header yang dibutuhkan katalog publik. Script itu bersifat append-only: tidak menghapus sheet, kolom, atau data yang sudah ada. File migrasi governance POP telah dihapus dari source agar tidak dapat dijalankan kembali secara tidak sengaja; tabel/rekaman governance lama di Google Spreadsheet tidak disentuh.
+
+`docs/gas_v62_referral_hardening.gs` adalah snapshot versi lama untuk riwayat, bukan sumber GAS terbaru yang harus ditempelkan. Source terbaru yang disiapkan untuk project Apps Script adalah `docs/gas_v63_blog_support.gs`.
