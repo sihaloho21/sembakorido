@@ -74,12 +74,28 @@
         return publicConfigPromise;
     }
 
+    function sortProductsByAvailability(products) {
+        return (Array.isArray(products) ? products : [])
+            .map((product, index) => ({ product, index }))
+            .sort((a, b) => {
+                const aAvailable = !a.product.isHidden && Number(a.product.stok) > 0;
+                const bAvailable = !b.product.isHidden && Number(b.product.stok) > 0;
+
+                if (aAvailable !== bAvailable) return aAvailable ? -1 : 1;
+
+                // Preserve catalog/source order for products with the same availability.
+                return a.index - b.index;
+            })
+            .map(({ product }) => product);
+    }
+
     function getCategoryProducts(category, limit) {
         const target = normalizeCategory(category).toLocaleLowerCase('id');
-        return (Array.isArray(window.categoryShowcaseProducts) ? window.categoryShowcaseProducts : []).filter((product) => {
+        const categoryProducts = (Array.isArray(window.categoryShowcaseProducts) ? window.categoryShowcaseProducts : []).filter((product) => {
             const productCategory = normalizeCategory(product.category || product.kategori).toLocaleLowerCase('id');
             return productCategory === target;
-        }).slice(0, limit);
+        });
+        return sortProductsByAvailability(categoryProducts).slice(0, limit);
     }
 
     function renderSharedCards(products) {
@@ -185,7 +201,7 @@
         if (action === 'update-product-card-qty' && typeof window.updateProductCardQty === 'function') window.updateProductCardQty(id, parseInt(trigger.getAttribute('data-delta'), 10));
     }
 
-    window.CategoryShowcase = { CONFIG_KEY, normalizeConfig, loadPublicConfig, render, renderSharedCards };
+    window.CategoryShowcase = { CONFIG_KEY, normalizeConfig, loadPublicConfig, render, renderSharedCards, sortProductsByAvailability };
     document.addEventListener('DOMContentLoaded', () => {
         const host = document.getElementById('category-showcase');
         if (!host) return;
