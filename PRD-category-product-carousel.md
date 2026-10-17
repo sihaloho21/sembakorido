@@ -2,12 +2,12 @@
 
 - **Produk:** Paket Sembako
 - **Fitur:** Beranda — carousel produk per kategori
-- **Status:** **Disetujui sebagai dasar pengembangan bertahap — implementasi belum dimulai**
+- **Status:** **Disetujui — Fase 0–4 telah diimplementasikan; Fase 5 (QA, rilis, dan pemantauan) masih pending**
 - **Versi:** 1.0
 - **Tanggal:** 17 Oktober 2026
 - **Platform:** Web responsif (mobile, tablet, desktop)
 
-> Pengguna telah menyetujui PRD ini sebagai dasar pengembangan bertahap pada 17 Oktober 2026. **Belum ada implementasi yang dilakukan dalam tugas ini.** Pekerjaan berikutnya mengikuti fase dan gate pada dokumen ini.
+> Pengguna telah menyetujui PRD ini sebagai dasar pengembangan bertahap pada 17 Oktober 2026. Implementasi Fase 1–4 telah tersedia di repository dan mengikuti roadmap dokumen ini. Fase 5 tetap diperlukan untuk menyelesaikan QA, verifikasi gate, dan rilis terukur.
 
 ## 1. Ringkasan
 
@@ -333,11 +333,11 @@ Fase dilaksanakan berurutan. Setiap fase menghasilkan perubahan dan tes yang dap
 
 | Fase | Fokus | Hasil kerja | Gate untuk melanjutkan |
 |---|---|---|---|
-| **0 — PRD dan kontrak produk** | Menetapkan kebutuhan, keputusan pengguna, batas integrasi, model konfigurasi, dan kriteria penerimaan. | PRD v1.0 ini, termasuk definisi jumlah produk per kategori dan perilaku pencarian saat **Lihat Semua**. **Status: selesai/disetujui.** | Scope dan keputusan utama dicatat; implementasi teknis tetap belum dimulai pada tugas ini. |
-| **1 — Kontrak backend dan keamanan konfigurasi** | Menyediakan penyimpanan konfigurasi bersama dan read path publik terbatas. | Setting berversi `category_showcase_config`; validasi kategori, urutan dan nilai 1–50; upsert melalui pola `settings` existing; endpoint publik khusus yang hanya mengembalikan field showcase yang di-allowlist; default/fallback dan cache. | Tes otorisasi admin dan validasi lulus; uji GET membuktikan endpoint tidak membocorkan sheet `settings` atau setting sensitif lain; konfigurasi kosong/rusak aman. |
-| **2 — Pengaturan admin** | Memungkinkan admin mengelola section tanpa mengubah data produk. | Panel **Tampilan Kategori Beranda** di Pengaturan: pilih kategori, aktif/nonaktif, urutan, jumlah maksimum per kategori (preset dan angka khusus), jumlah produk tersedia/status, validasi duplikasi serta kategori tidak aktif/hilang; load/save dari server. | Role yang tidak berwenang ditolak; admin berwenang dapat menyimpan lalu memuat ulang konfigurasi persis; konfigurasi lama tidak hilang saat edit bagian setting lain. |
-| **3 — Section beranda dan carousel** | Menampilkan produk per kategori memakai katalog serta kartu existing. | Section berurutan sesuai konfigurasi; render hanya kategori aktif yang memiliki produk; geser touch/trackpad, tombol desktop dan keyboard; responsive; renderer kartu bersama; gambar lazy-load; cart/detail/variasi mempertahankan perilaku existing. | Tidak ada request produk terpisah per section; batas jumlah ditaati; kartu dan aksi identik dengan katalog; keyboard, touch, ukuran layar, dan overflow lulus pemeriksaan. |
-| **4 — Navigasi Lihat Semua dan sinkronisasi katalog** | Menghubungkan section ke katalog grid existing. | Saat diklik: kosongkan search input/state, terapkan kategori dengan API filter existing, reset halaman ke 1, update rail/sheet/header state, dan scroll ke `#product-grid`; pagination existing tetap berlaku. | Tes membuktikan query lama tidak membatasi hasil, kategori yang benar aktif, grid menampilkan semua produk kategori, dan pencarian/keranjang tidak meninggalkan state yang tidak konsisten. |
+| **0 — PRD dan kontrak produk** | Menetapkan kebutuhan, keputusan pengguna, batas integrasi, model konfigurasi, dan kriteria penerimaan. | PRD v1.0 ini, termasuk definisi jumlah produk per kategori dan perilaku pencarian saat **Lihat Semua**. **Status: selesai/disetujui.** | Scope dan keputusan utama dicatat. |
+| **1 — Kontrak backend dan keamanan konfigurasi** | Menyediakan penyimpanan konfigurasi bersama dan read path publik terbatas. | Setting berversi `category_showcase_config`; validasi kategori, urutan dan nilai 1–50; upsert melalui pola `settings` existing; endpoint publik khusus yang hanya mengembalikan field showcase yang di-allowlist; default/fallback dan cache. **Status: diimplementasikan** pada `32d4cd5` dan `7a53f33`. | Implementasi tersedia; verifikasi gate keamanan dan regresi formal dilanjutkan pada Fase 5. |
+| **2 — Pengaturan admin** | Memungkinkan admin mengelola section tanpa mengubah data produk. | Panel **Tampilan Kategori Beranda** di Pengaturan: pilih kategori, aktif/nonaktif, urutan, jumlah maksimum per kategori (preset dan angka khusus), jumlah produk tersedia/status, validasi duplikasi serta kategori tidak aktif/hilang; load/save dari server. **Status: diimplementasikan** pada `32d4cd5`. | Implementasi tersedia; verifikasi role dan persistensi end-to-end dilanjutkan pada Fase 5. |
+| **3 — Section beranda dan carousel** | Menampilkan produk per kategori memakai katalog serta kartu existing. | Section berurutan sesuai konfigurasi; render hanya kategori aktif yang memiliki produk; geser touch/trackpad, tombol desktop dan keyboard; responsive; renderer kartu bersama; gambar lazy-load; cart/detail/variasi mempertahankan perilaku existing. **Status: diimplementasikan** pada `32d4cd5`. | Implementasi tersedia; verifikasi browser, aksesibilitas, responsive, dan regresi kartu dilanjutkan pada Fase 5. |
+| **4 — Navigasi Lihat Semua dan sinkronisasi katalog** | Menghubungkan section ke katalog grid existing. | Saat diklik: kosongkan search input/state, terapkan kategori dengan API filter existing, reset halaman ke 1, update rail/sheet/header state, dan scroll ke `#product-grid`; pagination existing tetap berlaku. **Status: diimplementasikan** pada `32d4cd5`. | Implementasi tersedia; verifikasi sinkronisasi state dan regresi katalog dilanjutkan pada Fase 5. |
 | **5 — QA, rilis, dan pemantauan** | Memastikan regresi terkendali dan mengaktifkan fitur secara terukur. | Tes unit/integrasi/browser; viewport 320/375/768/1024/desktop; aksesibilitas, kinerja, security, error/fallback; rencana rilis bertahap; daftar kategori awal hanya diaktifkan setelah data nyata diverifikasi. | Semua acceptance criteria Must lulus; katalog, search, filter, pagination, stok, detail, variasi, dan cart existing lulus regresi; tersedia cara mematikan showcase tanpa mematikan katalog utama. |
 
 ### Ketergantungan antar fase
@@ -358,6 +358,10 @@ Fase dilaksanakan berurutan. Setiap fase menghasilkan perubahan dan tes yang dap
 
 - **PRD:** disetujui sebagai dasar roadmap.
 - **Fase 0:** selesai.
-- **Fase 1–5:** belum dimulai.
-- **Perubahan kode, Google Apps Script, spreadsheet, dan deployment:** tidak dilakukan dalam pekerjaan ini.
-- Pekerjaan berikutnya adalah memulai Fase 1 dalam tugas implementasi terpisah setelah pengguna meminta pengembangan dimulai.
+- **Fase 1:** selesai diimplementasikan pada commit `32d4cd5`, dengan integrasi endpoint GAS v7.1 pada `7a53f33`; gate QA formal masih pending.
+- **Fase 2:** selesai diimplementasikan pada commit `32d4cd5`; gate verifikasi role dan persistensi end-to-end masih pending.
+- **Fase 3:** selesai diimplementasikan pada commit `32d4cd5`; gate verifikasi browser, aksesibilitas, responsive, dan regresi kartu masih pending.
+- **Fase 4:** selesai diimplementasikan pada commit `32d4cd5`; gate verifikasi sinkronisasi katalog dan regresi filter/search/pagination/cart masih pending.
+- **Fase 5:** belum selesai; QA, rilis, pemantauan, dan verifikasi seluruh acceptance criteria masih pending.
+- Perubahan kode dan patch Google Apps Script sudah tersedia di repository; deployment spreadsheet/backend produksi belum dinyatakan selesai oleh PRD ini.
+- Validasi repository yang tersedia: lint dasar dan test konfigurasi category showcase lulus; suite penuh masih memerlukan dependency build Tailwind yang tersedia.
