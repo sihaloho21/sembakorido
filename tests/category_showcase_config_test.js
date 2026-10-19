@@ -53,7 +53,7 @@ const homepageSource = fs.readFileSync('assets/js/script.js', 'utf8');
 assert.match(homepageSource, /filterAvailableProducts\(allProducts\)/);
 assert.match(homepageSource, /'tidak tersedia'/);
 
-assert.match(source, /prioritizeAvailableProductsOnNextFilter/);
-assert.match(source, /window\.setCategory\(category\)/);
+assert.doesNotMatch(source, /showcase-view-all|category-showcase-view-all|function viewAll/);
+assert.doesNotMatch(source, /Lihat Semua/);
 
 console.log('category showcase config tests: PASS');

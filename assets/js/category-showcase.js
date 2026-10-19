@@ -149,23 +149,6 @@
         track.classList.toggle('has-overflow', overflow && !atEnd);
     }
 
-    function viewAll(category) {
-        ['search-input', 'search-input-header'].forEach((id) => {
-            const input = document.getElementById(id);
-            if (input) input.value = '';
-        });
-        if (typeof window.prioritizeAvailableProductsOnNextFilter === 'function') {
-            window.prioritizeAvailableProductsOnNextFilter();
-        }
-        if (typeof window.setCategory === 'function') window.setCategory(category);
-        const target = document.getElementById('product-grid');
-        if (target) {
-            const header = document.getElementById('main-header');
-            const offset = (header ? header.offsetHeight : 0) + 16;
-            window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset, behavior: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-        }
-    }
-
     function render(config) {
         const host = document.getElementById('category-showcase');
         if (!host) return;
@@ -179,7 +162,6 @@
             return `<section class="category-showcase-section" data-category-showcase-section data-category="${escapeHtml(entry.category)}" aria-labelledby="${trackId}-title">
                 <div class="category-showcase-header">
                     <h2 id="${trackId}-title" class="category-showcase-title">${escapeHtml(entry.category)}</h2>
-                    <button type="button" class="category-showcase-view-all" data-action="showcase-view-all" data-category="${escapeAttribute(entry.category)}">Lihat Semua <span aria-hidden="true">›</span></button>
                 </div>
                 <div class="category-showcase-viewport">
                     <button type="button" class="category-showcase-scroll category-showcase-scroll--left" data-showcase-scroll="left" data-track-id="${trackId}" aria-label="Geser ${escapeAttribute(entry.category)} ke kiri">‹</button>
@@ -204,7 +186,6 @@
         const trigger = event.target.closest('[data-action]');
         if (!trigger) return;
         const action = trigger.getAttribute('data-action');
-        if (action === 'showcase-view-all') { event.preventDefault(); viewAll(trigger.getAttribute('data-category')); return; }
         if (action === 'showcase-scroll') return;
         if (!['show-detail', 'add-to-cart', 'update-product-card-qty', 'direct-order'].includes(action)) return;
         const id = trigger.getAttribute('data-product-id') || trigger.closest('[data-product-id]')?.getAttribute('data-product-id');
