@@ -248,12 +248,12 @@ function renderProductCardCartControl(product) {
 
     if (mode === 'stepper' && quantity > 0) {
         return `
-            <div class="product-card-cart-control product-card-cart-stepper flex items-center justify-between rounded-full bg-green-600 px-1 py-1 shadow-md text-white min-w-[70px] md:min-w-[80px]">
-                <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="-1" class="product-card-cart-step-button product-card-cart-step-button--decrement flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-full" aria-label="Kurangi">
+            <div class="product-card-cart-control product-card-cart-stepper flex items-center justify-between rounded-full bg-green-600 px-1 py-1 shadow-md text-white">
+                <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="-1" class="product-card-cart-step-button product-card-cart-step-button--decrement flex items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-700" aria-label="Kurangi">
                     <svg class="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"></path></svg>
                 </button>
                 <span class="product-card-cart-count px-1 font-black tabular-nums text-[11px] md:text-sm" aria-live="polite">${quantity}</span>
-                <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="1" ${quantity >= maxStock ? 'disabled opacity-50' : ''} class="product-card-cart-step-button product-card-cart-step-button--increment flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-full" aria-label="Tambah">
+                <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="1" ${quantity >= maxStock ? 'disabled opacity-50' : ''} class="product-card-cart-step-button product-card-cart-step-button--increment flex items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-700" aria-label="Tambah">
                     <svg class="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
                 </button>
             </div>
@@ -261,8 +261,8 @@ function renderProductCardCartControl(product) {
     }
 
     return `
-        <button data-action="add-to-cart" data-product-id="${productId}" ${isDisabled ? 'disabled' : ''} class="product-card-cart-control product-card-cart-add-button flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-green-600 text-white shadow-md hover:bg-green-700 transition active:scale-95 disabled:bg-gray-300 disabled:cursor-not-allowed" aria-label="Tambah ke Keranjang">
-            <svg class="w-4 h-4 md:w-5 md:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
+        <button type="button" data-action="add-to-cart" data-product-id="${productId}" ${isDisabled ? 'disabled' : ''} class="product-card-cart-control product-card-cart-add-button flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-white shadow-md hover:bg-green-700 transition active:scale-95 disabled:bg-gray-300 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-700" aria-label="Tambah ke Keranjang">
+            <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
         </button>
     `;
 }
@@ -2056,6 +2056,11 @@ function renderProducts(products) {
 	                <div class="lazy-image-wrapper bg-white relative" style="aspect-ratio: 4 / 3;">
 	                    <div class="skeleton skeleton-product-image"></div>
 	                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="product-card-image w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="https://placehold.co/500x500?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+	                    ${!isHiddenProd && !hasVariations ? `
+	                    <div class="product-card-cart-slot product-card-cart-slot--overlay" data-product-cart-slot data-product-id="${productId}" data-cart-mode="${inlineCartState.mode}" data-cart-qty="${inlineCartState.quantity}">
+	                        ${renderProductCardCartControl(p)}
+	                    </div>
+	                    ` : ''}
 	                </div>
                     <div class="p-2 md:p-3">
 	                    <div class="flex flex-col mb-1 md:mb-2">
@@ -2077,19 +2082,13 @@ function renderProducts(products) {
                         </div>
                     </div>
                     ${grosirGridHtml}
-                    ${!isHiddenProd ? `
-                    <div class="flex items-center justify-end px-2 pt-1 pb-2 md:px-3 md:pb-3">
-                        ${hasVariations ? `
-                        <button data-action="show-detail" data-product-id="${productId}" class="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-green-600 text-white shadow-md hover:bg-green-700 transition active:scale-95" aria-label="Lihat Pilihan">
-                            <svg class="w-4 h-4 md:w-5 md:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
-                        </button>
-                        ` : `
-                        <div class="product-card-cart-slot" data-product-cart-slot data-product-id="${productId}" data-cart-mode="${inlineCartState.mode}" data-cart-qty="${inlineCartState.quantity}">
-                            ${renderProductCardCartControl(p)}
-                        </div>
-                        `}
-                    </div>
-                    ` : ''}
+	                    ${!isHiddenProd && hasVariations ? `
+	                    <div class="flex items-center justify-end px-2 pt-1 pb-2 md:px-3 md:pb-3">
+	                        <button data-action="show-detail" data-product-id="${productId}" class="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-green-600 text-white shadow-md hover:bg-green-700 transition active:scale-95" aria-label="Lihat Pilihan">
+	                            <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
+	                        </button>
+	                    </div>
+	                    ` : ''}
 
                 </div>
             </div>
