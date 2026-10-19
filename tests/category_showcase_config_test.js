@@ -13,6 +13,7 @@ const context = {
 };
 vm.runInNewContext(source, context, { filename: 'category-showcase.js' });
 const normalize = context.window.CategoryShowcase.normalizeConfig;
+const filterAvailableProducts = context.window.CategoryShowcase.filterAvailableProducts;
 const sortProductsByAvailability = context.window.CategoryShowcase.sortProductsByAvailability;
 
 assert.deepEqual(JSON.parse(JSON.stringify(normalize({ enabled: true, categories: [
@@ -38,11 +39,19 @@ const products = [
     { id: 'hidden', stok: 9, isHidden: true },
     { id: 'available-2', stok: 1, isHidden: false },
     { id: 'out-of-stock', stok: 0, isHidden: false },
-    { id: 'hidden-zero-stock', stok: 0, isHidden: true }
+    { id: 'hidden-zero-stock', stok: 0, isHidden: true },
+    { id: 'unavailable-status', stok: 6, status: 'Tidak Tersedia', isHidden: false }
 ];
 assert.deepEqual(sortProductsByAvailability(products).map((product) => product.id), [
-    'available-1', 'available-2', 'hidden', 'out-of-stock', 'hidden-zero-stock'
+    'available-1', 'available-2', 'hidden', 'out-of-stock', 'hidden-zero-stock', 'unavailable-status'
 ]);
+assert.deepEqual(filterAvailableProducts(products).map((product) => product.id), [
+    'available-1', 'available-2'
+]);
+
+const homepageSource = fs.readFileSync('assets/js/script.js', 'utf8');
+assert.match(homepageSource, /filterAvailableProducts\(allProducts\)/);
+assert.match(homepageSource, /'tidak tersedia'/);
 
 assert.match(source, /prioritizeAvailableProductsOnNextFilter/);
 assert.match(source, /window\.setCategory\(category\)/);

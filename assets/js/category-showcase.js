@@ -74,12 +74,24 @@
         return publicConfigPromise;
     }
 
+    function isProductAvailable(product) {
+        if (!product || typeof product !== 'object' || product.isHidden === true) return false;
+        const status = normalizeCategory(product.status).toLocaleLowerCase('id').replace(/[_-]+/g, ' ');
+        if (['sembunyikan', 'disembunyikan', 'hidden', 'off', 'tidak tersedia', 'tidak tersedia saat ini', 'unavailable', 'not available', 'out of stock', 'habis', 'stok habis'].includes(status)) return false;
+        const stock = Number(product.stok);
+        return Number.isFinite(stock) && stock > 0;
+    }
+
+    function filterAvailableProducts(products) {
+        return (Array.isArray(products) ? products : []).filter(isProductAvailable);
+    }
+
     function sortProductsByAvailability(products) {
         return (Array.isArray(products) ? products : [])
             .map((product, index) => ({ product, index }))
             .sort((a, b) => {
-                const aAvailable = !a.product.isHidden && Number(a.product.stok) > 0;
-                const bAvailable = !b.product.isHidden && Number(b.product.stok) > 0;
+                const aAvailable = isProductAvailable(a.product);
+                const bAvailable = isProductAvailable(b.product);
 
                 if (aAvailable !== bAvailable) return aAvailable ? -1 : 1;
 
@@ -95,7 +107,7 @@
             const productCategory = normalizeCategory(product.category || product.kategori).toLocaleLowerCase('id');
             return productCategory === target;
         });
-        return sortProductsByAvailability(categoryProducts).slice(0, limit);
+        return sortProductsByAvailability(filterAvailableProducts(categoryProducts)).slice(0, limit);
     }
 
     function renderSharedCards(products) {
@@ -204,7 +216,7 @@
         if (action === 'update-product-card-qty' && typeof window.updateProductCardQty === 'function') window.updateProductCardQty(id, parseInt(trigger.getAttribute('data-delta'), 10));
     }
 
-    window.CategoryShowcase = { CONFIG_KEY, normalizeConfig, loadPublicConfig, render, renderSharedCards, sortProductsByAvailability };
+    window.CategoryShowcase = { CONFIG_KEY, normalizeConfig, loadPublicConfig, render, renderSharedCards, isProductAvailable, filterAvailableProducts, sortProductsByAvailability };
     document.addEventListener('DOMContentLoaded', () => {
         const host = document.getElementById('category-showcase');
         if (!host) return;

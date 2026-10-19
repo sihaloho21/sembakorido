@@ -159,12 +159,12 @@ function isProductInteractionLocked(product) {
 function normalizeProductStatusValue(primaryValue, fallbackValue) {
     const candidates = [primaryValue, fallbackValue];
     for (let i = 0; i < candidates.length; i += 1) {
-        const normalized = String(candidates[i] || '').trim().toLowerCase();
+        const normalized = String(candidates[i] || '').trim().toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
         if (normalized === '') continue;
-        if (normalized === 'sembunyikan' || normalized === 'disembunyikan' || normalized === 'hidden' || normalized === 'off') {
+        if (['sembunyikan', 'disembunyikan', 'hidden', 'off', 'tidak tersedia', 'tidak tersedia saat ini', 'unavailable', 'not available', 'out of stock', 'habis', 'stok habis'].includes(normalized)) {
             return 'sembunyikan';
         }
-        if (normalized === 'tampil' || normalized === 'ditampilkan' || normalized === 'show' || normalized === 'on') {
+        if (['tampil', 'ditampilkan', 'show', 'on', 'tersedia', 'available'].includes(normalized)) {
             return 'tampil';
         }
     }
@@ -2119,7 +2119,10 @@ function sortProductsByAvailability(products) {
 function filterProducts() {
     const searchInput = document.getElementById('search-input');
     const query = searchInput ? normalizeSearch(searchInput.value) : '';
-    filteredProducts = allProducts.filter(p => {
+    const availableProducts = window.CategoryShowcase && typeof window.CategoryShowcase.filterAvailableProducts === 'function'
+        ? window.CategoryShowcase.filterAvailableProducts(allProducts)
+        : allProducts.filter((product) => product && product.isHidden !== true && Number(product.stok) > 0);
+    filteredProducts = availableProducts.filter(p => {
         const matchesSearch = matchesQuery(p, query);
         const selectedCategory = normalizeCategoryLabel(currentCategory);
         const productCategory = normalizeCategoryLabel(p.category || p.kategori);
