@@ -2,9 +2,9 @@
 
 /* Shared product-card cart overlay: used by both the home grid and category showcase. */
 .product-card-cart-slot--overlay{position:absolute;right:.5rem;top:.5rem;z-index:20;max-width:calc(100% - 1rem)}
-.product-card-cart-slot--overlay .product-card-cart-control{border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.28)}
+.product-card-cart-slot--overlay .product-card-cart-control{border:1px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.22)}
 .product-card-cart-slot--overlay .product-card-cart-add-button{min-height:2.5rem;min-width:2.5rem}
-.product-card-cart-slot--overlay .product-card-cart-stepper{box-sizing:border-box;gap:.125rem;max-width:100%;min-width:min(6.375rem,100%);padding:.1875rem}
-.product-card-cart-slot--overlay .product-card-cart-step-button{flex:0 0 2.5rem;height:2.5rem;width:2.5rem}
-@media(max-width:420px){.product-card-cart-slot--overlay{right:.25rem;top:.25rem;max-width:calc(100% - .5rem)}.product-card-cart-slot--overlay .product-card-cart-stepper{gap:0;min-width:0;padding:.125rem}.product-card-cart-slot--overlay .product-card-cart-step-button{flex-basis:2rem;height:2rem;width:2rem}.product-card-cart-slot--overlay .product-card-cart-count{font-size:.6875rem;min-width:1rem;padding-left:.125rem;padding-right:.125rem}}
+.product-card-cart-slot--overlay .product-card-cart-stepper{box-sizing:border-box;gap:.0625rem;max-width:100%;min-width:min(5.75rem,100%);padding:.125rem}
+.product-card-cart-slot--overlay .product-card-cart-step-button{flex:0 0 2.25rem;height:2.25rem;width:2.25rem}
+@media(max-width:420px){.product-card-cart-slot--overlay{right:.25rem;top:.25rem;max-width:calc(100% - .5rem)}.product-card-cart-slot--overlay .product-card-cart-stepper{gap:0;min-width:0;padding:.1rem}.product-card-cart-slot--overlay .product-card-cart-step-button{flex-basis:1.875rem;height:1.875rem;width:1.875rem}.product-card-cart-slot--overlay .product-card-cart-count{font-size:.65rem;min-width:.875rem;padding-left:.1rem;padding-right:.1rem}}
 @media(max-width:359px){.product-card-cart-slot--overlay .product-card-cart-add-button{height:2.25rem;min-height:2.25rem;min-width:2.25rem;width:2.25rem}.product-card-cart-slot--overlay .product-card-cart-step-button{flex-basis:1.75rem;height:1.75rem;width:1.75rem}}

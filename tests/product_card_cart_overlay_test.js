@@ -34,5 +34,8 @@ assert.match(css, /z-index:20/, 'overlay should appear above image and non-inter
 assert.match(css, /@media\(max-width:420px\)/, 'stepper sizing should adapt for narrow phones');
 assert.match(css, /@media\(max-width:359px\)/, 'controls should fit the narrowest supported phone layout');
 assert.match(css, /min-height:2\.5rem;min-width:2\.5rem/, 'add target should reach 40px where the viewport permits');
+assert.match(css, /product-card-cart-step-button\{flex:0 0 2\.25rem;height:2\.25rem;width:2\.25rem\}/, 'desktop stepper buttons should be reduced to 36px');
+assert.match(css, /flex-basis:1\.875rem;height:1\.875rem;width:1\.875rem/, 'mobile stepper buttons should be reduced to 30px');
+assert.match(css, /min-width:min\(5\.75rem,100%\)/, 'stepper minimum width should be reduced to 92px');
 
 console.log('product card cart overlay tests: PASS');
