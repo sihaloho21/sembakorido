@@ -161,6 +161,9 @@
             const cards = renderSharedCards(products);
             return `<section class="category-showcase-section" data-category-showcase-section data-category="${escapeHtml(entry.category)}" aria-labelledby="${trackId}-title">
                 <div class="category-showcase-header">
+                    <span class="category-showcase-title-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-1.5 11h-13L4 9Z"/><path d="m8 9 2-5m6 5-2-5M8 13v3m4-3v3m4-3v3"/></svg>
+                    </span>
                     <h2 id="${trackId}-title" class="category-showcase-title">${escapeHtml(entry.category)}</h2>
                 </div>
                 <div class="category-showcase-viewport">

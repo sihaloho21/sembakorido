@@ -50,10 +50,16 @@ assert.deepEqual(filterAvailableProducts(products).map((product) => product.id),
 ]);
 
 const homepageSource = fs.readFileSync('assets/js/script.js', 'utf8');
+const showcaseCss = fs.readFileSync('assets/css/category-showcase.css', 'utf8');
 assert.match(homepageSource, /filterAvailableProducts\(allProducts\)/);
 assert.match(homepageSource, /'tidak tersedia'/);
 
 assert.doesNotMatch(source, /showcase-view-all|category-showcase-view-all|function viewAll/);
 assert.doesNotMatch(source, /Lihat Semua/);
+assert.match(source, /category-showcase-title-icon/);
+assert.match(showcaseCss, /category-showcase-header::before/);
+assert.match(showcaseCss, /flex-basis:calc\(\(100vw - 3\.25rem\)\/2\.5\)/);
+assert.match(showcaseCss, /flex-basis:calc\(\(100% - 2\.6rem\)\/4\.25\)/);
+assert.match(showcaseCss, /flex-basis:calc\(\(100% - 4rem\)\/5\.2\)/);
 
 console.log('category showcase config tests: PASS');
