@@ -2454,6 +2454,12 @@ function handleUpsertSetting(data) {
 var CATEGORY_SHOWCASE_CONFIG_KEY_V71 = 'category_showcase_config';
 var CATEGORY_SHOWCASE_MAX_PRODUCTS_V71 = 50;
 var CATEGORY_SHOWCASE_MAX_ROWS_V71 = 100;
+var CATEGORY_SHOWCASE_DEFAULT_BACKGROUND_V71 = '#f0fdf4';
+
+function normalizeCategoryShowcaseBackgroundV71(value) {
+  var color = String(value == null ? '' : value).trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : CATEGORY_SHOWCASE_DEFAULT_BACKGROUND_V71;
+}
 
 function normalizeCategoryShowcaseConfigV71(input) {
   var source = input && typeof input === 'object' ? input : {};
@@ -2478,6 +2484,7 @@ function normalizeCategoryShowcaseConfigV71(input) {
   return {
     version: Number(source.version) || 1,
     enabled: source.enabled === true || String(source.enabled).toLowerCase() === 'true',
+    background_color: normalizeCategoryShowcaseBackgroundV71(source.background_color),
     categories: categories
   };
 }
@@ -2504,6 +2511,7 @@ function handlePublicCategoryShowcaseConfigV71() {
       config: {
         version: config.version,
         enabled: config.enabled,
+        background_color: config.background_color,
         categories: config.categories.map(function(row) {
           return {
             category: row.category,
@@ -2521,7 +2529,7 @@ function handlePublicCategoryShowcaseConfigV71() {
     });
     return {
       success: true,
-      config: { version: 1, enabled: false, categories: [] },
+      config: { version: 1, enabled: false, background_color: CATEGORY_SHOWCASE_DEFAULT_BACKGROUND_V71, categories: [] },
       cache_ttl_seconds: 60
     };
   }

@@ -1299,6 +1299,18 @@
                         </div>
                         <label class="inline-flex items-center gap-2 text-sm font-bold text-gray-700"><input id="category-showcase-enabled" type="checkbox" class="h-4 w-4 accent-green-600"> Aktifkan showcase</label>
                     </div>
+                    <div class="rounded-xl border border-emerald-100 bg-emerald-50 p-4 space-y-3">
+                        <div>
+                            <label for="category-showcase-background-color" class="block text-sm font-bold text-emerald-900">Warna latar carousel</label>
+                            <p class="mt-1 text-xs text-emerald-800">Warna ini diterapkan pada semua section carousel kategori. Kartu produk tetap putih. Pilih warna yang menjaga keterbacaan judul.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <input id="category-showcase-background-color" type="color" value="#f0fdf4" aria-label="Pilih warna latar carousel kategori" class="h-11 w-16 cursor-pointer rounded-lg border border-emerald-200 bg-white p-1">
+                            <span id="category-showcase-color-swatch" aria-hidden="true" class="h-8 w-8 rounded-md border border-emerald-300"></span>
+                            <output id="category-showcase-color-preview" aria-live="polite" class="rounded-lg border border-emerald-200 bg-white px-3 py-2 font-mono text-sm font-bold">#f0fdf4</output>
+                            <button type="button" data-action="category-showcase-color-reset" class="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-800 hover:bg-emerald-100">Reset default</button>
+                        </div>
+                    </div>
                     <div id="category-showcase-warning" class="hidden rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800"></div>
                     <div class="overflow-x-auto rounded-xl border border-gray-100">
                         <table class="w-full text-sm min-w-[760px]"><thead class="bg-gray-50"><tr>
@@ -2077,7 +2089,7 @@
     <script src="../assets/js/gas-actions.js"></script>
     <script src="js/api-helper.js"></script>
     <script src="../assets/js/sanitize.min.js"></script>
-    <script src="js/admin-script.js"></script>
+    <script src="js/admin-script.js?v=20261020a"></script>
     <script src="js/tiered-pricing.min.js"></script>
     <script src="js/banner-management.min.js"></script>
     

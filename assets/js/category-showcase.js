@@ -7,7 +7,25 @@
     const MAX_CATEGORIES = 100;
     const CATEGORY_MAX = 50;
     const CATEGORY_MIN = 1;
+    const DEFAULT_BACKGROUND_COLOR = '#f0fdf4';
     let publicConfigPromise = null;
+
+    function normalizeBackgroundColor(value) {
+        const color = String(value == null ? '' : value).trim();
+        return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : DEFAULT_BACKGROUND_COLOR;
+    }
+
+    function getContrastTextColor(hex) {
+        const toLuminance = (color) => {
+            const channels = color.slice(1).match(/.{2}/g).map((channel) => parseInt(channel, 16) / 255);
+            const linear = channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+            return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+        };
+        const backgroundLuminance = toLuminance(normalizeBackgroundColor(hex));
+        const darkTextLuminance = toLuminance('#1f2937');
+        const contrast = (first, second) => (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+        return contrast(backgroundLuminance, darkTextLuminance) >= contrast(backgroundLuminance, 1) ? '#1f2937' : '#ffffff';
+    }
 
     function normalizeCategory(value) {
         return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
@@ -44,6 +62,7 @@
         return {
             version: Number(raw.version) || 1,
             enabled: raw.enabled === true || String(raw.enabled).toLowerCase() === 'true',
+            background_color: normalizeBackgroundColor(raw.background_color),
             categories
         };
     }
@@ -65,10 +84,10 @@
                     cacheDuration: CACHE_DURATION,
                     maxRetries: 1
                 });
-                return extractConfig(response) || { version: 1, enabled: false, categories: [] };
+                return extractConfig(response) || { version: 1, enabled: false, background_color: DEFAULT_BACKGROUND_COLOR, categories: [] };
             } catch (error) {
                 console.warn('Category showcase config unavailable; keeping catalog fallback:', error);
-                return { version: 1, enabled: false, categories: [] };
+                return { version: 1, enabled: false, background_color: DEFAULT_BACKGROUND_COLOR, categories: [] };
             }
         })();
         return publicConfigPromise;
@@ -152,9 +171,12 @@
     function render(config) {
         const host = document.getElementById('category-showcase');
         if (!host) return;
+        const safeConfig = normalizeConfig(config);
+        host.style.setProperty('--category-showcase-background', safeConfig.background_color);
+        host.style.setProperty('--category-showcase-heading', getContrastTextColor(safeConfig.background_color));
         host.innerHTML = '';
-        if (!config || !config.enabled) { host.classList.add('hidden'); return; }
-        const sections = config.categories.map((entry, index) => {
+        if (!safeConfig.enabled) { host.classList.add('hidden'); return; }
+        const sections = safeConfig.categories.map((entry, index) => {
             const products = getCategoryProducts(entry.category, entry.max_products);
             if (!entry.enabled || products.length === 0) return '';
             const trackId = `category-showcase-track-${index}`;
@@ -200,7 +222,7 @@
         if (action === 'update-product-card-qty' && typeof window.updateProductCardQty === 'function') window.updateProductCardQty(id, parseInt(trigger.getAttribute('data-delta'), 10));
     }
 
-    window.CategoryShowcase = { CONFIG_KEY, normalizeConfig, loadPublicConfig, render, renderSharedCards, isProductAvailable, filterAvailableProducts, sortProductsByAvailability };
+    window.CategoryShowcase = { CONFIG_KEY, normalizeConfig, normalizeBackgroundColor, getContrastTextColor, loadPublicConfig, render, renderSharedCards, isProductAvailable, filterAvailableProducts, sortProductsByAvailability };
     document.addEventListener('DOMContentLoaded', () => {
         const host = document.getElementById('category-showcase');
         if (!host) return;

@@ -10,5 +10,6 @@
 @media(max-width:359px){.product-card-cart-slot--overlay .product-card-cart-add-button{height:2.25rem;min-height:2.25rem;min-width:2.25rem;width:2.25rem}.product-card-cart-slot--overlay .product-card-cart-step-button{flex-basis:1.75rem;height:1.75rem;width:1.75rem}}
 
 /* Green surface distinguishes category showcases from the main product grid. */
-.category-showcase-section{background:#f0fdf4;border:1px solid #dcfce7;border-radius:1rem;box-sizing:border-box;padding:.75rem .45rem}
+.category-showcase-section{background:var(--category-showcase-background,#f0fdf4);border:1px solid #dcfce7;border-radius:1rem;box-sizing:border-box;padding:.75rem .45rem}
 @media(max-width:767px){.category-showcase-section{border-radius:.875rem;padding:.625rem .35rem}}
+.category-showcase-title{color:var(--category-showcase-heading,#1f2937)}

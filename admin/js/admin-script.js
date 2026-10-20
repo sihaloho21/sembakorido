@@ -5283,6 +5283,18 @@ async function editUserPoints(phone, currentPoints) {
 // ============ CATEGORY SHOWCASE SETTINGS (PRD PHASE 1-2) ============
 const CATEGORY_SHOWCASE_SETTING_KEY = 'category_showcase_config';
 const CATEGORY_SHOWCASE_PRESETS = [5, 10, 15, 20, 30];
+const CATEGORY_SHOWCASE_DEFAULT_BACKGROUND_COLOR = '#f0fdf4';
+function normalizeCategoryShowcaseBackgroundColor(value) {
+    const color = String(value == null ? '' : value).trim();
+    return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : CATEGORY_SHOWCASE_DEFAULT_BACKGROUND_COLOR;
+}
+function updateCategoryShowcaseColorPreview(value) {
+    const color = normalizeCategoryShowcaseBackgroundColor(value);
+    const output = document.getElementById('category-showcase-color-preview');
+    const swatch = document.getElementById('category-showcase-color-swatch');
+    if (output) output.textContent = color;
+    if (swatch) swatch.style.backgroundColor = color;
+}
 function categoryShowcaseCategoryNames() {
     const names = new Set();
     (Array.isArray(allCategories) ? allCategories : []).forEach((row) => { const name = String(row && (row.nama || row.name || row.kategori || row.category) || '').trim(); if (name) names.add(name); });
@@ -5301,8 +5313,8 @@ function parseCategoryShowcaseConfig(value) {
             if (!category || seen.has(key) || !Number.isInteger(max) || max < 1 || max > 50) return null;
             seen.add(key); return { category, enabled: row.enabled === true || String(row.enabled).toLowerCase() === 'true', sort_order: Number(row.sort_order) || index + 1, max_products: max };
         }).filter(Boolean);
-        return { version: Number(parsed.version) || 1, enabled: parsed.enabled === true || String(parsed.enabled).toLowerCase() === 'true', categories };
-    } catch (error) { return { version: 1, enabled: false, categories: [] }; }
+        return { version: Number(parsed.version) || 1, enabled: parsed.enabled === true || String(parsed.enabled).toLowerCase() === 'true', background_color: normalizeCategoryShowcaseBackgroundColor(parsed.background_color), categories };
+    } catch (error) { return { version: 1, enabled: false, background_color: CATEGORY_SHOWCASE_DEFAULT_BACKGROUND_COLOR, categories: [] }; }
 }
 function categoryShowcaseProductCount(category) { const target = String(category || '').trim().toLocaleLowerCase('id'); return (Array.isArray(allProducts) ? allProducts : []).filter((product) => String(product.kategori || product.category || '').trim().toLocaleLowerCase('id') === target).length; }
 function renderCategoryShowcaseRows(config) {
@@ -5322,6 +5334,9 @@ async function loadCategoryShowcaseConfig(settingsRows) {
     if (!Array.isArray(allCategories) || allCategories.length === 0) { try { await fetchCategories(); } catch (error) {} }
     if (!Array.isArray(allProducts) || allProducts.length === 0) { try { await fetchAdminProducts(); } catch (error) {} }
     const config = parseCategoryShowcaseConfig(getLatestSettingValue(settingsRows, CATEGORY_SHOWCASE_SETTING_KEY, ''));
+    const backgroundColor = document.getElementById('category-showcase-background-color');
+    if (backgroundColor) backgroundColor.value = config.background_color;
+    updateCategoryShowcaseColorPreview(config.background_color);
     const enabled = document.getElementById('category-showcase-enabled'); if (enabled) enabled.checked = config.enabled; renderCategoryShowcaseRows(config);
 }
 function collectCategoryShowcaseConfig() {
@@ -5331,7 +5346,8 @@ function collectCategoryShowcaseConfig() {
         if (!category || seen.has(key)) throw new Error('Kategori showcase tidak boleh duplikat.'); if (!Number.isInteger(max) || max < 1 || max > 50) throw new Error('Jumlah produk harus berupa bilangan bulat 1–50.'); seen.add(key);
         return { category, enabled: Boolean(row.querySelector('[data-showcase-enabled]')?.checked), sort_order: Number(row.querySelector('[data-showcase-order]')?.value) || index + 1, max_products: max };
     }).sort((a, b) => a.sort_order - b.sort_order);
-    return { version: 1, enabled: Boolean(document.getElementById('category-showcase-enabled')?.checked), categories };
+    const backgroundColor = document.getElementById('category-showcase-background-color')?.value;
+    return { version: 1, enabled: Boolean(document.getElementById('category-showcase-enabled')?.checked), background_color: normalizeCategoryShowcaseBackgroundColor(backgroundColor), categories };
 }
 function addCategoryShowcaseRow() {
     const current = Array.from(document.querySelectorAll('[data-showcase-category]')).map((select) => select.value); const currentKeys = current.map((name) => name.toLocaleLowerCase('id')); const category = categoryShowcaseCategoryNames().find((name) => !currentKeys.includes(name.toLocaleLowerCase('id')));
@@ -5339,7 +5355,7 @@ function addCategoryShowcaseRow() {
     const rows = document.getElementById('category-showcase-config-rows'); if (rows && rows.querySelector('td[colspan]')) rows.innerHTML = '';
     const config = { version: 1, enabled: Boolean(document.getElementById('category-showcase-enabled')?.checked), categories: [...current.map((name, index) => ({ category: name, enabled: false, sort_order: index + 1, max_products: 10 })), { category, enabled: true, sort_order: current.length + 1, max_products: 10 }] }; renderCategoryShowcaseRows(config);
 }
-async function saveCategoryShowcaseConfig() { try { await GASActions.upsertSetting(CATEGORY_SHOWCASE_SETTING_KEY, JSON.stringify(collectCategoryShowcaseConfig())); showAdminToast('Konfigurasi showcase berhasil disimpan di server.', 'success'); } catch (error) { showAdminToast(error.message || 'Gagal menyimpan konfigurasi showcase.', 'error'); } }
+async function saveCategoryShowcaseConfig() { try { await GASActions.upsertSetting(CATEGORY_SHOWCASE_SETTING_KEY, JSON.stringify(collectCategoryShowcaseConfig())); showAdminToast('Konfigurasi showcase dan warna latar berhasil disimpan. Perubahan publik dapat memerlukan hingga 5 menit.', 'success'); } catch (error) { showAdminToast(error.message || 'Gagal menyimpan konfigurasi showcase.', 'error'); } }
 // ============ SETTINGS FUNCTIONS ============
 async function loadSettings() {
     const config = CONFIG.getAllConfig();
@@ -5836,6 +5852,9 @@ function showAdminToast(message, type = 'info') {
 }
 
 function bindAdminActions() {
+    document.addEventListener('input', (event) => {
+        if (event.target && event.target.id === 'category-showcase-background-color') updateCategoryShowcaseColorPreview(event.target.value);
+    });
     document.addEventListener('click', (e) => {
         const trigger = e.target.closest('[data-action]');
         if (!trigger) return;
@@ -6002,6 +6021,12 @@ function bindAdminActions() {
         }
         if (action === 'category-showcase-save') {
             saveCategoryShowcaseConfig();
+            return;
+        }
+        if (action === 'category-showcase-color-reset') {
+            const colorInput = document.getElementById('category-showcase-background-color');
+            if (colorInput) colorInput.value = CATEGORY_SHOWCASE_DEFAULT_BACKGROUND_COLOR;
+            updateCategoryShowcaseColorPreview(CATEGORY_SHOWCASE_DEFAULT_BACKGROUND_COLOR);
             return;
         }
         if (action === 'category-showcase-remove') {
