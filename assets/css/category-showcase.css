@@ -8,3 +8,7 @@
 .product-card-cart-slot--overlay .product-card-cart-step-button{flex:0 0 2.25rem;height:2.25rem;width:2.25rem}
 @media(max-width:420px){.product-card-cart-slot--overlay{right:.25rem;top:.25rem;max-width:calc(100% - .5rem)}.product-card-cart-slot--overlay .product-card-cart-stepper{gap:0;min-width:0;padding:.1rem}.product-card-cart-slot--overlay .product-card-cart-step-button{flex-basis:1.875rem;height:1.875rem;width:1.875rem}.product-card-cart-slot--overlay .product-card-cart-count{font-size:.65rem;min-width:.875rem;padding-left:.1rem;padding-right:.1rem}}
 @media(max-width:359px){.product-card-cart-slot--overlay .product-card-cart-add-button{height:2.25rem;min-height:2.25rem;min-width:2.25rem;width:2.25rem}.product-card-cart-slot--overlay .product-card-cart-step-button{flex-basis:1.75rem;height:1.75rem;width:1.75rem}}
+
+/* Green surface distinguishes category showcases from the main product grid. */
+.category-showcase-section{background:#f0fdf4;border:1px solid #dcfce7;border-radius:1rem;box-sizing:border-box;padding:.75rem .45rem}
+@media(max-width:767px){.category-showcase-section{border-radius:.875rem;padding:.625rem .35rem}}

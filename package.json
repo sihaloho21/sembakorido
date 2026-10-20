@@ -12,7 +12,7 @@
     "test:image-performance": "node scripts/test-image-performance.js",
     "broadcast:enqueue": "node scripts/run-broadcast-promo-job.js enqueue",
     "broadcast:send": "node scripts/run-broadcast-promo-job.js send",
-    "test": "node scripts/lint-basic.js && node scripts/check-tailwind-up-to-date.js && node scripts/check-tailwind-not-manual.js && node tests/product_card_cart_overlay_test.js && node scripts/test-seo-markup.js && node scripts/test-security-headers.js && node scripts/test-image-performance.js && npm run test:gas:promo-public-backend",
+    "test": "node scripts/lint-basic.js && node scripts/check-tailwind-up-to-date.js && node scripts/check-tailwind-not-manual.js && node tests/category_showcase_config_test.js && node tests/product_card_cart_overlay_test.js && node scripts/test-seo-markup.js && node scripts/test-security-headers.js && node scripts/test-image-performance.js && npm run test:gas:promo-public-backend",
     "test:sensitive-files": "node scripts/check-sensitive-files.js",
     "build:bundle": "npm run build:tailwind && node scripts/bundle-index.js && node scripts/bundle-akun.js && esbuild assets/js/index.bundle.js --minify --outfile=assets/js/index.bundle.min.js && esbuild assets/js/akun.bundle.js --minify --outfile=assets/js/akun.bundle.min.js",
     "build:tailwind": "tailwindcss -c tailwind.config.js -i assets/css/tailwind-input.css -o assets/css/tailwind.min.css --minify && node scripts/report-css-size.js && node scripts/warn-browserslist.js",

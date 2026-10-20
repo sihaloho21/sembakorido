@@ -61,5 +61,10 @@ assert.match(showcaseCss, /category-showcase-header::before/);
 assert.match(showcaseCss, /flex-basis:calc\(\(100vw - 3\.25rem\)\/2\.5\)/);
 assert.match(showcaseCss, /flex-basis:calc\(\(100% - 2\.6rem\)\/4\.25\)/);
 assert.match(showcaseCss, /flex-basis:calc\(\(100% - 4rem\)\/5\.2\)/);
+assert.match(showcaseCss, /\.category-showcase-section\{background:#f0fdf4;border:1px solid #dcfce7;border-radius:1rem;box-sizing:border-box;padding:/, 'each carousel section should use the approved soft-green surface');
+assert.match(showcaseCss, /@media\(max-width:767px\)\{\.category-showcase-section\{border-radius:\.875rem;padding:/, 'green panels should keep responsive mobile spacing');
+assert.match(source, /class="category-showcase-section"/, 'the green surface should apply to existing category showcase sections');
+assert.match(homepageSource, /product-card-shell bg-white/, 'product cards should remain white over the green surface');
+assert.match(showcaseCss, /\.category-showcase-track\{[^}]*overflow-x:auto/, 'horizontal carousel scrolling must remain enabled');
 
 console.log('category showcase config tests: PASS');
