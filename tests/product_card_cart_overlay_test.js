@@ -14,13 +14,15 @@ const imageWrapperStart = renderer.indexOf('<div class="lazy-image-wrapper');
 const imageContentStart = renderer.indexOf('<div class="p-2 md:p-3">', imageWrapperStart);
 const overlaySlotStart = renderer.indexOf('class="product-card-cart-slot product-card-cart-slot--overlay"');
 const titleStart = renderer.indexOf('<h4 class="text-[11px]', imageContentStart);
-const rewardBadgeRow = renderer.indexOf('${rewardPointsBadge}', titleStart);
+const rewardBadgePosition = renderer.indexOf('${rewardPointsBadge}');
+const stockBadgeRow = renderer.indexOf('${stokLabel}', titleStart);
 const priceRowStart = renderer.indexOf('product-card-price-row', titleStart);
 assert.ok(imageWrapperStart >= 0 && imageContentStart > imageWrapperStart, 'image wrapper and product content should exist');
 assert.ok(overlaySlotStart > imageWrapperStart && overlaySlotStart < imageContentStart, 'cart slot must be inside the image wrapper');
-assert.ok(titleStart > imageContentStart && rewardBadgeRow > titleStart && rewardBadgeRow < priceRowStart, 'reward badge should sit in the metadata row below the product title');
-assert.doesNotMatch(renderer.slice(imageWrapperStart, imageContentStart), /rewardPointsBadge|product-card-reward-badge/, 'reward badge must not cover the product image');
-assert.match(renderer, /product-card-meta-badges[^`]*\$\{rewardPointsBadge\}\$\{stokLabel\}/, 'reward and stock badges should share the compact row below the title');
+assert.ok(rewardBadgePosition >= 0 && rewardBadgePosition < imageWrapperStart, 'reward points badge should return to the image upper-left overlay');
+assert.ok(titleStart > imageContentStart && stockBadgeRow > titleStart && stockBadgeRow < priceRowStart, 'stock badge should remain below the product title');
+assert.doesNotMatch(renderer.slice(imageWrapperStart, imageContentStart), /rewardPointsBadge/, 'reward badge should not be duplicated in the image content');
+assert.match(renderer, /product-card-meta-badges[^`]*\$\{stokLabel\}/, 'only the compact stock badge should appear below the title');
 assert.match(renderer, /product-card-stock-badge--(unavailable|low|limited|empty)/, 'stock states should use the new compact semantic badge styles');
 assert.equal((renderer.match(/data-product-cart-slot/g) || []).length, 1, 'the shared renderer should emit one cart slot only');
 assert.match(renderer, /!isHiddenProd\s*&&\s*!hasVariations[\s\S]*?product-card-cart-slot--overlay/, 'only available simple products should render the overlay slot');
@@ -45,6 +47,7 @@ assert.match(css, /product-card-cart-step-button\{flex:0 0 2\.25rem;height:2\.25
 assert.match(css, /flex-basis:1\.875rem;height:1\.875rem;width:1\.875rem/, 'mobile stepper buttons should be reduced to 30px');
 assert.match(css, /min-width:min\(5\.75rem,100%\)/, 'stepper minimum width should be reduced to 92px');
 assert.match(css, /\.product-card-meta-badges\{[^}]*display:flex;flex-wrap:wrap/, 'badge row should wrap responsively below title');
-assert.match(css, /\.product-card-reward-badge,\.product-card-stock-badge\{[^}]*font-size:8px/, 'product badges should be compact and subtle');
+assert.match(css, /\.product-card-stock-badge\{[^}]*font-size:8px/, 'stock badge should be compact and subtle');
+assert.doesNotMatch(css, /product-card-reward-badge/, 'unused reward badge CSS should be removed after restoring the original overlay');
 
 console.log('product card cart overlay tests: PASS');
