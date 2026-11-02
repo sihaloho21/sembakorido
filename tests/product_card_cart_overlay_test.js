@@ -20,6 +20,8 @@ const priceRowStart = renderer.indexOf('product-card-price-row', titleStart);
 assert.ok(imageWrapperStart >= 0 && imageContentStart > imageWrapperStart, 'image wrapper and product content should exist');
 assert.ok(overlaySlotStart > imageWrapperStart && overlaySlotStart < imageContentStart, 'cart slot must be inside the image wrapper');
 assert.ok(rewardBadgePosition >= 0 && rewardBadgePosition < imageWrapperStart, 'reward points badge should return to the image upper-left overlay');
+assert.match(renderer, /absolute top-0 left-0 z-10 flex flex-col gap-1/, 'reward points badge wrapper should touch the card top and left edges');
+assert.match(renderer, /rounded-br-lg rounded-tl-lg md:rounded-tl-xl/, 'reward badge corner should align with the rounded card corner');
 assert.ok(titleStart > imageContentStart && stockBadgeRow > titleStart && stockBadgeRow < priceRowStart, 'stock badge should remain below the product title');
 assert.doesNotMatch(renderer.slice(imageWrapperStart, imageContentStart), /rewardPointsBadge/, 'reward badge should not be duplicated in the image content');
 assert.match(renderer, /product-card-meta-badges[^`]*\$\{stokLabel\}/, 'only the compact stock badge should appear below the title');
