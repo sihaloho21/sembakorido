@@ -3,8 +3,8 @@
 ![CI](https://github.com/sihaloho21/sembakorido/actions/workflows/ci.yml/badge.svg)
 
 <!-- CSS_SIZE_BADGES_START -->
-![Tailwind Raw](https://img.shields.io/badge/Tailwind%20Raw-63.10KB-blue)
-![Tailwind Gzip](https://img.shields.io/badge/Tailwind%20Gzip-10.55KB-blue)
+![Tailwind Raw](https://img.shields.io/badge/Tailwind%20Raw-63.14KB-blue)
+![Tailwind Gzip](https://img.shields.io/badge/Tailwind%20Gzip-10.56KB-blue)
 ![Tailwind Brotli](https://img.shields.io/badge/Tailwind%20Brotli-8.47KB-blue)
 <!-- CSS_SIZE_BADGES_END -->
 
