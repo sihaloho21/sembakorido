@@ -5392,6 +5392,8 @@ async function loadSettings() {
 
     const rows = await fetchSettingsRowsFromSheet();
     await loadCategoryShowcaseConfig(rows);
+    const homepageMaintenanceInput = document.getElementById('homepage-maintenance-enabled');
+    if (homepageMaintenanceInput) homepageMaintenanceInput.checked = String(getLatestSettingValue(rows, 'homepage_maintenance_enabled', 'false')).toLowerCase() === 'true';
     const adminRoleEnforceEl = document.getElementById('admin-role-enforce');
     const paylaterEnabledEl = document.getElementById('paylater-enabled');
     const paylaterPilotEnabledEl = document.getElementById('paylater-pilot-enabled');
@@ -5660,6 +5662,7 @@ async function saveSettings() {
     const paylaterPostmortemAlertWebhook = paylaterPostmortemAlertWebhookEl ? String(paylaterPostmortemAlertWebhookEl.value || '').trim() : '';
 
     const settingEntries = [
+        ['homepage_maintenance_enabled', String(Boolean(document.getElementById('homepage-maintenance-enabled')?.checked))],
         ['referral_enabled', String(referralEnabled)],
         ['referral_reward_referrer', String(referralRewardReferrer)],
         ['referral_reward_referee', String(referralRewardReferee)],

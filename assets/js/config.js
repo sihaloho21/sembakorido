@@ -20,6 +20,7 @@ const CONFIG = {
         REWARD_CONFIG: 'sembako_reward_config',
         PAYLATER_CONFIG: 'sembako_paylater_config',
         STORE_CLOSED: 'sembako_store_closed',
+        HOMEPAGE_MAINTENANCE: 'sembako_homepage_maintenance_enabled',
         MARGIN_ALERT: 'sembako_margin_alert',
         BUNDLE_DISCOUNT: 'sembako_bundle_discount',
         PUBLIC_CATALOG_API: 'sembako_public_catalog_api_url',
@@ -296,6 +297,18 @@ const CONFIG = {
         localStorage.setItem(this.STORAGE_KEYS.STORE_CLOSED, closed ? 'true' : 'false');
     },
 
+    isHomepageMaintenanceEnabled() {
+        return localStorage.getItem(this.STORAGE_KEYS.HOMEPAGE_MAINTENANCE) === 'true';
+    },
+
+    setHomepageMaintenanceEnabled(enabled) {
+        const normalized = enabled === true;
+        localStorage.setItem(this.STORAGE_KEYS.HOMEPAGE_MAINTENANCE, normalized ? 'true' : 'false');
+        window.dispatchEvent(new CustomEvent('homepage-maintenance-status-updated', {
+            detail: { enabled: normalized }
+        }));
+    },
+
     async refreshStoreStatus() {
         const url = `${this.getMainApiUrl()}?action=public_store_status&_t=${Date.now()}`;
         try {
@@ -306,6 +319,8 @@ const CONFIG = {
                 throw new Error('Invalid store status payload');
             }
             this.setStoreClosed(payload.store_closed);
+            const maintenanceValue = String(payload.homepage_maintenance_enabled || '').trim().toLowerCase();
+            this.setHomepageMaintenanceEnabled(['true', '1', 'yes', 'ya'].includes(maintenanceValue));
             return payload.store_closed;
         } catch (error) {
             console.warn('[CONFIG] Store status unavailable; using last-known local value.', error);

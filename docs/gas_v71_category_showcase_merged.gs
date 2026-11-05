@@ -2538,9 +2538,11 @@ function handlePublicCategoryShowcaseConfigV71() {
 function handlePublicStoreStatus() {
   var settings = getSettingsMap();
   var rawClosed = String(settings.store_closed || 'false').trim().toLowerCase();
+  var rawHomepageMaintenance = String(settings.homepage_maintenance_enabled || 'false').trim().toLowerCase();
   return {
     success: true,
-    store_closed: rawClosed === 'true' || rawClosed === '1' || rawClosed === 'yes' || rawClosed === 'ya'
+    store_closed: rawClosed === 'true' || rawClosed === '1' || rawClosed === 'yes' || rawClosed === 'ya',
+    homepage_maintenance_enabled: rawHomepageMaintenance === 'true' || rawHomepageMaintenance === '1' || rawHomepageMaintenance === 'yes' || rawHomepageMaintenance === 'ya'
   };
 }
 

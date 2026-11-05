@@ -46,14 +46,28 @@
     </script>
     <title>Paket Sembako – Paket Sembako Murah</title>
     <link rel="stylesheet" href="assets/css/tailwind-fallback.css">
-    <link rel="stylesheet" href="assets/css/tailwind.min.css">
+    <link rel="stylesheet" href="assets/css/tailwind.min.css?v=20261105a">
     <link rel="stylesheet" href="assets/css/style.min.css?v=20260308b">
     <link rel="stylesheet" href="assets/css/promo-banner-carousel.min.css">
     <link rel="stylesheet" href="assets/css/category-showcase.css?v=20261031b">
     <link rel="stylesheet" href="assets/css/skeleton-loading.min.css">
         <link rel="stylesheet" href="assets/css/index-inline.min.css">
+    <link rel="stylesheet" href="assets/css/maintenance-page.css?v=20261105a">
 </head>
 <body class="bg-gray-50">
+    <main id="homepage-maintenance-screen" class="homepage-maintenance-screen" hidden aria-hidden="true" aria-labelledby="homepage-maintenance-title">
+        <section class="maintenance-page-card">
+            <img src="assets/img/logo-optimized.webp" alt="Paket Sembako" class="maintenance-page-logo" data-fallback-src="assets/img/logo-optimized.webp" width="240" height="160">
+            <div class="maintenance-page-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48" fill="none"><path d="M19 13.5a5 5 0 0 1 10 0v3h2.5a3.5 3.5 0 0 1 3.5 3.5v14a3.5 3.5 0 0 1-3.5 3.5h-15a3.5 3.5 0 0 1-3.5-3.5V20a3.5 3.5 0 0 1 3.5-3.5H19v-3Zm3 3h4v-3a2 2 0 0 0-4 0v3Zm2 7a2 2 0 0 0-1.5 3.32V30h3v-3.18A2 2 0 0 0 24 23.5Z" fill="currentColor"/></svg>
+            </div>
+            <p class="maintenance-page-eyebrow">PAKET SEMBAKO</p>
+            <h1 id="homepage-maintenance-title" tabindex="-1">Website Sedang Dalam Perbaikan</h1>
+            <p class="maintenance-page-message">Kami sedang melakukan pemeliharaan untuk meningkatkan layanan. Silakan kunjungi kembali beberapa saat lagi.</p>
+            <a class="maintenance-page-contact" href="https://wa.me/628993370200" target="_blank" rel="noopener noreferrer">Hubungi Kami</a>
+            <p class="maintenance-page-thanks">Terima kasih atas pengertian Anda.</p>
+        </section>
+    </main>
     <!-- Store Closed Banner -->
     <div id="store-closed-banner" class="hidden bg-red-600 text-white py-2 px-4 text-center text-sm font-bold sticky top-0 z-50">
         <div class="container mx-auto flex justify-center items-center gap-2">
@@ -1875,7 +1889,8 @@
         </div>
     </div>
 
-    <script src="assets/js/config.js"></script>
+    <script src="assets/js/config.js?v=20261105a"></script>
+    <script src="assets/js/maintenance-page.js?v=20261105a"></script>
     <script src="assets/js/api-service.js"></script>
     <script src="assets/js/gas-actions.js"></script>
     <script src="assets/js/api-helper.js"></script>
@@ -1900,7 +1915,7 @@
             </div>
         </div>
     </div>
-    <script src="assets/js/script.js?v=20261031c"></script>
+    <script src="assets/js/script.js?v=20261105a"></script>
     <script src="assets/js/transaction-badge.js"></script>
 
     <script>

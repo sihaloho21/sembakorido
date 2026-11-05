@@ -583,6 +583,7 @@ function syncCartWithStockLimits(options) {
 
 
 async function fetchProducts() {
+    const storeStatusPromise = CONFIG.refreshStoreStatus();
     try {
         // Use ApiService with caching (5 minutes)
         const [products, categories] = await Promise.all([
@@ -656,7 +657,7 @@ async function fetchProducts() {
             window.CategoryShowcase.loadPublicConfig().then(window.CategoryShowcase.render);
         }
         updateCartUI();
-        await CONFIG.refreshStoreStatus();
+        await storeStatusPromise;
         checkStoreStatus();
         startNotificationLoop();
     } catch (error) {
