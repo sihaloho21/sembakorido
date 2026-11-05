@@ -17,11 +17,18 @@ const packageJson = JSON.parse(read('package.json'));
 
 assert.match(homepage, /<main id="homepage-maintenance-screen"[^>]*hidden/s, 'homepage should contain a hidden full-page maintenance view');
 assert.match(homepage, /Website Sedang Dalam Perbaikan/, 'maintenance screen should show the Indonesian maintenance message');
+assert.match(homepage, /data-action="close-maintenance"[^>]*aria-label=/, 'maintenance screen should have an accessible close button');
+assert.match(homepage, /Lanjutkan ke Website/, 'maintenance screen should offer a clear action to continue browsing');
+assert.match(homepage, /<main id="main-content" tabindex="-1">/, 'homepage content should receive keyboard focus after dismissing maintenance');
 assert.match(homepage, /maintenance-page\.js\?v=/, 'homepage should load the maintenance page controller');
 assert.match(homepage, /maintenance-page\.css\?v=/, 'homepage should load the maintenance page styling');
 assert.match(maintenanceCss, /body\.homepage-maintenance-active > :not\(#homepage-maintenance-screen\)/, 'active maintenance mode should replace the homepage content');
 assert.match(maintenanceJs, /homepage-maintenance-status-updated/, 'maintenance screen should react to refreshed backend configuration');
 assert.match(maintenanceJs, /CONFIG\.isHomepageMaintenanceEnabled\(\)/, 'maintenance screen should use cached state for immediate display');
+assert.match(maintenanceJs, /sessionStorage\.setItem\(dismissedKey, 'true'\)/, 'closing the notice should keep it dismissed for this tab session');
+assert.match(maintenanceJs, /dismissedInMemory = true/, 'dismissal should still hold if sessionStorage is unavailable');
+assert.match(maintenanceJs, /event\.key === 'Escape'/, 'Escape should close maintenance view and restore the homepage');
+assert.match(maintenanceJs, /homepage-maintenance-active'/, 'closing maintenance should restore the homepage content');
 assert.match(configJs, /HOMEPAGE_MAINTENANCE:\s*'sembako_homepage_maintenance_enabled'/, 'configuration should cache maintenance state separately');
 assert.match(configJs, /payload\.homepage_maintenance_enabled/, 'public store status response should update homepage maintenance state');
 assert.match(configJs, /homepage-maintenance-status-updated/, 'configuration refresh should notify the page controller');
