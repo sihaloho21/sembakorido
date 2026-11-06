@@ -1,0 +1,259 @@
+/* Homepage P1 polish — interaction and responsive refinement layered after P0. */
+:root {
+    --p1-green-700: #15803d;
+    --p1-green-800: #166534;
+    --p1-amber-500: #f59e0b;
+    --p1-ease: cubic-bezier(.23, 1, .32, 1);
+}
+
+/* Compact desktop header without removing any existing navigation action. */
+@media (min-width: 768px) {
+    #main-header .header-top-strip > div {
+        height: 2rem;
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+    }
+
+    #main-header .header-top-strip .flex {
+        gap: 1rem;
+    }
+
+    #main-header .header-main-row {
+        min-height: 4.15rem;
+    }
+
+    #main-header .header-brand-image {
+        width: auto;
+        height: 2.35rem;
+        object-fit: contain;
+    }
+
+    #main-header .header-brand-name {
+        font-size: .88rem;
+        letter-spacing: -.02em;
+    }
+
+    #main-header .header-actions {
+        gap: .5rem;
+    }
+
+    #main-header .header-category-trigger,
+    #main-header .header-search-input {
+        min-height: 2.65rem;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1180px) {
+    #main-header .header-top-strip {
+        display: none;
+    }
+
+    #main-header .header-main-row {
+        min-height: 4.35rem;
+    }
+}
+
+/* Stable loading state: preserve card geometry and fade image in only when usable. */
+#product-grid .lazy-image-wrapper {
+    isolation: isolate;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f8fafc, #f0fdf4);
+}
+
+#product-grid .lazy-image-wrapper .skeleton-product-image {
+    position: absolute;
+    inset: .45rem;
+    z-index: 0;
+    border-radius: .75rem;
+    background: linear-gradient(110deg, #eef2f3 8%, #f8fafc 18%, #eef2f3 33%);
+    background-size: 200% 100%;
+    animation: p1-skeleton-shimmer 1.25s linear infinite;
+}
+
+#product-grid .product-card-image {
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity .18s ease, transform .26s var(--p1-ease);
+}
+
+#product-grid .product-card-image.loaded {
+    opacity: 1;
+}
+
+#product-grid .product-card-image[src*="product-placeholder.svg"] {
+    padding: 1rem;
+}
+
+@keyframes p1-skeleton-shimmer {
+    to { background-position: -200% 0; }
+}
+
+/* Reward button clears the mobile navigation and stays away from checkout controls. */
+#floating-reward-button {
+    right: 1rem;
+    bottom: 1.25rem;
+    pointer-events: none;
+}
+
+#floating-reward-button > button {
+    pointer-events: auto;
+    width: 3.25rem;
+    height: 3.25rem;
+    padding: .75rem;
+    border: 3px solid rgba(255, 255, 255, .9);
+    box-shadow: 0 12px 26px rgba(146, 87, 0, .24);
+}
+
+#floating-reward-button > button:focus-visible {
+    outline: 3px solid rgba(245, 158, 11, .5);
+    outline-offset: 3px;
+}
+
+#floating-reward-button > button svg {
+    flex: 0 0 auto;
+}
+
+/* A direct visual acknowledgement after the first add-to-cart action. */
+.product-card-cart-control--added {
+    min-width: 5.75rem;
+    min-height: 2.5rem;
+    border: 2px solid rgba(255, 255, 255, .78);
+    background: linear-gradient(135deg, #20a655, #14743a);
+    box-shadow: 0 8px 16px rgba(15, 64, 35, .22);
+}
+
+.product-card-cart-control--added .product-card-cart-count {
+    color: #fff;
+    font-weight: 900;
+}
+
+.product-card-cart-control--added .product-card-cart-step-button:disabled {
+    cursor: not-allowed;
+}
+
+#product-grid .product-card-cart-add-button:not(:disabled):hover {
+    box-shadow: 0 10px 20px rgba(21, 128, 61, .3);
+    transform: translateY(-2px) scale(1.03);
+}
+
+#product-grid .product-card-cart-add-button:active,
+#product-grid .product-card-cart-step-button:active {
+    transform: scale(.92);
+}
+
+#product-grid .product-card-cart-count--increase,
+#product-grid .product-card-cart-count--decrease {
+    animation: p1-cart-count-pop .2s var(--p1-ease);
+}
+
+@keyframes p1-cart-count-pop {
+    50% { opacity: .55; transform: scale(1.22); }
+}
+
+/* Product names are always a predictable two-line block. */
+#product-grid .p-2 h4 {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+/* Mobile nav: reserve safe-area space and keep transaction badge inside its item. */
+@media (max-width: 767px) {
+    #floating-reward-button {
+        right: .85rem;
+        bottom: calc(5.95rem + env(safe-area-inset-bottom));
+    }
+
+    #floating-reward-button > button {
+        width: 3rem;
+        height: 3rem;
+        padding: .65rem;
+    }
+
+    #floating-reward-button > button span {
+        display: none;
+    }
+
+    #mobile-bottom-navigation {
+        padding-right: .65rem;
+        padding-left: .65rem;
+        padding-bottom: max(.7rem, env(safe-area-inset-bottom));
+    }
+
+    #mobile-bottom-navigation .mobile-bottom-navigation__shell {
+        min-height: 4.6rem;
+        gap: .35rem;
+        padding: .45rem .35rem .4rem;
+    }
+
+    #mobile-bottom-navigation .mobile-bottom-navigation__item {
+        min-height: 3.45rem;
+        padding-top: .5rem;
+        padding-bottom: .4rem;
+        font-size: .64rem;
+    }
+
+    #mobile-bottom-navigation .mobile-bottom-navigation__item svg {
+        width: 1.3rem;
+        height: 1.3rem;
+    }
+
+    #mobile-bottom-navigation .mobile-bottom-navigation__cart:before {
+        top: -.8rem;
+    }
+
+    #mobile-bottom-navigation #mobile-cart-count {
+        top: -.6rem;
+        right: calc(50% - 1.6rem);
+    }
+
+    #mobile-bottom-navigation .mobile-transaction-badge {
+        top: .02rem;
+        right: .2rem;
+        min-width: 1.1rem;
+        height: 1.1rem;
+        padding: 0 .25rem;
+        font-size: .58rem;
+    }
+
+    #product-grid .product-card-cart-control--added {
+        min-width: 5.1rem;
+        min-height: 2.3rem;
+    }
+}
+
+@media (max-width: 360px) {
+    #floating-reward-button {
+        right: .6rem;
+        bottom: calc(5.85rem + env(safe-area-inset-bottom));
+    }
+
+    #mobile-bottom-navigation {
+        padding-right: .4rem;
+        padding-left: .4rem;
+    }
+
+    #mobile-bottom-navigation .mobile-bottom-navigation__shell {
+        gap: .15rem;
+        padding-right: .2rem;
+        padding-left: .2rem;
+    }
+
+    #mobile-bottom-navigation .mobile-bottom-navigation__item {
+        font-size: .58rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #product-grid .lazy-image-wrapper .skeleton-product-image,
+    #product-grid .product-card-cart-count--increase,
+    #product-grid .product-card-cart-count--decrease {
+        animation: none;
+    }
+
+    #product-grid .product-card-image {
+        transition: none;
+    }
+}

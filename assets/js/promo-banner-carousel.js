@@ -195,6 +195,7 @@ class PromotionalBannerCarousel {
                         </div>
                         ${hasCaption ? `
                         <div class="promo-banner-caption">
+                            <span class="promo-banner-eyebrow">PROMO PILIHAN</span>
                             ${banner.title ? `<h3 class="promo-banner-title">${safeTitle}</h3>` : ''}
                             ${banner.subtitle ? `<p class="promo-banner-subtitle">${safeSubtitle}</p>` : ''}
                             ${banner.cta_text && hasLink ? `<button class="promo-cta-button">${safeCtaText}</button>` : ''}

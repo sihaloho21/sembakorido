@@ -248,7 +248,7 @@ function renderProductCardCartControl(product) {
 
     if (mode === 'stepper' && quantity > 0) {
         return `
-            <div class="product-card-cart-control product-card-cart-stepper flex items-center justify-between rounded-full bg-green-600 px-1 py-1 shadow-md text-white">
+            <div class="product-card-cart-control product-card-cart-stepper product-card-cart-control--added flex items-center justify-between rounded-full bg-green-600 px-1 py-1 shadow-md text-white" data-cart-state="added" role="group" aria-label="${quantity} item di keranjang">
                 <button type="button" data-action="update-product-card-qty" data-product-id="${productId}" data-delta="-1" class="product-card-cart-step-button product-card-cart-step-button--decrement flex items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-700" aria-label="Kurangi">
                     <svg class="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"></path></svg>
                 </button>
@@ -261,7 +261,7 @@ function renderProductCardCartControl(product) {
     }
 
     return `
-        <button type="button" data-action="add-to-cart" data-product-id="${productId}" ${isDisabled ? 'disabled' : ''} class="product-card-cart-control product-card-cart-add-button flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-white shadow-md hover:bg-green-700 transition active:scale-95 disabled:bg-gray-300 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-700" aria-label="Tambah ke Keranjang">
+        <button type="button" data-action="add-to-cart" data-product-id="${productId}" data-cart-state="idle" ${isDisabled ? 'disabled' : ''} class="product-card-cart-control product-card-cart-add-button flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-white shadow-md hover:bg-green-700 transition active:scale-95 disabled:bg-gray-300 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-700" aria-label="Tambah ke Keranjang" title="Tambah ke keranjang">
             <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
         </button>
     `;
@@ -1985,8 +1985,8 @@ function renderProducts(products) {
         }
 
         const images = p.gambar ? p.gambar.split(',') : [];
-        const mainImage = images[0] || 'https://placehold.co/300x200?text=Produk';
-        const safeImage = sanitizeUrl(mainImage, 'https://placehold.co/300x200?text=Produk');
+        const mainImage = images[0] || 'assets/img/product-placeholder.svg';
+        const safeImage = sanitizeUrl(mainImage, 'assets/img/product-placeholder.svg');
         const optimizedImage = optimizeImageUrl(safeImage, 720, 405);
 
         const rewardPoints = calculateRewardPoints(p.harga, p.nama);
@@ -2023,7 +2023,7 @@ function renderProducts(products) {
             const diskon = Math.round(((p.hargaCoret - p.harga) / p.hargaCoret) * 100);
             hargaCoretHtml = `
                 <span class="product-card-sale-meta inline-flex items-center gap-1.5">
-                    <span class="product-card-old-price text-[9px] leading-tight text-gray-400 line-through md:text-xs">Rp ${p.hargaCoret.toLocaleString('id-ID')}</span>
+                            <span class="product-card-old-price text-[9px] leading-tight text-gray-400 line-through md:text-xs">Rp ${p.hargaCoret.toLocaleString('id-ID')}</span>
                     <span class="product-card-discount-badge inline-flex items-center rounded bg-red-500 px-1.5 py-0.5 text-[6px] font-bold leading-none text-white md:px-2 md:py-1 md:text-[8px]" style="line-height:1;">-${diskon}%</span>
                 </span>
             `;
@@ -2055,7 +2055,7 @@ function renderProducts(products) {
                     </div>
 	                <div class="lazy-image-wrapper bg-white relative" style="aspect-ratio: 4 / 3;">
 	                    <div class="skeleton skeleton-product-image"></div>
-	                    <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="product-card-image w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="https://placehold.co/500x500?text=Produk" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+                            <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="product-card-image w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="assets/img/product-placeholder.svg" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';" onerror="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
 	                    ${!isHiddenProd && !hasVariations ? `
 	                    <div class="product-card-cart-slot product-card-cart-slot--overlay" data-product-cart-slot data-product-id="${productId}" data-cart-mode="${inlineCartState.mode}" data-cart-qty="${inlineCartState.quantity}">
 	                        ${renderProductCardCartControl(p)}
@@ -2067,9 +2067,9 @@ function renderProducts(products) {
                                 <h4 class="text-[11px] md:text-[14px] font-medium text-gray-800 line-clamp-2 mb-1 md:mb-1 min-h-[28px] md:min-h-[40px] leading-tight">${escapeHtml(p.nama)}</h4>
                                 <div class="product-card-meta-badges">${stokLabel}</div>
                             </div>
-	                    <div class="flex flex-col mb-2 md:mb-3">
+                    <div class="product-card-price-block flex flex-col mb-2 md:mb-3">
                         <div class="product-card-price-row flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 md:gap-x-2">
-                            <p class="product-card-sale-price text-[14px] font-bold leading-tight text-green-700 md:text-lg">Rp ${p.harga.toLocaleString('id-ID')}</p>
+                            <p class="product-card-sale-price text-[14px] font-bold leading-tight text-green-700 md:text-lg"><span class="price-currency">Rp</span><span class="price-amount">${p.harga.toLocaleString('id-ID')}</span></p>
                             ${hargaCoretHtml}
                         </div>
                         <!-- Bayar Gajian Section Hidden as requested -->

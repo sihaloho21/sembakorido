@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-labelledby="title desc">
+  <title id="title">Gambar produk belum tersedia</title>
+  <desc id="desc">Placeholder produk Paket Sembako</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0fdf4"/>
+      <stop offset="1" stop-color="#dcfce7"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="640" rx="48" fill="url(#bg)"/>
+  <path d="M202 282h236l-20 184H222l-20-184Z" fill="#fff" stroke="#86efac" stroke-width="12"/>
+  <path d="M238 282c0-47 36-84 82-84s82 37 82 84" fill="none" stroke="#22a65a" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="278" cy="354" r="13" fill="#f59e0b"/>
+  <circle cx="362" cy="354" r="13" fill="#f59e0b"/>
+  <path d="M278 408c26 21 58 21 84 0" fill="none" stroke="#15803d" stroke-width="11" stroke-linecap="round"/>
+  <text x="320" y="535" text-anchor="middle" fill="#166534" font-family="Arial, sans-serif" font-size="28" font-weight="700">Produk Sembako</text>
+</svg>
