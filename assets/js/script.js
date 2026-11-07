@@ -47,6 +47,11 @@ let currentCategory = 'Semua';
 let currentPage = 1;
 const itemsPerPage = 12;
 let filteredProducts = [];
+let p2PriceFilter = 'all';
+let p2DiscountOnly = false;
+let p2SortFilter = 'relevance';
+const P2_RECENTLY_VIEWED_KEY = 'sembako_recently_viewed_v1';
+const P2_RECENTLY_VIEWED_LIMIT = 6;
 let storeClosed = CONFIG.isStoreClosed();
 let selectedVariation = null;
 let currentModalProduct = null;
@@ -74,6 +79,34 @@ let headerNotificationState = {
     detailAction: null
 };
 let headerNotificationOrderCache = Object.create(null);
+
+function getRecentlyViewedProductIds() {
+    try {
+        const value = JSON.parse(localStorage.getItem(P2_RECENTLY_VIEWED_KEY) || '[]');
+        return Array.isArray(value) ? value.map(String).slice(0, P2_RECENTLY_VIEWED_LIMIT) : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function rememberRecentlyViewed(product) {
+    if (!product) return;
+    const id = String(product.productId || product.id || product.sku || product.slug || '').trim();
+    if (!id) return;
+    const next = [id, ...getRecentlyViewedProductIds().filter((item) => item !== id)].slice(0, P2_RECENTLY_VIEWED_LIMIT);
+    try { localStorage.setItem(P2_RECENTLY_VIEWED_KEY, JSON.stringify(next)); } catch (error) { /* storage optional */ }
+    renderP2PersonalizedSections();
+}
+
+function getProductPrice(product) {
+    return Number(product?.harga) || 0;
+}
+
+function getProductDiscountPercent(product) {
+    const current = getProductPrice(product);
+    const original = Number(product?.hargaCoret) || 0;
+    return original > current && current > 0 ? Math.round(((original - current) / original) * 100) : 0;
+}
 
 /**
  * Normalize phone number to standard format (08xxxxxxxxxx)
@@ -653,6 +686,7 @@ async function fetchProducts() {
         syncCartWithStockLimits();
         renderCategoryFilters(); // Render dynamic categories
         filterProducts();
+        renderP2PersonalizedSections();
         if (window.CategoryShowcase) {
             window.CategoryShowcase.loadPublicConfig().then(window.CategoryShowcase.render);
         }
@@ -1947,6 +1981,89 @@ function findProductBySlug(slug) {
     return allProducts.find(p => p.slug === slug);
 }
 
+function getP2VisibleProducts() {
+    return allProducts.filter((product) => product && product.isHidden !== true && Number(product.stok) > 0);
+}
+
+function getP2MiniCard(product) {
+    const id = String(product.productId || product.id || product.sku || product.slug || '');
+    const image = optimizeImageUrl(sanitizeUrl((product.gambar || '').split(',')[0], 'assets/img/product-placeholder.svg'), 320, 240);
+    const discount = getProductDiscountPercent(product);
+    return `<article class="p2-mini-card">
+        <button type="button" data-action="quick-view" data-product-id="${escapeHtml(id)}" class="p2-mini-card__image" aria-label="Lihat cepat ${escapeHtml(product.nama)}">
+            <img src="${image}" alt="${escapeHtml(product.nama)}" loading="lazy" data-fallback-src="assets/img/product-placeholder.svg">
+            ${discount > 0 ? `<span class="p2-mini-card__discount">-${discount}%</span>` : ''}
+        </button>
+        <div class="p2-mini-card__body">
+            <h3>${escapeHtml(product.nama)}</h3>
+            <strong>Rp ${getProductPrice(product).toLocaleString('id-ID')}</strong>
+        </div>
+    </article>`;
+}
+
+function renderP2PersonalizedSections() {
+    const recommendation = document.getElementById('recommendation-section');
+    const recently = document.getElementById('recently-viewed-section');
+    if (!recommendation || !recently) return;
+    const visible = getP2VisibleProducts();
+    const viewedIds = getRecentlyViewedProductIds();
+    const viewed = viewedIds.map((id) => findProductById(id)).filter(Boolean);
+    const viewedCategories = new Set(viewed.map((p) => normalizeCategoryLabel(p.category || p.kategori)));
+    let recommendations = visible
+        .filter((p) => !viewedIds.includes(String(p.productId || p.id || p.sku || p.slug || '')))
+        .sort((a, b) => {
+            const aMatch = viewedCategories.has(normalizeCategoryLabel(a.category || a.kategori));
+            const bMatch = viewedCategories.has(normalizeCategoryLabel(b.category || b.kategori));
+            return Number(bMatch) - Number(aMatch) || getProductDiscountPercent(b) - getProductDiscountPercent(a);
+        }).slice(0, 6);
+    if (!recommendations.length) recommendations = visible.slice(0, 6);
+    recommendation.classList.remove('hidden');
+    const recommendationCopy = viewed.length ? 'Berdasarkan produk yang Anda lihat.' : 'Pilihan populer untuk mulai belanja.';
+    const recommendationCards = recommendations.map(getP2MiniCard).join('');
+    recommendation.innerHTML = '<div class="p2-product-rail__head"><div><p class="p2-product-rail__eyebrow">PILIHAN UNTUK ANDA</p><h2>Rekomendasi untuk Anda</h2><p>' + recommendationCopy + '</p></div></div><div class="p2-product-rail__grid">' + recommendationCards + '</div>';
+    if (viewed.length) {
+        recently.classList.remove('hidden');
+        const recentlyCards = viewed.map(getP2MiniCard).join('');
+        recently.innerHTML = '<div class="p2-product-rail__head"><div><p class="p2-product-rail__eyebrow">AKTIVITAS ANDA</p><h2>Terakhir Dilihat</h2><p>Lanjutkan melihat produk yang sempat Anda buka.</p></div></div><div class="p2-product-rail__grid">' + recentlyCards + '</div>';
+    } else {
+        recently.classList.add('hidden');
+        recently.innerHTML = '';
+    }
+}
+
+function getP2StockLabel(product) {
+    const stock = Math.max(0, parseInt(product?.stok, 10) || 0);
+    if (stock <= 0 || product?.isHidden) return { text: 'Stok habis', className: 'empty', detail: 'Produk sementara tidak tersedia.' };
+    if (stock <= 3) return { text: `Hampir habis · ${stock} tersisa`, className: 'critical', detail: 'Segera checkout sebelum kehabisan.' };
+    if (stock <= 10) return { text: `Stok terbatas · ${stock} tersisa`, className: 'limited', detail: 'Stok masih tersedia dalam jumlah terbatas.' };
+    return { text: 'Stok tersedia', className: 'available', detail: 'Siap diproses untuk pesanan Anda.' };
+}
+
+function openQuickView(product) {
+    if (!product) return;
+    rememberRecentlyViewed(product);
+    const modal = document.getElementById('quick-view-modal');
+    const content = document.getElementById('quick-view-content');
+    if (!modal || !content) return;
+    const id = String(product.productId || product.id || product.sku || product.slug || '');
+    const safeImage = optimizeImageUrl(sanitizeUrl((product.gambar || '').split(',')[0], 'assets/img/product-placeholder.svg'), 640, 480);
+    const stock = getP2StockLabel(product);
+    const discount = getProductDiscountPercent(product);
+    content.innerHTML = `<div class="p2-quick-view__media"><img src="${safeImage}" alt="${escapeHtml(product.nama)}" data-fallback-src="assets/img/product-placeholder.svg"></div><div class="p2-quick-view__body"><p class="p2-filter-toolbar__eyebrow">QUICK VIEW</p><h2 id="quick-view-title">${escapeHtml(product.nama)}</h2><div class="p2-quick-view__price"><strong>Rp ${getProductPrice(product).toLocaleString('id-ID')}</strong>${discount ? `<span>-${discount}%</span>` : ''}</div><p class="p2-stock-indicator p2-stock-indicator--${escapeHtml(stock.className)}"><strong>${escapeHtml(stock.text)}</strong><small>${escapeHtml(stock.detail)}</small></p><p class="p2-quick-view__description">${escapeHtml(product.deskripsi || 'Produk pilihan Paket Sembako untuk kebutuhan harian Anda.')}</p><div class="p2-quick-view__actions"><button type="button" data-action="show-detail" data-product-id="${escapeHtml(id)}" class="p2-quick-view__secondary">Detail lengkap</button><button type="button" data-action="add-to-cart" data-product-id="${escapeHtml(id)}" class="p2-quick-view__primary">Tambah ke keranjang</button></div></div>`;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('p2-quick-view-open');
+    modal.querySelector('.p2-quick-view__close')?.focus();
+}
+
+function closeQuickView() {
+    const modal = document.getElementById('quick-view-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('p2-quick-view-open');
+}
+
 function renderProducts(products) {
     const grid = document.getElementById('product-grid');
     if (!grid) return;
@@ -1970,19 +2087,10 @@ function renderProducts(products) {
         // Produk yang disembunyikan admin
         const isHiddenProd = p.isHidden === true;
 
-        const stockCount = Math.max(0, parseInt(p.stok, 10) || 0);
-        let stokLabel = '';
-        if (isHiddenProd) {
-            stokLabel = `<span class="product-card-stock-badge product-card-stock-badge--unavailable" aria-label="Produk tidak tersedia saat ini" title="Produk tidak tersedia saat ini">Tidak tersedia</span>`;
-        } else if (stockCount > 10) {
-            stokLabel = '';
-        } else if (stockCount > 5) {
-            stokLabel = `<span class="product-card-stock-badge product-card-stock-badge--low" aria-label="Stok menipis, tersisa ${stockCount}" title="Stok menipis: ${stockCount}">Stok menipis · ${stockCount}</span>`;
-        } else if (stockCount > 0) {
-            stokLabel = `<span class="product-card-stock-badge product-card-stock-badge--limited" aria-label="Sisa ${stockCount}" title="Sisa ${stockCount}">Sisa ${stockCount}</span>`;
-        } else {
-            stokLabel = `<span class="product-card-stock-badge product-card-stock-badge--empty" aria-label="Stok habis" title="Stok habis">Habis</span>`;
-        }
+        const stockInfo = getP2StockLabel(p);
+        const stockBadgeClasses = { unavailable: 'product-card-stock-badge--unavailable', low: 'product-card-stock-badge--low', limited: 'product-card-stock-badge--limited', empty: 'product-card-stock-badge--empty' };
+        const stockBadgeClass = isHiddenProd ? stockBadgeClasses.unavailable : stockInfo.className === 'empty' ? stockBadgeClasses.empty : stockInfo.className === 'critical' ? stockBadgeClasses.limited : stockBadgeClasses.low;
+        const stokLabel = `<span class="product-card-stock-badge ${stockBadgeClass}" aria-label="${escapeHtml(stockInfo.text)}" title="${escapeHtml(stockInfo.detail)}">${escapeHtml(stockInfo.text)}</span>`;
 
         const images = p.gambar ? p.gambar.split(',') : [];
         const mainImage = images[0] || 'assets/img/product-placeholder.svg';
@@ -2053,9 +2161,10 @@ function renderProducts(products) {
                         </div>
                         ` : ''}
                     </div>
-	                <div class="lazy-image-wrapper bg-white relative" style="aspect-ratio: 4 / 3;">
-	                    <div class="skeleton skeleton-product-image"></div>
-                            <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="product-card-image w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="assets/img/product-placeholder.svg" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';" onerror="this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+	                    <div class="lazy-image-wrapper bg-white relative" style="aspect-ratio: 4 / 3;">
+                            <div class="skeleton skeleton-product-image"></div>
+                            ${!isHiddenProd ? `<button type="button" data-action="quick-view" data-product-id="${productId}" class="p2-quick-view-trigger" aria-label="Lihat cepat ${escapeHtml(p.nama)}" title="Lihat cepat"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.5 12s3.4-5 9.5-5 9.5 5 9.5 5-3.4 5-9.5 5-9.5-5-9.5-5Z"/><circle cx="12" cy="12" r="2.5"/></svg></button>` : ''}
+                            <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="product-card-image w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="assets/img/product-placeholder.svg" onload="this.classList.add('loaded'); this.closest('.lazy-image-wrapper')?.querySelector('.skeleton-product-image')?.style.setProperty('display','none');" onerror="this.classList.add('loaded'); this.closest('.lazy-image-wrapper')?.querySelector('.skeleton-product-image')?.style.setProperty('display','none');">
 	                    ${!isHiddenProd && !hasVariations ? `
 	                    <div class="product-card-cart-slot product-card-cart-slot--overlay" data-product-cart-slot data-product-id="${productId}" data-cart-mode="${inlineCartState.mode}" data-cart-qty="${inlineCartState.quantity}">
 	                        ${renderProductCardCartControl(p)}
@@ -2126,17 +2235,29 @@ function filterProducts() {
         const productCategory = normalizeCategoryLabel(p.category || p.kategori);
         const matchesCategory = selectedCategory === 'Semua' ||
             productCategory.toLowerCase() === selectedCategory.toLowerCase();
-        return matchesSearch && matchesCategory;
+        const price = getProductPrice(p);
+        const matchesPrice = p2PriceFilter === 'under-25000' ? price < 25000
+            : p2PriceFilter === '25000-75000' ? price >= 25000 && price <= 75000
+                : p2PriceFilter === 'over-75000' ? price > 75000 : true;
+        const matchesDiscount = !p2DiscountOnly || getProductDiscountPercent(p) > 0;
+        return matchesSearch && matchesCategory && matchesPrice && matchesDiscount;
     });
 
-    if (normalizeCategoryLabel(currentCategory) === 'Semua') {
-        filteredProducts = sortProductsByAvailability(filteredProducts);
-    }
+    filteredProducts = sortProductsByAvailability(filteredProducts);
+    filteredProducts.sort((a, b) => {
+        if (p2SortFilter === 'price-low') return getProductPrice(a) - getProductPrice(b);
+        if (p2SortFilter === 'price-high') return getProductPrice(b) - getProductPrice(a);
+        if (p2SortFilter === 'discount') return getProductDiscountPercent(b) - getProductDiscountPercent(a);
+        if (p2SortFilter === 'stock') return (Number(b.stok) || 0) - (Number(a.stok) || 0);
+        return 0;
+    });
 
     currentPage = 1; // Reset to first page on filter
     renderProducts(filteredProducts);
     renderPagination(filteredProducts.length);
     renderSearchSuggestions(query);
+    const summary = document.getElementById('p2-filter-summary');
+    if (summary) summary.textContent = `${filteredProducts.length} produk sesuai pilihan Anda`;
 }
 
 function normalizeSearch(value) {
@@ -5316,7 +5437,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             switch (action) {
                 case 'show-detail':
-                    if (product) showDetail(product);
+                    if (product) { rememberRecentlyViewed(product); showDetail(product); }
+                    break;
+                case 'quick-view':
+                    if (product) { event.stopPropagation(); openQuickView(product); }
+                    break;
+                case 'close-quick-view':
+                    closeQuickView();
                     break;
                 case 'add-to-cart':
                     if (product) addToCart(product, event);
@@ -5334,6 +5461,34 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    document.addEventListener('click', (event) => {
+        const actionEl = event.target.closest('[data-action="quick-view"], [data-action="close-quick-view"], #quick-view-content [data-action="show-detail"], #quick-view-content [data-action="add-to-cart"]');
+        if (!actionEl) return;
+        const action = actionEl.getAttribute('data-action');
+        if (action === 'close-quick-view') return closeQuickView();
+        const product = findProductById(actionEl.getAttribute('data-product-id'));
+        if (!product) return;
+        if (action === 'quick-view') openQuickView(product);
+        if (action === 'show-detail') { closeQuickView(); showDetail(product); }
+        if (action === 'add-to-cart') { addToCart(product, event); closeQuickView(); }
+    });
+
+    document.getElementById('p2-price-filter')?.addEventListener('change', (event) => {
+        p2PriceFilter = event.target.value;
+        filterProducts();
+    });
+    document.getElementById('p2-sort-filter')?.addEventListener('change', (event) => {
+        p2SortFilter = event.target.value;
+        filterProducts();
+    });
+    document.getElementById('p2-discount-filter')?.addEventListener('change', (event) => {
+        p2DiscountOnly = event.target.checked;
+        filterProducts();
+    });
+    document.getElementById('quick-view-modal')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeQuickView();
+    });
 
     // Category filters delegation
     const categoryFilters = document.getElementById('category-filters');

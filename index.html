@@ -55,6 +55,7 @@
     <link rel="stylesheet" href="assets/css/maintenance-page.css?v=20261105b">
     <link rel="stylesheet" href="assets/css/homepage-priority-p0.css?v=20261101a">
     <link rel="stylesheet" href="assets/css/homepage-priority-p1.css?v=20261101a">
+    <link rel="stylesheet" href="assets/css/homepage-priority-p2.css?v=20261106a">
 </head>
 <body class="bg-gray-50">
     <main id="homepage-maintenance-screen" class="homepage-maintenance-screen" hidden aria-hidden="true" aria-labelledby="homepage-maintenance-title">
@@ -364,6 +365,41 @@
             </div>
 
             <div id="category-showcase" class="category-showcase hidden mb-10" aria-label="Produk pilihan berdasarkan kategori"></div>
+            <section id="p2-personalized-sections" class="p2-personalized-sections" aria-label="Rekomendasi produk">
+                <div id="recommendation-section" class="p2-product-rail hidden"></div>
+                <div id="recently-viewed-section" class="p2-product-rail hidden"></div>
+            </section>
+            <section id="product-filter-toolbar" class="p2-filter-toolbar" aria-label="Filter dan urutkan produk">
+                <div class="p2-filter-toolbar__intro">
+                    <p class="p2-filter-toolbar__eyebrow">CARI LEBIH CEPAT</p>
+                    <p class="p2-filter-toolbar__summary" id="p2-filter-summary">Semua produk pilihan</p>
+                </div>
+                <div class="p2-filter-toolbar__controls">
+                    <label class="p2-filter-control">
+                        <span>Harga</span>
+                        <select id="p2-price-filter" aria-label="Filter berdasarkan harga">
+                            <option value="all">Semua harga</option>
+                            <option value="under-25000">Di bawah Rp25 ribu</option>
+                            <option value="25000-75000">Rp25–75 ribu</option>
+                            <option value="over-75000">Di atas Rp75 ribu</option>
+                        </select>
+                    </label>
+                    <label class="p2-filter-control p2-filter-control--discount">
+                        <input type="checkbox" id="p2-discount-filter">
+                        <span>Diskon saja</span>
+                    </label>
+                    <label class="p2-filter-control">
+                        <span>Urutkan</span>
+                        <select id="p2-sort-filter" aria-label="Urutkan produk">
+                            <option value="relevance">Relevan</option>
+                            <option value="price-low">Harga terendah</option>
+                            <option value="price-high">Harga tertinggi</option>
+                            <option value="discount">Diskon terbesar</option>
+                            <option value="stock">Stok tersedia</option>
+                        </select>
+                    </label>
+                </div>
+            </section>
             <div class="catalog-results-heading" aria-labelledby="catalog-results-title">
                 <div>
                     <p class="catalog-results-eyebrow">PILIHAN HARIAN</p>
@@ -627,6 +663,15 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Quick View Modal -->
+    <div id="quick-view-modal" class="p2-quick-view hidden" role="dialog" aria-modal="true" aria-labelledby="quick-view-title" tabindex="-1">
+        <div class="p2-quick-view__backdrop" data-action="close-quick-view"></div>
+        <section class="p2-quick-view__panel">
+            <button type="button" class="p2-quick-view__close" data-action="close-quick-view" aria-label="Tutup quick view">&times;</button>
+            <div id="quick-view-content"></div>
+        </section>
     </div>
 
     <!-- Lightbox Modal for zoomed images -->
