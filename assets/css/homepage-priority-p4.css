@@ -1,0 +1,13 @@
+/* Homepage P4 — final performance and stability pass. */
+#category-showcase,
+#p2-personalized-sections,
+#product-grid,
+.site-footer,
+footer { content-visibility:auto; contain-intrinsic-size:1px 520px; }
+#product-grid { contain:layout style paint; }
+.p2-product-rail { contain:layout paint; }
+.lazy-image-wrapper { contain:layout paint; }
+.product-card-shell { contain:layout style; }
+@media (prefers-reduced-motion: reduce) {
+  .product-card-shell,.p2-mini-card,.p3-card-action { transition:none !important; }
+}

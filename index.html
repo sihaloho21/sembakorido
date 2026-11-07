@@ -56,6 +56,8 @@
     <link rel="stylesheet" href="assets/css/homepage-priority-p0.css?v=20261101a">
     <link rel="stylesheet" href="assets/css/homepage-priority-p1.css?v=20261101a">
     <link rel="stylesheet" href="assets/css/homepage-priority-p2.css?v=20261106a">
+    <link rel="stylesheet" href="assets/css/homepage-priority-p3.css?v=20261107a">
+    <link rel="stylesheet" href="assets/css/homepage-priority-p4.css?v=20261107a">
 </head>
 <body class="bg-gray-50">
     <main id="homepage-maintenance-screen" class="homepage-maintenance-screen" hidden aria-hidden="true" aria-labelledby="homepage-maintenance-title">
@@ -671,6 +673,21 @@
         <section class="p2-quick-view__panel">
             <button type="button" class="p2-quick-view__close" data-action="close-quick-view" aria-label="Tutup quick view">&times;</button>
             <div id="quick-view-content"></div>
+        </section>
+    </div>
+
+    <!-- P3 Compare Bar and Modal -->
+    <aside id="p3-compare-bar" class="p3-compare-bar hidden" aria-live="polite" aria-label="Produk untuk dibandingkan">
+        <div><strong id="p3-compare-count">0 produk dipilih</strong><span>Pilih hingga 3 produk</span></div>
+        <div class="p3-compare-bar__actions"><button type="button" data-action="open-compare" class="p3-compare-primary">Bandingkan</button><button type="button" data-action="clear-compare" class="p3-compare-clear">Bersihkan</button></div>
+    </aside>
+    <div id="p3-compare-modal" class="p3-compare-modal hidden" role="dialog" aria-modal="true" aria-labelledby="p3-compare-title" tabindex="-1">
+        <div class="p3-compare-modal__backdrop" data-action="close-compare"></div>
+        <section class="p3-compare-modal__panel">
+            <button type="button" class="p3-compare-modal__close" data-action="close-compare" aria-label="Tutup perbandingan">&times;</button>
+            <p class="p2-filter-toolbar__eyebrow">BANDINGKAN PRODUK</p>
+            <h2 id="p3-compare-title">Pilih yang paling sesuai</h2>
+            <div id="p3-compare-content"></div>
         </section>
     </div>
 
