@@ -81,16 +81,55 @@ let headerNotificationState = {
 let headerNotificationOrderCache = Object.create(null);
 let homepageNotificationTimer = null;
 
+function getProductShareSlug(product) {
+    if (!product) return '';
+    return String(product.slug || '').trim() || createSlug(product.nama);
+}
+
+function copyShareUrl(url) {
+    const text = String(url || '');
+    if (!text) return Promise.resolve(false);
+    if (navigator.clipboard?.writeText) {
+        return navigator.clipboard.writeText(text)
+            .then(() => true)
+            .catch(() => copyShareUrlFallback(text));
+    }
+    return copyShareUrlFallback(text);
+}
+
+function copyShareUrlFallback(text) {
+    try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand('copy');
+        textarea.remove();
+        return Promise.resolve(copied);
+    } catch (error) {
+        return Promise.resolve(false);
+    }
+}
+
 function shareP3Product(product) {
     if (!product) return;
+    const slug = getProductShareSlug(product);
+    if (!slug) return;
     const url = new URL(window.location.href);
-    url.hash = `produk-${createSlug(product.nama)}`;
+    url.hash = `produk-${slug}`;
     const shareData = { title: product.nama, text: `Lihat ${product.nama} di Paket Sembako`, url: url.toString() };
     if (navigator.share) {
-        navigator.share(shareData).catch(() => {});
-    } else if (navigator.clipboard) {
-        navigator.clipboard.writeText(url.toString()).then(() => showToast('Tautan produk berhasil disalin.')).catch(() => {});
+        navigator.share(shareData).catch((error) => {
+            if (error?.name !== 'AbortError') {
+                copyShareUrl(url.toString()).then((copied) => showToast(copied ? 'Tautan produk berhasil disalin.' : 'Tautan produk siap dibagikan.'));
+            }
+        });
+        return;
     }
+    copyShareUrl(url.toString()).then((copied) => showToast(copied ? 'Tautan produk berhasil disalin.' : 'Tautan produk siap dibagikan.'));
 }
 
 function getRecentlyViewedProductIds() {
@@ -1991,7 +2030,11 @@ function findProductBySlug(slug) {
     if (!slug || !allProducts || allProducts.length === 0) {
         return null;
     }
-    return allProducts.find(p => p.slug === slug);
+    const normalizedSlug = String(slug).trim().toLowerCase();
+    return allProducts.find((product) => {
+        const storedSlug = String(product.slug || '').trim().toLowerCase();
+        return storedSlug === normalizedSlug || createSlug(product.nama) === normalizedSlug;
+    }) || null;
 }
 
 function getP2VisibleProducts() {
