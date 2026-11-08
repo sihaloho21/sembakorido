@@ -52,11 +52,6 @@ let p2DiscountOnly = false;
 let p2SortFilter = 'relevance';
 const P2_RECENTLY_VIEWED_KEY = 'sembako_recently_viewed_v1';
 const P2_RECENTLY_VIEWED_LIMIT = 6;
-const P3_WISHLIST_KEY = 'sembako_wishlist_v1';
-const P3_COMPARE_KEY = 'sembako_compare_v1';
-const P3_COMPARE_LIMIT = 3;
-let p3WishlistIds = readP3Ids(P3_WISHLIST_KEY);
-let p3CompareIds = readP3Ids(P3_COMPARE_KEY).slice(0, P3_COMPARE_LIMIT);
 let storeClosed = CONFIG.isStoreClosed();
 let selectedVariation = null;
 let currentModalProduct = null;
@@ -85,105 +80,6 @@ let headerNotificationState = {
 };
 let headerNotificationOrderCache = Object.create(null);
 let homepageNotificationTimer = null;
-
-function readP3Ids(key) {
-    try {
-        const value = JSON.parse(localStorage.getItem(key) || '[]');
-        return Array.isArray(value) ? value.map(String).filter(Boolean) : [];
-    } catch (error) {
-        return [];
-    }
-}
-
-function persistP3Ids(key, ids) {
-    try { localStorage.setItem(key, JSON.stringify(ids)); } catch (error) { /* storage optional */ }
-}
-
-function getP3ProductId(product) {
-    return String(product?.productId || product?.id || product?.sku || product?.slug || '').trim();
-}
-
-function isP3Wishlisted(product) {
-    return p3WishlistIds.includes(getP3ProductId(product));
-}
-
-function toggleP3Wishlist(product) {
-    const id = getP3ProductId(product);
-    if (!id) return;
-    p3WishlistIds = isP3Wishlisted(product) ? p3WishlistIds.filter((item) => item !== id) : [id, ...p3WishlistIds];
-    persistP3Ids(P3_WISHLIST_KEY, p3WishlistIds);
-    syncP3WishlistButtons(id);
-    showToast(isP3Wishlisted(product) ? 'Produk disimpan ke favorit.' : 'Produk dihapus dari favorit.');
-}
-
-function syncP3WishlistButtons(productId) {
-    const product = findProductById(productId);
-    if (!product) return;
-    document.querySelectorAll(`[data-action="toggle-wishlist"][data-product-id="${CSS.escape(String(productId))}"]`).forEach((button) => {
-        const active = isP3Wishlisted(product);
-        button.classList.toggle('is-active', active);
-        button.setAttribute('aria-pressed', active ? 'true' : 'false');
-        button.setAttribute('aria-label', active ? 'Hapus dari favorit' : 'Simpan ke favorit');
-        const icon = button.querySelector('svg');
-        if (icon) icon.setAttribute('fill', active ? 'currentColor' : 'none');
-    });
-}
-
-function toggleP3Compare(product) {
-    const id = getP3ProductId(product);
-    if (!id) return;
-    if (p3CompareIds.includes(id)) {
-        p3CompareIds = p3CompareIds.filter((item) => item !== id);
-    } else if (p3CompareIds.length >= P3_COMPARE_LIMIT) {
-        showToast('Maksimal 3 produk dapat dibandingkan.');
-        return;
-    } else {
-        p3CompareIds = [...p3CompareIds, id];
-    }
-    persistP3Ids(P3_COMPARE_KEY, p3CompareIds);
-    syncP3CompareUi();
-}
-
-function syncP3CompareUi() {
-    const bar = document.getElementById('p3-compare-bar');
-    const count = document.getElementById('p3-compare-count');
-    const selected = p3CompareIds.length;
-    bar?.classList.toggle('hidden', selected === 0);
-    if (count) count.textContent = `${selected} produk dipilih`;
-    document.querySelectorAll('[data-action="toggle-compare"][data-product-id]').forEach((button) => {
-        const active = p3CompareIds.includes(button.getAttribute('data-product-id'));
-        button.classList.toggle('is-active', active);
-        button.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
-}
-
-function clearP3Compare() {
-    p3CompareIds = [];
-    persistP3Ids(P3_COMPARE_KEY, p3CompareIds);
-    syncP3CompareUi();
-    closeP3Compare();
-}
-
-function openP3Compare() {
-    const modal = document.getElementById('p3-compare-modal');
-    const content = document.getElementById('p3-compare-content');
-    const products = p3CompareIds.map((id) => findProductById(id)).filter(Boolean);
-    if (!modal || !content || !products.length) return;
-    const compareCards = products.map((product) => {
-        const stock = getP2StockLabel(product);
-        const image = optimizeImageUrl(sanitizeUrl((product.gambar || '').split(',')[0], 'assets/img/product-placeholder.svg'), 420, 300);
-        return `<article class="p3-compare-card"><img src="${image}" alt="${escapeHtml(product.nama)}" data-fallback-src="assets/img/product-placeholder.svg"><h3>${escapeHtml(product.nama)}</h3><strong>Rp ${getProductPrice(product).toLocaleString('id-ID')}</strong><dl><div><dt>Diskon</dt><dd>${getProductDiscountPercent(product) || 0}%</dd></div><div><dt>Stok</dt><dd>${escapeHtml(stock.text)}</dd></div><div><dt>Kategori</dt><dd>${escapeHtml(product.category || product.kategori || 'Umum')}</dd></div></dl><button type="button" data-action="remove-compare" data-product-id="${escapeHtml(getP3ProductId(product))}">Hapus</button></article>`;
-    }).join('');
-    content.innerHTML = '<div class="p3-compare-grid">' + compareCards + '</div>';
-    modal.classList.remove('hidden');
-    modal.setAttribute('aria-hidden', 'false');
-}
-
-function closeP3Compare() {
-    const modal = document.getElementById('p3-compare-modal');
-    modal?.classList.add('hidden');
-    modal?.setAttribute('aria-hidden', 'true');
-}
 
 function shareP3Product(product) {
     if (!product) return;
@@ -804,7 +700,6 @@ async function fetchProducts() {
         renderCategoryFilters(); // Render dynamic categories
         filterProducts();
         scheduleP2PersonalizedSections();
-        syncP3CompareUi();
         if (window.CategoryShowcase) {
             window.CategoryShowcase.loadPublicConfig().then(window.CategoryShowcase.render);
         }
@@ -2176,7 +2071,7 @@ function openQuickView(product) {
     const safeImage = optimizeImageUrl(sanitizeUrl((product.gambar || '').split(',')[0], 'assets/img/product-placeholder.svg'), 640, 480);
     const stock = getP2StockLabel(product);
     const discount = getProductDiscountPercent(product);
-    content.innerHTML = `<div class="p2-quick-view__media"><img src="${safeImage}" alt="${escapeHtml(product.nama)}" data-fallback-src="assets/img/product-placeholder.svg"></div><div class="p2-quick-view__body"><p class="p2-filter-toolbar__eyebrow">QUICK VIEW</p><h2 id="quick-view-title">${escapeHtml(product.nama)}</h2><div class="p2-quick-view__price"><strong>Rp ${getProductPrice(product).toLocaleString('id-ID')}</strong>${discount ? `<span>-${discount}%</span>` : ''}</div><p class="p2-stock-indicator p2-stock-indicator--${escapeHtml(stock.className)}"><strong>${escapeHtml(stock.text)}</strong><small>${escapeHtml(stock.detail)}</small></p><p class="p2-quick-view__description">${escapeHtml(product.deskripsi || 'Produk pilihan Paket Sembako untuk kebutuhan harian Anda.')}</p><div class="p3-quick-actions"><button type="button" data-action="toggle-wishlist" data-product-id="${escapeHtml(id)}" class="p3-inline-action${isP3Wishlisted(product) ? ' is-active' : ''}" aria-pressed="${isP3Wishlisted(product) ? 'true' : 'false'}">${isP3Wishlisted(product) ? '♥ Favorit' : '♡ Simpan'}</button><button type="button" data-action="share-product" data-product-id="${escapeHtml(id)}" class="p3-inline-action">Bagikan</button></div><div class="p2-quick-view__actions"><button type="button" data-action="show-detail" data-product-id="${escapeHtml(id)}" class="p2-quick-view__secondary">Detail lengkap</button><button type="button" data-action="add-to-cart" data-product-id="${escapeHtml(id)}" class="p2-quick-view__primary">Tambah ke keranjang</button></div></div>`;
+    content.innerHTML = `<div class="p2-quick-view__media"><img src="${safeImage}" alt="${escapeHtml(product.nama)}" data-fallback-src="assets/img/product-placeholder.svg"></div><div class="p2-quick-view__body"><p class="p2-filter-toolbar__eyebrow">QUICK VIEW</p><h2 id="quick-view-title">${escapeHtml(product.nama)}</h2><div class="p2-quick-view__price"><strong>Rp ${getProductPrice(product).toLocaleString('id-ID')}</strong>${discount ? `<span>-${discount}%</span>` : ''}</div><p class="p2-stock-indicator p2-stock-indicator--${escapeHtml(stock.className)}"><strong>${escapeHtml(stock.text)}</strong><small>${escapeHtml(stock.detail)}</small></p><p class="p2-quick-view__description">${escapeHtml(product.deskripsi || 'Produk pilihan Paket Sembako untuk kebutuhan harian Anda.')}</p><div class="p3-share-actions"><button type="button" data-action="share-product" data-product-id="${escapeHtml(id)}" class="p3-share-action">Bagikan produk</button></div><div class="p2-quick-view__actions"><button type="button" data-action="show-detail" data-product-id="${escapeHtml(id)}" class="p2-quick-view__secondary">Detail lengkap</button><button type="button" data-action="add-to-cart" data-product-id="${escapeHtml(id)}" class="p2-quick-view__primary">Tambah ke keranjang</button></div></div>`;
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('p2-quick-view-open');
@@ -2291,7 +2186,6 @@ function renderProducts(products) {
 	                    <div class="lazy-image-wrapper bg-white relative" style="aspect-ratio: 4 / 3;">
                             <div class="skeleton skeleton-product-image"></div>
                             ${!isHiddenProd ? `<button type="button" data-action="quick-view" data-product-id="${productId}" class="p2-quick-view-trigger" aria-label="Lihat cepat ${escapeHtml(p.nama)}" title="Lihat cepat"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.5 12s3.4-5 9.5-5 9.5 5 9.5 5-3.4 5-9.5 5-9.5-5-9.5-5Z"/><circle cx="12" cy="12" r="2.5"/></svg></button>` : ''}
-                            ${!isHiddenProd ? `<div class="p3-card-actions"><button type="button" data-action="toggle-wishlist" data-product-id="${productId}" aria-pressed="${isP3Wishlisted(p) ? 'true' : 'false'}" class="p3-card-action${isP3Wishlisted(p) ? ' is-active' : ''}" aria-label="${isP3Wishlisted(p) ? 'Hapus dari favorit' : 'Simpan ke favorit'}" title="Favorit"><svg class="w-4 h-4" fill="${isP3Wishlisted(p) ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M20.8 8.7c0 5.5-8.8 10.3-8.8 10.3S3.2 14.2 3.2 8.7A4.7 4.7 0 0112 6a4.7 4.7 0 018.8 2.7Z"/></svg></button><button type="button" data-action="toggle-compare" data-product-id="${productId}" aria-pressed="${p3CompareIds.includes(String(productId)) ? 'true' : 'false'}" class="p3-card-action p3-card-action--compare${p3CompareIds.includes(String(productId)) ? ' is-active' : ''}" aria-label="Bandingkan produk" title="Bandingkan"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 4v16m0 0-3-3m3 3 3-3M17 20V4m0 0-3 3m3-3 3 3"/></svg></button></div>` : ''}
                             <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="product-card-image w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="assets/img/product-placeholder.svg" onload="this.classList.add('loaded'); this.closest('.lazy-image-wrapper')?.querySelector('.skeleton-product-image')?.style.setProperty('display','none');" onerror="this.classList.add('loaded'); this.closest('.lazy-image-wrapper')?.querySelector('.skeleton-product-image')?.style.setProperty('display','none');">
 	                    ${!isHiddenProd && !hasVariations ? `
 	                    <div class="product-card-cart-slot product-card-cart-slot--overlay" data-product-cart-slot data-product-id="${productId}" data-cart-mode="${inlineCartState.mode}" data-cart-qty="${inlineCartState.quantity}">
@@ -5593,22 +5487,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('click', (event) => {
-        const actionEl = event.target.closest('[data-action="quick-view"], [data-action="close-quick-view"], [data-action="toggle-wishlist"], [data-action="toggle-compare"], [data-action="share-product"], [data-action="open-compare"], [data-action="close-compare"], [data-action="clear-compare"], [data-action="remove-compare"], #quick-view-content [data-action="show-detail"], #quick-view-content [data-action="add-to-cart"]');
+        const actionEl = event.target.closest('[data-action="quick-view"], [data-action="close-quick-view"], [data-action="share-product"], #quick-view-content [data-action="show-detail"], #quick-view-content [data-action="add-to-cart"]');
         if (!actionEl) return;
         const action = actionEl.getAttribute('data-action');
         if (action === 'close-quick-view') return closeQuickView();
-        if (action === 'close-compare') return closeP3Compare();
-        if (action === 'open-compare') return openP3Compare();
-        if (action === 'clear-compare') return clearP3Compare();
         const product = findProductById(actionEl.getAttribute('data-product-id'));
-        if (action === 'remove-compare') {
-            if (product) toggleP3Compare(product);
-            return openP3Compare();
-        }
         if (!product) return;
         if (action === 'quick-view') openQuickView(product);
-        if (action === 'toggle-wishlist') toggleP3Wishlist(product);
-        if (action === 'toggle-compare') toggleP3Compare(product);
         if (action === 'share-product') shareP3Product(product);
         if (action === 'show-detail') { closeQuickView(); showDetail(product); }
         if (action === 'add-to-cart') { addToCart(product, event); closeQuickView(); }
