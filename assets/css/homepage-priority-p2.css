@@ -16,7 +16,7 @@
     backdrop-filter: blur(14px);
 }
 .p2-filter-toolbar__eyebrow,.p2-product-rail__eyebrow { margin: 0 0 .22rem; color:#15803d; font-size:.6rem; font-weight:850; letter-spacing:.13em; text-transform:uppercase; }
-.p2-filter-toolbar__summary { margin:0; color:#64748b; font-size:.72rem; font-weight:700; }
+.p2-filter-toolbar__summary { margin:0; color:#334155; font-size:.78rem; font-weight:800; line-height:1.35; }
 .p2-filter-toolbar__controls { display:flex; align-items:center; gap:.55rem; flex-wrap:wrap; justify-content:flex-end; }
 .p2-filter-control { display:flex; align-items:center; gap:.42rem; color:#475569; font-size:.68rem; font-weight:750; white-space:nowrap; }
 .p2-filter-control select { min-height:2.2rem; max-width:11rem; padding:.35rem 1.8rem .35rem .6rem; border:1px solid #dbe7df; border-radius:.65rem; background:#f8fcf9; color:#334155; font-size:.68rem; font-weight:700; }
@@ -62,12 +62,25 @@
 .p2-quick-view__secondary { border:1px solid #dbe7df; color:#166534; }
 .p2-quick-view-open { overflow:hidden; }
 @media (max-width: 767px) {
-    .p2-filter-toolbar { top:4.65rem; align-items:stretch; flex-direction:column; gap:.55rem; margin-right:-.05rem; margin-left:-.05rem; padding:.7rem; }
-    .p2-filter-toolbar__controls { display:grid; grid-template-columns:1fr 1fr; justify-content:stretch; }
-    .p2-filter-control select { width:100%; max-width:none; }
-    .p2-filter-control:not(.p2-filter-control--discount) { display:block; }
-    .p2-filter-control:not(.p2-filter-control--discount) span { display:block; margin-bottom:.22rem; font-size:.6rem; }
-    .p2-filter-control--discount { grid-column:span 2; justify-content:center; }
+    #main-header { box-shadow:0 6px 18px rgba(15,64,35,.1); }
+    #main-header .header-main-row { min-height:4rem; gap:.5rem; padding-left:.75rem; padding-right:.75rem; }
+    #main-header .header-logo { gap:.45rem; }
+    #main-header .header-brand-image { height:2.35rem; max-width:4.1rem; }
+    #main-header .header-search { padding-left:0; padding-right:0; }
+    #main-header .header-search input { height:2.7rem; border-radius:.85rem; padding-left:.8rem; padding-right:2.35rem; font-size:.75rem; }
+    #main-header .header-actions { gap:.35rem; }
+    #main-header .header-action-icon { min-width:2.35rem; min-height:2.35rem; padding:0; border-radius:.75rem; background:#f6fbf7; }
+    #main-header .header-action-icon svg { width:1.05rem; height:1.05rem; }
+    .p2-filter-toolbar { top:4.1rem; align-items:stretch; flex-direction:column; gap:.7rem; margin-top:.7rem; margin-right:-.05rem; margin-left:-.05rem; padding:.82rem; border-radius:1.05rem; background:rgba(255,255,255,.97); box-shadow:0 10px 24px rgba(15,64,35,.1); }
+    .p2-filter-toolbar__intro { display:flex; flex-direction:column; gap:.08rem; }
+    .p2-filter-toolbar__eyebrow { margin-bottom:.08rem; font-size:.62rem; letter-spacing:.15em; }
+    .p2-filter-toolbar__summary { font-size:.82rem; letter-spacing:-.01em; }
+    .p2-filter-toolbar__controls { display:grid; grid-template-columns:minmax(0,1.18fr) repeat(2,minmax(0,1fr)); gap:.45rem; align-items:stretch; }
+    .p2-filter-control { min-width:0; display:flex; flex-direction:column; align-items:stretch; gap:.3rem; padding:.62rem .68rem .68rem; border:1px solid #e2eee5; border-radius:.85rem; background:#f8fcf9; color:#64748b; font-size:.6rem; font-weight:850; letter-spacing:.04em; text-transform:uppercase; }
+    .p2-filter-control select { width:100%; max-width:none; min-height:2.45rem; margin:0; padding:.25rem 1.25rem .25rem 0; border:0; border-radius:0; background:transparent; color:#1f2937; font-size:.7rem; font-weight:800; letter-spacing:0; text-transform:none; }
+    .p2-filter-control--discount { grid-column:auto; min-height:4.05rem; flex-direction:row; align-items:center; justify-content:center; gap:.35rem; padding:.55rem .42rem; border-color:#f8d889; background:#fffaf0; color:#92400e; font-size:.6rem; letter-spacing:0; text-transform:none; }
+    .p2-filter-control--discount input { width:1rem; height:1rem; flex:0 0 auto; margin:0; accent-color:#f59e0b; }
+    .p2-filter-control--discount span { line-height:1.2; white-space:nowrap; }
     .p2-product-rail { padding:.75rem; }
     .p2-product-rail__grid { display:flex; overflow-x:auto; gap:.6rem; margin-right:-.75rem; padding-right:.75rem; scrollbar-width:none; }
     .p2-product-rail__grid::-webkit-scrollbar { display:none; }
