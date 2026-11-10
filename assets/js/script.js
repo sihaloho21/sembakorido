@@ -2510,6 +2510,19 @@ function smoothScrollToPaginationAnchor() {
     activePaginationScrollFrame = requestAnimationFrame(animateScroll);
 }
 
+function scrollToCatalogResults() {
+    const catalogHeading = document.querySelector('.catalog-results-heading');
+    const target = catalogHeading || document.getElementById('product-grid') || document.getElementById('katalog');
+    if (!target) return;
+
+    const targetTop = getPaginationScrollTop(target);
+    const currentTop = window.scrollY || window.pageYOffset || 0;
+    if (Math.abs(currentTop - targetTop) < 24) return;
+
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: targetTop, behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+
 function renderPagination(totalItems) {
     const container = document.getElementById('pagination-container');
     if (!container) return;
@@ -2599,6 +2612,7 @@ function setCategory(cat) {
     closeHeaderCategoryMenu();
     closeCategoryFilterSheet();
     filterProducts();
+    scrollToCatalogResults();
 }
 
 function addToCart(p, event, qty = 1) {
@@ -7697,15 +7711,6 @@ function selectSidebarCategory(category) {
     
     // Close sidebar
     closeCategorySidebar();
-    
-    // Scroll to products section
-    const productsSection = document.getElementById('product-grid') || document.getElementById('katalog');
-    if (productsSection) {
-        window.scrollTo({
-            top: getPaginationScrollTop(productsSection),
-            behavior: 'smooth'
-        });
-    }
 }
 
 /**
