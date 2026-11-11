@@ -4600,6 +4600,36 @@ function refreshDetailModal(product) {
     }
 }
 
+function setDetailDisclosureState(section, expanded) {
+    const sectionEl = document.querySelector(`[data-detail-disclosure="${section}"]`);
+    if (!sectionEl) return;
+
+    const trigger = sectionEl.querySelector('[data-action="toggle-detail-section"]');
+    const content = trigger ? document.getElementById(trigger.getAttribute('aria-controls')) : null;
+    if (!trigger || !content) return;
+
+    trigger.setAttribute('aria-expanded', String(expanded));
+    content.hidden = !expanded;
+    sectionEl.classList.toggle('is-open', expanded);
+
+    const toggle = trigger.querySelector('.detail-modal-disclosure__toggle');
+    if (toggle) toggle.textContent = expanded ? '−' : '+';
+}
+
+function toggleDetailDisclosure(section) {
+    const sectionEl = document.querySelector(`[data-detail-disclosure="${section}"]`);
+    const trigger = sectionEl?.querySelector('[data-action="toggle-detail-section"]');
+    if (!trigger) return;
+
+    setDetailDisclosureState(section, trigger.getAttribute('aria-expanded') !== 'true');
+}
+
+function resetDetailDisclosureSections() {
+    document.querySelectorAll('[data-detail-disclosure]').forEach((sectionEl) => {
+        setDetailDisclosureState(sectionEl.getAttribute('data-detail-disclosure'), false);
+    });
+}
+
 function showDetail(p) {
     const resolvedProduct = resolveProductForModal(p);
     if (resolvedProduct) {
@@ -4626,6 +4656,7 @@ function showDetail(p) {
     if (modalContentEl) {
         modalContentEl.scrollTop = 0;
     }
+    resetDetailDisclosureSections();
 
     if (nameEl) {
         nameEl.textContent = p.nama;
@@ -5861,6 +5892,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 event.preventDefault();
                 const delta = parseInt(actionEl.getAttribute('data-qty'), 10);
                 if (!Number.isNaN(delta)) changeModalQuantity(delta);
+                return;
+            }
+
+            if (action === 'toggle-detail-section') {
+                event.preventDefault();
+                toggleDetailDisclosure(actionEl.getAttribute('data-section'));
                 return;
             }
 

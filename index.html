@@ -52,6 +52,7 @@
     <link rel="stylesheet" href="assets/css/category-showcase.css?v=20261031b">
     <link rel="stylesheet" href="assets/css/skeleton-loading.min.css">
         <link rel="stylesheet" href="assets/css/index-inline.min.css">
+        <link rel="stylesheet" href="assets/css/product-detail-enhancements.css?v=20261111a">
     <link rel="stylesheet" href="assets/css/maintenance-page.css?v=20261105b">
     <link rel="stylesheet" href="assets/css/homepage-priority-p0.css?v=20261111a">
     <link rel="stylesheet" href="assets/css/homepage-priority-p1.css?v=20261101a">
@@ -612,21 +613,37 @@
                             </div>
                         </div>
 
-                        <div class="detail-modal-specs">
-                            <p class="detail-modal-section-title">Spesifikasi Ringkas</p>
-                            <p class="detail-modal-meta-note mt-1">Informasi cepat sebelum produk masuk checkout.</p>
-                            <div id="modal-meta-list" class="detail-modal-spec-grid">
+                        <section class="detail-modal-specs detail-modal-disclosure" data-detail-disclosure="specs">
+                            <button type="button" class="detail-modal-disclosure__trigger" data-action="toggle-detail-section" data-section="specs" aria-expanded="false" aria-controls="modal-meta-list">
+                                <span class="detail-modal-disclosure__icon" aria-hidden="true">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"></circle><path stroke-linecap="round" stroke-width="2" d="M12 10v6m0-9h.01"></path></svg>
+                                </span>
+                                <span class="detail-modal-disclosure__copy">
+                                    <span class="detail-modal-section-title">Spesifikasi lengkap</span>
+                                    <span class="detail-modal-meta-note">Kategori, varian, SKU, stok, reward, dan grosir.</span>
+                                </span>
+                                <span class="detail-modal-disclosure__toggle" aria-hidden="true">+</span>
+                            </button>
+                            <div id="modal-meta-list" class="detail-modal-spec-grid detail-modal-disclosure__content" hidden>
                                 <!-- Metadata injected here -->
                             </div>
-                        </div>
+                        </section>
 
-                        <div class="detail-modal-description">
-                            <p class="detail-modal-section-title">Isi Produk</p>
-                            <p class="detail-modal-meta-note mt-1">Rincian paket dan catatan singkat produk.</p>
-                            <div id="modal-items-list">
+                        <section class="detail-modal-description detail-modal-disclosure" data-detail-disclosure="contents">
+                            <button type="button" class="detail-modal-disclosure__trigger" data-action="toggle-detail-section" data-section="contents" aria-expanded="false" aria-controls="modal-items-list">
+                                <span class="detail-modal-disclosure__icon" aria-hidden="true">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 4.75h9.5L18 7.25v12H6z"></path><path stroke-linecap="round" stroke-width="2" d="M15.5 4.75v3h3M8.5 11h7M8.5 14.25h7"></path></svg>
+                                </span>
+                                <span class="detail-modal-disclosure__copy">
+                                    <span class="detail-modal-section-title">Isi produk</span>
+                                    <span class="detail-modal-meta-note">Lihat rincian paket dan catatan singkat produk.</span>
+                                </span>
+                                <span class="detail-modal-disclosure__toggle" aria-hidden="true">+</span>
+                            </button>
+                            <div id="modal-items-list" class="detail-modal-disclosure__content" hidden>
                                 <!-- Item list injected here -->
                             </div>
-                        </div>
+                        </section>
                     </div>
 
                     <div id="modal-related-section" class="detail-modal-related hidden">
