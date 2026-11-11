@@ -5284,8 +5284,6 @@ async function editUserPoints(phone, currentPoints) {
 const CATEGORY_SHOWCASE_SETTING_KEY = 'category_showcase_config';
 const CATEGORY_SHOWCASE_PRESETS = [5, 10, 15, 20, 30];
 const CATEGORY_SHOWCASE_DEFAULT_BACKGROUND_COLOR = '#f0fdf4';
-const CATEGORY_SHOWCASE_MAX_IMAGE_BYTES = 2 * 1024 * 1024;
-const CATEGORY_SHOWCASE_ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 function normalizeCategoryShowcaseBackgroundColor(value) {
     const color = String(value == null ? '' : value).trim();
     return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : CATEGORY_SHOWCASE_DEFAULT_BACKGROUND_COLOR;
@@ -5328,7 +5326,7 @@ function renderCategoryShowcaseRows(config) {
         const options = Array.from(new Set([...names, row.category])).map((name) => `<option value="${escapeAttr(name)}" ${name.toLocaleLowerCase('id') === row.category.toLocaleLowerCase('id') ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('');
         const preset = CATEGORY_SHOWCASE_PRESETS.includes(Number(row.max_products));
         const imageUrl = String(row.image_url || '');
-        return `<tr data-category-showcase-row class="border-t border-gray-100"><td class="px-4 py-3"><input type="checkbox" data-showcase-enabled ${row.enabled ? 'checked' : ''} aria-label="Tampilkan ${escapeAttr(row.category)}"></td><td class="px-4 py-3"><select data-showcase-category class="w-full rounded-lg border border-gray-200 p-2 text-sm">${options}</select></td><td class="px-4 py-3"><input data-showcase-order type="number" min="1" step="1" value="${Number(row.sort_order) || index + 1}" class="w-20 rounded-lg border border-gray-200 p-2"></td><td class="px-4 py-3"><select data-showcase-max class="w-24 rounded-lg border border-gray-200 p-2">${CATEGORY_SHOWCASE_PRESETS.map((value) => `<option value="${value}" ${value === Number(row.max_products) ? 'selected' : ''}>${value}</option>`).join('')}<option value="custom" ${preset ? '' : 'selected'}>Khusus</option></select><input data-showcase-custom type="number" min="1" max="50" value="${preset ? '' : Number(row.max_products)}" placeholder="1–50" class="${preset ? 'hidden ' : ''}mt-2 w-24 rounded-lg border border-gray-200 p-2"></td><td class="px-4 py-3 min-w-[260px]"><img data-showcase-image-preview src="${escapeAttr(imageUrl || 'assets/img/product-placeholder.svg')}" alt="Preview gambar" class="mb-2 h-20 w-28 rounded-lg border border-gray-200 object-cover"><input data-showcase-image-url type="url" value="${escapeAttr(imageUrl)}" placeholder="https://..." class="mb-2 w-full rounded-lg border border-gray-200 p-2 text-xs"><input data-showcase-image-alt type="text" value="${escapeAttr(row.image_alt || `Promo kategori produk ${row.category}`)}" placeholder="Alt text gambar" class="mb-2 w-full rounded-lg border border-gray-200 p-2 text-xs"><input data-showcase-image-file type="file" accept="image/jpeg,image/png,image/webp" class="w-full text-xs"></td><td class="px-4 py-3 text-sm font-semibold">${count}</td><td class="px-4 py-3 text-xs ${missing ? 'text-red-600' : count ? 'text-green-700' : 'text-amber-700'}">${missing ? 'Kategori tidak ditemukan' : count ? 'Siap ditampilkan' : 'Tidak ada produk'}</td><td class="px-4 py-3 text-right"><button type="button" data-action="category-showcase-remove" class="text-xs font-bold text-red-600 hover:underline">Hapus</button></td></tr>`;
+        return `<tr data-category-showcase-row class="border-t border-gray-100"><td class="px-4 py-3"><input type="checkbox" data-showcase-enabled ${row.enabled ? 'checked' : ''} aria-label="Tampilkan ${escapeAttr(row.category)}"></td><td class="px-4 py-3"><select data-showcase-category class="w-full rounded-lg border border-gray-200 p-2 text-sm">${options}</select></td><td class="px-4 py-3"><input data-showcase-order type="number" min="1" step="1" value="${Number(row.sort_order) || index + 1}" class="w-20 rounded-lg border border-gray-200 p-2"></td><td class="px-4 py-3"><select data-showcase-max class="w-24 rounded-lg border border-gray-200 p-2">${CATEGORY_SHOWCASE_PRESETS.map((value) => `<option value="${value}" ${value === Number(row.max_products) ? 'selected' : ''}>${value}</option>`).join('')}<option value="custom" ${preset ? '' : 'selected'}>Khusus</option></select><input data-showcase-custom type="number" min="1" max="50" value="${preset ? '' : Number(row.max_products)}" placeholder="1–50" class="${preset ? 'hidden ' : ''}mt-2 w-24 rounded-lg border border-gray-200 p-2"></td><td class="px-4 py-3 min-w-[260px]"><img data-showcase-image-preview src="${escapeAttr(imageUrl || 'assets/img/product-placeholder.svg')}" alt="Preview gambar" class="mb-2 h-20 w-28 rounded-lg border border-gray-200 object-cover"><label class="mb-1 block text-xs font-semibold text-gray-700">URL gambar</label><input data-showcase-image-url type="url" value="${escapeAttr(imageUrl)}" placeholder="Tempel URL gambar (https://...)" aria-label="URL gambar kiri ${escapeAttr(row.category)}" class="mb-2 w-full rounded-lg border border-gray-200 p-2 text-xs"><p class="mb-2 text-xs text-gray-500">Gunakan URL publik yang diawali http:// atau https://.</p><input data-showcase-image-alt type="text" value="${escapeAttr(row.image_alt || `Promo kategori produk ${row.category}`)}" placeholder="Alt text gambar" class="mb-2 w-full rounded-lg border border-gray-200 p-2 text-xs"></td><td class="px-4 py-3 text-sm font-semibold">${count}</td><td class="px-4 py-3 text-xs ${missing ? 'text-red-600' : count ? 'text-green-700' : 'text-amber-700'}">${missing ? 'Kategori tidak ditemukan' : count ? 'Siap ditampilkan' : 'Tidak ada produk'}</td><td class="px-4 py-3 text-right"><button type="button" data-action="category-showcase-remove" class="text-xs font-bold text-red-600 hover:underline">Hapus</button></td></tr>`;
     }).join('');
     body.querySelectorAll('[data-showcase-max]').forEach((select) => select.addEventListener('change', () => select.parentElement.querySelector('[data-showcase-custom]')?.classList.toggle('hidden', select.value !== 'custom')));
     const warning = document.getElementById('category-showcase-warning'); if (warning) { warning.textContent = rows.length > 6 ? 'Lebih dari 6 section terkonfigurasi dapat membuat beranda panjang.' : ''; warning.classList.toggle('hidden', rows.length <= 6); }
@@ -5361,30 +5359,6 @@ function addCategoryShowcaseRow() {
     const config = { version: 2, enabled: Boolean(document.getElementById('category-showcase-enabled')?.checked), categories: [...current.map((name, index) => ({ category: name, enabled: false, sort_order: index + 1, max_products: 10, image_url: '', image_alt: `Promo kategori produk ${name}` })), { category, enabled: true, sort_order: current.length + 1, max_products: 10, image_url: '', image_alt: `Promo kategori produk ${category}` }] }; renderCategoryShowcaseRows(config);
 }
 async function saveCategoryShowcaseConfig() { try { await GASActions.upsertSetting(CATEGORY_SHOWCASE_SETTING_KEY, JSON.stringify(collectCategoryShowcaseConfig())); showAdminToast('Konfigurasi showcase dan warna latar berhasil disimpan. Perubahan publik dapat memerlukan hingga 5 menit.', 'success'); } catch (error) { showAdminToast(error.message || 'Gagal menyimpan konfigurasi showcase.', 'error'); } }
-function readShowcaseImageAsBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || '').split(',')[1] || '');
-        reader.onerror = () => reject(new Error('File gambar tidak dapat dibaca.'));
-        reader.readAsDataURL(file);
-    });
-}
-async function uploadCategoryShowcaseImage(file, row) {
-    if (!file || !row) return;
-    if (!CATEGORY_SHOWCASE_ALLOWED_IMAGE_TYPES.includes(file.type)) throw new Error('Gunakan gambar JPG, PNG, atau WEBP.');
-    if (file.size > CATEGORY_SHOWCASE_MAX_IMAGE_BYTES) throw new Error('Ukuran gambar maksimal 2 MB.');
-    const preview = row.querySelector('[data-showcase-image-preview]');
-    const urlInput = row.querySelector('[data-showcase-image-url]');
-    if (preview) preview.src = URL.createObjectURL(file);
-    showAdminToast('Mengunggah gambar showcase…', 'info');
-    const base64 = await readShowcaseImageAsBase64(file);
-    const result = await GASActions.post({ action: 'upload_category_showcase_image', data: { filename: file.name, mime_type: file.type, base64 } });
-    const url = String(result && (result.url || result.image_url) || '').trim();
-    if (!/^https?:\/\//i.test(url)) throw new Error('Server tidak mengembalikan URL gambar publik.');
-    if (urlInput) urlInput.value = url;
-    if (preview) preview.src = url;
-    showAdminToast('Gambar berhasil diunggah. Simpan Showcase untuk menerapkan URL.', 'success');
-}
 // ============ SETTINGS FUNCTIONS ============
 async function loadSettings() {
     const config = CONFIG.getAllConfig();
@@ -5891,13 +5865,6 @@ function bindAdminActions() {
             const preview = event.target.closest('[data-category-showcase-row]')?.querySelector('[data-showcase-image-preview]');
             if (preview && /^https?:\/\//i.test(url)) preview.src = url;
         }
-    });
-    document.addEventListener('change', (event) => {
-        if (!event.target || !event.target.matches('[data-showcase-image-file]')) return;
-        uploadCategoryShowcaseImage(event.target.files && event.target.files[0], event.target.closest('[data-category-showcase-row]')).catch((error) => {
-            showAdminToast(error.message || 'Gagal mengunggah gambar.', 'error');
-            event.target.value = '';
-        });
     });
     document.addEventListener('click', (e) => {
         const trigger = e.target.closest('[data-action]');

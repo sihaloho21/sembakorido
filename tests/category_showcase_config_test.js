@@ -98,9 +98,10 @@ assert.match(showcaseCss, /\.category-showcase-track\{[^}]*overflow-x:auto/, 'ho
 assert.match(adminMarkup, /id="category-showcase-background-color" type="color"/, 'admin should expose a native background color picker');
 assert.match(adminMarkup, /data-action="category-showcase-color-reset"/, 'admin should provide a way to restore the default color');
 assert.match(adminSource, /background_color: normalizeCategoryShowcaseBackgroundColor\(backgroundColor\)/, 'admin should persist the selected color in the existing showcase config');
-assert.match(adminSource, /CATEGORY_SHOWCASE_MAX_IMAGE_BYTES/);
-assert.match(adminSource, /upload_category_showcase_image/);
-assert.match(adminSource, /data-showcase-image-file/);
+assert.match(adminSource, /data-showcase-image-url/);
+assert.match(adminSource, /Tempel URL gambar/);
+assert.match(adminSource, /URL publik yang diawali http:\/\/ atau https:\/\//);
+assert.doesNotMatch(adminSource, /readShowcaseImageAsBase64|uploadCategoryShowcaseImage|upload_category_showcase_image|data-showcase-image-file|type=\"file\"/, 'category showcase images should be configured with a URL, not file upload');
 assert.match(source, /host\.style\.setProperty\('--category-showcase-background', safeConfig\.background_color\)/, 'storefront should apply the validated server color to showcase sections');
 assert.match(gasSource, /background_color: normalizeCategoryShowcaseBackgroundV71\(source\.background_color\)/, 'GAS should validate the persisted color');
 assert.match(gasSource, /background_color: config\.background_color/, 'public GAS response should expose only the normalized selected color');

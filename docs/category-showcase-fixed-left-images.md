@@ -32,43 +32,10 @@ Setiap section menggunakan dua area terpisah:
 
 Pada mobile, gambar tetap di kiri dengan lebar yang lebih kecil. Karena gambar tidak berada di dalam `.category-showcase-track`, swipe produk tidak menggeser gambar.
 
-## URL gambar dari Admin
+## Pengaturan URL gambar dari Admin
+Panel Admin → Pengaturan → Tampilan Kategori Beranda menggunakan URL gambar publik; unggah file foto tidak disediakan. Tempel URL yang diawali `http://` atau `https://`, lalu gunakan pratinjau untuk memeriksa gambar sebelum menyimpan. Alt text tetap tersedia untuk aksesibilitas. Jika URL kosong, storefront menampilkan placeholder dan rail produk tetap berfungsi.
 
-Panel Admin → Pengaturan → Tampilan Kategori Beranda menyediakan:
-
-- URL gambar publik;
-- alt text;
-- preview gambar;
-- input upload JPG, PNG, atau WEBP.
-
-URL yang dimasukkan akan divalidasi di browser dan divalidasi ulang oleh GAS sebelum disimpan melalui `upsert_setting`.
-
-## Upload gambar dari Admin
-
-Upload dibatasi di frontend dan backend:
-
-- tipe: `image/jpeg`, `image/png`, `image/webp`;
-- ukuran maksimum: 2 MB;
-- nama file disanitasi oleh GAS;
-- file disimpan di folder Google Drive yang ditentukan melalui Script Property;
-- hasil upload berupa URL publik Drive, lalu URL tersebut diisi ke `image_url`;
-- konfigurasi belum berubah sampai tombol **Simpan Showcase** ditekan.
-
-Tambahkan patch [`gas_v72_category_showcase_images.gs`](gas_v72_category_showcase_images.gs) ke source GAS deployed. Set Script Property berikut:
-
-```text
-CATEGORY_SHOWCASE_IMAGE_FOLDER_ID=<ID folder Google Drive>
-```
-
-Folder tersebut harus dapat diakses oleh deployment Apps Script. Route upload harus diletakkan setelah authorization gate existing:
-
-```javascript
-if (String(payload.action || '') === 'upload_category_showcase_image') {
-  return jsonOutput(handleCategoryShowcaseImageUpload(payload.data));
-}
-```
-
-Jangan membuka route upload sebagai public action. Endpoint harus tetap melewati guard admin/superadmin existing.
+URL divalidasi di browser dan divalidasi ulang oleh GAS sebelum disimpan melalui `upsert_setting`. Perubahan konfigurasi baru diterapkan setelah tombol **Simpan Showcase** ditekan.
 
 ## Endpoint publik
 
