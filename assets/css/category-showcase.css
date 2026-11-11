@@ -22,3 +22,17 @@
 .product-card-stock-badge--limited{background:#fff7ed;border-color:#ffedd5;color:#c2410c}
 .product-card-stock-badge--empty{background:#fef2f2;border-color:#fee2e2;color:#b91c1c}
 @media(min-width:768px){.product-card-stock-badge{font-size:9px;padding:.18rem .42rem}}
+
+/* Fixed-left promotional image layout. Only the product track scrolls. */
+.category-showcase-section { background: var(--category-showcase-row-color, var(--category-showcase-background, #f0fdf4)); }
+.category-showcase-promo { align-items: stretch; background: rgba(255,255,255,.55); border: 1px solid rgba(255,255,255,.78); border-radius: .85rem; display: flex; flex: 0 0 clamp(7rem, 17vw, 13rem); min-height: 13rem; overflow: hidden; position: relative; }
+.category-showcase-promo__image { height: 100%; min-height: 13rem; object-fit: cover; width: 100%; }
+.category-showcase-promo__empty { align-items: center; color: #64748b; display: flex; font-size: .65rem; font-weight: 700; justify-content: center; line-height: 1.35; padding: .75rem; text-align: center; }
+.category-showcase-promo__empty::before { background: rgba(255,255,255,.7); border-radius: 999px; content: '＋'; display: block; font-size: 1.25rem; left: 50%; padding: .2rem .45rem; position: absolute; top: 42%; transform: translate(-50%, -50%); }
+.category-showcase-promo__empty span { margin-top: 3.25rem; }
+@media (max-width: 767px) {
+  .category-showcase-promo { flex-basis: clamp(5.5rem, 25vw, 7.25rem); min-height: 10.5rem; }
+  .category-showcase-promo__image { min-height: 10.5rem; }
+  .category-showcase-promo__empty { font-size: .55rem; }
+  .category-showcase-scroll { display: none; }
+}

@@ -2456,6 +2456,11 @@ var CATEGORY_SHOWCASE_MAX_PRODUCTS_V71 = 50;
 var CATEGORY_SHOWCASE_MAX_ROWS_V71 = 100;
 var CATEGORY_SHOWCASE_DEFAULT_BACKGROUND_V71 = '#f0fdf4';
 
+function normalizeCategoryShowcaseImageUrlV71(value) {
+  var url = String(value == null ? '' : value).trim();
+  return /^https?:\/\//i.test(url) ? url : '';
+}
+
 function normalizeCategoryShowcaseBackgroundV71(value) {
   var color = String(value == null ? '' : value).trim();
   return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : CATEGORY_SHOWCASE_DEFAULT_BACKGROUND_V71;
@@ -2477,7 +2482,10 @@ function normalizeCategoryShowcaseConfigV71(input) {
       category: category,
       enabled: row.enabled === true || String(row.enabled).toLowerCase() === 'true',
       sort_order: Number(row.sort_order) || index + 1,
-      max_products: maxProducts
+      max_products: maxProducts,
+      image_url: normalizeCategoryShowcaseImageUrlV71(row.image_url),
+      image_alt: String(row.image_alt || '').replace(/\s+/g, ' ').trim() || ('Promo kategori produk ' + category),
+      theme_color: normalizeCategoryShowcaseBackgroundV71(row.theme_color || source.background_color)
     });
   });
   categories.sort(function(a, b) { return a.sort_order - b.sort_order; });
@@ -2517,7 +2525,10 @@ function handlePublicCategoryShowcaseConfigV71() {
             category: row.category,
             enabled: row.enabled,
             sort_order: row.sort_order,
-            max_products: row.max_products
+            max_products: row.max_products,
+            image_url: row.image_url,
+            image_alt: row.image_alt,
+            theme_color: row.theme_color
           };
         })
       },

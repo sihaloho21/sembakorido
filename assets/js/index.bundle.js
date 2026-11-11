@@ -46,6 +46,7 @@ var escapeHtml=window.FrontendSanitize&&window.FrontendSanitize.escapeHtml||(t=>
     const CATEGORY_MAX = 50;
     const CATEGORY_MIN = 1;
     const DEFAULT_BACKGROUND_COLOR = '#f0fdf4';
+    const DEFAULT_IMAGE_ALT = 'Promo kategori produk';
     let publicConfigPromise = null;
 
     function normalizeBackgroundColor(value) {
@@ -67,6 +68,11 @@ var escapeHtml=window.FrontendSanitize&&window.FrontendSanitize.escapeHtml||(t=>
 
     function normalizeCategory(value) {
         return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+    }
+
+    function normalizeImageUrl(value) {
+        const url = String(value == null ? '' : value).trim();
+        return /^(https?:\/\/)/i.test(url) ? url : '';
     }
 
     function escapeAttribute(value) {
@@ -94,7 +100,10 @@ var escapeHtml=window.FrontendSanitize&&window.FrontendSanitize.escapeHtml||(t=>
                 category,
                 enabled: entry.enabled === true || String(entry.enabled).toLowerCase() === 'true',
                 sort_order: sortOrder,
-                max_products: maxProducts
+                max_products: maxProducts,
+                image_url: normalizeImageUrl(entry.image_url),
+                image_alt: normalizeCategory(entry.image_alt) || `${DEFAULT_IMAGE_ALT} ${category}`,
+                theme_color: normalizeBackgroundColor(entry.theme_color || raw.background_color)
             };
         }).filter(Boolean).sort((a, b) => a.sort_order - b.sort_order);
         return {
@@ -219,7 +228,10 @@ var escapeHtml=window.FrontendSanitize&&window.FrontendSanitize.escapeHtml||(t=>
             if (!entry.enabled || products.length === 0) return '';
             const trackId = `category-showcase-track-${index}`;
             const cards = renderSharedCards(products);
-            return `<section class="category-showcase-section" data-category-showcase-section data-category="${escapeHtml(entry.category)}" aria-labelledby="${trackId}-title">
+            const image = entry.image_url
+                ? `<img class="category-showcase-promo__image" src="${escapeAttribute(entry.image_url)}" alt="${escapeAttribute(entry.image_alt)}" loading="lazy" data-fallback-src="assets/img/product-placeholder.svg">`
+                : `<div class="category-showcase-promo__empty" aria-label="Belum ada gambar promo"><span>Tambahkan gambar promo dari panel admin</span></div>`;
+            return `<section class="category-showcase-section" style="--category-showcase-row-color:${escapeAttribute(entry.theme_color)}" data-category-showcase-section data-category="${escapeHtml(entry.category)}" aria-labelledby="${trackId}-title">
                 <div class="category-showcase-header">
                     <span class="category-showcase-title-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-1.5 11h-13L4 9Z"/><path d="m8 9 2-5m6 5-2-5M8 13v3m4-3v3m4-3v3"/></svg>
@@ -227,6 +239,7 @@ var escapeHtml=window.FrontendSanitize&&window.FrontendSanitize.escapeHtml||(t=>
                     <h2 id="${trackId}-title" class="category-showcase-title">${escapeHtml(entry.category)}</h2>
                 </div>
                 <div class="category-showcase-viewport">
+                    <aside class="category-showcase-promo">${image}</aside>
                     <button type="button" class="category-showcase-scroll category-showcase-scroll--left" data-showcase-scroll="left" data-track-id="${trackId}" aria-label="Geser ${escapeAttribute(entry.category)} ke kiri">‹</button>
                     <div id="${trackId}" class="category-showcase-track" role="region" aria-labelledby="${trackId}-title" tabindex="0">${cards}</div>
                     <button type="button" class="category-showcase-scroll category-showcase-scroll--right" data-showcase-scroll="right" data-track-id="${trackId}" aria-label="Geser ${escapeAttribute(entry.category)} ke kanan">›</button>
@@ -260,7 +273,7 @@ var escapeHtml=window.FrontendSanitize&&window.FrontendSanitize.escapeHtml||(t=>
         if (action === 'update-product-card-qty' && typeof window.updateProductCardQty === 'function') window.updateProductCardQty(id, parseInt(trigger.getAttribute('data-delta'), 10));
     }
 
-    window.CategoryShowcase = { CONFIG_KEY, normalizeConfig, normalizeBackgroundColor, getContrastTextColor, loadPublicConfig, render, renderSharedCards, isProductAvailable, filterAvailableProducts, sortProductsByAvailability };
+    window.CategoryShowcase = { CONFIG_KEY, normalizeConfig, normalizeBackgroundColor, normalizeImageUrl, getContrastTextColor, loadPublicConfig, render, renderSharedCards, isProductAvailable, filterAvailableProducts, sortProductsByAvailability };
     document.addEventListener('DOMContentLoaded', () => {
         const host = document.getElementById('category-showcase');
         if (!host) return;

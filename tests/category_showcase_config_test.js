@@ -35,8 +35,8 @@ assert.deepEqual(JSON.parse(JSON.stringify(normalize({ enabled: true, categories
     enabled: true,
     background_color: '#f0fdf4',
     categories: [
-        { category: 'Minyak Goreng', enabled: true, sort_order: 2, max_products: 10 },
-        { category: 'Mie Instan', enabled: false, sort_order: 4, max_products: 5 }
+        { category: 'Minyak Goreng', enabled: true, sort_order: 2, max_products: 10, image_url: '', image_alt: 'Promo kategori produk Minyak Goreng', theme_color: '#f0fdf4' },
+        { category: 'Mie Instan', enabled: false, sort_order: 4, max_products: 5, image_url: '', image_alt: 'Promo kategori produk Mie Instan', theme_color: '#f0fdf4' }
     ]
 });
 
@@ -46,6 +46,8 @@ assert.deepEqual(JSON.parse(JSON.stringify(normalize({ enabled: 'false', categor
 assert.equal(normalizeBackgroundColor('#10B981'), '#10b981');
 assert.equal(normalizeBackgroundColor('red; background:url(javascript:alert(1))'), '#f0fdf4');
 assert.equal(normalize({ background_color: '#abc' }).background_color, '#f0fdf4');
+assert.equal(normalize({ categories: [{ category: 'X', max_products: 1, image_url: 'javascript:alert(1)' }] }).categories[0].image_url, '');
+assert.equal(normalize({ categories: [{ category: 'X', max_products: 1, image_url: 'https://example.com/x.webp' }] }).categories[0].image_url, 'https://example.com/x.webp');
 assert.equal(getContrastTextColor('#f0fdf4'), '#1f2937');
 assert.equal(getContrastTextColor('#123456'), '#ffffff');
 context.window.CategoryShowcase.render({ enabled: true, background_color: '#123456', categories: [] });
@@ -81,7 +83,9 @@ assert.match(homepageSource, /'tidak tersedia'/);
 assert.doesNotMatch(source, /showcase-view-all|category-showcase-view-all|function viewAll/);
 assert.doesNotMatch(source, /Lihat Semua/);
 assert.match(source, /category-showcase-title-icon/);
+assert.match(source, /category-showcase-promo__image/);
 assert.match(showcaseCss, /category-showcase-header::before/);
+assert.match(showcaseCss, /\.category-showcase-promo\s*\{[^}]*flex:\s*0 0/);
 assert.match(showcaseCss, /flex-basis:calc\(\(100vw - 3\.25rem\)\/2\.5\)/);
 assert.match(showcaseCss, /flex-basis:calc\(\(100% - 2\.6rem\)\/4\.25\)/);
 assert.match(showcaseCss, /flex-basis:calc\(\(100% - 4rem\)\/5\.2\)/);
@@ -94,8 +98,12 @@ assert.match(showcaseCss, /\.category-showcase-track\{[^}]*overflow-x:auto/, 'ho
 assert.match(adminMarkup, /id="category-showcase-background-color" type="color"/, 'admin should expose a native background color picker');
 assert.match(adminMarkup, /data-action="category-showcase-color-reset"/, 'admin should provide a way to restore the default color');
 assert.match(adminSource, /background_color: normalizeCategoryShowcaseBackgroundColor\(backgroundColor\)/, 'admin should persist the selected color in the existing showcase config');
+assert.match(adminSource, /CATEGORY_SHOWCASE_MAX_IMAGE_BYTES/);
+assert.match(adminSource, /upload_category_showcase_image/);
+assert.match(adminSource, /data-showcase-image-file/);
 assert.match(source, /host\.style\.setProperty\('--category-showcase-background', safeConfig\.background_color\)/, 'storefront should apply the validated server color to showcase sections');
 assert.match(gasSource, /background_color: normalizeCategoryShowcaseBackgroundV71\(source\.background_color\)/, 'GAS should validate the persisted color');
 assert.match(gasSource, /background_color: config\.background_color/, 'public GAS response should expose only the normalized selected color');
+assert.match(gasSource, /image_url: row\.image_url/);
 
 console.log('category showcase config tests: PASS');
