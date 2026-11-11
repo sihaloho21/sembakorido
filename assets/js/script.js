@@ -4600,7 +4600,7 @@ function refreshDetailModal(product) {
     }
 }
 
-function setDetailDisclosureState(section, expanded) {
+function setDetailDisclosureState(section, expanded, options = {}) {
     const sectionEl = document.querySelector(`[data-detail-disclosure="${section}"]`);
     if (!sectionEl) return;
 
@@ -4609,11 +4609,34 @@ function setDetailDisclosureState(section, expanded) {
     if (!trigger || !content) return;
 
     trigger.setAttribute('aria-expanded', String(expanded));
-    content.hidden = !expanded;
-    sectionEl.classList.toggle('is-open', expanded);
 
     const toggle = trigger.querySelector('.detail-modal-disclosure__toggle');
     if (toggle) toggle.textContent = expanded ? '−' : '+';
+
+    if (options.immediate) {
+        sectionEl.classList.toggle('is-open', expanded);
+        content.hidden = !expanded;
+        return;
+    }
+
+    if (expanded) {
+        content.hidden = false;
+        window.requestAnimationFrame(() => sectionEl.classList.add('is-open'));
+        return;
+    }
+
+    sectionEl.classList.remove('is-open');
+    if (content.hidden) return;
+
+    let finished = false;
+    const finishCollapse = () => {
+        if (finished) return;
+        finished = true;
+        content.hidden = true;
+        content.removeEventListener('transitionend', finishCollapse);
+    };
+    content.addEventListener('transitionend', finishCollapse);
+    window.setTimeout(finishCollapse, 380);
 }
 
 function toggleDetailDisclosure(section) {
@@ -4626,7 +4649,7 @@ function toggleDetailDisclosure(section) {
 
 function resetDetailDisclosureSections() {
     document.querySelectorAll('[data-detail-disclosure]').forEach((sectionEl) => {
-        setDetailDisclosureState(sectionEl.getAttribute('data-detail-disclosure'), false);
+        setDetailDisclosureState(sectionEl.getAttribute('data-detail-disclosure'), false, { immediate: true });
     });
 }
 
