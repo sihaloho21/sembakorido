@@ -89,6 +89,12 @@
     display: none;
 }
 
+/* The legacy #modal-items-list grid rule has higher specificity than [hidden]. */
+#modal-meta-list[hidden],
+#modal-items-list[hidden] {
+    display: none !important;
+}
+
 /* Payday price highlight: pulse the border, not the content. */
 .detail-modal-secondary-price {
     animation: detail-modal-payday-border-pulse 2.8s ease-in-out infinite;

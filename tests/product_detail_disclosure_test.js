@@ -38,7 +38,7 @@ assert.match(script, /function resetDetailDisclosureSections\(\)/, 'disclosure s
 assert.match(script, /resetDetailDisclosureSections\(\);[\s\S]{0,240}if \(nameEl\)/, 'opening a product should reset disclosure sections before rendering');
 assert.match(script, /if \(action === 'toggle-detail-section'\)[\s\S]{0,180}toggleDetailDisclosure\(actionEl\.getAttribute\('data-section'\)\)/, 'detail modal delegation should handle accordion toggles');
 
-assert.match(css, /\.detail-modal-disclosure__content\[hidden\]\s*\{\s*display:\s*none/, 'hidden disclosure content should not occupy layout space');
+assert.match(css, /#modal-meta-list\[hidden\][\s\S]*#modal-items-list\[hidden\][\s\S]*display:\s*none\s*!important/, 'both disclosure containers should override legacy display rules when hidden');
 assert.match(css, /\.detail-modal-disclosure\.is-open \.detail-modal-disclosure__toggle/, 'open disclosure should have a distinct toggle state');
 
 console.log('product detail disclosure tests: PASS');
