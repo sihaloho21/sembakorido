@@ -28,5 +28,5 @@ const parts = sources.map((relPath) => {
   return `\n/* ===== ${relPath} ===== */\n${content}\n`;
 });
 
-fs.writeFileSync(outFile, parts.join('\n'), 'utf8');
+fs.writeFileSync(outFile, `${parts.join('\n').trimEnd()}\n`, 'utf8');
 console.log(`Bundled ${sources.length} files -> ${path.relative(root, outFile)}`);

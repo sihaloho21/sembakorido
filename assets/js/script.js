@@ -47,9 +47,6 @@ let currentCategory = 'Semua';
 let currentPage = 1;
 const itemsPerPage = 12;
 let filteredProducts = [];
-let p2PriceFilter = 'all';
-let p2DiscountOnly = false;
-let p2SortFilter = 'relevance';
 const P2_RECENTLY_VIEWED_KEY = 'sembako_recently_viewed_v1';
 const P2_RECENTLY_VIEWED_LIMIT = 6;
 let storeClosed = CONFIG.isStoreClosed();
@@ -2114,7 +2111,7 @@ function openQuickView(product) {
     const safeImage = optimizeImageUrl(sanitizeUrl((product.gambar || '').split(',')[0], 'assets/img/product-placeholder.svg'), 640, 480);
     const stock = getP2StockLabel(product);
     const discount = getProductDiscountPercent(product);
-    content.innerHTML = `<div class="p2-quick-view__media"><img src="${safeImage}" alt="${escapeHtml(product.nama)}" data-fallback-src="assets/img/product-placeholder.svg"></div><div class="p2-quick-view__body"><p class="p2-filter-toolbar__eyebrow">QUICK VIEW</p><h2 id="quick-view-title">${escapeHtml(product.nama)}</h2><div class="p2-quick-view__price"><strong>Rp ${getProductPrice(product).toLocaleString('id-ID')}</strong>${discount ? `<span>-${discount}%</span>` : ''}</div><p class="p2-stock-indicator p2-stock-indicator--${escapeHtml(stock.className)}"><strong>${escapeHtml(stock.text)}</strong><small>${escapeHtml(stock.detail)}</small></p><p class="p2-quick-view__description">${escapeHtml(product.deskripsi || 'Produk pilihan Paket Sembako untuk kebutuhan harian Anda.')}</p><div class="p3-share-actions"><button type="button" data-action="share-product" data-product-id="${escapeHtml(id)}" class="p3-share-action">Bagikan produk</button></div><div class="p2-quick-view__actions"><button type="button" data-action="show-detail" data-product-id="${escapeHtml(id)}" class="p2-quick-view__secondary">Detail lengkap</button><button type="button" data-action="add-to-cart" data-product-id="${escapeHtml(id)}" class="p2-quick-view__primary">Tambah ke keranjang</button></div></div>`;
+    content.innerHTML = `<div class="p2-quick-view__media"><img src="${safeImage}" alt="${escapeHtml(product.nama)}" data-fallback-src="assets/img/product-placeholder.svg"></div><div class="p2-quick-view__body"><p class="p2-product-rail__eyebrow">QUICK VIEW</p><h2 id="quick-view-title">${escapeHtml(product.nama)}</h2><div class="p2-quick-view__price"><strong>Rp ${getProductPrice(product).toLocaleString('id-ID')}</strong>${discount ? `<span>-${discount}%</span>` : ''}</div><p class="p2-stock-indicator p2-stock-indicator--${escapeHtml(stock.className)}"><strong>${escapeHtml(stock.text)}</strong><small>${escapeHtml(stock.detail)}</small></p><p class="p2-quick-view__description">${escapeHtml(product.deskripsi || 'Produk pilihan Paket Sembako untuk kebutuhan harian Anda.')}</p><div class="p3-share-actions"><button type="button" data-action="share-product" data-product-id="${escapeHtml(id)}" class="p3-share-action">Bagikan produk</button></div><div class="p2-quick-view__actions"><button type="button" data-action="show-detail" data-product-id="${escapeHtml(id)}" class="p2-quick-view__secondary">Detail lengkap</button><button type="button" data-action="add-to-cart" data-product-id="${escapeHtml(id)}" class="p2-quick-view__primary">Tambah ke keranjang</button></div></div>`;
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('p2-quick-view-open');
@@ -2300,29 +2297,14 @@ function filterProducts() {
         const productCategory = normalizeCategoryLabel(p.category || p.kategori);
         const matchesCategory = selectedCategory === 'Semua' ||
             productCategory.toLowerCase() === selectedCategory.toLowerCase();
-        const price = getProductPrice(p);
-        const matchesPrice = p2PriceFilter === 'under-25000' ? price < 25000
-            : p2PriceFilter === '25000-75000' ? price >= 25000 && price <= 75000
-                : p2PriceFilter === 'over-75000' ? price > 75000 : true;
-        const matchesDiscount = !p2DiscountOnly || getProductDiscountPercent(p) > 0;
-        return matchesSearch && matchesCategory && matchesPrice && matchesDiscount;
+        return matchesSearch && matchesCategory;
     });
 
     filteredProducts = sortProductsByAvailability(filteredProducts);
-    filteredProducts.sort((a, b) => {
-        if (p2SortFilter === 'price-low') return getProductPrice(a) - getProductPrice(b);
-        if (p2SortFilter === 'price-high') return getProductPrice(b) - getProductPrice(a);
-        if (p2SortFilter === 'discount') return getProductDiscountPercent(b) - getProductDiscountPercent(a);
-        if (p2SortFilter === 'stock') return (Number(b.stok) || 0) - (Number(a.stok) || 0);
-        return 0;
-    });
-
     currentPage = 1; // Reset to first page on filter
     renderProducts(filteredProducts);
     renderPagination(filteredProducts.length);
     renderSearchSuggestions(query);
-    const summary = document.getElementById('p2-filter-summary');
-    if (summary) summary.textContent = `${filteredProducts.length} produk sesuai pilihan Anda`;
 }
 
 function normalizeSearch(value) {
@@ -5610,18 +5592,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (action === 'add-to-cart') { addToCart(product, event); closeQuickView(); }
     });
 
-    document.getElementById('p2-price-filter')?.addEventListener('change', (event) => {
-        p2PriceFilter = event.target.value;
-        filterProducts();
-    });
-    document.getElementById('p2-sort-filter')?.addEventListener('change', (event) => {
-        p2SortFilter = event.target.value;
-        filterProducts();
-    });
-    document.getElementById('p2-discount-filter')?.addEventListener('change', (event) => {
-        p2DiscountOnly = event.target.checked;
-        filterProducts();
-    });
     document.getElementById('quick-view-modal')?.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') closeQuickView();
     });

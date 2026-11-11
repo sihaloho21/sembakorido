@@ -1,27 +1,5 @@
-/* Homepage P2 — discovery, filtering and fast product preview. */
-.p2-filter-toolbar {
-    position: sticky;
-    top: 5.1rem;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin: 0 0 1rem;
-    padding: .8rem 1rem;
-    border: 1px solid #d8f3df;
-    border-radius: 1rem;
-    background: rgba(255,255,255,.94);
-    box-shadow: 0 9px 22px rgba(15,64,35,.08);
-    backdrop-filter: blur(14px);
-}
-.p2-filter-toolbar__eyebrow,.p2-product-rail__eyebrow { margin: 0 0 .22rem; color:#15803d; font-size:.6rem; font-weight:850; letter-spacing:.13em; text-transform:uppercase; }
-.p2-filter-toolbar__summary { margin:0; color:#334155; font-size:.78rem; font-weight:800; line-height:1.35; }
-.p2-filter-toolbar__controls { display:flex; align-items:center; gap:.55rem; flex-wrap:wrap; justify-content:flex-end; }
-.p2-filter-control { display:flex; align-items:center; gap:.42rem; color:#475569; font-size:.68rem; font-weight:750; white-space:nowrap; }
-.p2-filter-control select { min-height:2.2rem; max-width:11rem; padding:.35rem 1.8rem .35rem .6rem; border:1px solid #dbe7df; border-radius:.65rem; background:#f8fcf9; color:#334155; font-size:.68rem; font-weight:700; }
-.p2-filter-control--discount { min-height:2.2rem; padding:.4rem .65rem; border:1px solid #fde68a; border-radius:.65rem; background:#fffbeb; color:#92400e; }
-.p2-filter-control--discount input { accent-color:#f59e0b; }
+/* Homepage P2 — recommendations and fast product preview. */
+.p2-product-rail__eyebrow { margin: 0 0 .22rem; color:#15803d; font-size:.6rem; font-weight:850; letter-spacing:.13em; text-transform:uppercase; }
 .p2-personalized-sections { display:grid; gap:1rem; margin-bottom:1.35rem; }
 .p2-product-rail { padding:1rem; border:1px solid #e1f3e5; border-radius:1.15rem; background:linear-gradient(135deg,#f8fffa,#fff); }
 .p2-product-rail__head { margin-bottom:.75rem; }
@@ -72,16 +50,6 @@
     #main-header .header-actions { gap:.35rem; }
     #main-header .header-action-icon { min-width:2.35rem; min-height:2.35rem; padding:0; border-radius:.75rem; background:#f6fbf7; }
     #main-header .header-action-icon svg { width:1.05rem; height:1.05rem; }
-    .p2-filter-toolbar { top:4.1rem; align-items:stretch; flex-direction:column; gap:.5rem; margin-top:.45rem; margin-right:-.05rem; margin-left:-.05rem; padding:.65rem; border-radius:.95rem; background:rgba(255,255,255,.97); box-shadow:0 8px 20px rgba(15,64,35,.09); }
-    .p2-filter-toolbar__intro { display:flex; flex-direction:column; gap:.08rem; }
-    .p2-filter-toolbar__eyebrow { margin-bottom:.08rem; font-size:.62rem; letter-spacing:.15em; }
-    .p2-filter-toolbar__summary { font-size:.74rem; letter-spacing:-.01em; }
-    .p2-filter-toolbar__controls { display:grid; grid-template-columns:minmax(0,1.18fr) repeat(2,minmax(0,1fr)); gap:.35rem; align-items:stretch; }
-    .p2-filter-control { min-width:0; display:flex; flex-direction:column; align-items:stretch; gap:.18rem; padding:.42rem .48rem; border:1px solid #e2eee5; border-radius:.7rem; background:#f8fcf9; color:#64748b; font-size:.56rem; font-weight:850; letter-spacing:.04em; text-transform:uppercase; }
-    .p2-filter-control select { width:100%; max-width:none; min-height:2.1rem; margin:0; padding:.2rem 1rem .2rem 0; border:0; border-radius:0; background:transparent; color:#1f2937; font-size:.66rem; font-weight:800; letter-spacing:0; text-transform:none; }
-    .p2-filter-control--discount { grid-column:auto; min-height:3.2rem; flex-direction:row; align-items:center; justify-content:center; gap:.25rem; padding:.42rem .35rem; border-color:#f8d889; background:#fffaf0; color:#92400e; font-size:.56rem; letter-spacing:0; text-transform:none; }
-    .p2-filter-control--discount input { width:.95rem; height:.95rem; flex:0 0 auto; margin:0; accent-color:#f59e0b; }
-    .p2-filter-control--discount span { line-height:1.2; white-space:nowrap; }
     .p2-product-rail { padding:.75rem; }
     .p2-product-rail__grid { display:flex; overflow-x:auto; gap:.6rem; margin-right:-.75rem; padding-right:.75rem; scrollbar-width:none; }
     .p2-product-rail__grid::-webkit-scrollbar { display:none; }
