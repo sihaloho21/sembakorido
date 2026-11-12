@@ -1,4 +1,4 @@
-# Category Showcase: Fixed-Left Image
+# Category Showcase: Mobile-Only Image
 
 ## Struktur `category_showcase_config` versi 2
 
@@ -25,12 +25,12 @@
 
 ## Perilaku frontend
 
-Setiap section menggunakan dua area terpisah:
+Setiap section memiliki dua area terpisah pada versi mobile:
 
-- `.category-showcase-promo`: gambar tetap di sisi kiri.
+- `.category-showcase-promo`: gambar kategori yang hanya tampil pada lebar layar hingga 767 px, tetap di sisi kiri.
 - `.category-showcase-track`: satu-satunya area yang dapat digeser secara horizontal.
 
-Pada mobile, gambar tetap di kiri dengan lebar yang lebih kecil. Karena gambar tidak berada di dalam `.category-showcase-track`, swipe produk tidak menggeser gambar.
+Pada tablet dan desktop (lebar 768 px ke atas), gambar dan placeholder promo disembunyikan sehingga area carousel produk menggunakan seluruh lebar section. Pada mobile, gambar berada di kiri dengan lebar yang lebih kecil. Karena gambar tidak berada di dalam `.category-showcase-track`, swipe produk tidak menggeser gambar.
 
 ## Pengaturan URL gambar dari Admin
 Panel Admin → Pengaturan → Tampilan Kategori Beranda menggunakan URL gambar publik; unggah file foto tidak disediakan. Tempel URL yang diawali `http://` atau `https://`, lalu gunakan pratinjau untuk memeriksa gambar sebelum menyimpan. Alt text tetap tersedia untuk aksesibilitas. Jika URL kosong, storefront menampilkan placeholder dan rail produk tetap berfungsi.

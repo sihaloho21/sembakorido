@@ -86,6 +86,8 @@ assert.match(source, /category-showcase-title-icon/);
 assert.match(source, /category-showcase-promo__image/);
 assert.match(showcaseCss, /category-showcase-header::before/);
 assert.match(showcaseCss, /\.category-showcase-promo\s*\{[^}]*flex:\s*0 0/);
+assert.match(showcaseCss, /\.category-showcase-promo\s*\{\s*display:\s*none;\s*\}/, 'category promo images should be hidden outside mobile widths by default');
+assert.match(showcaseCss, /@media\s*\(max-width:\s*767px\)[\s\S]*?\.category-showcase-promo\s*\{[^}]*display:\s*flex/, 'category promo images should be shown on mobile only');
 assert.match(showcaseCss, /flex-basis:calc\(\(100vw - 3\.25rem\)\/2\.5\)/);
 assert.match(showcaseCss, /flex-basis:calc\(\(100% - 2\.6rem\)\/4\.25\)/);
 assert.match(showcaseCss, /flex-basis:calc\(\(100% - 4rem\)\/5\.2\)/);
