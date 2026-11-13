@@ -2061,10 +2061,8 @@ function validateIndomaretSourceUrl(rawUrl) {
   if (!value || value.length > INDOMARET_IMPORT_MAX_URL_LENGTH) {
     return { success: false, error: 'INVALID_SOURCE_URL', message: 'URL sumber kosong atau terlalu panjang' };
   }
-  let parsed;
-  try {
-    parsed = new URL(value);
-  } catch (error) {
+  const parsed = parseIndomaretUrl(value);
+  if (!parsed) {
     return { success: false, error: 'INVALID_SOURCE_URL', message: 'URL sumber tidak valid' };
   }
   const host = String(parsed.hostname || '').toLowerCase().replace(/^www\./, '');
@@ -2083,7 +2081,52 @@ function isKlikIndomaretHost(host) {
 }
 
 function getIndomaretHost(url) {
-  try { return String(new URL(url).hostname || '').toLowerCase(); } catch (error) { return ''; }
+  const parsed = parseIndomaretUrl(url);
+  return parsed ? String(parsed.hostname || '').toLowerCase() : '';
+}
+
+// Apps Script V8 does not guarantee the browser URL constructor. Keep URL
+// validation deterministic and compatible with both GAS and browser tests.
+function parseIndomaretUrl(value) {
+  const source = String(value || '').trim();
+  const match = source.match(/^([a-z][a-z0-9+.-]*:)?\/\/([^/?#]+)([^?#]*)?(\?[^#]*)?(#.*)?$/i);
+  if (!match || !match[1] || !match[2]) return null;
+  const protocol = String(match[1]).toLowerCase();
+  const authority = String(match[2]);
+  const at = authority.lastIndexOf('@');
+  const credentials = at >= 0 ? authority.slice(0, at) : '';
+  const hostPort = at >= 0 ? authority.slice(at + 1) : authority;
+  const credentialParts = credentials ? credentials.split(':') : [];
+  const username = credentialParts.length ? credentialParts.shift() : '';
+  const password = credentialParts.join(':');
+  const hostMatch = hostPort.match(/^([^:]+)(?::(\d*))?$/);
+  if (!hostMatch) return null;
+  return {
+    protocol: protocol,
+    hostname: hostMatch[1].toLowerCase(),
+    port: hostMatch[2] || '',
+    username: username,
+    password: password,
+    pathname: match[3] || '/',
+    search: match[4] || '',
+    hash: match[5] || '',
+    href: source
+  };
+}
+
+function resolveIndomaretUrl(candidate, baseUrl) {
+  const raw = String(candidate || '').trim();
+  if (!raw) return '';
+  if (/^[a-z][a-z0-9+.-]*:/i.test(raw) && !/^https?:\/\//i.test(raw)) return '';
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) return raw;
+  const base = parseIndomaretUrl(baseUrl);
+  if (!base) return '';
+  const origin = base.protocol + '//' + base.hostname + (base.port ? ':' + base.port : '');
+  if (raw.indexOf('//') === 0) return base.protocol + raw;
+  if (raw.charAt(0) === '/') return origin + raw;
+  const basePath = base.pathname || '/';
+  const directory = basePath.slice(0, basePath.lastIndexOf('/') + 1);
+  return origin + directory + raw;
 }
 
 function fetchIndomaretHtml(initialUrl) {
@@ -2114,9 +2157,8 @@ function fetchIndomaretHtml(initialUrl) {
       }
       const location = getIndomaretResponseHeader(response, 'Location');
       if (!location) return { success: false, error: 'INVALID_REDIRECT', message: 'Redirect sumber tidak memiliki tujuan' };
-      try { currentUrl = new URL(location, validation.url).toString(); } catch (error) {
-        return { success: false, error: 'INVALID_REDIRECT', message: 'Tujuan redirect tidak valid' };
-      }
+      currentUrl = resolveIndomaretUrl(location, validation.url);
+      if (!currentUrl) return { success: false, error: 'INVALID_REDIRECT', message: 'Tujuan redirect tidak valid' };
       continue;
     }
     if (code < 200 || code >= 300) {
@@ -2232,13 +2274,10 @@ function normalizeImportMoney(value) {
 function normalizeIndomaretImageUrl(value, baseUrl) {
   const candidate = Array.isArray(value) ? value[0] : String(value || '').trim();
   if (!candidate) return '';
-  let absolute = candidate;
-  try { absolute = new URL(candidate, baseUrl).toString(); } catch (error) { return ''; }
-  try {
-    const parsed = new URL(absolute);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return '';
-    return absolute.slice(0, 2048);
-  } catch (error) { return ''; }
+  const absolute = resolveIndomaretUrl(candidate, baseUrl);
+  const parsed = parseIndomaretUrl(absolute);
+  if (!parsed || (parsed.protocol !== 'https:' && parsed.protocol !== 'http:')) return '';
+  return absolute.slice(0, 2048);
 }
 
 function cleanIndomaretText(value) {

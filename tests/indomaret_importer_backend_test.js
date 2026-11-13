@@ -2,9 +2,8 @@ const assert = require('assert');
 const fs = require('fs');
 const vm = require('vm');
 
-const source = fs.readFileSync('docs/gas_v63_blog_support.gs', 'utf8');
+const source = fs.readFileSync('docs/gas_v71_blog_support_indomaret_latest.gs', 'utf8');
 const sandbox = {
-  URL,
   console,
   isFinite,
   JSON,
@@ -18,7 +17,7 @@ const sandbox = {
   parseFloat,
   parseInt
 };
-vm.runInNewContext(source, sandbox, { filename: 'gas_v63_blog_support.gs' });
+vm.runInNewContext(source, sandbox, { filename: 'gas_v71_blog_support_indomaret_latest.gs' });
 
 assert.strictEqual(
   sandbox.validateIndomaretSourceUrl('https://www.klikindomaret.com/xpress/beras-pulen').success,
@@ -44,6 +43,11 @@ assert.strictEqual(
   sandbox.validateIndomaretSourceUrl('https://klikindomaret.com:8443/product').success,
   false,
   'Non-standard ports must be rejected'
+);
+assert.strictEqual(
+  sandbox.validateIndomaretSourceUrl('https://www.klikindomaret.com/xpress/beras-pulen?store=123').success,
+  true,
+  'Valid query-string URLs should be accepted without browser URL support'
 );
 
 const jsonLdHtml = `<!doctype html>
