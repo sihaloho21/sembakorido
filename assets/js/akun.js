@@ -46,6 +46,8 @@ const NETWORK_ERROR_MESSAGE = 'Gagal memuat data. Periksa koneksi lalu coba lagi
 const NOTIFICATION_DROPDOWN_VISIBLE_COUNT = 5;
 const NOTIFICATION_DROPDOWN_FALLBACK_MAX_HEIGHT = 'min(28rem, calc(100vh - 14rem))';
 
+let accountSheetState = null;
+
 const SECTION_UI_MAP = {
     referral: {
         loadingId: 'referral-loading',
@@ -63,8 +65,8 @@ const SECTION_UI_MAP = {
     },
     orders: {
         loadingId: 'order-loading',
-        errorId: 'order-error',
-        errorTextId: 'order-error-text',
+        errorId: 'accepted-orders-error',
+        errorTextId: 'accepted-orders-error-text',
         loginCtaId: 'orders-login-cta',
         retryAction: 'retry-orders'
     },
@@ -1080,9 +1082,13 @@ function getInitialAccountViewMode() {
 const ACCOUNT_SECTION_ID_MAP = {
     profile: 'profile-section',
     notifications: 'notifications-section',
-    orders: 'orders-section',
+    orders: 'accepted-orders-panel',
+    'total-spend': 'accepted-orders-panel',
     points: 'points-section',
-    rewards: 'points-section'
+    rewards: 'points-section',
+    reviews: 'account-reviews-section',
+    referral: 'referral-section',
+    paylater: 'paylater-section'
 };
 
 function getRequestedAccountSectionKey() {
@@ -1134,11 +1140,14 @@ function focusRequestedAccountSection() {
     const sectionKey = getRequestedAccountSectionKey();
     const sectionId = ACCOUNT_SECTION_ID_MAP[sectionKey];
     if (!sectionId) return;
-
     const target = document.getElementById(sectionId);
     if (!target) return;
-
     setTimeout(() => {
+        const stash = document.getElementById('account-detail-stash');
+        if (stash && stash.contains(target)) {
+            openAccountSheet(null, sectionId);
+            return;
+        }
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         highlightAccountSection(target);
     }, 160);
@@ -1278,8 +1287,11 @@ function applyReferralDataToUI(profile) {
     const pointsEl = document.getElementById('referral-points-total');
 
     if (codeEl) codeEl.value = '-';
-    if (countEl) countEl.textContent = String(parseInt(profile.referral_count || 0, 10) || 0);
-    if (pointsEl) pointsEl.textContent = String(parseInt(profile.referral_points_total || 0, 10) || 0);
+    const referralCount = parseInt(profile.referral_count || 0, 10) || 0;
+    const referralPoints = parseInt(profile.referral_points_total || 0, 10) || 0;
+    if (countEl) countEl.textContent = String(referralCount);
+    if (pointsEl) pointsEl.textContent = String(referralPoints);
+    updateAccountSummaryCard('summary-referral', `${referralCount} berhasil`, `${referralPoints.toLocaleString('id-ID')} poin referral`);
 
     const alreadyUsed = toReferralCodeValue(profile.referred_by) !== '';
     if (inputEl) {
@@ -1406,6 +1418,7 @@ async function loadReferralData(user) {
         const badgeEl = document.getElementById('referral-history-badge');
         if (badgeEl) badgeEl.textContent = 'error';
         if (listEl) listEl.innerHTML = '<p class="text-red-500">Gagal memuat riwayat referral.</p>';
+        updateAccountSummaryCard('summary-referral', 'Tidak tersedia', 'Data referral gagal dimuat');
         setSectionError('referral', resolvePublicErrorMessage(error), 'retry-referral');
     } finally {
         setSectionLoading('referral', false);
@@ -1431,6 +1444,32 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('storage', (event) => {
         if (String(event.key || '').startsWith('gosembako_reviews_')) refreshAccountReviews();
     });
+
+    const accountSheet = document.getElementById('account-sheet');
+    if (accountSheet) {
+        accountSheet.addEventListener('click', (event) => {
+            if (event.target === accountSheet || event.target.classList.contains('account-sheet-backdrop')) {
+                closeAccountSheet();
+            }
+        });
+        document.addEventListener('click', (event) => {
+            const opener = event.target.closest('[data-action="open-account-sheet"]');
+            if (opener) {
+                openAccountSheet(opener, opener.getAttribute('data-account-panel'));
+                return;
+            }
+            const closeButton = event.target.closest('[data-action="close-account-sheet"]');
+            if (closeButton) {
+                closeAccountSheet();
+                return;
+            }
+            const nestedModalAction = event.target.closest('[data-action="open-reward"], [data-action="view-paylater-invoice"], [data-action="open-notification"]');
+            if (nestedModalAction && accountSheet.contains(nestedModalAction)) {
+                closeAccountSheet({ immediate: true, restoreFocus: false });
+            }
+        });
+        document.addEventListener('keydown', handleAccountSheetKeydown);
+    }
 
     const referralInput = document.getElementById('referral-input');
     if (referralInput) {
@@ -1579,10 +1618,208 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function showLogin() {
     stopNotificationAutoRefresh();
+    closeAccountSheet({ immediate: true, restoreFocus: false });
+    resetAccountPrivateUI();
     document.getElementById('login-section').classList.remove('hidden');
     document.getElementById('register-section').classList.add('hidden');
     document.getElementById('forgot-pin-section').classList.add('hidden');
     document.getElementById('dashboard-section').classList.add('hidden');
+}
+
+function updateAccountSummaryCard(valueId, value, hint) {
+    const valueEl = document.getElementById(valueId);
+    if (valueEl) valueEl.textContent = value;
+    if (hint !== undefined && valueEl) {
+        const card = valueEl.closest('.account-metric-card');
+        const hintEl = card && card.querySelector('.account-metric-hint');
+        if (hintEl) hintEl.textContent = hint;
+    }
+}
+
+function resetAccountPrivateUI() {
+    const values = {
+        'user-name': 'Pelanggan',
+        'user-whatsapp': '',
+        'total-accepted-spend': 'Memuat…',
+        'loyalty-points': 'Memuat…',
+        'referral-count': '—',
+        'referral-points-total': '—',
+        'paylater-account-status': 'Memuat…',
+        'paylater-credit-limit': '—',
+        'paylater-available-limit': '—',
+        'paylater-used-limit': '—',
+        'paylater-invoice-total': '—',
+        'paylater-invoice-active': '—',
+        'paylater-invoice-overdue': '—',
+        'paylater-remaining-open': '—',
+        'account-reviews-average': '0,0',
+        'account-reviews-total': '0',
+        'summary-total-spend': 'Memuat…',
+        'summary-loyalty-points': 'Memuat…',
+        'summary-review-count': 'Memuat…',
+        'summary-referral': 'Memuat…',
+        'summary-paylater': 'Memuat…'
+    };
+    Object.entries(values).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+    });
+
+    const joined = document.getElementById('user-joined-date');
+    if (joined) {
+        joined.textContent = '';
+        joined.classList.add('hidden');
+    }
+    const address = document.getElementById('user-address-container');
+    if (address) address.classList.add('hidden');
+    const referralCode = document.getElementById('referral-code-display');
+    if (referralCode) referralCode.value = '-';
+
+    [
+        'accepted-orders-list', 'account-reviews-list', 'referral-history-list',
+        'paylater-invoice-list', 'notifications-list', 'notification-dropdown-list'
+    ].forEach((id) => {
+        const element = document.getElementById(id);
+        if (element) element.replaceChildren();
+    });
+    ['accepted-orders-error', 'accepted-orders-empty', 'orders-login-cta', 'account-reviews-list', 'notifications-error', 'notifications-empty', 'notification-dropdown-list', 'paylater-error', 'referral-error', 'points-error', 'points-stale-note'].forEach((id) => {
+        const element = document.getElementById(id);
+        if (element) element.classList.add('hidden');
+    });
+    const reviewEmpty = document.getElementById('account-reviews-empty');
+    if (reviewEmpty) reviewEmpty.classList.remove('hidden');
+    const acceptedLoading = document.getElementById('order-loading');
+    if (acceptedLoading) acceptedLoading.classList.add('hidden');
+    const notificationLoading = document.getElementById('notifications-loading');
+    if (notificationLoading) notificationLoading.classList.add('hidden');
+    const paylaterProgress = document.getElementById('paylater-available-progress');
+    if (paylaterProgress) paylaterProgress.style.width = '0%';
+    const statusBadge = document.getElementById('paylater-account-status');
+    if (statusBadge) statusBadge.className = 'text-xs font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-700';
+    window.allOrders = [];
+}
+
+function openAccountSheet(trigger, panelId) {
+    const user = getLoggedInUser();
+    const sheet = document.getElementById('account-sheet');
+    const dialog = document.getElementById('account-sheet-dialog');
+    const content = document.getElementById('account-sheet-content');
+    const title = document.getElementById('account-sheet-title');
+    const panel = document.getElementById(String(panelId || ''));
+    const stash = document.getElementById('account-detail-stash');
+    if (!user || !sheet || !dialog || !content || !title || !panel || !stash) return;
+
+    if (accountSheetState) closeAccountSheet({ immediate: true, restoreFocus: false });
+    if (!stash.contains(panel)) return;
+
+    const panelHeading = panel.querySelector('[data-account-detail-title]')?.getAttribute('data-account-detail-title');
+    const titleText = String((trigger && trigger.getAttribute('data-sheet-title')) || panelHeading || '').trim();
+    title.textContent = titleText || panel.querySelector('h3')?.textContent?.trim() || 'Rincian akun';
+
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const body = document.body;
+    const bodyStyles = {
+        position: body.style.position,
+        top: body.style.top,
+        left: body.style.left,
+        right: body.style.right,
+        width: body.style.width,
+        overflow: body.style.overflow
+    };
+    accountSheetState = {
+        trigger: trigger || null,
+        panel,
+        parent: panel.parentNode,
+        nextSibling: panel.nextSibling,
+        scrollY,
+        bodyStyles,
+        closeTimer: null
+    };
+
+    content.replaceChildren(panel);
+    sheet.classList.remove('hidden');
+    sheet.setAttribute('aria-hidden', 'false');
+    body.classList.add('account-sheet-open');
+    body.style.top = `-${scrollY}px`;
+    requestAnimationFrame(() => {
+        if (!accountSheetState || accountSheetState.panel !== panel) return;
+        sheet.classList.add('is-open');
+        const closeButton = sheet.querySelector('[data-action="close-account-sheet"]');
+        if (closeButton) closeButton.focus({ preventScroll: true });
+        else dialog.focus({ preventScroll: true });
+    });
+}
+
+function closeAccountSheet(options = {}) {
+    const state = accountSheetState;
+    if (!state) return;
+    const sheet = document.getElementById('account-sheet');
+    const content = document.getElementById('account-sheet-content');
+    if (!sheet || !content) return;
+
+    const reducedMotion = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const immediate = options.immediate === true || reducedMotion;
+    const restoreFocus = options.restoreFocus !== false;
+    sheet.classList.remove('is-open');
+    if (state.closeTimer) clearTimeout(state.closeTimer);
+
+    const finishClose = () => {
+        if (accountSheetState !== state) return;
+        if (state.panel.parentNode === content) {
+            if (state.nextSibling && state.nextSibling.parentNode === state.parent) {
+                state.parent.insertBefore(state.panel, state.nextSibling);
+            } else {
+                state.parent.appendChild(state.panel);
+            }
+        }
+        content.replaceChildren();
+        sheet.classList.add('hidden');
+        sheet.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('account-sheet-open');
+        Object.entries(state.bodyStyles).forEach(([key, value]) => {
+            document.body.style[key] = value;
+        });
+        accountSheetState = null;
+        window.scrollTo(0, state.scrollY);
+        if (restoreFocus && state.trigger && state.trigger.isConnected) {
+            state.trigger.focus({ preventScroll: true });
+        }
+    };
+
+    if (immediate) {
+        finishClose();
+    } else {
+        state.closeTimer = window.setTimeout(finishClose, 340);
+    }
+}
+
+function handleAccountSheetKeydown(event) {
+    if (!accountSheetState) return;
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        closeAccountSheet();
+        return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const dialog = document.getElementById('account-sheet-dialog');
+    if (!dialog) return;
+    const focusable = Array.from(dialog.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+        .filter((element) => element.getClientRects().length > 0 && !element.closest('[hidden]'));
+    if (!focusable.length) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+    }
 }
 
 function renderSubmittedReviews(user) {
@@ -1613,8 +1850,12 @@ function renderSubmittedReviews(user) {
     loading.classList.add('hidden');
     const totalReviews = entries.length;
     const averageRating = totalReviews ? entries.reduce((sum, [, review]) => sum + Math.min(5, Math.max(1, Number(review.rating) || 1)), 0) / totalReviews : 0;
-    if (averageEl) averageEl.textContent = averageRating.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const averageText = averageRating.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    if (averageEl) averageEl.textContent = averageText;
     if (totalEl) totalEl.textContent = String(totalReviews);
+    updateAccountSummaryCard('summary-review-count', totalReviews ? `${totalReviews} ulasan` : 'Belum ada ulasan');
+    const reviewHint = document.getElementById('summary-review-average');
+    if (reviewHint) reviewHint.textContent = totalReviews ? `${averageText}/5 rata-rata` : 'Belum ada ulasan yang dikirim';
     if (!entries.length) {
         empty.classList.remove('hidden');
         return;
@@ -1662,14 +1903,26 @@ function renderSubmittedReviews(user) {
  */
 function showDashboard(user) {
     sessionRecoveryTriggered = false;
+    resetAccountPrivateUI();
     document.getElementById('login-section').classList.add('hidden');
     document.getElementById('register-section').classList.add('hidden');
     document.getElementById('forgot-pin-section').classList.add('hidden');
     document.getElementById('dashboard-section').classList.remove('hidden');
     
-    // Display user info
-    document.getElementById('user-name').textContent = user.nama;
-        document.getElementById('user-whatsapp').textContent = displayPhone(user.whatsapp);
+    // Display only identity details available on the authenticated profile.
+    const nameEl = document.getElementById('user-name');
+    const phoneEl = document.getElementById('user-whatsapp');
+    if (nameEl) nameEl.textContent = user.nama || user.name || user.full_name || 'Pelanggan';
+    if (phoneEl) phoneEl.textContent = displayPhone(user.whatsapp || user.phone);
+    const joinedEl = document.getElementById('user-joined-date');
+    const joinedValue = user.created_at || user.createdAt || user.registered_at || user.tanggal_daftar || user.tanggal_bergabung;
+    if (joinedEl && joinedValue) {
+        const joinedDate = new Date(joinedValue);
+        if (!Number.isNaN(joinedDate.getTime())) {
+            joinedEl.textContent = `Bergabung ${joinedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+            joinedEl.classList.remove('hidden');
+        }
+    }
     // Sync address display
     if (typeof updateProfileAddress === 'function') updateProfileAddress();
     // Load loyalty points from user_points sheet
@@ -1686,7 +1939,8 @@ function showDashboard(user) {
     loadPaylaterData(user);
     renderSubmittedReviews(user);
     
-    // Order history is now displayed on transaksi.html.
+    // Load accepted-order totals and the matching breakdown for the account sheet.
+    loadOrderHistory(user);
     focusRequestedAccountSection();
 }
 
@@ -2020,7 +2274,13 @@ async function loadLoyaltyPoints(user) {
     const pointsEl = document.getElementById('loyalty-points');
     if (!pointsEl) return;
 
-    const fallbackPoints = parseInt(user.total_points || user.points || user.poin || 0, 10) || 0;
+    const fallbackRaw = user.total_points ?? user.points ?? user.poin;
+    const fallbackParsed = fallbackRaw === undefined || fallbackRaw === null || String(fallbackRaw).trim() === ''
+        ? null
+        : parseInt(fallbackRaw, 10);
+    const fallbackPoints = Number.isFinite(fallbackParsed) ? fallbackParsed : null;
+    pointsEl.textContent = 'Memuat…';
+    updateAccountSummaryCard('summary-loyalty-points', 'Memuat…');
     clearSectionError('points');
     setSectionLoading('points', true);
     setPointsStaleNotice(false);
@@ -2037,17 +2297,32 @@ async function loadLoyaltyPoints(user) {
         );
         const points = parseInt(payload.points || 0, 10) || 0;
         pointsEl.textContent = String(points);
+        updateAccountSummaryCard('summary-loyalty-points', `${points.toLocaleString('id-ID')} poin`);
         setRewardContextFromAkun(user.whatsapp, points, user.nama);
     } catch (error) {
         console.error('Error loading loyalty points:', error);
-        pointsEl.textContent = String(fallbackPoints);
-        setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
+        pointsEl.textContent = fallbackPoints === null ? '—' : String(fallbackPoints);
+        updateAccountSummaryCard('summary-loyalty-points', fallbackPoints === null ? 'Tidak tersedia' : `${fallbackPoints.toLocaleString('id-ID')} poin`, 'Data bisa tidak terbaru');
+        if (fallbackPoints !== null) setRewardContextFromAkun(user.whatsapp, fallbackPoints, user.nama);
         setPointsStaleNotice(true);
         const message = resolvePublicErrorMessage(error);
         setSectionError('points', `${message} data bisa tidak terbaru`, 'retry-points');
     } finally {
         setSectionLoading('points', false);
     }
+}
+
+function getPaylaterStatusLabel(status) {
+    const labels = {
+        active: 'Aktif',
+        inactive: 'Belum aktif',
+        frozen: 'Dibekukan',
+        locked: 'Terkunci',
+        overdue: 'Terlambat',
+        paid: 'Lunas'
+    };
+    const normalized = String(status || '').toLowerCase().trim();
+    return labels[normalized] || normalized || 'Belum tersedia';
 }
 
 function getPaylaterStatusBadgeClass(status) {
@@ -2085,18 +2360,26 @@ function renderPaylaterSummary(summaryPayload) {
         : 0;
 
     if (statusEl) {
-        statusEl.textContent = status || 'inactive';
+        statusEl.textContent = getPaylaterStatusLabel(status);
         statusEl.className = `text-xs font-bold px-2 py-1 rounded-full ${getPaylaterStatusBadgeClass(status)}`;
     }
-    if (limitEl) limitEl.textContent = formatCurrency(limitValue);
-    if (availableEl) availableEl.textContent = formatCurrency(availableValue);
-    if (usedEl) usedEl.textContent = formatCurrency(usedValue);
-    if (availableProgressEl) availableProgressEl.style.width = `${availablePercent}%`;
-    if (availablePercentEl) availablePercentEl.textContent = `${availablePercent}%`;
+    const limitConfigured = limitValue > 0;
+    if (limitEl) limitEl.textContent = status === 'inactive' ? 'Belum aktif' : (limitConfigured ? formatCurrency(limitValue) : 'Belum tersedia');
+    if (availableEl) availableEl.textContent = status === 'active' && limitConfigured ? formatCurrency(availableValue) : (status === 'inactive' ? '—' : 'Tidak tersedia');
+    if (usedEl) usedEl.textContent = status === 'inactive' || !limitConfigured ? '—' : formatCurrency(usedValue);
+    if (availableProgressEl) availableProgressEl.style.width = status === 'active' && limitConfigured ? `${availablePercent}%` : '0%';
+    if (availablePercentEl) availablePercentEl.textContent = status === 'active' && limitConfigured ? `${availablePercent}%` : '—';
     if (totalEl) totalEl.textContent = String(parseInt(summary.invoice_count_total || 0, 10) || 0);
     if (activeEl) activeEl.textContent = String(parseInt(summary.invoice_count_active || 0, 10) || 0);
     if (overdueEl) overdueEl.textContent = String(parseInt(summary.invoice_count_overdue || 0, 10) || 0);
     if (remainingEl) remainingEl.textContent = formatCurrency(summary.remaining_open || 0);
+    const paylaterValue = status === 'active' && limitConfigured
+        ? formatCurrency(availableValue)
+        : (status === 'inactive' ? 'Belum aktif' : (status === 'active' ? 'Limit belum tersedia' : getPaylaterStatusLabel(status)));
+    const paylaterHint = status === 'active' && limitConfigured
+        ? `${availablePercent}% limit tersedia`
+        : (status === 'inactive' ? 'Belum ada limit aktif' : 'Periksa status akun');
+    updateAccountSummaryCard('summary-paylater', paylaterValue, paylaterHint);
 }
 
 function renderPaylaterInvoices(invoices) {
@@ -2257,6 +2540,7 @@ async function openPaylaterDetailModal(invoiceId) {
 
 async function loadPaylaterData(user) {
     clearSectionError('paylater');
+    updateAccountSummaryCard('summary-paylater', 'Memuat…');
     setSectionLoading('paylater', true);
     try {
         const sessionQuery = buildSessionQuery(user);
@@ -2274,103 +2558,114 @@ async function loadPaylaterData(user) {
         renderPaylaterInvoices(invoices.invoices || []);
     } catch (error) {
         console.error('Error loading paylater data:', error);
+        updateAccountSummaryCard('summary-paylater', 'Tidak tersedia', 'Data PayLater gagal dimuat');
         setSectionError('paylater', resolvePublicErrorMessage(error), 'retry-paylater');
     } finally {
         setSectionLoading('paylater', false);
     }
 }
 
+function renderAcceptedOrderBreakdown(orders) {
+    const list = document.getElementById('accepted-orders-list');
+    const empty = document.getElementById('accepted-orders-empty');
+    if (!list || !empty) return;
+
+    const acceptedStatuses = new Set(['terima', 'diterima', 'selesai']);
+    const acceptedOrders = orders.filter((order) => acceptedStatuses.has(String(order.status || '').toLowerCase().trim()));
+    list.replaceChildren();
+    if (!acceptedOrders.length) {
+        empty.classList.remove('hidden');
+        return;
+    }
+
+    empty.classList.add('hidden');
+    const fragment = document.createDocumentFragment();
+    acceptedOrders.forEach((order) => {
+        const row = document.createElement('article');
+        row.className = 'account-accepted-order';
+        const orderId = document.createElement('p');
+        orderId.className = 'account-accepted-order-id';
+        orderId.textContent = `Pesanan #${order.id || order.order_id || '—'}`;
+        const status = document.createElement('span');
+        status.className = 'account-accepted-order-status';
+        status.textContent = String(order.status || 'diterima');
+        const date = document.createElement('span');
+        date.className = 'account-accepted-order-date';
+        const dateValue = order.tanggal_pesanan || order.timestamp;
+        date.textContent = dateValue ? formatDate(dateValue) : 'Tanggal tidak tersedia';
+        const total = document.createElement('span');
+        total.className = 'account-accepted-order-total';
+        total.textContent = formatCurrency(order.total || order.total_bayar || 0);
+        row.append(orderId, status, date, total);
+        fragment.appendChild(row);
+    });
+    list.appendChild(fragment);
+}
+
 /**
- * Load order history for user
+ * Load the existing authenticated order history and derive accepted spend using the existing statuses.
  */
 async function loadOrderHistory(user) {
     const loadingDiv = document.getElementById('order-loading');
-    const emptyDiv = document.getElementById('order-empty');
-    const orderList = document.getElementById('order-list');
-    const orderError = document.getElementById('order-error');
-    const paginationDiv = document.getElementById('order-pagination');
+    const emptyDiv = document.getElementById('accepted-orders-empty');
+    const orderError = document.getElementById('accepted-orders-error');
     const totalAcceptedEl = document.getElementById('total-accepted-spend');
+    const acceptedOrdersList = document.getElementById('accepted-orders-list');
+    const errorText = document.getElementById('accepted-orders-error-text');
 
     clearSectionError('orders');
     setSectionLoading('orders', true);
+    if (loadingDiv) loadingDiv.classList.remove('hidden');
     if (emptyDiv) emptyDiv.classList.add('hidden');
     if (orderError) orderError.classList.add('hidden');
-    if (orderList) orderList.innerHTML = '';
-    if (paginationDiv) {
-        paginationDiv.classList.add('hidden');
-        paginationDiv.innerHTML = '';
-    }
-    if (totalAcceptedEl) totalAcceptedEl.textContent = 'Rp 0';
-    
+    if (acceptedOrdersList) acceptedOrdersList.replaceChildren();
+    if (totalAcceptedEl) totalAcceptedEl.textContent = 'Memuat…';
+    updateAccountSummaryCard('summary-total-spend', 'Memuat…');
+
     try {
         const sessionQuery = buildSessionQuery(user);
         if (!sessionQuery) {
             throw createAkunError(SESSION_INVALID_MESSAGE, 'UNAUTHORIZED_SESSION');
         }
-
         const payload = parsePublicSuccess(
             await akunApiGet(`?action=public_user_orders${sessionQuery}`),
             'Gagal memuat riwayat pesanan.'
         );
         let orders = Array.isArray(payload.orders) ? payload.orders : [];
-        
-        setSectionLoading('orders', false);
-        
-        // Check if orders exist
-        if (!orders || orders.length === 0) {
-            if (emptyDiv) emptyDiv.classList.remove('hidden');
-            return;
-        }
-        
-        // Filter orders to ensure only user's orders (double check phone match)
-        orders = orders.filter(order => {
+        orders = orders.filter((order) => {
             const orderPhone = normalizePhoneTo08(order.phone || order.whatsapp || '');
-            const userPhone = normalizePhoneTo08(user.whatsapp);
+            const userPhone = normalizePhoneTo08(user.whatsapp || user.phone);
             return orderPhone === userPhone;
         });
-        
-        // Check again after filtering
-        if (orders.length === 0) {
-            if (emptyDiv) emptyDiv.classList.remove('hidden');
-            return;
-        }
-        
-        // Sort orders by date (newest first)
         orders.sort((a, b) => {
             const dateA = new Date(a.tanggal_pesanan || a.timestamp || 0);
             const dateB = new Date(b.tanggal_pesanan || b.timestamp || 0);
             return dateB - dateA;
         });
-        
-        // Store all orders for pagination
         window.allOrders = orders;
-        window.currentPage = 1;
-        window.ordersPerPage = 10;
-
-        // Update total accepted spend
-        if (totalAcceptedEl) {
-            const acceptedStatuses = new Set(['terima', 'diterima', 'selesai']);
-            const totalAccepted = orders.reduce((sum, order) => {
-                const status = String(order.status || '').toLowerCase().trim();
-                if (!acceptedStatuses.has(status)) return sum;
-                return sum + parseCurrencyValue(order.total || order.total_bayar || 0);
-            }, 0);
-            totalAcceptedEl.textContent = formatCurrency(totalAccepted);
-        }
-        
-        // Display first page
-        displayOrderPage(1);
-        
+        const acceptedStatuses = new Set(['terima', 'diterima', 'selesai']);
+        const acceptedOrders = orders.filter((order) => acceptedStatuses.has(String(order.status || '').toLowerCase().trim()));
+        const totalAccepted = acceptedOrders.reduce((sum, order) => sum + parseCurrencyValue(order.total || order.total_bayar || 0), 0);
+        const totalText = formatCurrency(totalAccepted);
+        if (totalAcceptedEl) totalAcceptedEl.textContent = totalText;
+        updateAccountSummaryCard('summary-total-spend', totalText);
+        renderAcceptedOrderBreakdown(orders);
+        if (loadingDiv) loadingDiv.classList.add('hidden');
+        if (orderError) orderError.classList.add('hidden');
+        setSectionLoading('orders', false);
     } catch (error) {
         console.error('Error loading order history:', error);
-        setSectionLoading('orders', false);
+        if (loadingDiv) loadingDiv.classList.add('hidden');
         if (emptyDiv) emptyDiv.classList.add('hidden');
-        if (orderList) orderList.innerHTML = '';
-        if (paginationDiv) paginationDiv.classList.add('hidden');
+        if (acceptedOrdersList) acceptedOrdersList.replaceChildren();
+        if (orderError) orderError.classList.remove('hidden');
+        if (errorText) errorText.textContent = resolvePublicErrorMessage(error);
+        if (totalAcceptedEl) totalAcceptedEl.textContent = 'Tidak tersedia';
+        updateAccountSummaryCard('summary-total-spend', 'Tidak tersedia', 'Data pesanan gagal dimuat');
+        setSectionLoading('orders', false);
         setSectionError('orders', resolvePublicErrorMessage(error), 'retry-orders');
     }
 }
-
 function parseCurrencyValue(value) {
     if (typeof value === 'number') return value;
     if (!value) return 0;
@@ -2379,143 +2674,6 @@ function parseCurrencyValue(value) {
     return Number.isNaN(parsed) ? 0 : parsed;
 }
 
-/**
- * Display orders for specific page
- */
-function displayOrderPage(page) {
-    const orderList = document.getElementById('order-list');
-    const paginationDiv = document.getElementById('order-pagination');
-    
-    if (!window.allOrders || window.allOrders.length === 0) return;
-    
-    const totalOrders = window.allOrders.length;
-    const totalPages = Math.ceil(totalOrders / window.ordersPerPage);
-    const startIndex = (page - 1) * window.ordersPerPage;
-    const endIndex = Math.min(startIndex + window.ordersPerPage, totalOrders);
-    
-    // Clear order list
-    orderList.innerHTML = '';
-    
-    // Display orders for current page
-    for (let i = startIndex; i < endIndex; i++) {
-        const orderCard = createOrderCard(window.allOrders[i]);
-        orderList.appendChild(orderCard);
-    }
-    
-    // Update pagination
-    if (totalPages > 1) {
-        paginationDiv.classList.remove('hidden');
-        paginationDiv.innerHTML = createPagination(page, totalPages);
-    } else {
-        paginationDiv.classList.add('hidden');
-    }
-    
-    window.currentPage = page;
-}
-
-/**
- * Create pagination HTML
- */
-function createPagination(currentPage, totalPages) {
-    let html = '<div class="flex justify-center items-center gap-2 mt-6">';
-    
-    // Previous button
-    if (currentPage > 1) {
-        html += `<button onclick="displayOrderPage(${currentPage - 1})" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold text-sm">← Prev</button>`;
-    }
-    
-    // Page numbers
-    html += '<div class="flex gap-1">';
-    for (let i = 1; i <= totalPages; i++) {
-        if (i === currentPage) {
-            html += `<button class="px-4 py-2 bg-green-600 text-white rounded-lg font-bold text-sm">${i}</button>`;
-        } else if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-            html += `<button onclick="displayOrderPage(${i})" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-bold text-sm">${i}</button>`;
-        } else if (i === currentPage - 2 || i === currentPage + 2) {
-            html += '<span class="px-2 py-2 text-gray-500">...</span>';
-        }
-    }
-    html += '</div>';
-    
-    // Next button
-    if (currentPage < totalPages) {
-        html += `<button onclick="displayOrderPage(${currentPage + 1})" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold text-sm">Next →</button>`;
-    }
-    
-    html += '</div>';
-    return html;
-}
-
-/**
- * Create order card element
- */
-function createOrderCard(order) {
-    const card = document.createElement('div');
-    card.className = 'border border-gray-200 rounded-xl p-3 hover:border-green-300 transition cursor-pointer';
-    
-    // Format date
-    const orderDate = formatDate(order.tanggal_pesanan || order.timestamp);
-      // Format total bayar (use 'total' column from sheet)
-    const totalBayar = formatCurrency(order.total || order.total_bayar || 0);  
-    // Get status badge
-    const status = order.status || 'Menunggu';
-    const statusBadge = getStatusBadge(status);
-    
-    // Get product name and truncate for mobile
-    const productName = order.produk || order.items || order.product_name || 'N/A';
-    const truncatedProduct = truncateText(productName, 20);
-    
-    // Get Order ID from 'id' column
-    const orderId = order.id || 'N/A';
-    
-    card.innerHTML = `
-        <div class="flex justify-between items-start mb-2">
-            <div class="flex-1">
-                <p class="text-[10px] font-bold text-gray-700 mb-1">Order ID: <span class="text-green-600">${escapeHtml(orderId)}</span></p>
-            </div>
-            ${statusBadge}
-        </div>
-        
-        <div class="border-t border-gray-100 pt-2 space-y-1.5">
-            <div class="text-sm">
-                <p class="text-gray-600 text-xs mb-0.5">Produk:</p>
-                <p class="font-semibold text-gray-800 lg:hidden">${escapeHtml(truncatedProduct)}</p>
-                <p class="font-semibold text-gray-800 hidden lg:block">${escapeHtml(productName)}</p>
-            </div>
-            <div class="flex justify-between text-xs">
-                <span class="text-gray-600">Qty:</span>
-                <span class="font-semibold text-gray-800">${order.qty || order.quantity || order.jumlah || 'N/A'}</span>
-            </div>
-            <div class="flex justify-between text-xs">
-                <span class="text-gray-600">Poin:</span>
-                <span class="font-semibold text-amber-600">+${order.poin || order.points || 0}</span>
-            </div>
-            <div class="flex justify-between text-xs">
-                <span class="text-gray-600">Total Bayar:</span>
-                <span class="font-bold text-green-600">${totalBayar}</span>
-            </div>
-        </div>
-        
-        <div class="mt-3 pt-2 border-t border-gray-100">
-            <button onclick="window.location.href='index.html'" class="block w-full text-center bg-green-50 hover:bg-green-100 text-green-700 font-bold py-1.5 rounded-lg transition text-xs">
-                Belanja Lagi
-            </button>
-        </div>
-    `;
-    
-    // Add click event to show order detail modal
-    card.addEventListener('click', (e) => {
-        if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
-            showOrderDetailModal(order);
-        }
-    });
-    
-    return card;
-}
-
-/**
- * Get status badge HTML
- */
 function getStatusBadge(status) {
     // Normalize status from admin (Terima → Diterima, etc.)
     const normalizedStatus = normalizeStatus(status);
@@ -2625,12 +2783,6 @@ function formatDate(dateString) {
 /**
  * Truncate text with ellipsis
  */
-function truncateText(text, maxLength) {
-    if (!text) return 'N/A';
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-}
-
 /**
  * Format currency to Indonesian Rupiah
  */
@@ -3156,19 +3308,6 @@ function closeOrderTracking() {
 /**
  * Update order card to add tracking button
  */
-const originalCreateOrderCard = createOrderCard;
-createOrderCard = function(order) {
-    const card = originalCreateOrderCard(order);
-    
-    // Add click event to open tracking
-    card.style.cursor = 'pointer';
-    card.addEventListener('click', () => {
-        showOrderDetailModal(order);
-    });
-    
-    return card;
-};
-
 /**
  * Switch between reward tabs
  */

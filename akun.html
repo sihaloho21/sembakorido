@@ -23,7 +23,7 @@
     <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
     <title>Akun Saya - Paket Sembako</title>
     <!-- Fallback CSS (loads first, works even if Tailwind is blocked) -->
-    <link rel="stylesheet" href="assets/css/akun-fallback.css">
+    <link rel="stylesheet" href="assets/css/akun-fallback.css?v=20261113-account-redesign">
     <link rel="stylesheet" href="assets/css/tailwind-fallback.css">
     <link rel="stylesheet" href="assets/css/tailwind.min.css">
         <link rel="stylesheet" href="assets/css/akun-inline.min.css">
@@ -348,31 +348,32 @@
         <!-- Dashboard Section (Hidden by default) -->
         <div id="dashboard-section" class="hidden fade-in account-dashboard-layout">
             <!-- User Info Card -->
-            <div id="profile-section" class="account-section-card account-hero-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <svg aria-hidden="true" class="w-8 h-8 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div id="profile-section" class="account-profile-card">
+                <div class="account-profile-layout">
+                    <div class="account-avatar" aria-hidden="true">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                         </svg>
                     </div>
                     <div class="flex-1">
-                        <h3 class="text-lg font-bold text-gray-800" id="user-name">Loading...</h3>
-                        <p class="text-sm text-gray-500" id="user-whatsapp">+62 xxx</p>
+                        <h3 class="account-profile-name" id="user-name">Loading...</h3>
+                        <p class="account-profile-phone" id="user-whatsapp">+62 xxx</p>
+                        <p id="user-joined-date" class="account-profile-joined hidden"></p>
                         <!-- Address Section -->
-                        <div id="user-address-container" class="mt-2 flex items-start gap-2 hidden">
-                            <div class="mt-0.5 text-white/70">
+                        <div id="user-address-container" class="mt-2 flex items-start gap-2 hidden account-profile-address">
+                            <div class="mt-0.5 text-green-700">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-[11px] font-bold text-white" id="user-address-label">Home</p>
-                                <p class="text-[11px] text-white/80 line-clamp-2 leading-relaxed" id="user-address-detail">Alamat belum diatur</p>
+                                <p class="text-[11px] font-bold text-gray-700" id="user-address-label">Home</p>
+                                <p class="text-[11px] text-gray-500 line-clamp-2 leading-relaxed" id="user-address-detail">Alamat belum diatur</p>
                             </div>
-                            <button type="button" data-action="open-location-picker" class="text-white/70 hover:text-white p-1 transition-colors" title="Ubah Alamat">
+                            <button type="button" data-action="open-location-picker" class="text-green-700 hover:bg-green-50 p-1 rounded-lg transition-colors" title="Ubah Alamat">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                             </button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="account-profile-actions">
                         <div id="notification-bell-wrap" class="relative" style="position:static;">
                             <button type="button" id="notification-bell-button" data-action="toggle-notification-dropdown" class="relative text-amber-600 hover:bg-amber-50 p-2 rounded-lg transition" title="Lihat notifikasi" aria-label="Lihat notifikasi" aria-expanded="false" aria-controls="notification-dropdown">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -412,51 +413,101 @@
                 </div>
             </div>
 
-            <!-- Total Belanja + Poin -->
-            <div id="points-section" class="account-summary-card bg-white rounded-2xl shadow-lg p-5 border border-gray-100 mb-6">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    <div class="flex items-center justify-between gap-4">
-                        <div class="min-w-0">
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-[0.18em]">Total Belanja Diterima</p>
-                            <p id="total-accepted-spend" class="account-summary-value text-2xl font-bold text-green-700 mt-2">Rp 0</p>
-                        </div>
-                        <div class="account-summary-icon shrink-0" aria-hidden="true">
-                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-2.761 0-5 1.79-5 4s2.239 4 5 4 5-1.79 5-4-2.239-4-5-4zm0 0V5m0 11v3m-7-7H2m20 0h-3m-1.95-5.95l-2.121 2.121M7.071 16.95l-2.121 2.121m0-14.142l2.121 2.121m9.758 9.758l2.121 2.121"></path>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                        <div class="flex items-center justify-between gap-3 flex-wrap">
-                            <div class="min-w-0">
-                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-[0.18em]">Poin Loyalitas</p>
-                                <p class="flex items-end gap-2 leading-none mt-2">
-                                    <span id="loyalty-points" class="text-3xl font-black text-gray-900">0</span>
-                                    <span class="text-sm font-bold text-gray-500 mb-1">POIN</span>
-                                </p>
-                                <p id="points-loading" class="hidden text-[11px] text-gray-500 mt-2">Memuat poin...</p>
-                                <p id="points-stale-note" class="hidden text-[11px] text-amber-700 mt-2">Data bisa tidak terbaru</p>
-                            </div>
-                            <button type="button" data-action="open-reward" class="shrink-0 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl transition text-sm font-bold">
-                                Tukar Reward
-                            </button>
-                        </div>
-                        <div id="points-error" class="hidden mt-4 bg-red-50 border border-red-200 rounded-xl p-3">
-                            <p id="points-error-text" class="text-xs font-semibold text-red-700">Gagal memuat poin loyalitas.</p>
-                            <div class="flex items-center gap-2 mt-2">
-                                <button type="button" data-action="retry-points" class="px-3 py-1.5 rounded-lg bg-white border border-red-200 text-red-700 text-xs font-bold hover:bg-red-100 transition">
-                                    Coba Lagi
-                                </button>
-                                <button type="button" data-action="show-login" id="points-login-cta" class="hidden px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-xs font-bold hover:bg-gray-100 transition">
-                                    Login Ulang
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <nav class="account-shortcuts" aria-label="Akses cepat akun">
+                <span class="account-shortcuts-label">Akses cepat</span>
+                <a href="/transaksi.html" class="account-shortcut-link">
+                    <span class="account-shortcut-icon" aria-hidden="true">↗</span>
+                    <span>Pesanan</span>
+                </a>
+                <button type="button" data-action="open-location-picker" class="account-shortcut-link">
+                    <span class="account-shortcut-icon" aria-hidden="true">⌖</span>
+                    <span>Alamat</span>
+                </button>
+                <button type="button" data-action="open-account-sheet" data-account-panel="notifications-section" data-sheet-title="Notifikasi" class="account-shortcut-link" aria-haspopup="dialog" aria-controls="account-sheet">
+                    <span class="account-shortcut-icon" aria-hidden="true">♧</span>
+                    <span>Notifikasi</span>
+                </button>
+            </nav>
 
-            <div id="notifications-section" class="account-section-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
+            <section class="account-metrics" aria-label="Ringkasan akun">
+                <button type="button" class="account-metric-card account-metric-spend" data-action="open-account-sheet" data-account-panel="accepted-orders-panel" data-sheet-title="Total Belanja Diterima" aria-haspopup="dialog" aria-controls="account-sheet">
+                    <span class="account-metric-icon" aria-hidden="true">Rp</span>
+                    <span class="account-metric-label">Total Belanja Diterima</span>
+                    <span id="summary-total-spend" class="account-metric-value">Memuat…</span>
+                    <span class="account-metric-hint">Lihat pesanan yang dihitung <span aria-hidden="true">→</span></span>
+                </button>
+                <button type="button" class="account-metric-card account-metric-points" data-action="open-account-sheet" data-account-panel="points-section" data-sheet-title="Poin Loyalitas" aria-haspopup="dialog" aria-controls="account-sheet">
+                    <span class="account-metric-icon" aria-hidden="true">✦</span>
+                    <span class="account-metric-label">Poin Loyalitas</span>
+                    <span id="summary-loyalty-points" class="account-metric-value">Memuat…</span>
+                    <span class="account-metric-hint">Lihat saldo &amp; tukar reward <span aria-hidden="true">→</span></span>
+                </button>
+                <button type="button" class="account-metric-card account-metric-reviews" data-action="open-account-sheet" data-account-panel="account-reviews-section" data-sheet-title="★ Ulasan Saya" aria-haspopup="dialog" aria-controls="account-sheet">
+                    <span class="account-metric-icon" aria-hidden="true">★</span>
+                    <span class="account-metric-label">★ Ulasan Saya</span>
+                    <span id="summary-review-count" class="account-metric-value">Memuat…</span>
+                    <span id="summary-review-average" class="account-metric-hint">Lihat ulasan Anda <span aria-hidden="true">→</span></span>
+                </button>
+                <button type="button" class="account-metric-card account-metric-referral" data-action="open-account-sheet" data-account-panel="referral-section" data-sheet-title="Program Referral" aria-haspopup="dialog" aria-controls="account-sheet">
+                    <span class="account-metric-icon" aria-hidden="true">↗</span>
+                    <span class="account-metric-label">Program Referral</span>
+                    <span id="summary-referral" class="account-metric-value">Memuat…</span>
+                    <span class="account-metric-hint">Bagikan kode &amp; lihat progres <span aria-hidden="true">→</span></span>
+                </button>
+                <button type="button" class="account-metric-card account-metric-paylater" data-action="open-account-sheet" data-account-panel="paylater-section" data-sheet-title="Limit PayLater" aria-haspopup="dialog" aria-controls="account-sheet">
+                    <span class="account-metric-icon" aria-hidden="true">◷</span>
+                    <span class="account-metric-label">Limit PayLater</span>
+                    <span id="summary-paylater" class="account-metric-value">Memuat…</span>
+                    <span class="account-metric-hint">Cek limit &amp; tagihan <span aria-hidden="true">→</span></span>
+                </button>
+            </section>
+
+            <div id="account-detail-stash" hidden aria-hidden="true">
+                <section id="accepted-orders-panel" class="account-detail-panel account-section-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6" aria-labelledby="accepted-orders-title">
+                    <div class="account-detail-heading">
+                        <div>
+                            <p class="account-detail-eyebrow">Ringkasan pesanan</p>
+                            <h3 id="accepted-orders-title" class="text-lg font-bold text-gray-800">Total Belanja Diterima</h3>
+                        </div>
+                        <p id="total-accepted-spend" class="account-detail-total">Memuat…</p>
+                    </div>
+                    <p class="account-detail-description">Nilai dari pesanan dengan status diterima atau selesai.</p>
+                    <div id="order-loading" class="account-inline-state" aria-live="polite">Memuat pesanan...</div>
+                    <div id="accepted-orders-error" class="hidden account-error-state" role="alert">
+                        <p id="accepted-orders-error-text">Pesanan belum dapat dimuat.</p>
+                        <div class="account-error-actions">
+                            <button type="button" data-action="retry-orders" class="account-retry-button">Coba Lagi</button>
+                            <button type="button" data-action="show-login" id="orders-login-cta" class="hidden account-retry-button">Login Ulang</button>
+                        </div>
+                    </div>
+                    <div id="accepted-orders-empty" class="hidden account-inline-state">Belum ada pesanan yang diterima atau selesai.</div>
+                    <div id="accepted-orders-list" class="account-accepted-orders" aria-live="polite"></div>
+                    <a href="/transaksi.html" class="account-detail-link">Lihat riwayat dan lacak pesanan <span aria-hidden="true">→</span></a>
+                </section>
+
+                <section id="points-section" class="account-detail-panel account-section-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6" aria-labelledby="account-points-title">
+                    <div class="account-detail-heading">
+                        <div>
+                            <p class="account-detail-eyebrow">Manfaat belanja</p>
+                            <h3 id="account-points-title" class="text-lg font-bold text-gray-800">Poin Loyalitas</h3>
+                        </div>
+                        <p class="account-detail-total"><span id="loyalty-points">Memuat…</span> <span class="account-points-unit">POIN</span></p>
+                    </div>
+                    <p id="points-loading" class="hidden account-inline-state" aria-live="polite">Memuat poin...</p>
+                    <p id="points-stale-note" class="hidden account-stale-note" role="status">Data poin bisa tidak terbaru.</p>
+                    <div class="account-detail-action-row">
+                        <p class="account-detail-description">Poin dapat digunakan untuk menukar reward yang tersedia.</p>
+                        <button type="button" data-action="open-reward" class="account-primary-action">Tukar Reward</button>
+                    </div>
+                    <div id="points-error" class="hidden account-error-state" role="alert">
+                        <p id="points-error-text">Gagal memuat poin loyalitas.</p>
+                        <div class="account-error-actions">
+                            <button type="button" data-action="retry-points" class="account-retry-button">Coba Lagi</button>
+                            <button type="button" data-action="show-login" id="points-login-cta" class="hidden account-retry-button">Login Ulang</button>
+                        </div>
+                    </div>
+                </section>
+            <div id="notifications-section" data-account-detail-title="Notifikasi" class="account-detail-panel account-section-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                     <div>
                         <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -496,7 +547,7 @@
             </div>
 
             <!-- Submitted Reviews -->
-            <section id="account-reviews-section" class="account-section-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6" aria-labelledby="account-reviews-title">
+            <section id="account-reviews-section" data-account-detail-title="★ Ulasan Saya" class="account-detail-panel account-section-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6" aria-labelledby="account-reviews-title">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
                     <div>
                         <h3 id="account-reviews-title" class="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -518,7 +569,7 @@
             </section>
 
             <!-- Referral Card -->
-            <div class="account-section-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
+            <div id="referral-section" data-account-detail-title="Program Referral" class="account-detail-panel account-section-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
                 <div class="flex items-center justify-between gap-3 mb-4">
                     <h3 class="text-lg font-bold text-gray-800">Program Referral</h3>
                     <span class="text-xs font-bold px-2 py-1 rounded-full bg-green-100 text-green-700">Aktif</span>
@@ -572,7 +623,7 @@
 
 
             <!-- PayLater Card -->
-            <div class="account-section-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
+            <div id="paylater-section" data-account-detail-title="Limit PayLater" class="account-detail-panel account-section-card bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
                 <div class="flex items-center justify-between gap-3 mb-4">
                     <h3 class="text-lg font-bold text-gray-800">PayLater</h3>
                     <span id="paylater-account-status" class="text-xs font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-700">inactive</span>
@@ -638,10 +689,29 @@
                     </div>
                 </div>
             </div>
+            </div><!-- /account-detail-stash -->
 
         </div>
 
     </main>
+
+    <!-- Account detail bottom sheet -->
+    <div id="account-sheet" class="account-sheet hidden" aria-hidden="true">
+        <div class="account-sheet-backdrop" aria-hidden="true"></div>
+        <section id="account-sheet-dialog" class="account-sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="account-sheet-title" tabindex="-1">
+            <div class="account-sheet-handle" aria-hidden="true"><span></span></div>
+            <header class="account-sheet-header">
+                <div class="account-sheet-title-wrap">
+                    <p class="account-detail-eyebrow">Detail akun</p>
+                    <h2 id="account-sheet-title">Rincian</h2>
+                </div>
+                <button type="button" data-action="close-account-sheet" class="account-sheet-close" aria-label="Tutup detail">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </header>
+            <div id="account-sheet-content" class="account-sheet-content"></div>
+        </section>
+    </div>
 
     <!-- Notification Backdrop (mobile) -->
     <div id="notification-backdrop"></div>
@@ -1304,6 +1374,6 @@
         </div>
     </div>
 
-    <script src="assets/js/akun.js?v=20260824b"></script>
+    <script src="assets/js/akun.min.js?v=20261113-account-redesign"></script>
 </body>
 </html>
