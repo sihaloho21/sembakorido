@@ -1,6 +1,6 @@
 # Backend Importer Produk KlikIndomaret
 
-Implementasi backend berada di `docs/gas_v63_blog_support.gs` dan memakai Google Apps Script yang sudah menjadi backend utama paketsembako.com.
+Implementasi backend importer canonical berada di `docs/gas_v71_blog_support_indomaret_latest.gs` dan memakai Google Apps Script yang sudah menjadi backend utama paketsembako.com. File `docs/gas_v63_blog_support.gs` adalah snapshot lama dan tidak boleh dipakai untuk deployment importer.
 
 ## Action yang tersedia
 
@@ -98,7 +98,7 @@ Backend tidak mengeksekusi JavaScript halaman sumber, tidak mengirim cookie atau
 
 1. Buka project Google Apps Script yang menjadi Admin API production.
 2. Backup source GAS aktif sesuai prosedur operasional.
-3. Tempelkan isi terbaru `docs/gas_v63_blog_support.gs` sebagai source utama.
+3. Tempelkan isi terbaru `docs/gas_v71_blog_support_indomaret_latest.gs` sebagai source utama. Jangan menempelkan `gas_v63_blog_support.gs`, karena file tersebut masih menggunakan `new URL(...)` dan dapat mengembalikan pesan `URL sumber tidak valid` pada runtime Apps Script tertentu.
 4. Pastikan Script Properties `SPREADSHEET_ID` dan `ADMIN_TOKEN` tetap diatur di deployment, bukan di source repository.
 5. Deploy versi baru Web App GAS.
 6. Jalankan `ensure_schema` dengan token admin atau biarkan action importer menambahkan kolom products secara idempotent.
