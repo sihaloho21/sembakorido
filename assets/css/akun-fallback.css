@@ -323,9 +323,13 @@ svg {
 
 
 /* Compact authenticated account dashboard */
-.account-page .account-dashboard-layout {
-    display: block !important;
+.account-page #dashboard-section.account-dashboard-layout:not(.hidden) {
+    display: block;
     width: 100%;
+}
+
+.account-page #dashboard-section.account-dashboard-layout.hidden {
+    display: none !important;
 }
 
 .account-page #profile-section.account-profile-card {
