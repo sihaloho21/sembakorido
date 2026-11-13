@@ -142,6 +142,7 @@ function showSection(sectionId) {
     const titles = {
         dashboard: 'Dashboard',
         produk: 'Produk',
+        'indomaret-import': 'Import KlikIndomaret',
         bundle: 'Bundle Builder',
         pembelian: 'Pembelian',
         suppliers: 'Supplier',
@@ -163,6 +164,7 @@ function showSection(sectionId) {
 
     if (sectionId === 'kategori') fetchCategories();
     if (sectionId === 'produk') fetchAdminProducts();
+    if (sectionId === 'indomaret-import' && window.IndomaretImporter && typeof window.IndomaretImporter.refreshQueue === 'function') window.IndomaretImporter.refreshQueue();
     if (sectionId === 'bundle') {
         if (allProducts.length === 0 || allCategories.length === 0) {
             fetchAdminProducts();
@@ -4528,6 +4530,7 @@ async function fetchAdminProducts() {
         ]);
         const productsData = await productsRes.json();
         allProducts = Array.isArray(productsData) ? productsData : [];
+        window.allProducts = allProducts;
         if (purchasesRes.ok) {
             const purchasesData = await purchasesRes.json();
             allPurchases = Array.isArray(purchasesData) ? purchasesData : [];

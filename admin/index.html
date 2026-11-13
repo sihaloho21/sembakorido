@@ -39,6 +39,10 @@
                 <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V7a2 2 0 00-1-1.732l-6-3.333a2 2 0 00-1.938 0L5 5.268A2 2 0 004 7v6m16 0l-8 4.444M20 13l-8-4.444M4 13l8 4.444M4 13l8-4.444m0 8.888V8.556"></path></svg>
                 Kelola Produk
             </a>
+            <button data-action="show-section" data-section="indomaret-import" id="nav-indomaret-import" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
+                <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"></path></svg>
+                Import KlikIndomaret
+            </button>
             <button data-action="show-section" data-section="bundle" id="nav-bundle" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
                 <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4m16 0l-6 6m6-6l-6-6M4 12l6 6m-6-6l6-6"></path></svg>
                 Bundle Builder
@@ -400,6 +404,68 @@
                 </div>
             </section>
 
+            <!-- Section: Import Produk KlikIndomaret -->
+            <section id="section-indomaret-import" class="hidden space-y-6">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-start mobile-stack mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Import Produk dari URL KlikIndomaret</h3>
+                            <p class="text-sm text-gray-500">Ambil data sebagai draft, periksa manual, lalu approve sebelum produk dapat dipublikasikan.</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold">Approval wajib</span>
+                    </div>
+                    <form id="indomaret-import-form" class="space-y-4">
+                        <div>
+                            <label for="indomaret-source-url" class="block text-sm font-bold text-gray-700 mb-2">URL produk KlikIndomaret</label>
+                            <div class="flex flex-col md:flex-row gap-3">
+                                <input id="indomaret-source-url" type="url" required maxlength="2048" placeholder="https://www.klikindomaret.com/xpress/..." class="flex-1 p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition">Preview Data</button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">Hanya HTTPS dari domain klikindomaret.com dan subdomainnya yang diterima.</p>
+                        </div>
+                    </form>
+                    <div id="indomaret-import-message" class="hidden mt-4 rounded-xl px-4 py-3 text-sm" role="status"></div>
+                </div>
+
+                <div id="indomaret-preview-card" class="hidden bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between gap-3 mb-5">
+                        <div>
+                            <h4 class="font-bold text-gray-800">Preview hasil parsing</h4>
+                            <p id="indomaret-preview-meta" class="text-xs text-gray-500 mt-1"></p>
+                        </div>
+                        <span id="indomaret-preview-status" class="px-3 py-1 rounded-full text-xs font-bold"></span>
+                    </div>
+                    <div id="indomaret-preview-warnings" class="hidden mb-5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm"></div>
+                    <form id="indomaret-draft-form" class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                        <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2"><label class="block text-sm font-bold text-gray-700 mb-2">Nama produk</label><input id="indomaret-draft-name" required class="w-full p-3 border border-gray-300 rounded-xl"></div>
+                            <div><label class="block text-sm font-bold text-gray-700 mb-2">Harga referensi sumber</label><input id="indomaret-reference-price" readonly class="w-full p-3 border border-gray-200 rounded-xl bg-gray-50"></div>
+                            <div><label for="indomaret-sale-price" class="block text-sm font-bold text-gray-700 mb-2">Harga jual internal</label><input id="indomaret-sale-price" type="number" min="1" step="1" placeholder="Wajib sebelum approval" class="w-full p-3 border border-gray-300 rounded-xl"></div>
+                            <div><label for="indomaret-draft-category" class="block text-sm font-bold text-gray-700 mb-2">Kategori internal</label><input id="indomaret-draft-category" class="w-full p-3 border border-gray-300 rounded-xl"></div>
+                            <div><label for="indomaret-draft-stock" class="block text-sm font-bold text-gray-700 mb-2">Stok internal</label><input id="indomaret-draft-stock" type="number" min="0" step="1" value="0" class="w-full p-3 border border-gray-300 rounded-xl"></div>
+                            <div class="md:col-span-2"><label for="indomaret-draft-image" class="block text-sm font-bold text-gray-700 mb-2">URL gambar sumber</label><input id="indomaret-draft-image" type="url" class="w-full p-3 border border-gray-300 rounded-xl"></div>
+                            <div class="md:col-span-2"><label for="indomaret-draft-description" class="block text-sm font-bold text-gray-700 mb-2">Deskripsi</label><textarea id="indomaret-draft-description" rows="5" class="w-full p-3 border border-gray-300 rounded-xl"></textarea></div>
+                        </div>
+                        <div class="rounded-2xl border border-gray-100 bg-gray-50 p-4 flex flex-col gap-3">
+                            <p class="text-xs font-bold uppercase tracking-wider text-gray-500">Gambar sumber</p>
+                            <img id="indomaret-preview-image" src="assets/img/product-placeholder.svg" data-fallback-src="assets/img/product-placeholder.svg" alt="Preview gambar produk import" class="w-full aspect-square object-contain rounded-xl bg-white border border-gray-200">
+                            <a id="indomaret-source-link" href="#" target="_blank" rel="noopener noreferrer" class="text-xs text-blue-700 break-all">Buka halaman sumber</a>
+                        </div>
+                        <div class="lg:col-span-3 flex flex-wrap justify-end gap-3 pt-2 border-t border-gray-100">
+                            <button type="button" data-action="indomaret-clear-preview" class="px-5 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold">Batal</button>
+                            <button type="submit" class="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold">Simpan sebagai Draft</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-8 py-6 border-b border-gray-100 flex justify-between items-center gap-3">
+                        <div><h4 class="font-bold text-gray-800">Draft dan approval import</h4><p class="text-xs text-gray-500 mt-1">Harga jual internal harus diisi sebelum approval.</p></div>
+                        <button type="button" data-action="indomaret-refresh-queue" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold">Refresh</button>
+                    </div>
+                    <div class="overflow-x-auto"><table class="w-full text-left"><thead class="bg-gray-50 border-b"><tr><th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Produk</th><th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Referensi</th><th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Harga jual</th><th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Status import</th><th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Sumber</th><th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Aksi</th></tr></thead><tbody id="indomaret-import-queue"><tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">Memuat data produk…</td></tr></tbody></table></div>
+                </div>
+            </section>
             <!-- Section: Bundle Builder -->
             <section id="section-bundle" class="hidden space-y-6">
                 <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
@@ -2106,6 +2172,7 @@
     <script src="js/api-helper.js"></script>
     <script src="../assets/js/sanitize.min.js"></script>
     <script src="js/admin-script.js?v=20261111b"></script>
+    <script src="js/indomaret-importer.js?v=20261113a"></script>
     <script src="js/tiered-pricing.min.js"></script>
     <script src="js/banner-management.min.js"></script>
     
