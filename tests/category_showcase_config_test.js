@@ -63,13 +63,15 @@ const products = [
     { id: 'available-2', stok: 1, isHidden: false },
     { id: 'out-of-stock', stok: 0, isHidden: false },
     { id: 'hidden-zero-stock', stok: 0, isHidden: true },
-    { id: 'unavailable-status', stok: 6, status: 'Tidak Tersedia', isHidden: false }
+    { id: 'unavailable-status', stok: 6, status: 'Tidak Tersedia', isHidden: false },
+    { id: 'variation-stocked', stok: 0, variations: [{ stok: 0 }, { stok: 3 }], isHidden: false },
+    { id: 'variation-empty', stok: 0, variations: [{ stok: 0 }], isHidden: false }
 ];
 assert.deepEqual(sortProductsByAvailability(products).map((product) => product.id), [
-    'available-1', 'available-2', 'hidden', 'out-of-stock', 'hidden-zero-stock', 'unavailable-status'
+    'available-1', 'available-2', 'variation-stocked', 'hidden', 'out-of-stock', 'hidden-zero-stock', 'unavailable-status', 'variation-empty'
 ]);
 assert.deepEqual(filterAvailableProducts(products).map((product) => product.id), [
-    'available-1', 'available-2'
+    'available-1', 'available-2', 'variation-stocked'
 ]);
 
 const homepageSource = fs.readFileSync('assets/js/script.js', 'utf8');

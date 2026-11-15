@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const vm = require('node:vm');
 
 const html = fs.readFileSync('index.html', 'utf8');
 const script = fs.readFileSync('assets/js/script.js', 'utf8');
@@ -31,6 +32,26 @@ for (const [name, block, contentId] of [
 }
 
 assert.match(script, /function setDetailDisclosureState\(section, expanded, options = \{\}\)/, 'disclosure state helper should exist');
+assert.match(script, /function getModalStockBadgeHtml\(/, 'detail view should retain the stock availability badge renderer');
+assert.match(script, /badges\.push\(getModalStockBadgeHtml\(modalState\.stock, product\)\)/, 'detail view should continue to display stock availability');
+assert.match(script, /label: 'Stok', value: getModalStockLabel\(modalState\.stock\)/, 'detail specifications should continue to show stock status');
+const stockLabelSource = script.match(/^function getModalStockLabel\(stock\) \{[\s\S]*?^\}/m)?.[0];
+const stockBadgeSource = script.match(/^function getModalStockBadgeHtml\(stock, product\) \{[\s\S]*?^\}/m)?.[0];
+const modalStateSource = script.match(/^function buildModalState\(product\) \{[\s\S]*?^\}/m)?.[0];
+assert.ok(stockLabelSource && stockBadgeSource && modalStateSource, 'stock label, badge, and modal-state helpers should be extractable for value tests');
+const stockContext = { selectedVariation: null, getModalQuantityValue: () => 1, calculateTieredPrice: (price) => price, calculateGajianPrice: (price) => ({ price, daysLeft: 0, markupPercent: 0 }), isProductInteractionLocked: (product) => Boolean(product && product.isHidden === true) };
+vm.runInNewContext(`${stockLabelSource}\n${stockBadgeSource}\n${modalStateSource}\nthis.getModalStockLabel = getModalStockLabel;\nthis.getModalStockBadgeHtml = getModalStockBadgeHtml;\nthis.buildModalState = buildModalState;`, stockContext);
+assert.equal(stockContext.getModalStockLabel(0), 'Stok habis', 'zero stock should be labelled unavailable');
+assert.equal(stockContext.getModalStockLabel(3), 'Sisa 3', 'low stock should show the remaining count');
+assert.equal(stockContext.getModalStockLabel(9), 'Stok terbatas (9)', 'limited stock should show the count');
+assert.equal(stockContext.getModalStockLabel(20), '20 tersedia', 'higher stock should show its available count');
+assert.match(stockContext.getModalStockBadgeHtml(20, { isHidden: false }), /20 tersedia/, 'visible products should show their current stock quantity');
+assert.match(stockContext.getModalStockBadgeHtml(20, { isHidden: true }), /Produk tidak tersedia/, 'hidden products should not show a positive stock badge as purchasable');
+assert.equal(stockContext.buildModalState({ stok: '18', harga: '1000' }).stock, 18, 'simple product detail should use the product stock');
+stockContext.selectedVariation = { stok: '4', harga: '1200' };
+assert.equal(stockContext.buildModalState({ stok: '18', harga: '1000' }).stock, 4, 'variant detail should use the selected variant stock, not the parent count');
+stockContext.selectedVariation = { stok: '0', harga: '1200' };
+assert.equal(stockContext.buildModalState({ stok: '18', harga: '1000' }).stock, 0, 'zero-stock selected variant should not fall back to parent stock');
 assert.match(script, /trigger\.setAttribute\('aria-expanded', String\(expanded\)\)/, 'toggle should update aria-expanded');
 assert.match(script, /content\.hidden = !expanded/, 'toggle should update the native hidden state');
 assert.match(script, /sectionEl\.classList\.toggle\('is-open', expanded\)/, 'toggle should update the visual open state');

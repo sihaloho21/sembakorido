@@ -237,6 +237,16 @@ function isProductInteractionLocked(product) {
     return Boolean(product && product.isHidden === true);
 }
 
+function hasProductAvailableStock(product) {
+    if (!product) return false;
+    const productStock = Number(product.stok);
+    if (Number.isFinite(productStock) && productStock > 0) return true;
+    return Array.isArray(product.variations) && product.variations.some((variation) => {
+        const variationStock = Number(variation && variation.stok);
+        return Number.isFinite(variationStock) && variationStock > 0;
+    });
+}
+
 function normalizeProductStatusValue(primaryValue, fallbackValue) {
     const candidates = [primaryValue, fallbackValue];
     for (let i = 0; i < candidates.length; i += 1) {
@@ -2035,7 +2045,7 @@ function findProductBySlug(slug) {
 }
 
 function getP2VisibleProducts() {
-    return allProducts.filter((product) => product && product.isHidden !== true && Number(product.stok) > 0);
+    return allProducts.filter((product) => product && product.isHidden !== true && hasProductAvailableStock(product));
 }
 
 function getP2MiniCard(product) {
@@ -2084,14 +2094,6 @@ function renderP2PersonalizedSections() {
     }
 }
 
-function getP2StockLabel(product) {
-    const stock = Math.max(0, parseInt(product?.stok, 10) || 0);
-    if (stock <= 0 || product?.isHidden) return { text: 'Stok habis', className: 'empty', detail: 'Produk sementara tidak tersedia.' };
-    if (stock <= 3) return { text: `Hampir habis · ${stock} tersisa`, className: 'critical', detail: 'Segera checkout sebelum kehabisan.' };
-    if (stock <= 10) return { text: `Stok terbatas · ${stock} tersisa`, className: 'limited', detail: 'Stok masih tersedia dalam jumlah terbatas.' };
-    return { text: 'Stok tersedia', className: 'available', detail: 'Siap diproses untuk pesanan Anda.' };
-}
-
 function scheduleP2PersonalizedSections() {
     const render = () => renderP2PersonalizedSections();
     if (typeof window.requestIdleCallback === 'function') {
@@ -2109,9 +2111,8 @@ function openQuickView(product) {
     if (!modal || !content) return;
     const id = String(product.productId || product.id || product.sku || product.slug || '');
     const safeImage = optimizeImageUrl(sanitizeUrl((product.gambar || '').split(',')[0], 'assets/img/product-placeholder.svg'), 640, 480);
-    const stock = getP2StockLabel(product);
     const discount = getProductDiscountPercent(product);
-    content.innerHTML = `<div class="p2-quick-view__media"><img src="${safeImage}" alt="${escapeHtml(product.nama)}" data-fallback-src="assets/img/product-placeholder.svg"></div><div class="p2-quick-view__body"><p class="p2-product-rail__eyebrow">QUICK VIEW</p><h2 id="quick-view-title">${escapeHtml(product.nama)}</h2><div class="p2-quick-view__price"><strong>Rp ${getProductPrice(product).toLocaleString('id-ID')}</strong>${discount ? `<span>-${discount}%</span>` : ''}</div><p class="p2-stock-indicator p2-stock-indicator--${escapeHtml(stock.className)}"><strong>${escapeHtml(stock.text)}</strong><small>${escapeHtml(stock.detail)}</small></p><p class="p2-quick-view__description">${escapeHtml(product.deskripsi || 'Produk pilihan Paket Sembako untuk kebutuhan harian Anda.')}</p><div class="p3-share-actions"><button type="button" data-action="share-product" data-product-id="${escapeHtml(id)}" class="p3-share-action">Bagikan produk</button></div><div class="p2-quick-view__actions"><button type="button" data-action="show-detail" data-product-id="${escapeHtml(id)}" class="p2-quick-view__secondary">Detail lengkap</button><button type="button" data-action="add-to-cart" data-product-id="${escapeHtml(id)}" class="p2-quick-view__primary">Tambah ke keranjang</button></div></div>`;
+    content.innerHTML = `<div class="p2-quick-view__media"><img src="${safeImage}" alt="${escapeHtml(product.nama)}" data-fallback-src="assets/img/product-placeholder.svg"></div><div class="p2-quick-view__body"><p class="p2-product-rail__eyebrow">QUICK VIEW</p><h2 id="quick-view-title">${escapeHtml(product.nama)}</h2><div class="p2-quick-view__price"><strong>Rp ${getProductPrice(product).toLocaleString('id-ID')}</strong>${discount ? `<span>-${discount}%</span>` : ''}</div><p class="p2-quick-view__description">${escapeHtml(product.deskripsi || 'Produk pilihan Paket Sembako untuk kebutuhan harian Anda.')}</p><div class="p3-share-actions"><button type="button" data-action="share-product" data-product-id="${escapeHtml(id)}" class="p3-share-action">Bagikan produk</button></div><div class="p2-quick-view__actions"><button type="button" data-action="show-detail" data-product-id="${escapeHtml(id)}" class="p2-quick-view__secondary">Detail lengkap</button><button type="button" data-action="add-to-cart" data-product-id="${escapeHtml(id)}" class="p2-quick-view__primary">Tambah ke keranjang</button></div></div>`;
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('p2-quick-view-open');
@@ -2149,10 +2150,6 @@ function renderProducts(products) {
         // Produk yang disembunyikan admin
         const isHiddenProd = p.isHidden === true;
 
-        const stockInfo = getP2StockLabel(p);
-        const stockBadgeClasses = { unavailable: 'product-card-stock-badge--unavailable', low: 'product-card-stock-badge--low', limited: 'product-card-stock-badge--limited', empty: 'product-card-stock-badge--empty' };
-        const stockBadgeClass = isHiddenProd ? stockBadgeClasses.unavailable : stockInfo.className === 'empty' ? stockBadgeClasses.empty : stockInfo.className === 'critical' ? stockBadgeClasses.limited : stockBadgeClasses.low;
-        const stokLabel = `<span class="product-card-stock-badge ${stockBadgeClass}" aria-label="${escapeHtml(stockInfo.text)}" title="${escapeHtml(stockInfo.detail)}">${escapeHtml(stockInfo.text)}</span>`;
 
         const images = p.gambar ? p.gambar.split(',') : [];
         const mainImage = images[0] || 'assets/img/product-placeholder.svg';
@@ -2203,9 +2200,6 @@ function renderProducts(products) {
 
         const productId = p.productId;
         const hiddenCardClass = isHiddenProd ? ' opacity-70 pointer-events-none select-none' : '';
-        const hiddenBanner = isHiddenProd
-            ? `<div class="absolute inset-x-0 top-0 z-30 bg-gray-700/90 text-white text-[9px] md:text-[10px] font-bold text-center py-1 flex items-center justify-center gap-1"><svg class="w-2.5 h-2.5 md:w-3 md:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>Tidak Tersedia</div>`
-            : '';
         const imageActionAttrs = isHiddenProd ? '' : `data-action="show-detail" data-product-id="${productId}"`;
         const imageInteractiveClass = isHiddenProd ? 'cursor-default' : 'cursor-pointer hover:opacity-90';
         const inlineCartState = !isHiddenProd && !hasVariations
@@ -2213,8 +2207,7 @@ function renderProducts(products) {
             : null;
         cardsHtml += `
 	            <div class="product-card-shell bg-white rounded-lg md:rounded-xl shadow-md md:shadow-lg hover:shadow-xl transition duration-300 relative${hiddenCardClass}" data-product-id="${productId}" aria-disabled="${isHiddenProd ? 'true' : 'false'}">
-	                ${hiddenBanner}
-                    <div class="absolute top-0 left-0 z-10 flex flex-col gap-1">
+	                    <div class="absolute top-0 left-0 z-10 flex flex-col gap-1">
                         ${rewardPointsBadge}
                         ${hasGrosir ? `
                         <div class="bg-green-600 text-white text-[8px] md:text-[10px] font-bold px-1 py-1 md:px-2 md:py-1 rounded md:rounded-lg shadow-sm flex items-center gap-1 md:gap-1">
@@ -2226,7 +2219,7 @@ function renderProducts(products) {
 	                    <div class="lazy-image-wrapper bg-white relative" style="aspect-ratio: 4 / 3;">
                             <div class="skeleton skeleton-product-image"></div>
                             ${!isHiddenProd ? `<button type="button" data-action="quick-view" data-product-id="${productId}" class="p2-quick-view-trigger" aria-label="Lihat cepat ${escapeHtml(p.nama)}" title="Lihat cepat"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.5 12s3.4-5 9.5-5 9.5 5 9.5 5-3.4 5-9.5 5-9.5-5-9.5-5Z"/><circle cx="12" cy="12" r="2.5"/></svg></button>` : ''}
-                            <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="product-card-image w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass} ${(p.stok === 0 || isHiddenProd) ? 'grayscale opacity-60' : ''}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="assets/img/product-placeholder.svg" onload="this.classList.add('loaded'); this.closest('.lazy-image-wrapper')?.querySelector('.skeleton-product-image')?.style.setProperty('display','none');" onerror="this.classList.add('loaded'); this.closest('.lazy-image-wrapper')?.querySelector('.skeleton-product-image')?.style.setProperty('display','none');">
+                            <img src="${optimizedImage}" alt="${escapeHtml(p.nama)}" ${imageActionAttrs} class="product-card-image w-full h-full object-contain object-center bg-white transition-opacity ${imageInteractiveClass}" loading="lazy" decoding="async" width="1024" height="1024" data-fallback-src="assets/img/product-placeholder.svg" onload="this.classList.add('loaded'); this.closest('.lazy-image-wrapper')?.querySelector('.skeleton-product-image')?.style.setProperty('display','none');" onerror="this.classList.add('loaded'); this.closest('.lazy-image-wrapper')?.querySelector('.skeleton-product-image')?.style.setProperty('display','none');">
 	                    ${!isHiddenProd && !hasVariations ? `
 	                    <div class="product-card-cart-slot product-card-cart-slot--overlay" data-product-cart-slot data-product-id="${productId}" data-cart-mode="${inlineCartState.mode}" data-cart-qty="${inlineCartState.quantity}">
 	                        ${renderProductCardCartControl(p)}
@@ -2236,7 +2229,6 @@ function renderProducts(products) {
                     <div class="p-2 md:p-3">
                             <div class="mb-1 md:mb-2">
                                 <h4 class="text-[11px] md:text-[14px] font-medium text-gray-800 line-clamp-2 mb-1 md:mb-1 min-h-[28px] md:min-h-[40px] leading-tight">${escapeHtml(p.nama)}</h4>
-                                <div class="product-card-meta-badges">${stokLabel}</div>
                             </div>
                     <div class="product-card-price-block flex flex-col mb-2 md:mb-3">
                         <div class="product-card-price-row flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 md:gap-x-2">
@@ -2272,8 +2264,8 @@ function sortProductsByAvailability(products) {
     return products
         .map((product, index) => ({ product, index }))
         .sort((a, b) => {
-            const aAvailable = !a.product.isHidden && Number(a.product.stok) > 0;
-            const bAvailable = !b.product.isHidden && Number(b.product.stok) > 0;
+            const aAvailable = !a.product.isHidden && hasProductAvailableStock(a.product);
+            const bAvailable = !b.product.isHidden && hasProductAvailableStock(b.product);
 
             if (aAvailable !== bAvailable) {
                 return aAvailable ? -1 : 1;
@@ -2290,7 +2282,7 @@ function filterProducts() {
     const query = searchInput ? normalizeSearch(searchInput.value) : '';
     const availableProducts = window.CategoryShowcase && typeof window.CategoryShowcase.filterAvailableProducts === 'function'
         ? window.CategoryShowcase.filterAvailableProducts(allProducts)
-        : allProducts.filter((product) => product && product.isHidden !== true && Number(product.stok) > 0);
+        : allProducts.filter((product) => product && product.isHidden !== true && hasProductAvailableStock(product));
     filteredProducts = availableProducts.filter(p => {
         const matchesSearch = matchesQuery(p, query);
         const selectedCategory = normalizeCategoryLabel(currentCategory);
@@ -4274,7 +4266,10 @@ function getModalStockLabel(stock) {
     return `${safeStock} tersedia`;
 }
 
-function getModalStockBadgeHtml(stock) {
+function getModalStockBadgeHtml(stock, product) {
+    if (isProductInteractionLocked(product)) {
+        return '<span class="detail-modal-badge bg-gray-100 text-gray-700">Produk tidak tersedia</span>';
+    }
     const safeStock = Math.max(0, parseInt(stock, 10) || 0);
     if (safeStock <= 0) {
         return '<span class="detail-modal-badge bg-red-100 text-red-700">Stok habis</span>';
@@ -4408,7 +4403,7 @@ function renderModalBadges(product, modalState) {
         badges.push(`<span class="detail-modal-badge bg-cyan-100 text-cyan-700">${wholesaleTiers.length} level grosir</span>`);
     }
 
-    badges.push(getModalStockBadgeHtml(modalState.stock));
+    badges.push(getModalStockBadgeHtml(modalState.stock, product));
     badgesEl.innerHTML = badges.join('');
 }
 

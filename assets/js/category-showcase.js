@@ -107,7 +107,11 @@
         const status = normalizeCategory(product.status).toLocaleLowerCase('id').replace(/[_-]+/g, ' ');
         if (['sembunyikan', 'disembunyikan', 'hidden', 'off', 'tidak tersedia', 'tidak tersedia saat ini', 'unavailable', 'not available', 'out of stock', 'habis', 'stok habis'].includes(status)) return false;
         const stock = Number(product.stok);
-        return Number.isFinite(stock) && stock > 0;
+        if (Number.isFinite(stock) && stock > 0) return true;
+        return Array.isArray(product.variations) && product.variations.some((variation) => {
+            const variationStock = Number(variation && variation.stok);
+            return Number.isFinite(variationStock) && variationStock > 0;
+        });
     }
 
     function filterAvailableProducts(products) {

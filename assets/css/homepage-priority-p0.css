@@ -230,9 +230,6 @@
     line-height: 1.3;
 }
 
-#product-grid .product-card-meta-badges {
-    min-height: 1.15rem;
-}
 
 #product-grid .product-card-price-row {
     align-items: center;
