@@ -16,18 +16,6 @@
         return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : DEFAULT_BACKGROUND_COLOR;
     }
 
-    function getContrastTextColor(hex) {
-        const toLuminance = (color) => {
-            const channels = color.slice(1).match(/.{2}/g).map((channel) => parseInt(channel, 16) / 255);
-            const linear = channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
-            return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
-        };
-        const backgroundLuminance = toLuminance(normalizeBackgroundColor(hex));
-        const darkTextLuminance = toLuminance('#1f2937');
-        const contrast = (first, second) => (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
-        return contrast(backgroundLuminance, darkTextLuminance) >= contrast(backgroundLuminance, 1) ? '#1f2937' : '#ffffff';
-    }
-
     function normalizeCategory(value) {
         return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
     }
@@ -185,8 +173,6 @@
         const host = document.getElementById('category-showcase');
         if (!host) return;
         const safeConfig = normalizeConfig(config);
-        host.style.setProperty('--category-showcase-background', safeConfig.background_color);
-        host.style.setProperty('--category-showcase-heading', getContrastTextColor(safeConfig.background_color));
         host.innerHTML = '';
         if (!safeConfig.enabled) { host.classList.add('hidden'); return; }
         const sections = safeConfig.categories.map((entry, index) => {
@@ -197,20 +183,17 @@
             const image = entry.image_url
                 ? `<img class="category-showcase-promo__image" src="${escapeAttribute(entry.image_url)}" alt="${escapeAttribute(entry.image_alt)}" loading="lazy" data-fallback-src="assets/img/product-placeholder.svg">`
                 : `<div class="category-showcase-promo__empty" aria-label="Belum ada gambar promo"><span>Tambahkan gambar promo dari panel admin</span></div>`;
-            return `<section class="category-showcase-section" style="--category-showcase-row-color:${escapeAttribute(entry.theme_color)};--category-showcase-row-heading:${getContrastTextColor(entry.theme_color)}" data-category-showcase-section data-category="${escapeHtml(entry.category)}" aria-labelledby="${trackId}-title">
-                <div class="category-showcase-header">
-                    <span class="category-showcase-title-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-1.5 11h-13L4 9Z"/><path d="m8 9 2-5m6 5-2-5M8 13v3m4-3v3m4-3v3"/></svg>
-                    </span>
-                    <h2 id="${trackId}-title" class="category-showcase-title">${escapeHtml(entry.category)}</h2>
-                </div>
-                <div class="category-showcase-viewport">
+            return `<div class="category-showcase-row" data-category-showcase-section>
+                <div class="category-showcase-header"><h2 id="${trackId}-title" class="category-showcase-title">${escapeHtml(entry.category)}</h2></div>
+                <section class="category-showcase-section" style="--category-showcase-row-color:${escapeAttribute(entry.theme_color)}" data-category="${escapeHtml(entry.category)}" aria-labelledby="${trackId}-title">
+                    <div class="category-showcase-viewport">
                     <aside class="category-showcase-promo">${image}</aside>
                     <button type="button" class="category-showcase-scroll category-showcase-scroll--left" data-showcase-scroll="left" data-track-id="${trackId}" aria-label="Geser ${escapeAttribute(entry.category)} ke kiri">‹</button>
                     <div id="${trackId}" class="category-showcase-track" role="region" aria-labelledby="${trackId}-title" tabindex="0">${cards}</div>
                     <button type="button" class="category-showcase-scroll category-showcase-scroll--right" data-showcase-scroll="right" data-track-id="${trackId}" aria-label="Geser ${escapeAttribute(entry.category)} ke kanan">›</button>
-                </div>
-            </section>`;
+                    </div>
+                </section>
+            </div>`;
         }).filter(Boolean).join('');
         host.innerHTML = sections;
         host.classList.toggle('hidden', !sections);
@@ -239,7 +222,7 @@
         if (action === 'update-product-card-qty' && typeof window.updateProductCardQty === 'function') window.updateProductCardQty(id, parseInt(trigger.getAttribute('data-delta'), 10));
     }
 
-    window.CategoryShowcase = { CONFIG_KEY, normalizeConfig, normalizeBackgroundColor, normalizeImageUrl, getContrastTextColor, loadPublicConfig, render, renderSharedCards, isProductAvailable, filterAvailableProducts, sortProductsByAvailability };
+    window.CategoryShowcase = { CONFIG_KEY, normalizeConfig, normalizeBackgroundColor, normalizeImageUrl, loadPublicConfig, render, renderSharedCards, isProductAvailable, filterAvailableProducts, sortProductsByAvailability };
     document.addEventListener('DOMContentLoaded', () => {
         const host = document.getElementById('category-showcase');
         if (!host) return;

@@ -2,9 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
-const renderStyles = {};
 const renderHost = {
-    style: { setProperty: (name, value) => { renderStyles[name] = value; } },
     classList: { add() {}, toggle() {} },
     querySelectorAll: () => [],
     innerHTML: ''
@@ -21,7 +19,6 @@ const context = {
 vm.runInNewContext(source, context, { filename: 'category-showcase.js' });
 const normalize = context.window.CategoryShowcase.normalizeConfig;
 const normalizeBackgroundColor = context.window.CategoryShowcase.normalizeBackgroundColor;
-const getContrastTextColor = context.window.CategoryShowcase.getContrastTextColor;
 const filterAvailableProducts = context.window.CategoryShowcase.filterAvailableProducts;
 const sortProductsByAvailability = context.window.CategoryShowcase.sortProductsByAvailability;
 
@@ -49,15 +46,6 @@ assert.equal(normalize({ background_color: '#abc' }).background_color, '#f0fdf4'
 assert.equal(normalize({ background_color: '#f0fdf4', categories: [{ category: 'X', max_products: 1, theme_color: '#123456' }] }).categories[0].theme_color, '#123456');
 assert.equal(normalize({ categories: [{ category: 'X', max_products: 1, image_url: 'javascript:alert(1)' }] }).categories[0].image_url, '');
 assert.equal(normalize({ categories: [{ category: 'X', max_products: 1, image_url: 'https://example.com/x.webp' }] }).categories[0].image_url, 'https://example.com/x.webp');
-assert.equal(getContrastTextColor('#f0fdf4'), '#1f2937');
-assert.equal(getContrastTextColor('#123456'), '#ffffff');
-context.window.CategoryShowcase.render({ enabled: true, background_color: '#123456', categories: [] });
-assert.equal(renderStyles['--category-showcase-background'], '#123456');
-assert.equal(renderStyles['--category-showcase-heading'], '#ffffff');
-context.window.CategoryShowcase.render({ enabled: true, background_color: 'invalid', categories: [] });
-assert.equal(renderStyles['--category-showcase-background'], '#f0fdf4');
-assert.equal(renderStyles['--category-showcase-heading'], '#1f2937');
-
 const products = [
     { id: 'available-1', stok: 4, isHidden: false },
     { id: 'hidden', stok: 9, isHidden: true },
@@ -85,22 +73,22 @@ assert.match(homepageSource, /'tidak tersedia'/);
 
 assert.doesNotMatch(source, /showcase-view-all|category-showcase-view-all|function viewAll/);
 assert.doesNotMatch(source, /Lihat Semua/);
-assert.match(source, /category-showcase-title-icon/);
 assert.match(source, /category-showcase-promo__image/);
-assert.match(showcaseCss, /category-showcase-header::before/);
 assert.match(showcaseCss, /\.category-showcase-promo\s*\{[^}]*flex:\s*0 0/);
 assert.match(showcaseCss, /\.category-showcase-promo\s*\{\s*display:\s*none;\s*\}/, 'category promo images should be hidden outside mobile widths by default');
 assert.match(showcaseCss, /@media\s*\(max-width:\s*767px\)[\s\S]*?\.category-showcase-promo\s*\{[^}]*display:\s*flex/, 'category promo images should be shown on mobile only');
-assert.match(showcaseCss, /flex-basis:calc\(\(100vw - 3\.25rem\)\/2\.5\)/);
-assert.match(showcaseCss, /flex-basis:calc\(\(100% - 2\.6rem\)\/4\.25\)/);
-assert.match(showcaseCss, /flex-basis:calc\(\(100% - 4rem\)\/5\.2\)/);
-assert.match(showcaseCss, /\.category-showcase-section\{background:var\(--category-showcase-background,#f0fdf4\);border:1px solid #dcfce7;border-radius:1rem;box-sizing:border-box;padding:/, 'each carousel section should use its configurable background with a safe default');
-assert.match(showcaseCss, /@media\(max-width:767px\)\{\.category-showcase-section\{border-radius:\.875rem;padding:/, 'green panels should keep responsive mobile spacing');
-assert.match(showcaseCss, /\.category-showcase-title\{color:var\(--category-showcase-row-heading,var\(--category-showcase-heading,#1f2937\)\)\}/, 'each carousel heading should use the contrast color computed for its selected background');
-assert.match(source, /class="category-showcase-section"/, 'the green surface should apply to existing category showcase sections');
-assert.match(source, /--category-showcase-row-heading:\$\{getContrastTextColor\(entry\.theme_color\)\}/, 'each category section should calculate a contrast-safe heading color');
+assert.match(showcaseCss, /flex-basis:\s*calc\(\(100vw - 3\.25rem\)\s*\/\s*2\.5\)/);
+assert.match(showcaseCss, /flex-basis:\s*calc\(\(100% - 2\.6rem\)\s*\/\s*4\.25\)/);
+assert.match(showcaseCss, /flex-basis:\s*calc\(\(100% - 4rem\)\s*\/\s*5\.2\)/);
+assert.match(showcaseCss, /\.category-showcase-section\s*\{[^}]*background:\s*var\(--category-showcase-row-color,[^}]+\);[^}]*border:\s*0;[^}]*border-radius:\s*0;[^}]*margin-inline:\s*calc\(50% - 50vw\)/s, 'each category background should be square and extend to both viewport edges');
+assert.match(showcaseCss, /\.category-showcase-title\s*\{[^}]*font-size:\s*18px;[^}]*font-weight:\s*600;/s, 'category titles should be 18px semibold');
+assert.match(source, /<div class="category-showcase-header"><h2[^>]*class="category-showcase-title"[\s\S]*?<section class="category-showcase-section"/, 'the title should sit outside and above the colored category panel');
+assert.doesNotMatch(source, /category-showcase-title-icon/, 'the title icon should be removed');
+assert.doesNotMatch(showcaseCss, /category-showcase-title-icon/, 'unused title icon styles should be removed');
+assert.doesNotMatch(showcaseCss, /\.category-showcase-promo\s*\{[^}]*border(?:-radius)?:/s, 'promo imagery should have no border or rounded corners');
+assert.match(source, /class="category-showcase-section" style="--category-showcase-row-color:\$\{escapeAttribute\(entry\.theme_color\)\}"/, 'each category panel should retain its configured background');
 assert.match(homepageSource, /product-card-shell bg-white/, 'product cards should remain white over the green surface');
-assert.match(showcaseCss, /\.category-showcase-track\{[^}]*overflow-x:auto/, 'horizontal carousel scrolling must remain enabled');
+assert.match(showcaseCss, /\.category-showcase-track\s*\{[^}]*overflow-x:\s*auto/s, 'horizontal carousel scrolling must remain enabled');
 assert.match(adminMarkup, /id="category-showcase-background-color" type="color"/, 'admin should expose a native background color picker');
 assert.match(adminMarkup, /Warna latar/, 'admin should expose a per-category background color column');
 assert.match(adminMarkup, /data-action="category-showcase-color-reset"/, 'admin should provide a way to restore the default color');
@@ -111,7 +99,7 @@ assert.match(adminSource, /data-showcase-image-url/);
 assert.match(adminSource, /Tempel URL gambar/);
 assert.match(adminSource, /URL publik yang diawali http:\/\/ atau https:\/\//);
 assert.doesNotMatch(adminSource, /readShowcaseImageAsBase64|uploadCategoryShowcaseImage|upload_category_showcase_image|data-showcase-image-file|type=\"file\"/, 'category showcase images should be configured with a URL, not file upload');
-assert.match(source, /host\.style\.setProperty\('--category-showcase-background', safeConfig\.background_color\)/, 'storefront should apply the validated server color to showcase sections');
+assert.match(showcaseCss, /margin-inline:\s*calc\(50% - 50vw\)/, 'category color panels should bleed to the viewport edges');
 assert.match(gasSource, /background_color: normalizeCategoryShowcaseBackgroundV71\(source\.background_color\)/, 'GAS should validate the persisted color');
 assert.match(gasSource, /background_color: config\.background_color/, 'public GAS response should expose only the normalized selected color');
 assert.match(gasSource, /image_url: row\.image_url/);
