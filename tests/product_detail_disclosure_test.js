@@ -67,5 +67,9 @@ assert.match(css, /\.detail-modal-disclosure\.is-open \.detail-modal-disclosure_
 assert.match(css, /\.detail-modal-disclosure__content\s*\{[\s\S]*max-height:\s*0[\s\S]*transition:/, 'collapsed disclosure content should define a slide transition');
 assert.match(css, /\.detail-modal-disclosure\.is-open \.detail-modal-disclosure__content\s*\{[\s\S]*max-height:\s*1000px/, 'open disclosure content should expand to its slide-down height');
 assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.detail-modal-disclosure__content[\s\S]*transition:\s*none/, 'disclosure transition should respect reduced motion');
+assert.match(html, /id="modal-related-products" class="detail-modal-related-grid" role="region" aria-label="Produk terkait, geser untuk melihat produk lainnya" tabindex="0"/, 'related products should be a labeled keyboard-focusable scrolling region');
+assert.match(css, /\.detail-modal-related-grid\s*\{[^}]*display:\s*flex;[^}]*flex-wrap:\s*nowrap;[^}]*overflow-x:\s*auto;/s, 'related products should remain in a single horizontally scrollable row');
+assert.match(css, /\.detail-related-card\s*\{[^}]*flex:\s*0 0 min\(17rem, calc\(100% - \.5rem\)\);[^}]*scroll-snap-align:\s*start;/s, 'related product cards should have fixed row sizing and snap to the start of each card');
+assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.detail-modal-related-grid\s*\{\s*scroll-behavior:\s*auto;/, 'related-product scrolling should respect reduced-motion preferences');
 
 console.log('product detail disclosure tests: PASS');
