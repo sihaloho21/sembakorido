@@ -197,7 +197,7 @@
             const image = entry.image_url
                 ? `<img class="category-showcase-promo__image" src="${escapeAttribute(entry.image_url)}" alt="${escapeAttribute(entry.image_alt)}" loading="lazy" data-fallback-src="assets/img/product-placeholder.svg">`
                 : `<div class="category-showcase-promo__empty" aria-label="Belum ada gambar promo"><span>Tambahkan gambar promo dari panel admin</span></div>`;
-            return `<section class="category-showcase-section" style="--category-showcase-row-color:${escapeAttribute(entry.theme_color)}" data-category-showcase-section data-category="${escapeHtml(entry.category)}" aria-labelledby="${trackId}-title">
+            return `<section class="category-showcase-section" style="--category-showcase-row-color:${escapeAttribute(entry.theme_color)};--category-showcase-row-heading:${getContrastTextColor(entry.theme_color)}" data-category-showcase-section data-category="${escapeHtml(entry.category)}" aria-labelledby="${trackId}-title">
                 <div class="category-showcase-header">
                     <span class="category-showcase-title-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-1.5 11h-13L4 9Z"/><path d="m8 9 2-5m6 5-2-5M8 13v3m4-3v3m4-3v3"/></svg>

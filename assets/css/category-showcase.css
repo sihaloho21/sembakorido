@@ -12,7 +12,7 @@
 /* Green surface distinguishes category showcases from the main product grid. */
 .category-showcase-section{background:var(--category-showcase-background,#f0fdf4);border:1px solid #dcfce7;border-radius:1rem;box-sizing:border-box;padding:.75rem .45rem}
 @media(max-width:767px){.category-showcase-section{border-radius:.875rem;padding:.625rem .35rem}}
-.category-showcase-title{color:var(--category-showcase-heading,#1f2937)}
+.category-showcase-title{color:var(--category-showcase-row-heading,var(--category-showcase-heading,#1f2937))}
 
 
 /* Category promotional images are mobile-only; only the product track scrolls. */
