@@ -24,14 +24,26 @@
 
 /* Full-bleed category color starts below the title and has square edges. */
 .category-showcase-section {
-  background: var(--category-showcase-row-color, #f0fdf4);
+  background: transparent;
   border: 0;
   border-radius: 0;
   box-sizing: border-box;
-  margin-inline: calc(50% - 50vw);
   min-width: 0;
   padding-block: .75rem;
-  padding-inline: max(1rem, calc((100vw - 80rem) / 2 + 1rem));
+  position: relative;
+}
+
+.category-showcase-section::before {
+  background: var(--category-showcase-row-color, #f0fdf4);
+  bottom: 0;
+  content: "";
+  left: 50%;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: 100vw;
+  z-index: 0;
 }
 
 .category-showcase-viewport {
@@ -40,6 +52,7 @@
   gap: .5rem;
   min-width: 0;
   position: relative;
+  z-index: 1;
 }
 
 .category-showcase-track {
@@ -50,7 +63,8 @@
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   padding: .2rem .15rem .75rem;
-  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
   scrollbar-width: none;
 }
 
@@ -61,6 +75,7 @@
 .category-showcase-track > .product-card-shell {
   flex: 0 0 min(46vw, 11.5rem);
   scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .category-showcase-scroll {
@@ -257,6 +272,7 @@
 @media (prefers-reduced-motion: reduce) {
   .category-showcase-track {
     scroll-behavior: auto;
+    scroll-snap-type: none;
   }
 
   .category-showcase-scroll {

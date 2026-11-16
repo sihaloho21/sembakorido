@@ -80,7 +80,8 @@ assert.match(showcaseCss, /@media\s*\(max-width:\s*767px\)[\s\S]*?\.category-sho
 assert.match(showcaseCss, /flex-basis:\s*calc\(\(100vw - 3\.25rem\)\s*\/\s*2\.5\)/);
 assert.match(showcaseCss, /flex-basis:\s*calc\(\(100% - 2\.6rem\)\s*\/\s*4\.25\)/);
 assert.match(showcaseCss, /flex-basis:\s*calc\(\(100% - 4rem\)\s*\/\s*5\.2\)/);
-assert.match(showcaseCss, /\.category-showcase-section\s*\{[^}]*background:\s*var\(--category-showcase-row-color,[^}]+\);[^}]*border:\s*0;[^}]*border-radius:\s*0;[^}]*margin-inline:\s*calc\(50% - 50vw\)/s, 'each category background should be square and extend to both viewport edges');
+assert.match(showcaseCss, /\.category-showcase-section\s*\{[^}]*border:\s*0;[^}]*border-radius:\s*0;/s, 'category panels should have square edges and no border');
+assert.match(showcaseCss, /\.category-showcase-section::before\s*\{[^}]*background:\s*var\(--category-showcase-row-color,[^}]+\);[\s\S]*?width:\s*100vw;/, 'each category background should fill the full viewport width');
 assert.match(showcaseCss, /\.category-showcase-title\s*\{[^}]*font-size:\s*18px;[^}]*font-weight:\s*600;/s, 'category titles should be 18px semibold');
 assert.match(source, /<div class="category-showcase-header"><h2[^>]*class="category-showcase-title"[\s\S]*?<section class="category-showcase-section"/, 'the title should sit outside and above the colored category panel');
 assert.doesNotMatch(source, /category-showcase-title-icon/, 'the title icon should be removed');
@@ -89,6 +90,9 @@ assert.doesNotMatch(showcaseCss, /\.category-showcase-promo\s*\{[^}]*border(?:-r
 assert.match(source, /class="category-showcase-section" style="--category-showcase-row-color:\$\{escapeAttribute\(entry\.theme_color\)\}"/, 'each category panel should retain its configured background');
 assert.match(homepageSource, /product-card-shell bg-white/, 'product cards should remain white over the green surface');
 assert.match(showcaseCss, /\.category-showcase-track\s*\{[^}]*overflow-x:\s*auto/s, 'horizontal carousel scrolling must remain enabled');
+assert.match(showcaseCss, /scroll-behavior:\s*smooth;[\s\S]*?scroll-snap-type:\s*x mandatory;/, 'carousel movement should animate and snap to products');
+assert.match(showcaseCss, /\.category-showcase-track\s*>\s*\.product-card-shell\s*\{[^}]*scroll-snap-stop:\s*always;/s, 'carousel transitions should settle on each product card');
+assert.match(showcaseCss, /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*?scroll-snap-type:\s*none;/, 'carousel motion should respect reduced-motion preferences');
 assert.match(adminMarkup, /id="category-showcase-background-color" type="color"/, 'admin should expose a native background color picker');
 assert.match(adminMarkup, /Warna latar/, 'admin should expose a per-category background color column');
 assert.match(adminMarkup, /data-action="category-showcase-color-reset"/, 'admin should provide a way to restore the default color');
@@ -99,7 +103,6 @@ assert.match(adminSource, /data-showcase-image-url/);
 assert.match(adminSource, /Tempel URL gambar/);
 assert.match(adminSource, /URL publik yang diawali http:\/\/ atau https:\/\//);
 assert.doesNotMatch(adminSource, /readShowcaseImageAsBase64|uploadCategoryShowcaseImage|upload_category_showcase_image|data-showcase-image-file|type=\"file\"/, 'category showcase images should be configured with a URL, not file upload');
-assert.match(showcaseCss, /margin-inline:\s*calc\(50% - 50vw\)/, 'category color panels should bleed to the viewport edges');
 assert.match(gasSource, /background_color: normalizeCategoryShowcaseBackgroundV71\(source\.background_color\)/, 'GAS should validate the persisted color');
 assert.match(gasSource, /background_color: config\.background_color/, 'public GAS response should expose only the normalized selected color');
 assert.match(gasSource, /image_url: row\.image_url/);
