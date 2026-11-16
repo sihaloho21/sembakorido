@@ -2,7 +2,9 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  margin-inline: calc(50% - 50vw);
   min-width: 0;
+  width: 100vw;
 }
 
 .category-showcase-row {
@@ -11,6 +13,7 @@
 
 .category-showcase-header {
   margin: 0 0 .65rem;
+  padding-inline: max(1rem, calc((100vw - 80rem) / 2 + 1rem));
 }
 
 .category-showcase-title {
@@ -24,26 +27,15 @@
 
 /* Full-bleed category color starts below the title and has square edges. */
 .category-showcase-section {
-  background: transparent;
+  background: var(--category-showcase-row-color, #f0fdf4);
   border: 0;
   border-radius: 0;
   box-sizing: border-box;
   min-width: 0;
   padding-block: .75rem;
+  padding-inline: max(1rem, calc((100vw - 80rem) / 2 + 1rem));
   position: relative;
-}
-
-.category-showcase-section::before {
-  background: var(--category-showcase-row-color, #f0fdf4);
-  bottom: 0;
-  content: "";
-  left: 50%;
-  pointer-events: none;
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-  width: 100vw;
-  z-index: 0;
+  width: 100%;
 }
 
 .category-showcase-viewport {
@@ -52,7 +44,6 @@
   gap: .5rem;
   min-width: 0;
   position: relative;
-  z-index: 1;
 }
 
 .category-showcase-track {

@@ -80,8 +80,8 @@ assert.match(showcaseCss, /@media\s*\(max-width:\s*767px\)[\s\S]*?\.category-sho
 assert.match(showcaseCss, /flex-basis:\s*calc\(\(100vw - 3\.25rem\)\s*\/\s*2\.5\)/);
 assert.match(showcaseCss, /flex-basis:\s*calc\(\(100% - 2\.6rem\)\s*\/\s*4\.25\)/);
 assert.match(showcaseCss, /flex-basis:\s*calc\(\(100% - 4rem\)\s*\/\s*5\.2\)/);
-assert.match(showcaseCss, /\.category-showcase-section\s*\{[^}]*border:\s*0;[^}]*border-radius:\s*0;/s, 'category panels should have square edges and no border');
-assert.match(showcaseCss, /\.category-showcase-section::before\s*\{[^}]*background:\s*var\(--category-showcase-row-color,[^}]+\);[\s\S]*?width:\s*100vw;/, 'each category background should fill the full viewport width');
+assert.match(showcaseCss, /\.category-showcase\s*\{[^}]*margin-inline:\s*calc\(50% - 50vw\);[^}]*width:\s*100vw;/s, 'the outer category showcase host should escape the padded container and fill the viewport');
+assert.match(showcaseCss, /\.category-showcase-section\s*\{[^}]*background:\s*var\(--category-showcase-row-color,[^}]+\);[^}]*border:\s*0;[^}]*border-radius:\s*0;[^}]*width:\s*100%;/s, 'each square category panel should paint its configured background across the full host');
 assert.match(showcaseCss, /\.category-showcase-title\s*\{[^}]*font-size:\s*18px;[^}]*font-weight:\s*600;/s, 'category titles should be 18px semibold');
 assert.match(source, /<div class="category-showcase-header"><h2[^>]*class="category-showcase-title"[\s\S]*?<section class="category-showcase-section"/, 'the title should sit outside and above the colored category panel');
 assert.doesNotMatch(source, /category-showcase-title-icon/, 'the title icon should be removed');
