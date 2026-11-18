@@ -49,7 +49,7 @@
     <link rel="stylesheet" href="assets/css/tailwind.min.css?v=20261116a">
     <link rel="stylesheet" href="assets/css/style.min.css?v=20260308b">
     <link rel="stylesheet" href="assets/css/promo-banner-carousel.min.css">
-    <link rel="stylesheet" href="assets/css/category-showcase.css?v=20261116d">
+    <link rel="stylesheet" href="assets/css/category-showcase.css?v=20261118a">
     <link rel="stylesheet" href="assets/css/skeleton-loading.min.css">
         <link rel="stylesheet" href="assets/css/index-inline.min.css">
         <link rel="stylesheet" href="assets/css/product-detail-enhancements.css?v=20261116a">
@@ -318,7 +318,7 @@
             </div>
             
             <!-- Search & Filter UI -->
-            <div class="w-full mb-12">
+            <div id="homepage-category-filter-section" class="w-full mb-12">
                 <!-- Compact Category Dock -->
                 <section id="category-filter-dock" class="category-filter-dock relative" aria-label="Kategori produk">
                     <div id="category-filter-rail-wrap" class="category-filter-rail-wrap">
@@ -371,6 +371,27 @@
             <section id="p2-personalized-sections" class="p2-personalized-sections" aria-label="Rekomendasi produk">
                 <div id="recommendation-section" class="p2-product-rail hidden"></div>
                 <div id="recently-viewed-section" class="p2-product-rail hidden"></div>
+            </section>
+            <section id="category-page-view" class="category-page-view" aria-labelledby="category-page-title" hidden>
+                <nav class="category-page-breadcrumb" aria-label="Navigasi kategori">
+                    <a href="index.html" class="category-page-back-link">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10H4m5 5-5-5 5-5"/></svg>
+                        <span>Kembali ke Beranda</span>
+                    </a>
+                </nav>
+                <h2 id="category-page-title" class="category-page-title">Katalog kategori</h2>
+                <form id="category-product-search-form" class="category-page-search-form" role="search">
+                    <label for="category-product-search" class="sr-only">Cari produk dalam kategori ini</label>
+                    <div class="category-page-search-shell">
+                        <svg class="category-page-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
+                        <input id="category-product-search" name="q" type="search" placeholder="Cari produk di kategori ini…" autocomplete="off" aria-label="Cari produk dalam kategori ini">
+                        <button id="category-product-search-clear" class="category-page-search-clear" type="button" aria-label="Hapus pencarian" hidden>×</button>
+                        <button class="category-page-search-submit" type="submit">Cari</button>
+                    </div>
+                </form>
+                <p id="category-results-count" class="category-page-results-count" role="status" aria-live="polite" aria-atomic="true">Memuat produk…</p>
+                <p id="category-results-message" class="category-page-results-message" aria-live="polite" hidden></p>
+                <button id="category-page-retry" class="category-page-retry" type="button" hidden>Coba lagi</button>
             </section>
             <div class="catalog-results-heading" aria-labelledby="catalog-results-title">
                 <div>
@@ -1946,7 +1967,7 @@
     <script src="assets/js/tiered-pricing-logic.js"></script>
     <script src="assets/js/image-slider.js?v=20260424a"></script>
     <script src="assets/js/promo-banner-carousel.js"></script>
-    <script src="assets/js/category-showcase.js?v=20261116b"></script>
+    <script src="assets/js/category-showcase.js?v=20261118a"></script>
     <script src="assets/js/sanitize.min.js"></script>
     <!-- Modal Detail Pesanan -->
     <div id="order-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[9999]" role="dialog" aria-modal="true" aria-labelledby="order-detail-title" tabindex="-1" data-modal>
@@ -1962,7 +1983,7 @@
             </div>
         </div>
     </div>
-    <script src="assets/js/script.js?v=20261115a"></script>
+    <script src="assets/js/script.js?v=20261118a"></script>
     <script src="assets/js/transaction-badge.js"></script>
 
     <script>

@@ -20,6 +20,37 @@
         return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
     }
 
+    function slugifyCategory(value) {
+        return normalizeCategory(value)
+            .toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .trim()
+            .replace(/[-\s]+/g, '-');
+    }
+
+    function buildCategoryPageUrl(category) {
+        const url = new URL(window.location.href);
+        url.search = '';
+        url.hash = '';
+        const categoryName = normalizeCategory(category);
+        const categorySlug = slugifyCategory(categoryName);
+        const catalogCategoryNames = [
+            ...(Array.isArray(window.categoryShowcaseCategories) ? window.categoryShowcaseCategories : []),
+            ...(Array.isArray(window.categoryShowcaseProducts) ? window.categoryShowcaseProducts.map((product) => (
+                normalizeCategory(product && (product.category || product.kategori))
+            )) : [])
+        ];
+        const catalogCategories = new Set(catalogCategoryNames.map(normalizeCategory).filter(Boolean));
+        const hasSlugCollision = Array.from(catalogCategories).some((candidate) => (
+            candidate.toLocaleLowerCase('id') !== categoryName.toLocaleLowerCase('id') &&
+            slugifyCategory(candidate) === categorySlug
+        ));
+        url.searchParams.set('view', 'category');
+        url.searchParams.set('category', categorySlug);
+        if (hasSlugCollision) url.searchParams.set('category_name', categoryName);
+        return `${url.pathname}${url.search}`;
+    }
+
     function normalizeImageUrl(value) {
         const url = String(value == null ? '' : value).trim();
         return /^(https?:\/\/)/i.test(url) ? url : '';
@@ -172,6 +203,11 @@
     function render(config) {
         const host = document.getElementById('category-showcase');
         if (!host) return;
+        if (new URLSearchParams(window.location.search || '').get('view') === 'category') {
+            host.innerHTML = '';
+            host.classList.add('hidden');
+            return;
+        }
         const safeConfig = normalizeConfig(config);
         host.innerHTML = '';
         if (!safeConfig.enabled) { host.classList.add('hidden'); return; }
@@ -184,7 +220,13 @@
                 ? `<img class="category-showcase-promo__image" src="${escapeAttribute(entry.image_url)}" alt="${escapeAttribute(entry.image_alt)}" loading="lazy" data-fallback-src="assets/img/product-placeholder.svg">`
                 : `<div class="category-showcase-promo__empty" aria-label="Belum ada gambar promo"><span>Tambahkan gambar promo dari panel admin</span></div>`;
             return `<div class="category-showcase-row" data-category-showcase-section>
-                <div class="category-showcase-header"><h2 id="${trackId}-title" class="category-showcase-title">${escapeHtml(entry.category)}</h2></div>
+                <div class="category-showcase-header">
+                    <h2 id="${trackId}-title" class="category-showcase-title">${escapeHtml(entry.category)}</h2>
+                    <a class="category-showcase-view-all" href="${escapeAttribute(buildCategoryPageUrl(entry.category))}" aria-label="Lihat semua produk dalam kategori ${escapeAttribute(entry.category)}">
+                        <span>Lihat Semua</span>
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10h12m-5-5 5 5-5 5"/></svg>
+                    </a>
+                </div>
                 <section class="category-showcase-section" style="--category-showcase-row-color:${escapeAttribute(entry.theme_color)}" data-category="${escapeHtml(entry.category)}" aria-labelledby="${trackId}-title">
                     <div class="category-showcase-viewport">
                     <aside class="category-showcase-promo">${image}</aside>
@@ -222,7 +264,7 @@
         if (action === 'update-product-card-qty' && typeof window.updateProductCardQty === 'function') window.updateProductCardQty(id, parseInt(trigger.getAttribute('data-delta'), 10));
     }
 
-    window.CategoryShowcase = { CONFIG_KEY, normalizeConfig, normalizeBackgroundColor, normalizeImageUrl, loadPublicConfig, render, renderSharedCards, isProductAvailable, filterAvailableProducts, sortProductsByAvailability };
+    window.CategoryShowcase = { CONFIG_KEY, normalizeConfig, normalizeBackgroundColor, normalizeImageUrl, slugifyCategory, buildCategoryPageUrl, loadPublicConfig, render, renderSharedCards, isProductAvailable, filterAvailableProducts, sortProductsByAvailability };
     document.addEventListener('DOMContentLoaded', () => {
         const host = document.getElementById('category-showcase');
         if (!host) return;

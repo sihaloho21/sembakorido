@@ -47,6 +47,12 @@ let currentCategory = 'Semua';
 let currentPage = 1;
 const itemsPerPage = 12;
 let filteredProducts = [];
+let categoryPageMode = false;
+let categoryPageReady = false;
+let categoryPageRequestedSlug = '';
+let categoryPageRequestedName = '';
+let categoryPageCategory = '';
+let categorySearchDebounceTimer = null;
 const P2_RECENTLY_VIEWED_KEY = 'sembako_recently_viewed_v1';
 const P2_RECENTLY_VIEWED_LIMIT = 6;
 let storeClosed = CONFIG.isStoreClosed();
@@ -469,6 +475,149 @@ function normalizeCategoryLabel(value) {
     return String(value || '').trim();
 }
 
+function slugifyCategoryLabel(value) {
+    const showcaseSlugifier = window.CategoryShowcase && window.CategoryShowcase.slugifyCategory;
+    return typeof showcaseSlugifier === 'function'
+        ? showcaseSlugifier(value)
+        : createSlug(normalizeCategoryLabel(value));
+}
+
+function resolveCategoryNameFromRoute(categories, requestedSlug, requestedName) {
+    const candidates = Array.isArray(categories) ? categories : [];
+    const normalizeName = (value) => normalizeCategoryLabel(value).replace(/\s+/g, ' ').toLocaleLowerCase('id');
+    if (requestedName) {
+        const requestedNameKey = normalizeName(requestedName);
+        const exactMatch = candidates.find((candidate) => normalizeName(candidate) === requestedNameKey);
+        return exactMatch && slugifyCategoryLabel(exactMatch) === requestedSlug ? exactMatch : '';
+    }
+
+    const slugMatches = candidates.filter((candidate) => slugifyCategoryLabel(candidate) === requestedSlug);
+    const uniqueMatches = new Map();
+    slugMatches.forEach((candidate) => {
+        const key = normalizeName(candidate);
+        if (!uniqueMatches.has(key)) uniqueMatches.set(key, candidate);
+    });
+    return uniqueMatches.size === 1 ? uniqueMatches.values().next().value : '';
+}
+
+function formatCategoryResultsCount(count) {
+    const parsedCount = Number(count);
+    const safeCount = Number.isFinite(parsedCount) ? Math.max(0, parsedCount) : 0;
+    return `Menampilkan ${safeCount.toLocaleString('id-ID')} Produk`;
+}
+
+function setCategoryPageMessage(message, showRetry = false) {
+    const messageElement = document.getElementById('category-results-message');
+    const retryButton = document.getElementById('category-page-retry');
+    if (messageElement) {
+        messageElement.textContent = message || '';
+        messageElement.hidden = !message;
+    }
+    if (retryButton) retryButton.hidden = !showRetry;
+}
+
+function showCategoryPageLoading() {
+    if (!categoryPageMode) return;
+    const countElement = document.getElementById('category-results-count');
+    const grid = document.getElementById('product-grid');
+    const pagination = document.getElementById('pagination-container');
+    if (countElement) countElement.textContent = 'Memuat produk…';
+    if (grid) grid.innerHTML = '<div class="category-results-loading" aria-hidden="true">Memuat produk…</div>';
+    if (pagination) pagination.innerHTML = '';
+    setCategoryPageMessage('', false);
+}
+
+function updateCategoryPageResults(query, count) {
+    const countElement = document.getElementById('category-results-count');
+    if (countElement) countElement.textContent = formatCategoryResultsCount(count);
+    if (count > 0) {
+        setCategoryPageMessage('', false);
+        return;
+    }
+    setCategoryPageMessage(query
+        ? 'Produk tidak ditemukan. Coba kata kunci lain.'
+        : 'Belum ada produk tersedia di kategori ini.', false);
+}
+
+function initializeCategoryPageShell() {
+    const params = new URLSearchParams(window.location.search || '');
+    categoryPageMode = params.get('view') === 'category';
+    if (!categoryPageMode) return;
+
+    categoryPageRequestedSlug = String(params.get('category') || '').trim();
+    categoryPageRequestedName = String(params.get('category_name') || '').trim();
+    document.body.classList.add('category-page-mode');
+    const pageView = document.getElementById('category-page-view');
+    if (pageView) pageView.hidden = false;
+    const countElement = document.getElementById('category-results-count');
+    if (countElement) countElement.textContent = 'Memuat produk…';
+
+    const form = document.getElementById('category-product-search-form');
+    const input = document.getElementById('category-product-search');
+    const clearButton = document.getElementById('category-product-search-clear');
+    const retryButton = document.getElementById('category-page-retry');
+
+    if (form) {
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            window.clearTimeout(categorySearchDebounceTimer);
+            if (categoryPageReady) filterProducts();
+        });
+    }
+    if (input) {
+        input.addEventListener('input', () => {
+            if (clearButton) clearButton.hidden = !input.value;
+            window.clearTimeout(categorySearchDebounceTimer);
+            if (!categoryPageReady) return;
+            categorySearchDebounceTimer = window.setTimeout(() => filterProducts(), 160);
+        });
+    }
+    if (clearButton) {
+        clearButton.addEventListener('click', () => {
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+            clearButton.hidden = true;
+            window.clearTimeout(categorySearchDebounceTimer);
+            if (categoryPageReady) filterProducts();
+        });
+    }
+    if (retryButton) retryButton.addEventListener('click', () => fetchProducts());
+}
+
+function resolveCategoryPageRoute() {
+    if (!categoryPageMode) return;
+    const category = resolveCategoryNameFromRoute(
+        getDisplayCategories(),
+        categoryPageRequestedSlug,
+        categoryPageRequestedName
+    );
+    const titleElement = document.getElementById('category-page-title');
+    const grid = document.getElementById('product-grid');
+    const pagination = document.getElementById('pagination-container');
+    const countElement = document.getElementById('category-results-count');
+
+    if (!category) {
+        categoryPageCategory = '';
+        if (titleElement) titleElement.textContent = 'Kategori tidak ditemukan';
+        document.title = 'Kategori tidak ditemukan | Paket Sembako';
+        if (countElement) countElement.textContent = formatCategoryResultsCount(0);
+        if (grid) grid.innerHTML = '';
+        if (pagination) pagination.innerHTML = '';
+        setCategoryPageMessage('Kategori tidak ditemukan.', false);
+        return;
+    }
+
+    categoryPageCategory = category;
+    currentCategory = category;
+    if (titleElement) titleElement.textContent = category;
+    document.title = `${category} | Paket Sembako`;
+    const searchInput = document.getElementById('category-product-search');
+    if (searchInput) searchInput.placeholder = `Cari produk di ${category}…`;
+    filterProducts();
+}
+
 function extractCategoryName(row) {
     if (!row || typeof row !== 'object') return '';
     const candidates = ['nama', 'name', 'kategori', 'category', 'judul', 'title'];
@@ -676,6 +825,10 @@ function syncCartWithStockLimits(options) {
 
 async function fetchProducts() {
     const storeStatusPromise = CONFIG.refreshStoreStatus();
+    if (categoryPageMode) {
+        categoryPageReady = false;
+        showCategoryPageLoading();
+    }
     try {
         // Use ApiService with caching (5 minutes)
         const [products, categories] = await Promise.all([
@@ -742,10 +895,15 @@ async function fetchProducts() {
             };
         });
         window.categoryShowcaseProducts = allProducts;
+        window.categoryShowcaseCategories = getDisplayCategories();
         syncCartWithStockLimits();
         renderCategoryFilters(); // Render dynamic categories
-        filterProducts();
-        scheduleP2PersonalizedSections();
+        categoryPageReady = true;
+        if (categoryPageMode) resolveCategoryPageRoute();
+        else {
+            filterProducts();
+            scheduleP2PersonalizedSections();
+        }
         if (window.CategoryShowcase) {
             window.CategoryShowcase.loadPublicConfig().then(window.CategoryShowcase.render);
         }
@@ -756,7 +914,15 @@ async function fetchProducts() {
     } catch (error) {
         console.error('Error fetching products:', error);
         const grid = document.getElementById('product-grid');
-        if (grid) {
+        const pagination = document.getElementById('pagination-container');
+        if (categoryPageMode) {
+            categoryPageReady = false;
+            if (grid) grid.innerHTML = '';
+            if (pagination) pagination.innerHTML = '';
+            const countElement = document.getElementById('category-results-count');
+            if (countElement) countElement.textContent = formatCategoryResultsCount(0);
+            setCategoryPageMessage('Gagal memuat produk. Periksa koneksi lalu coba lagi.', true);
+        } else if (grid) {
             grid.innerHTML = '<p class="text-center col-span-full text-red-500">Gagal memuat produk. Silakan coba lagi nanti.</p>';
         }
     }
@@ -2132,6 +2298,12 @@ function renderProducts(products) {
     if (!grid) return;
     
     if (products.length === 0) {
+        if (categoryPageMode) {
+            grid.innerHTML = '';
+            const pagination = document.getElementById('pagination-container');
+            if (pagination) pagination.innerHTML = '';
+            return;
+        }
         grid.innerHTML = '<p class="text-center col-span-full text-gray-500 py-10">Tidak ada produk yang ditemukan.</p>';
         document.getElementById('pagination-container').innerHTML = '';
         return;
@@ -2278,6 +2450,19 @@ function sortProductsByAvailability(products) {
 }
 
 function filterProducts() {
+    if (categoryPageMode) {
+        if (!categoryPageReady) return;
+        const categorySearchInput = document.getElementById('category-product-search');
+        const categoryQuery = categorySearchInput ? normalizeSearch(categorySearchInput.value) : '';
+        filteredProducts = sortProductsByAvailability(
+            getCategoryPageProducts(allProducts, categoryPageCategory, categoryQuery)
+        );
+        currentPage = 1;
+        renderProducts(filteredProducts);
+        renderPagination(filteredProducts.length);
+        updateCategoryPageResults(categoryQuery, filteredProducts.length);
+        return;
+    }
     const searchInput = document.getElementById('search-input');
     const query = searchInput ? normalizeSearch(searchInput.value) : '';
     const availableProducts = window.CategoryShowcase && typeof window.CategoryShowcase.filterAvailableProducts === 'function'
@@ -2311,9 +2496,12 @@ function tokenize(value) {
     return normalizeSearch(value).split(' ').filter(Boolean);
 }
 
-function matchesQuery(product, query) {
+function matchesQuery(product, query, includeVariations = false) {
     if (!query) return true;
-    const name = normalizeSearch(product.nama);
+    const variationNames = includeVariations && Array.isArray(product.variations)
+        ? product.variations.map((variation) => variation && variation.nama).filter(Boolean).join(' ')
+        : '';
+    const name = normalizeSearch(`${product.nama || ''} ${variationNames}`);
     const desc = normalizeSearch(product.deskripsi || '');
     const haystack = `${name} ${desc}`.trim();
     const compactQuery = query.replace(/\s+/g, '');
@@ -2322,6 +2510,27 @@ function matchesQuery(product, query) {
     if (compactQuery && compactHaystack.includes(compactQuery)) return true;
     const tokens = tokenize(query);
     return tokens.every((token) => haystack.includes(token));
+}
+
+function getCategoryPageProducts(products, category, query) {
+    const categoryKey = normalizeCategoryLabel(category).replace(/\s+/g, ' ').toLocaleLowerCase('id');
+    if (!categoryKey) return [];
+
+    const source = window.CategoryShowcase && typeof window.CategoryShowcase.filterAvailableProducts === 'function'
+        ? window.CategoryShowcase.filterAvailableProducts(products)
+        : (Array.isArray(products) ? products.filter((product) => {
+            if (!product || product.isHidden === true || !hasProductAvailableStock(product)) return false;
+            const status = normalizeCategoryLabel(product.status).toLocaleLowerCase('id').replace(/[_-]+/g, ' ');
+            return !['sembunyikan', 'disembunyikan', 'hidden', 'off', 'tidak tersedia', 'tidak tersedia saat ini', 'unavailable', 'not available', 'out of stock', 'habis', 'stok habis'].includes(status);
+        }) : []);
+    const normalizedQuery = normalizeSearch(query);
+
+    return source.filter((product) => {
+        const productCategory = normalizeCategoryLabel(product && (product.category || product.kategori))
+            .replace(/\s+/g, ' ')
+            .toLocaleLowerCase('id');
+        return productCategory === categoryKey && matchesQuery(product, normalizedQuery, true);
+    });
 }
 
 function renderSearchSuggestions(query) {
@@ -2414,6 +2623,11 @@ function easeInOutCubic(progress) {
 }
 
 function getPaginationScrollAnchor() {
+    if (categoryPageMode) {
+        return document.getElementById('category-page-view') ||
+            document.getElementById('product-grid') ||
+            document.getElementById('katalog');
+    }
     return document.getElementById('product-grid') ||
         document.getElementById('search-input') ||
         document.getElementById('katalog');
@@ -5527,6 +5741,7 @@ function showNotification(text) {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    initializeCategoryPageShell();
     fetchProducts();
     fetchTukarPoin();
 
