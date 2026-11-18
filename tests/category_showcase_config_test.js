@@ -86,6 +86,8 @@ assert.match(showcaseCss, /\.category-showcase\s*\{[^}]*margin-inline:\s*calc\(5
 assert.match(showcaseCss, /\.category-showcase-section\s*\{[^}]*background:\s*var\(--category-showcase-row-color,[^}]+\);[^}]*border:\s*0;[^}]*border-radius:\s*0;[^}]*width:\s*100%;/s, 'each square category panel should paint its configured background across the full host');
 assert.match(showcaseCss, /\.category-showcase-title\s*\{[^}]*font-size:\s*18px;[^}]*font-weight:\s*600;/s, 'category titles should be 18px semibold');
 assert.match(source, /<div class="category-showcase-header">[\s\S]*?<h2[^>]*class="category-showcase-title"[\s\S]*?<a class="category-showcase-view-all"[\s\S]*?<\/div>\s*<section class="category-showcase-section"/, 'the title and view-all CTA should sit above the colored category panel');
+assert.match(showcaseCss, /\.category-showcase-header\s*\{[^}]*display:\s*flex;[^}]*align-items:\s*center;[^}]*justify-content:\s*space-between;/s, 'category title and view-all CTA should share one row with the CTA at the right edge');
+assert.match(showcaseCss, /\.category-showcase-view-all\s*\{[^}]*margin-left:\s*auto;[^}]*white-space:\s*nowrap;/s, 'view-all CTA should stay flush right without wrapping');
 assert.doesNotMatch(source, /category-showcase-title-icon/, 'the title icon should be removed');
 assert.doesNotMatch(showcaseCss, /category-showcase-title-icon/, 'unused title icon styles should be removed');
 assert.doesNotMatch(showcaseCss, /\.category-showcase-promo\s*\{[^}]*border(?:-radius)?:/s, 'promo imagery should have no border or rounded corners');

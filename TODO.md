@@ -2,6 +2,7 @@
 
 ## Homepage CTA “Lihat Semua” per kategori
 - [x] Setiap section category showcase yang dirender memiliki CTA **“Lihat Semua”** di sisi kanan header.
+- [x] Nama kategori dan CTA **“Lihat Semua”** berada sejajar dalam satu baris; CTA rata ke tepi kanan header.
 - [x] CTA membuka kategori yang tepat; kategori lain tidak tercampur pada daftar.
 - [x] CTA dapat diakses dengan keyboard dan memiliki nama aksesibel yang menyebut kategori.
 - [x] Section yang tidak dirender karena tidak ada produk yang memenuhi syarat tidak menampilkan CTA.
