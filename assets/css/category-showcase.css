@@ -70,8 +70,10 @@
   display: none;
 }
 
+/* Clip card contents to the shared rounded corners inside the carousel. */
 .category-showcase-track > .product-card-shell {
   flex: 0 0 min(46vw, 11.5rem);
+  overflow: hidden;
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }

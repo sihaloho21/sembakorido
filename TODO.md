@@ -23,5 +23,6 @@
 
 ## Konsistensi kartu dan layout
 - [x] Kartu memakai renderer dan aksi produk storefront yang sama serta tidak menampilkan status stok di grid.
+- [x] Kartu produk pada category showcase memiliki sudut atas rounded; perubahan clipping hanya berlaku pada kartu carousel showcase, bukan grid utama.
 - [x] Tampilan responsif pada desktop/mobile dan menggunakan pola visual storefront yang ada.
 - [x] Jumlah hasil menghitung produk katalog, bukan jumlah varian atau unit stok; bila pagination digunakan, count menunjukkan total yang cocok, bukan hanya kartu pada halaman aktif.

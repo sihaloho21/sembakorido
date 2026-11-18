@@ -92,7 +92,8 @@ assert.doesNotMatch(source, /category-showcase-title-icon/, 'the title icon shou
 assert.doesNotMatch(showcaseCss, /category-showcase-title-icon/, 'unused title icon styles should be removed');
 assert.doesNotMatch(showcaseCss, /\.category-showcase-promo\s*\{[^}]*border(?:-radius)?:/s, 'promo imagery should have no border or rounded corners');
 assert.match(source, /class="category-showcase-section" style="--category-showcase-row-color:\$\{escapeAttribute\(entry\.theme_color\)\}"/, 'each category panel should retain its configured background');
-assert.match(homepageSource, /product-card-shell bg-white/, 'product cards should remain white over the green surface');
+assert.match(homepageSource, /product-card-shell bg-white rounded-lg md:rounded-xl/, 'shared product cards should keep their rounded corners');
+assert.match(showcaseCss, /\.category-showcase-track\s*>\s*\.product-card-shell\s*\{[^}]*overflow:\s*hidden;/s, 'carousel cards should clip image content to reveal rounded top corners');
 assert.match(showcaseCss, /\.category-showcase-track\s*\{[^}]*overflow-x:\s*auto/s, 'horizontal carousel scrolling must remain enabled');
 assert.match(showcaseCss, /scroll-behavior:\s*smooth;[\s\S]*?scroll-snap-type:\s*x mandatory;/, 'carousel movement should animate and snap to products');
 assert.match(showcaseCss, /\.category-showcase-track\s*>\s*\.product-card-shell\s*\{[^}]*scroll-snap-stop:\s*always;/s, 'carousel transitions should settle on each product card');
