@@ -52,6 +52,7 @@ let categoryPageReady = false;
 let categoryPageRequestedSlug = '';
 let categoryPageRequestedName = '';
 let categoryPageCategory = '';
+let categoryPageCategoryRecord = null;
 let categorySearchDebounceTimer = null;
 const P2_RECENTLY_VIEWED_KEY = 'sembako_recently_viewed_v1';
 const P2_RECENTLY_VIEWED_LIMIT = 6;
@@ -586,20 +587,39 @@ function initializeCategoryPageShell() {
     if (retryButton) retryButton.addEventListener('click', () => fetchProducts());
 }
 
+function renderCategoryPageNavigation(category) {
+    const breadcrumb = document.querySelector('.category-page-breadcrumb');
+    if (!breadcrumb || !category) return;
+    const names = Array.isArray(category.pathNames) ? category.pathNames : [category.name];
+    const links = names.map((name, index) => {
+        const ancestor = allCategories.find((item) => item.name === name && item.depth === index + 1);
+        const href = window.CategoryShowcase && typeof window.CategoryShowcase.buildCategoryPageUrl === 'function'
+            ? window.CategoryShowcase.buildCategoryPageUrl(ancestor || name)
+            : `index.html?view=category&category=${encodeURIComponent(slugifyCategoryLabel(name))}`;
+        return `<a class="category-page-crumb-link${index === names.length - 1 ? ' is-current' : ''}" href="${escapeAttribute(href)}">${escapeHtml(name)}</a>`;
+    }).join('<span class="category-page-crumb-separator" aria-hidden="true">›</span>');
+    const children = typeof CategoryTree !== 'undefined' ? CategoryTree.childrenOf(allCategories, category.id) : [];
+    const childMarkup = children.length ? `<div class="category-page-children" aria-label="Subkategori ${escapeAttribute(category.name)}"><span class="category-page-children-label">Jelajahi subkategori:</span>${children.map((child) => {
+        const href = window.CategoryShowcase && typeof window.CategoryShowcase.buildCategoryPageUrl === 'function'
+            ? window.CategoryShowcase.buildCategoryPageUrl(child) : '#';
+        return `<a class="category-page-child-link" href="${escapeAttribute(href)}">${escapeHtml(child.name)}</a>`;
+    }).join('')}</div>` : '';
+    breadcrumb.innerHTML = escapeHtml('') + `<a href="index.html" class="category-page-back-link"><span>‹ Beranda</span></a><span class="category-page-crumb-separator" aria-hidden="true">›</span>${links}${childMarkup}`;
+}
 function resolveCategoryPageRoute() {
     if (!categoryPageMode) return;
-    const category = resolveCategoryNameFromRoute(
-        getDisplayCategories(),
-        categoryPageRequestedSlug,
-        categoryPageRequestedName
-    );
+    const params = new URLSearchParams(window.location.search || '');
+    const category = typeof CategoryTree !== 'undefined' && allCategories.length
+        ? CategoryTree.findCategory(allCategories, categoryPageRequestedSlug, categoryPageRequestedName, params.get('category_id') || '')
+        : null;
+    const legacyCategory = category || resolveCategoryNameFromRoute(getDisplayCategories(), categoryPageRequestedSlug, categoryPageRequestedName);
     const titleElement = document.getElementById('category-page-title');
     const grid = document.getElementById('product-grid');
     const pagination = document.getElementById('pagination-container');
     const countElement = document.getElementById('category-results-count');
-
-    if (!category) {
+    if (!legacyCategory) {
         categoryPageCategory = '';
+        categoryPageCategoryRecord = null;
         if (titleElement) titleElement.textContent = 'Kategori tidak ditemukan';
         document.title = 'Kategori tidak ditemukan | Paket Sembako';
         if (countElement) countElement.textContent = formatCategoryResultsCount(0);
@@ -608,16 +628,16 @@ function resolveCategoryPageRoute() {
         setCategoryPageMessage('Kategori tidak ditemukan.', false);
         return;
     }
-
-    categoryPageCategory = category;
-    currentCategory = category;
-    if (titleElement) titleElement.textContent = category;
-    document.title = `${category} | Paket Sembako`;
+    categoryPageCategoryRecord = category;
+    categoryPageCategory = category ? category.name : legacyCategory;
+    currentCategory = categoryPageCategory;
+    if (titleElement) titleElement.textContent = category ? category.name : legacyCategory;
+    if (category) renderCategoryPageNavigation(category);
+    document.title = `${category ? category.path : legacyCategory} | Paket Sembako`;
     const searchInput = document.getElementById('category-product-search');
-    if (searchInput) searchInput.placeholder = `Cari produk di ${category}…`;
+    if (searchInput) searchInput.placeholder = `Cari produk di ${category ? category.name : legacyCategory}…`;
     filterProducts();
 }
-
 function extractCategoryName(row) {
     if (!row || typeof row !== 'object') return '';
     const candidates = ['nama', 'name', 'kategori', 'category', 'judul', 'title'];
@@ -664,47 +684,20 @@ function getDisplayCategories() {
         merged.push(category);
     };
 
-    allCategories.forEach(pushUnique);
+    allCategories.forEach((item) => pushUnique(item && item.name ? item.name : item));
     fromProducts.forEach(pushUnique);
     return merged;
 }
 
 async function fetchCategories() {
     try {
-        const rows = await ApiService.get('?sheet=categories', {
-            cacheDuration: 5 * 60 * 1000
-        });
-        if (!Array.isArray(rows) || rows.length === 0) {
-            return [];
-        }
-
-        const parsed = rows
-            .map((row, index) => ({
-                name: extractCategoryName(row),
-                order: extractCategorySortOrder(row, index)
-            }))
-            .filter((item) => item.name !== '')
-            .sort((a, b) => {
-                if (a.order !== b.order) return a.order - b.order;
-                return a.name.localeCompare(b.name, 'id');
-            })
-            .map((item) => item.name);
-
-        const unique = [];
-        const seen = {};
-        parsed.forEach((name) => {
-            const key = name.toLowerCase();
-            if (seen[key]) return;
-            seen[key] = true;
-            unique.push(name);
-        });
-        return unique;
+        const rows = await ApiService.get('?sheet=categories', { cacheDuration: 5 * 60 * 1000 });
+        return Array.isArray(rows) ? rows : [];
     } catch (error) {
         console.warn('Categories endpoint unavailable, fallback ke kategori produk:', error);
         return [];
     }
 }
-
 function getItemMaxStock(item) {
     if (!item) return 0;
     const source = item.selectedVariation || item;
@@ -837,7 +830,7 @@ async function fetchProducts() {
             }),
             fetchCategories()
         ]);
-        allCategories = categories;
+        allCategories = typeof CategoryTree !== 'undefined' ? CategoryTree.normalizeCategories(categories) : categories;
         
         allProducts = products.map((p, index) => {
             const cashPrice = parseInt(p.harga) || 0;
@@ -895,7 +888,7 @@ async function fetchProducts() {
             };
         });
         window.categoryShowcaseProducts = allProducts;
-        window.categoryShowcaseCategories = getDisplayCategories();
+        window.categoryShowcaseCategories = Array.isArray(allCategories) && allCategories.length ? allCategories : getDisplayCategories();
         syncCartWithStockLimits();
         renderCategoryFilters(); // Render dynamic categories
         categoryPageReady = true;
@@ -2513,26 +2506,26 @@ function matchesQuery(product, query, includeVariations = false) {
 }
 
 function getCategoryPageProducts(products, category, query) {
-    const categoryKey = normalizeCategoryLabel(category).replace(/\s+/g, ' ').toLocaleLowerCase('id');
+    const categoryKey = normalizeCategoryLabel(category && category.name ? category.name : category).replace(/\s+/g, ' ').toLocaleLowerCase('id');
     if (!categoryKey) return [];
-
     const source = window.CategoryShowcase && typeof window.CategoryShowcase.filterAvailableProducts === 'function'
         ? window.CategoryShowcase.filterAvailableProducts(products)
-        : (Array.isArray(products) ? products.filter((product) => {
-            if (!product || product.isHidden === true || !hasProductAvailableStock(product)) return false;
-            const status = normalizeCategoryLabel(product.status).toLocaleLowerCase('id').replace(/[_-]+/g, ' ');
-            return !['sembunyikan', 'disembunyikan', 'hidden', 'off', 'tidak tersedia', 'tidak tersedia saat ini', 'unavailable', 'not available', 'out of stock', 'habis', 'stok habis'].includes(status);
-        }) : []);
+        : (Array.isArray(products) ? products.filter((product) => product && product.isHidden !== true && hasProductAvailableStock(product)) : []);
     const normalizedQuery = normalizeSearch(query);
-
-    return source.filter((product) => {
-        const productCategory = normalizeCategoryLabel(product && (product.category || product.kategori))
-            .replace(/\s+/g, ' ')
-            .toLocaleLowerCase('id');
-        return productCategory === categoryKey && matchesQuery(product, normalizedQuery, true);
+    let scoped = source;
+    if (typeof CategoryTree !== 'undefined' && categoryPageCategoryRecord) {
+        scoped = CategoryTree.productsInScope(source, allCategories, categoryPageCategoryRecord);
+    } else {
+        scoped = source.filter((product) => normalizeCategoryLabel(product && (product.category || product.kategori)).replace(/\s+/g, ' ').toLocaleLowerCase('id') === categoryKey);
+    }
+    const unique = new Set();
+    return scoped.filter((product, index) => {
+        const id = String(product.productId || product.id || product.sku || product.slug || `row:${index}`);
+        if (unique.has(id) || !matchesQuery(product, normalizedQuery, true)) return false;
+        unique.add(id);
+        return true;
     });
 }
-
 function renderSearchSuggestions(query) {
     const mainContainer = document.getElementById('search-suggestions');
     const headerContainer = document.getElementById('search-suggestions-header');

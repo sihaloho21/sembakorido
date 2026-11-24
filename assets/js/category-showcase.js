@@ -21,36 +21,27 @@
     }
 
     function slugifyCategory(value) {
-        return normalizeCategory(value)
-            .toLowerCase()
-            .replace(/[^\w\s-]/g, '')
-            .trim()
-            .replace(/[-\s]+/g, '-');
+        const raw = value && typeof value === 'object' ? (value.path || value.name) : value;
+        return normalizeCategory(raw).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s-]/g, '').trim().replace(/[-\s]+/g, '-');
     }
-
     function buildCategoryPageUrl(category) {
         const url = new URL(window.location.href);
         url.search = '';
         url.hash = '';
-        const categoryName = normalizeCategory(category);
-        const categorySlug = slugifyCategory(categoryName);
-        const catalogCategoryNames = [
-            ...(Array.isArray(window.categoryShowcaseCategories) ? window.categoryShowcaseCategories : []),
-            ...(Array.isArray(window.categoryShowcaseProducts) ? window.categoryShowcaseProducts.map((product) => (
-                normalizeCategory(product && (product.category || product.kategori))
-            )) : [])
-        ];
-        const catalogCategories = new Set(catalogCategoryNames.map(normalizeCategory).filter(Boolean));
-        const hasSlugCollision = Array.from(catalogCategories).some((candidate) => (
-            candidate.toLocaleLowerCase('id') !== categoryName.toLocaleLowerCase('id') &&
-            slugifyCategory(candidate) === categorySlug
-        ));
+        const categoryName = normalizeCategory(category && typeof category === 'object' ? category.name : category);
+        const categoryPath = normalizeCategory(category && typeof category === 'object' ? category.path : categoryName);
+        const categorySlug = slugifyCategory(category && typeof category === 'object' ? (category.path || category.name) : categoryName);
         url.searchParams.set('view', 'category');
         url.searchParams.set('category', categorySlug);
-        if (hasSlugCollision) url.searchParams.set('category_name', categoryName);
+        if (category && typeof category === 'object' && category.id && !String(category.id).startsWith('legacy:')) url.searchParams.set('category_id', category.id);
+        const catalogNames = [
+            ...(Array.isArray(window.categoryShowcaseCategories) ? window.categoryShowcaseCategories.map((item) => normalizeCategory(item && item.name ? item.name : item)) : []),
+            ...(Array.isArray(window.categoryShowcaseProducts) ? window.categoryShowcaseProducts.map((product) => normalizeCategory(product && (product.category || product.kategori))) : [])
+        ].filter(Boolean);
+        const collision = catalogNames.some((candidate) => candidate.toLocaleLowerCase('id') !== categoryName.toLocaleLowerCase('id') && slugifyCategory(candidate) === categorySlug);
+        if (collision || (category && typeof category === 'object' && categoryPath !== categoryName)) url.searchParams.set('category_name', categoryPath);
         return `${url.pathname}${url.search}`;
     }
-
     function normalizeImageUrl(value) {
         const url = String(value == null ? '' : value).trim();
         return /^(https?:\/\/)/i.test(url) ? url : '';
@@ -79,6 +70,7 @@
             if (!Number.isInteger(maxProducts) || maxProducts < CATEGORY_MIN || maxProducts > CATEGORY_MAX) return null;
             return {
                 category,
+                ...(entry.category_id ? { category_id: String(entry.category_id).trim() } : {}),
                 enabled: entry.enabled === true || String(entry.enabled).toLowerCase() === 'true',
                 sort_order: sortOrder,
                 max_products: maxProducts,
@@ -153,14 +145,16 @@
     }
 
     function getCategoryProducts(category, limit) {
-        const target = normalizeCategory(category).toLocaleLowerCase('id');
-        const categoryProducts = (Array.isArray(window.categoryShowcaseProducts) ? window.categoryShowcaseProducts : []).filter((product) => {
-            const productCategory = normalizeCategory(product.category || product.kategori).toLocaleLowerCase('id');
-            return productCategory === target;
-        });
+        const products = Array.isArray(window.categoryShowcaseProducts) ? window.categoryShowcaseProducts : [];
+        let categoryProducts = products;
+        if (window.CategoryTree && Array.isArray(window.categoryShowcaseCategories) && category && typeof category === 'object') {
+            categoryProducts = window.CategoryTree.productsInScope(products, window.categoryShowcaseCategories, category);
+        } else {
+            const target = normalizeCategory(category && category.name ? category.name : category).toLocaleLowerCase('id');
+            categoryProducts = products.filter((product) => normalizeCategory(product.category || product.kategori).toLocaleLowerCase('id') === target);
+        }
         return sortProductsByAvailability(filterAvailableProducts(categoryProducts)).slice(0, limit);
     }
-
     function renderSharedCards(products) {
         const grid = document.getElementById('product-grid');
         if (!grid || typeof window.renderProducts !== 'function') return '';
@@ -212,7 +206,10 @@
         host.innerHTML = '';
         if (!safeConfig.enabled) { host.classList.add('hidden'); return; }
         const sections = safeConfig.categories.map((entry, index) => {
-            const products = getCategoryProducts(entry.category, entry.max_products);
+            const categoryRecord = window.CategoryTree && Array.isArray(window.categoryShowcaseCategories)
+                ? window.categoryShowcaseCategories.find((item) => item.id === entry.category_id || item.name.toLocaleLowerCase('id') === entry.category.toLocaleLowerCase('id'))
+                : entry.category;
+            const products = getCategoryProducts(categoryRecord || entry.category, entry.max_products);
             if (!entry.enabled || products.length === 0) return '';
             const trackId = `category-showcase-track-${index}`;
             const cards = renderSharedCards(products);
@@ -222,7 +219,7 @@
             return `<div class="category-showcase-row" data-category-showcase-section>
                 <div class="category-showcase-header">
                     <h2 id="${trackId}-title" class="category-showcase-title">${escapeHtml(entry.category)}</h2>
-                    <a class="category-showcase-view-all" href="${escapeAttribute(buildCategoryPageUrl(entry.category))}" aria-label="Lihat semua produk dalam kategori ${escapeAttribute(entry.category)}">
+                    <a class="category-showcase-view-all" href="${escapeAttribute(buildCategoryPageUrl(categoryRecord || entry.category))}" aria-label="Lihat semua produk dalam kategori ${escapeAttribute(entry.category)}">
                         <span>Lihat Semua</span>
                         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10h12m-5-5 5 5-5 5"/></svg>
                     </a>
