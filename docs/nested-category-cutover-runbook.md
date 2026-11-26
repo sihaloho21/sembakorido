@@ -148,3 +148,7 @@ Simpan hasil verifikasi, log operator, dan referensi backup sebagai bukti cutove
 - Backup produksi: **belum dibuat**.
 - Otorisasi apply produksi: **belum diberikan**.
 - Apply/cutover produksi: **belum dijalankan**.
+- Editor admin drag-and-drop kini men-stage perubahan secara lokal, memvalidasi cycle/depth, dan menampilkan preview sebelum apply.
+- Aksi backend `nested_category_backup` dan `nested_category_apply` disediakan pada `docs/gas_nested_category_admin_actions.gs`; keduanya belum dianggap aktif sampai dipasang dan dideploy di project GAS.
+- Dengan schema sumber yang masih belum memuat `parent_id`, kontrol drag/apply sengaja tetap nonaktif. Preview cutover tetap read-only.
+- Detail pemasangan dan alur UI: `docs/nested-category-admin-editor.md`.

@@ -682,7 +682,7 @@
                         <div>
                             <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Nested catalog</p>
                             <h3 class="text-xl font-extrabold mt-1">Struktur kategori bertingkat</h3>
-                            <p class="text-sm text-slate-300 mt-1">Preview tree dari <code>parent_id</code>. Panel ini read-only dan tidak mengubah spreadsheet.</p>
+                            <p class="text-sm text-slate-300 mt-1">Atur hierarki secara lokal, tinjau preview, lalu terapkan hanya setelah validasi dan backup berhasil.</p>
                         </div>
                         <button type="button" data-action="nested-category-refresh" class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-slate-950 hover:bg-emerald-400 transition">
                             <span aria-hidden="true">↻</span> Refresh tree
@@ -691,12 +691,21 @@
                     <div class="p-6 md:p-8 space-y-5">
                         <div id="nested-category-summary" class="grid grid-cols-2 md:grid-cols-4 gap-3" aria-live="polite"></div>
                         <div id="nested-category-validation" class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300" aria-live="polite">Memuat validasi kategori…</div>
+                        <div id="nested-category-editor-notice" class="rounded-xl border border-sky-400/30 bg-sky-400/10 px-4 py-3 text-sm text-sky-100" aria-live="polite">Memeriksa schema dan kesiapan backend…</div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button type="button" data-action="nested-category-reset" class="rounded-xl border border-white/20 px-4 py-2.5 text-sm font-bold text-white hover:bg-white/10" disabled>Batalkan preview</button>
+                            <button type="button" data-action="nested-category-apply" class="rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-extrabold text-slate-950 hover:bg-amber-300" disabled>Terapkan perubahan</button>
+                            <button type="button" data-action="nested-category-cutover-preview" class="rounded-xl border border-cyan-300/40 px-4 py-2.5 text-sm font-bold text-cyan-100 hover:bg-cyan-300/10">Preview cutover (read-only)</button>
+                            <span id="nested-category-draft-count" class="text-sm text-slate-300" aria-live="polite">Belum ada perubahan lokal.</span>
+                        </div>
+                        <div id="nested-category-cutover-report" class="hidden rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-4 text-sm text-slate-100" aria-live="polite"></div>
                         <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(260px,0.8fr)] gap-5">
                             <div class="rounded-2xl bg-white text-slate-800 p-5">
                                 <div class="flex items-center justify-between gap-3 mb-4">
-                                    <h4 class="font-extrabold">Category tree</h4>
-                                    <span class="text-xs text-slate-500">Urut berdasarkan sort_order</span>
+                                    <h4 class="font-extrabold">Preview hierarki</h4>
+                                    <span class="text-xs text-slate-500">Seret kategori ke parent baru atau ke root</span>
                                 </div>
+                                <button type="button" data-category-drop-target="" class="nested-category-root-drop mb-3 w-full" aria-label="Jadikan kategori root">Lepaskan di sini untuk menjadikan kategori root</button>
                                 <div id="nested-category-tree" class="nested-category-tree" aria-live="polite"></div>
                             </div>
                             <div class="rounded-2xl bg-white/10 border border-white/10 p-5">
@@ -2137,6 +2146,7 @@
     <script src="../assets/js/paylater-logic.js"></script>
     <script src="../assets/js/api-service.min.js"></script>
     <script src="../assets/js/gas-actions.js"></script>
+    <script src="../assets/js/nested-category-editor.js?v=20261126a"></script>
     <script src="js/api-helper.js"></script>
     <script src="../assets/js/sanitize.min.js"></script>
     <script src="js/admin-script.js?v=20261116a"></script>
