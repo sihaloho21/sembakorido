@@ -6,11 +6,11 @@ Dokumen ini membantu melanjutkan pekerjaan tanpa menebak-nebak. **Spreadsheet pr
 
 - Branch fitur: `feat/nested-category-admin-editor-20261126`.
 - Draft PR #29: [feat: safe nested category admin editor](https://github.com/sihaloho21/sembakorido/pull/29). PR masih OPEN/Draft; belum di-merge.
-- Perbaikan review sudah di-commit dan dipush sebagai [`a9235cf`](https://github.com/sihaloho21/sembakorido/commit/a9235cf95735daf5828f2b087257288ef9728c87); working tree bersih.
+- Perbaikan kode sudah di-commit dan dipush sebagai [`a9235cf`](https://github.com/sihaloho21/sembakorido/commit/a9235cf95735daf5828f2b087257288ef9728c87); checklist staging kemudian diperbarui di [`2c75e7d`](https://github.com/sihaloho21/sembakorido/commit/2c75e7d8b687c54e77e35fcf659d9398e608f66b). Working tree bersih.
 - [Deploy preview PR #29](https://deploy-preview-29--eloquent-jelly-08a8ae.netlify.app) sudah membangun revision terbaru. Pemeriksaan read-only menerima HTTP 200 untuk `admin/index.html` dan `admin/js/admin-script.js`; markup memuat cache-buster `20261126b`. Tidak ada JavaScript admin yang dijalankan, dan tidak ada endpoint backend/spreadsheet yang dipanggil.
 - `npm test`, pemeriksaan sintaks JavaScript, dan `git diff --check` lulus setelah push.
 - Review independen menemukan beberapa masalah UI/GAS; sudah diperbaiki secara lokal: interaksi saat apply dibekukan, refresh mengambil data sumber terbaru tanpa cache, move invalid ditolak, preview schema tidak lagi menyebut READY jika header literal `id`/`nama` tidak ada, backup diverifikasi dari file salinan, write memeriksa ulang fingerprint dan ID, rollback hanya menyasar sel yang dicoba dan diverifikasi, dan detail kategori dibersihkan setelah reload.
-- **CI pada commit `a9235cf` gagal hanya di `build`**; pemeriksaan Netlify Redirect/Header berhasil dan `Pages changed` berstatus neutral. Log build menunjukkan deklarasi `addressIndexToDelete` berulang di `assets/js/akun.bundle.js` (baris 372 dan 559) setelah `scripts/bundle-akun.js` menggabungkan `assets/js/script.min.js` dan `assets/js/akun.min.js`. Berkas input/bundler tidak diubah oleh PR dibanding `origin/main`; kegagalan tampak berasal dari baseline. PR jangan di-merge sebelum build hijau atau pemilik repo menyetujui perbaikan baseline.
+- **CI terbaru setelah commit `2c75e7d` juga gagal hanya di `CI/build`** (1 gagal, 15 sukses, 5 dilewati; seluruh deploy preview siap). Log build pada kode `a9235cf` menunjukkan deklarasi `addressIndexToDelete` berulang di `assets/js/akun.bundle.js` (baris 372 dan 559) setelah `scripts/bundle-akun.js` menggabungkan `assets/js/script.min.js` dan `assets/js/akun.min.js`. Berkas input/bundler tidak diubah oleh PR dibanding `origin/main`; kegagalan tampak berasal dari baseline. PR jangan di-merge sebelum build hijau atau pemilik repo menyetujui perbaikan baseline.
 - Google Workspace connector kini aktif atas izin Anda. Pencarian Drive **metadata-only** tidak menemukan spreadsheet dengan label staging/test/dev; pencarian nama terkait proyek menemukan dua kandidat (satu file utama dan satu salinan), tetapi salinan belum terbukti sebagai staging. Isi spreadsheet tidak dibuka; belum dipastikan mana pun aman untuk tes. Tidak ada file yang diubah.
 - Tidak ada tindakan tulis ke spreadsheet, pembuatan backup, instalasi/deploy GAS, atau merge yang dilakukan.
 
@@ -26,7 +26,7 @@ Dokumen ini membantu melanjutkan pekerjaan tanpa menebak-nebak. **Spreadsheet pr
 
 ### 1. Sinkronkan revisi terbaru ke PR dan tinjau ulang CI
 
-- [x] Commit dan push perubahan lokal ke branch fitur: commit `a9235cf`.
+- [x] Commit dan push perubahan kode (`a9235cf`) beserta checklist terbaru (`2c75e7d`) ke branch fitur.
 - [x] Periksa deploy preview dan pastikan PR tetap Draft; preview terbaru menyajikan berkas admin dengan HTTP 200.
 - [ ] Pastikan perbaikan kode lulus CI. Jika `CI/build` tetap gagal pada deklarasi `addressIndexToDelete`, perbaiki penyebab build dasar atau minta pemilik repo menyetujui penanganannya sebelum merge.
 - [x] Periksa berkas deploy preview secara read-only. Jangan menggunakan alur apply pada preview sampai backend staging yang terisolasi tersedia.
