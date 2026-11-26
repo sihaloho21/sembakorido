@@ -37,4 +37,10 @@ const report = editor.analyzeCutover(
 assert.equal(report.cutover.ready_for_apply, false, 'cutover diblokir bila header schema belum lengkap');
 assert.equal(report.cutover.writes_performed, false);
 assert.equal(report.mapping.products_legacy_only, 1);
+const aliasSchemaReport = editor.analyzeCutover(
+    [{ category_id: 'root', name: 'Dapur', parent_id: '', sort_order: 1, is_active: true }],
+    [{ id: 'p1', kategori_id: 'root' }]
+);
+assert.equal(aliasSchemaReport.cutover.ready_for_apply, false, 'alias ID/nama tidak boleh lolos schema yang ditolak backend');
+assert.equal(aliasSchemaReport.schema.missing_required_headers.categories.join(','), 'id,nama');
 console.log('nested category editor tests: PASS');

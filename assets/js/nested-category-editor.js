@@ -123,7 +123,7 @@
             else ambiguous.push({ row: index + 2, reason: 'ambiguous_name' });
         });
         const missingHeaders = {
-            categories: ['parent_id', 'sort_order', 'is_active'].filter((header) => !categoryHeaders.includes(header)),
+            categories: ['id', 'nama', 'parent_id', 'sort_order', 'is_active'].filter((header) => !categoryHeaders.includes(header)),
             products: ['kategori_id'].filter((header) => !productHeaders.includes(header))
         };
         const blocked = [];

@@ -2,22 +2,24 @@
  * Nested Category Admin Actions — backend GAS patch
  *
  * Instalasi: salin fungsi ini ke project Apps Script API aktif. Pada doPost(e),
- * tempatkan dispatch berikut SETELAH guardActionAuthorization(...) berhasil dan
- * sebelum fallback CRUD generic:
+ * tempatkan dispatch berikut SETELAH guardActionAuthorization(...) dan validasi
+ * isSheetValidationRequired(...) terhadap SHEET_WHITELIST, tetapi sebelum fallback CRUD:
  *
  * if (actionKey === 'nested_category_backup') {
+ *   nestedCategoryAdminRequireActionSheet_(sheetName);
  *   return jsonOutput(withScriptLock(function() {
  *     return handleNestedCategoryBackup_(data || {});
  *   }));
  * }
  * if (actionKey === 'nested_category_apply') {
+ *   nestedCategoryAdminRequireActionSheet_(sheetName);
  *   return jsonOutput(withScriptLock(function() {
  *     return handleNestedCategoryApply_(data || {});
  *   }));
  * }
  *
- * Pastikan request memakai sheet='categories', sehingga validasi whitelist sheet
- * tetap aktif. Jangan dispatch sebelum guardActionAuthorization. Pada
+ * Cabang ini juga memeriksa bahwa sheetName tepat 'categories' dan masih ada
+ * dalam SHEET_WHITELIST; jangan mengandalkan fallback CRUD generik. Pada
  * getRequiredRoleForAction(), tambahkan kedua action sebagai role 'manager'.
  * Handler ini memakai getSpreadsheetId()/getSpreadsheet(), getSheet(),
  * withScriptLock(), dan konfigurasi otorisasi dari GAS API yang sudah ada.
@@ -36,6 +38,7 @@ function handleNestedCategoryBackup_(data) {
   const sheet = getSheet('categories');
   const snapshot = nestedCategoryAdminRead_(sheet);
   nestedCategoryAdminRequireSchema_(snapshot.headers);
+  nestedCategoryAdminRequireUniqueIds_(snapshot.rows);
   const actualSnapshot = nestedCategoryAdminFingerprint_(snapshot.rows);
   if (actualSnapshot !== expectedSnapshot) {
     return { success: false, error: 'CATEGORY_SNAPSHOT_CHANGED', message: 'Data kategori berubah sejak preview. Muat ulang tree dan tinjau ulang perubahan.' };
@@ -44,6 +47,19 @@ function handleNestedCategoryBackup_(data) {
   const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Jakarta', 'yyyyMMdd-HHmmss');
   const backupName = file.getName() + ' — nested-category-parent-backup — ' + timestamp;
   const backupFile = file.makeCopy(backupName);
+  let copiedSnapshot;
+  try {
+    const copiedSpreadsheet = SpreadsheetApp.openById(backupFile.getId());
+    const copiedSheet = copiedSpreadsheet.getSheetByName('categories');
+    if (!copiedSheet) throw new Error('Sheet categories tidak ditemukan pada salinan backup.');
+    const copiedData = nestedCategoryAdminRead_(copiedSheet);
+    nestedCategoryAdminRequireSchema_(copiedData.headers);
+    nestedCategoryAdminRequireUniqueIds_(copiedData.rows);
+    copiedSnapshot = nestedCategoryAdminFingerprint_(copiedData.rows);
+    if (copiedSnapshot !== actualSnapshot) throw new Error('Fingerprint salinan tidak cocok dengan snapshot preview.');
+  } catch (error) {
+    throw new Error('Backup dibuat tetapi verifikasi salinan gagal; apply dibatalkan. Periksa salinan ' + backupFile.getName() + '. Detail: ' + error.message);
+  }
   const backupId = Utilities.getUuid();
   const metadata = {
     backup_id: backupId,
@@ -51,7 +67,7 @@ function handleNestedCategoryBackup_(data) {
     backup_name: backupFile.getName(),
     backup_url: backupFile.getUrl(),
     source_spreadsheet_id: getSpreadsheetId(),
-    expected_snapshot_hash: nestedCategoryAdminHash_(actualSnapshot),
+    expected_snapshot_hash: nestedCategoryAdminHash_(copiedSnapshot),
     created_at: new Date().toISOString(),
     expires_at: Date.now() + NESTED_CATEGORY_ADMIN_BACKUP_TTL_MS_
   };
@@ -85,23 +101,27 @@ function handleNestedCategoryApply_(data) {
   if (backup.source_spreadsheet_id !== getSpreadsheetId() || backup.expected_snapshot_hash !== nestedCategoryAdminHash_(expectedSnapshot)) {
     throw new Error('Backup tidak cocok dengan spreadsheet atau snapshot perubahan ini.');
   }
-  // Verifikasi file backup benar-benar ada sebelum satu pun write dilakukan.
-  DriveApp.getFileById(backup.file_id);
+  // Verifikasi bahwa salinan backup masih tersedia dan memiliki snapshot yang sama.
+  const backupFile = DriveApp.getFileById(backup.file_id);
+  const backupSpreadsheet = SpreadsheetApp.openById(backupFile.getId());
+  const backupSheet = backupSpreadsheet.getSheetByName('categories');
+  if (!backupSheet) throw new Error('Sheet categories tidak ditemukan pada backup. Apply dibatalkan.');
+  const backupSnapshot = nestedCategoryAdminRead_(backupSheet);
+  nestedCategoryAdminRequireSchema_(backupSnapshot.headers);
+  nestedCategoryAdminRequireUniqueIds_(backupSnapshot.rows);
+  if (nestedCategoryAdminFingerprint_(backupSnapshot.rows) !== expectedSnapshot) {
+    throw new Error('Isi backup tidak cocok dengan snapshot perubahan ini. Apply dibatalkan.');
+  }
 
   const sheet = getSheet('categories');
   const snapshot = nestedCategoryAdminRead_(sheet);
   nestedCategoryAdminRequireSchema_(snapshot.headers);
+  nestedCategoryAdminRequireUniqueIds_(snapshot.rows);
   if (nestedCategoryAdminFingerprint_(snapshot.rows) !== expectedSnapshot) {
     return { success: false, error: 'CATEGORY_SNAPSHOT_CHANGED', message: 'Data kategori berubah setelah backup. Tidak ada parent_id yang ditulis; buat preview dan backup baru.' };
   }
 
-  const byId = new Map();
-  snapshot.rows.forEach(function(row, index) {
-    const id = nestedCategoryAdminText_(row.id || row.category_id || row.kategori_id || row.ID);
-    if (!id) throw new Error('Kategori pada baris ' + (index + 2) + ' tidak memiliki ID.');
-    if (byId.has(id)) throw new Error('ID kategori duplikat: ' + id);
-    byId.set(id, row);
-  });
+  const byId = nestedCategoryAdminBuildIndex_(snapshot.rows);
   const moveMap = new Map();
   moves.forEach(function(move) {
     const id = nestedCategoryAdminText_(move && move.id);
@@ -111,43 +131,92 @@ function handleNestedCategoryApply_(data) {
     moveMap.set(id, parentId);
   });
   const proposedRows = snapshot.rows.map(function(row) {
-    const id = nestedCategoryAdminText_(row.id || row.category_id || row.kategori_id || row.ID);
-    return Object.assign({}, row, { parent_id: moveMap.has(id) ? moveMap.get(id) : nestedCategoryAdminText_(row.parent_id || row.parentId || row.id_induk) });
+    const id = nestedCategoryAdminId_(row);
+    return Object.assign({}, row, { parent_id: moveMap.has(id) ? moveMap.get(id) : nestedCategoryAdminParentId_(row) });
   });
   const validation = nestedCategoryAdminValidate_(proposedRows);
   if (!validation.valid) throw new Error('Validasi backend gagal: ' + validation.errors.join('; '));
 
   const parentColumn = snapshot.headers.indexOf('parent_id') + 1;
   const originalParentValues = moves.map(function(move) {
-    const row = byId.get(nestedCategoryAdminText_(move.id));
-    return { rowNumber: row.__rowNumber, value: row.parent_id == null ? '' : row.parent_id };
+    const id = nestedCategoryAdminText_(move.id);
+    const row = byId.get(id);
+    return { id: id, value: row.parent_id == null ? '' : row.parent_id };
   });
+  const originalById = new Map(originalParentValues.map(function(original) { return [original.id, original]; }));
+  const attemptedParentValues = [];
+  let expectedRowsBeforeWrites = snapshot.rows.map(function(row) { return Object.assign({}, row); });
   try {
     moves.forEach(function(move) {
       const id = nestedCategoryAdminText_(move.id);
-      const row = byId.get(id);
+      const original = originalById.get(id);
+      const current = nestedCategoryAdminRead_(sheet);
+      nestedCategoryAdminRequireSchema_(current.headers);
+      nestedCategoryAdminRequireUniqueIds_(current.rows);
+      if (current.headers.indexOf('parent_id') + 1 !== parentColumn ||
+          nestedCategoryAdminFingerprint_(current.rows) !== nestedCategoryAdminFingerprint_(expectedRowsBeforeWrites)) {
+        throw new Error('Snapshot atau posisi kolom berubah tepat sebelum penulisan berikutnya. Apply dihentikan.');
+      }
+      const row = nestedCategoryAdminBuildIndex_(current.rows).get(id);
+      if (!row) throw new Error('Kategori tidak ditemukan tepat sebelum penulisan: ' + id);
+      if (nestedCategoryAdminParentId_(row) !== nestedCategoryAdminText_(original.value)) {
+        throw new Error('Parent kategori berubah tepat sebelum penulisan: ' + id + '. Apply dibatalkan.');
+      }
+      attemptedParentValues.push({ id: original.id, value: original.value, appliedValue: moveMap.get(id) });
       sheet.getRange(row.__rowNumber, parentColumn).setValue(moveMap.get(id));
+      SpreadsheetApp.flush();
+      expectedRowsBeforeWrites = expectedRowsBeforeWrites.map(function(expectedRow) {
+        return nestedCategoryAdminId_(expectedRow) === id
+          ? Object.assign({}, expectedRow, { parent_id: moveMap.get(id) })
+          : expectedRow;
+      });
     });
     SpreadsheetApp.flush();
     const after = nestedCategoryAdminRead_(sheet);
     const verified = nestedCategoryAdminValidate_(after.rows);
     const appliedMap = new Map(after.rows.map(function(row) {
-      return [nestedCategoryAdminText_(row.id || row.category_id || row.kategori_id || row.ID), nestedCategoryAdminText_(row.parent_id)];
+      return [nestedCategoryAdminId_(row), nestedCategoryAdminParentId_(row)];
     }));
     const allMovesApplied = moves.every(function(move) {
       return appliedMap.get(nestedCategoryAdminText_(move.id)) === nestedCategoryAdminText_(move.parent_id);
     });
     if (!verified.valid || !allMovesApplied) throw new Error('Verifikasi pasca-write gagal: ' + verified.errors.join('; '));
   } catch (error) {
-    // Pemulihan hanya menyentuh kolom parent_id yang sama, dari nilai yang dibaca
-    // di dalam lock sebelum write. Backup spreadsheet penuh tetap disimpan.
-    if (originalParentValues.length) {
-      originalParentValues.forEach(function(original) {
-        sheet.getRange(original.rowNumber, parentColumn).setValue(original.value);
-      });
+    // Rollback mencari ulang setiap ID; jangan memakai nomor baris lama jika sheet berubah.
+    const rollbackFailures = [];
+    attemptedParentValues.forEach(function(original) {
+      try {
+        const row = nestedCategoryAdminFindUniqueRow_(sheet, original.id, parentColumn);
+        const currentParent = nestedCategoryAdminParentId_(row);
+        if (currentParent === nestedCategoryAdminText_(original.appliedValue)) {
+          sheet.getRange(row.__rowNumber, parentColumn).setValue(original.value);
+        } else if (currentParent !== nestedCategoryAdminText_(original.value)) {
+          throw new Error('nilai parent berubah bersamaan; tidak ditimpa oleh rollback');
+        }
+      } catch (rollbackError) {
+        rollbackFailures.push(original.id + ': ' + rollbackError.message);
+      }
+    });
+    try {
       SpreadsheetApp.flush();
+    } catch (flushError) {
+      rollbackFailures.push('flush: ' + flushError.message);
     }
-    throw error;
+    try {
+      const restored = nestedCategoryAdminBuildIndex_(nestedCategoryAdminRead_(sheet).rows);
+      attemptedParentValues.forEach(function(original) {
+        const row = restored.get(original.id);
+        if (!row || nestedCategoryAdminParentId_(row) !== nestedCategoryAdminText_(original.value)) {
+          rollbackFailures.push(original.id + ': verifikasi nilai awal gagal');
+        }
+      });
+    } catch (verifyError) {
+      rollbackFailures.push('verifikasi rollback: ' + verifyError.message);
+    }
+    if (rollbackFailures.length) {
+      throw new Error('Apply gagal: ' + error.message + '. Rollback tidak lengkap: ' + rollbackFailures.join('; ') + '. Periksa spreadsheet dan backup sebelum melanjutkan.');
+    }
+    throw new Error('Apply gagal; semua nilai parent_id yang ditargetkan berhasil dipulihkan. Penyebab: ' + error.message);
   }
   PropertiesService.getScriptProperties().deleteProperty(propertyKey);
   return {
@@ -190,6 +259,63 @@ function nestedCategoryAdminText_(value) {
   return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
 }
 
+function nestedCategoryAdminRequireActionSheet_(sheetName) {
+  const name = nestedCategoryAdminText_(sheetName);
+  if (name !== 'categories' || SHEET_WHITELIST.indexOf(name) === -1) {
+    throw new Error('nested_category actions hanya menerima sheet=categories yang diizinkan whitelist.');
+  }
+}
+
+function nestedCategoryAdminFirstText_(row, fields) {
+  for (let index = 0; index < fields.length; index += 1) {
+    const value = row && row[fields[index]];
+    if (value == null) continue;
+    const text = nestedCategoryAdminText_(value);
+    if (text) return text;
+  }
+  return '';
+}
+
+function nestedCategoryAdminId_(row) {
+  return nestedCategoryAdminFirstText_(row, ['id', 'category_id', 'kategori_id', 'ID']);
+}
+
+function nestedCategoryAdminName_(row) {
+  return nestedCategoryAdminFirstText_(row, ['nama', 'name', 'kategori', 'category', 'judul', 'title']);
+}
+
+function nestedCategoryAdminParentId_(row) {
+  return nestedCategoryAdminFirstText_(row, ['parent_id', 'parentId', 'id_induk', 'kategori_induk_id']);
+}
+
+function nestedCategoryAdminRequireUniqueIds_(rows) {
+  const seen = new Set();
+  rows.forEach(function(row, index) {
+    const id = nestedCategoryAdminId_(row);
+    if (!id) throw new Error('Kategori pada baris ' + (row.__rowNumber || index + 2) + ' tidak memiliki ID.');
+    if (seen.has(id)) throw new Error('ID kategori duplikat: ' + id);
+    seen.add(id);
+  });
+}
+
+function nestedCategoryAdminBuildIndex_(rows) {
+  nestedCategoryAdminRequireUniqueIds_(rows);
+  const index = new Map();
+  rows.forEach(function(row) { index.set(nestedCategoryAdminId_(row), row); });
+  return index;
+}
+
+function nestedCategoryAdminFindUniqueRow_(sheet, categoryId, expectedParentColumn) {
+  const current = nestedCategoryAdminRead_(sheet);
+  nestedCategoryAdminRequireSchema_(current.headers);
+  if (expectedParentColumn && current.headers.indexOf('parent_id') + 1 !== expectedParentColumn) {
+    throw new Error('Posisi kolom parent_id berubah saat apply.');
+  }
+  const row = nestedCategoryAdminBuildIndex_(current.rows).get(categoryId);
+  if (!row) throw new Error('Kategori tidak ditemukan saat penulisan ulang: ' + categoryId);
+  return row;
+}
+
 function nestedCategoryAdminHash_(value) {
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(value || ''), Utilities.Charset.UTF_8);
   return bytes.map(function(byte) {
@@ -201,9 +327,9 @@ function nestedCategoryAdminHash_(value) {
 function nestedCategoryAdminFingerprint_(rows) {
   const canonical = rows.map(function(row) {
     return {
-      id: nestedCategoryAdminText_(row.id || row.category_id || row.kategori_id || row.ID),
-      name: nestedCategoryAdminText_(row.nama || row.name || row.kategori || row.category || row.judul || row.title),
-      parent_id: nestedCategoryAdminText_(row.parent_id || row.parentId || row.id_induk || row.kategori_induk_id),
+      id: nestedCategoryAdminId_(row),
+      name: nestedCategoryAdminName_(row),
+      parent_id: nestedCategoryAdminParentId_(row),
       sort_order: String(row.sort_order == null ? (row.urutan == null ? (row.order == null ? (row.sort == null ? '' : row.sort) : row.order) : row.urutan) : row.sort_order),
       is_active: String(row.is_active == null ? (row.active == null ? '' : row.active) : row.is_active)
     };
@@ -214,9 +340,9 @@ function nestedCategoryAdminFingerprint_(rows) {
 function nestedCategoryAdminValidate_(rows) {
   const records = rows.map(function(row) {
     return {
-      id: nestedCategoryAdminText_(row.id || row.category_id || row.kategori_id || row.ID),
-      name: nestedCategoryAdminText_(row.nama || row.name || row.kategori || row.category),
-      parentId: nestedCategoryAdminText_(row.parent_id || row.parentId || row.id_induk || row.kategori_induk_id)
+      id: nestedCategoryAdminId_(row),
+      name: nestedCategoryAdminName_(row),
+      parentId: nestedCategoryAdminParentId_(row)
     };
   }).filter(function(item) { return item.name; });
   const ids = new Set();

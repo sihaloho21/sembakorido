@@ -1,99 +1,91 @@
 # TO-DO: Langkah Selanjutnya untuk Kategori Bertingkat
 
-Dokumen ini ditujukan untuk membantu melanjutkan pekerjaan tanpa perlu menebak-nebak. **Jangan mengubah spreadsheet produksi sekarang.** Beberapa perubahan kode sudah disiapkan, tetapi belum diaktifkan di website dan belum dipasang di backend GAS.
+Dokumen ini membantu melanjutkan pekerjaan tanpa menebak-nebak. **Spreadsheet produksi belum diubah.** Backup produksi belum dibuat, backend GAS belum dipasang/deploy, schema produksi belum dimigrasikan, dan PR belum di-merge.
 
-## Ringkasnya: posisi kita sekarang
+## Ringkasan status — 26 November 2026
 
-- [x] Fitur editor kategori dibuat pada branch GitHub terpisah: `feat/nested-category-admin-editor-20261126`.
-- [x] Perubahan kode sudah dites dengan `npm test`.
-- [ ] Perubahan belum masuk ke branch utama `main`, sehingga kemungkinan belum tampil di website yang dipakai sekarang.
-- [ ] Spreadsheet belum diubah dan belum dibuat backup.
-- [ ] Backend Google Apps Script (GAS) belum dipasang atau di-deploy.
-- [ ] Header `parent_id` belum tersedia di data kategori saat ini. Karena itu, tombol ubah/apply sengaja belum aktif.
+- Branch fitur: `feat/nested-category-admin-editor-20261126`.
+- Draft PR #29: [feat: safe nested category admin editor](https://github.com/sihaloho21/sembakorido/pull/29). PR masih OPEN/Draft; belum di-merge.
+- Netlify deploy preview yang tersedia: [deploy preview PR #29](https://deploy-preview-29--eloquent-jelly-08a8ae.netlify.app). Preview berasal dari revision sebelum perbaikan review terbaru; tunggu deploy baru setelah commit/push berikutnya sebelum menilai versi paling baru.
+- `npm test` lulus pada working tree setelah perbaikan terbaru. Pemeriksaan sintaks JS/GAS dan `git diff --check` juga lulus.
+- Review independen menemukan beberapa masalah UI/GAS; sudah diperbaiki secara lokal: interaksi saat apply dibekukan, refresh mengambil data sumber terbaru tanpa cache, move invalid ditolak, preview schema tidak lagi menyebut READY jika header literal `id`/`nama` tidak ada, backup diverifikasi dari file salinan, write memeriksa ulang fingerprint dan ID, rollback hanya menyasar sel yang dicoba dan diverifikasi, dan detail kategori dibersihkan setelah reload.
+- **CI terakhir pada PR gagal di `CI/build`**, sementara 15 pemeriksaan berhasil dan 5 dilewati. Log gagal karena deklarasi `addressIndexToDelete` ganda saat `assets/js/script.min.js` dan `assets/js/akun.min.js` digabung oleh `scripts/bundle-akun.js`. File sumber bundle tersebut tidak berbeda dari `origin/main`; kegagalan ini tampak sebagai masalah build dasar repo, bukan perubahan editor kategori. CI harus hijau atau kegagalan dasar ini harus diselesaikan sebelum PR dianggap siap merge.
+- Google Drive belum dapat diperiksa: Google Workspace connector sesi sedang nonaktif dan `gws` CLI mengembalikan 401 karena tidak ada kredensial. Tidak ada login/configuration change yang dilakukan. Perlu izin Anda untuk mengaktifkan akses read-only Drive/Sheets atau admin teknis menunjukkan spreadsheet staging yang benar.
+- Tidak ada tindakan tulis ke spreadsheet, pembuatan backup, instalasi/deploy GAS, atau merge yang dilakukan.
 
-**Artinya: Anda belum melakukan kesalahan dan tidak ada perubahan data produksi yang dibuat oleh pekerjaan ini.**
+## Yang sudah selesai di kode
 
-## Urutan pekerjaan yang disarankan
+1. Drag-and-drop mengubah draft lokal dan UI menolak move yang menghasilkan siklus atau struktur di luar batas.
+2. Apply meminta konfirmasi admin, membekukan perubahan/Reset selama proses, lalu hanya meminta backend yang berotorisasi melakukan apply.
+3. Setelah apply, frontend memuat ulang kategori, menjalankan validasi, dan menyediakan preview cutover read-only.
+4. Patch GAS mensyaratkan `sheetName === 'categories'` dan whitelist, role manager, snapshot yang tidak berubah, backup yang dapat dibuka dengan fingerprint cocok, serta pemulihan yang diverifikasi.
+5. Tombol **Refresh tree** memuat ulang data kategori dari sumber dengan cache bypass; jika ada draft lokal, UI meminta konfirmasi sebelum membuang draft.
 
-### 1. Tinjau perubahan kode — belum mengubah website
+## Urutan pekerjaan berikutnya
 
-- [ ] Buka [Pull Request untuk branch fitur](https://github.com/sihaloho21/sembakorido/pull/new/feat/nested-category-admin-editor-20261126).
-- [ ] Tinjau judul dan daftar file. Jika Anda belum yakin, **jangan klik Merge dulu**; minta bantuan untuk menjelaskan atau meninjau PR.
-- [ ] Setelah PR disetujui dan di-merge, pastikan proses website melakukan deploy dari `main` seperti biasanya.
+### 1. Sinkronkan revisi terbaru ke PR dan tinjau ulang CI
 
-**Hasil yang diharapkan:** kode editor ada di versi utama website. Langkah ini sendiri belum membuat kategori bertingkat atau mengubah spreadsheet.
+- [ ] Commit dan push perubahan lokal terbaru ke branch fitur dan PR #29.
+- [ ] Tunggu deploy preview/CI yang baru; cek PR tetap Draft dan belum di-merge.
+- [ ] Pastikan perbaikan kode lulus CI. Jika `CI/build` tetap gagal pada deklarasi `addressIndexToDelete`, perbaiki penyebab build dasar atau minta pemilik repo menyetujui penanganannya sebelum merge.
+- [ ] Periksa tampilan deploy preview terbaru secara read-only. Jangan menggunakan alur apply pada preview sampai backend staging yang terisolasi tersedia.
 
-### 2. Pastikan target dan siapkan tempat uji — jangan mulai dari data produksi
+**Hasil yang diharapkan:** PR terbarui dan pemeriksaan kode transparan. Langkah ini tidak mengubah spreadsheet.
 
-- [ ] Minta admin teknis memastikan project GAS/API mana yang dipakai website dan spreadsheet mana yang menjadi sumber data.
-- [ ] Siapkan salinan spreadsheet atau lingkungan uji/staging untuk percobaan.
-- [ ] Catat siapa yang boleh mengubah kategori dan siapa yang bisa memulihkan backup.
-- [ ] Pastikan semua pihak sepakat bahwa saat uji coba pertama, perubahan dilakukan pada salinan/staging, bukan spreadsheet produksi.
+### 2. Pastikan spreadsheet staging yang aman
 
-**Hasil yang diharapkan:** kita tahu persis project dan spreadsheet yang akan diuji. Jangan menebak berdasarkan nama file saja.
+- [ ] Dapatkan izin Anda untuk mengaktifkan Google Workspace hanya untuk pencarian metadata read-only Drive/Sheets, atau minta admin teknis memberikan file/ID staging yang benar.
+- [ ] Pastikan file staging bukan spreadsheet produksi dan tidak mengandung data yang tidak boleh diduplikasi.
+- [ ] Catat pemilik, project GAS, spreadsheet target, dan siapa yang dapat memulihkan backup.
 
-### 3. Pasang schema kategori pada lingkungan uji
+**Hasil yang diharapkan:** target uji teridentifikasi jelas. Jangan menebak berdasarkan nama file dan jangan membuat salinan data produksi tanpa persetujuan.
 
-- [ ] Jalankan **preview schema** terlebih dahulu untuk melihat header yang belum ada.
-- [ ] Tinjau hasil preview dan pastikan spreadsheet target benar.
-- [ ] Buat backup spreadsheet dan pastikan file backup bisa dibuka.
-- [ ] Baru setelah itu, admin teknis menambahkan header schema yang dibutuhkan melalui prosedur migrasi resmi. Header terkait mencakup `parent_id`, `sort_order`, dan `is_active` di sheet `categories`, serta `kategori_id` di sheet `products`.
-- [ ] Pastikan data/baris lama tidak ikut berubah; pekerjaan ini hanya menambahkan kolom schema.
+### 3. Siapkan schema pada staging saja
 
-**Hasil yang diharapkan:** struktur kolom siap untuk mendukung fitur baru. Belum ada kategori yang dipindahkan dan belum ada produk yang dipetakan ulang.
+- [ ] Jalankan preview schema read-only dan pastikan file staging yang benar.
+- [ ] Buat backup staging setelah target diverifikasi; pastikan backup bisa dibuka dan isi/header cocok.
+- [ ] Setelah disetujui admin teknis, tambahkan header sesuai migrasi resmi: `categories.parent_id`, `categories.sort_order`, `categories.is_active`, dan `products.kategori_id`.
+- [ ] Pastikan data lama, produk, field `kategori`, dan `category_showcase_config` tidak berubah.
 
-### 4. Pasang dan uji backend GAS pada lingkungan uji
+### 4. Pasang serta uji backend GAS di staging
 
-- [ ] Admin teknis memasang handler backend pada file [aksi backend GAS](gas_nested_category_admin_actions.gs).
-- [ ] Pastikan action backup/apply ditempatkan **setelah pemeriksaan login/otorisasi**, bukan sebelum pemeriksaan tersebut.
-- [ ] Pastikan hanya admin dengan peran yang sesuai yang boleh melakukan perubahan.
-- [ ] Deploy versi GAS ke lingkungan uji dan tes bahwa backup benar-benar dibuat.
-- [ ] Uji apply dengan beberapa kategori contoh. Pastikan parent berubah sesuai pilihan, sedangkan produk dan konfigurasi showcase tidak ikut berubah.
-- [ ] Uji juga skenario gagal (misalnya parent salah atau snapshot sudah berubah); backend harus menolak perubahan.
+- [ ] Pasang `docs/gas_nested_category_admin_actions.gs` hanya pada project GAS staging.
+- [ ] Sambungkan action setelah guard otorisasi **dan** validasi whitelist sheet; keduanya mensyaratkan role `manager` serta `sheetName=categories`.
+- [ ] Saat apply, hentikan sementara edit manual, sort, insert, dan delete baris di sheet kategori karena ScriptLock tidak memblokir edit langsung di Google Sheets UI.
+- [ ] Uji backup yang dapat dibuka dan cocok dengan fingerprint, apply valid, snapshot stale, ID duplikat/parent invalid, serta kegagalan rollback. Pastikan hanya `categories.parent_id` yang berubah.
+- [ ] Deploy Web App GAS staging dan uji dengan akun manager yang diotorisasi.
 
-**Hasil yang diharapkan:** tombol apply hanya berfungsi lewat backend yang sudah memeriksa akses, membuat backup, dan memvalidasi ulang.
+### 5. Uji alur editor di staging
 
-### 5. Uji tampilan dan alur editor di lingkungan uji
+- [ ] Buka admin staging → Kategori dan pastikan schema siap.
+- [ ] Coba drag kategori; pastikan perubahan tetap lokal sebelum apply.
+- [ ] Pastikan drop yang membuat siklus/kedalaman invalid ditolak tanpa menyembunyikan tree atau menghilangkan draft yang benar.
+- [ ] Pastikan Reset, Refresh tree, Apply, reload kategori, dan `validateNestedCategoryTree()` bekerja seperti yang diharapkan.
+- [ ] Jalankan **Preview cutover (read-only)**; tinjau jumlah kategori/produk, exception mapping, header, dan status READY/BLOCKED. Pastikan laporan menyatakan tidak ada write.
+- [ ] Simpan hasil tes dan minta persetujuan sebelum membahas produksi.
 
-- [ ] Buka halaman admin → Kategori.
-- [ ] Pastikan schema yang siap membuat editor dapat dipakai.
-- [ ] Seret kategori hanya untuk mengubah **preview lokal**; pastikan spreadsheet tidak berubah saat menyeret.
-- [ ] Pastikan UI menandai cycle, parent yang salah, atau kedalaman lebih dari tiga tingkat sebagai tidak valid.
-- [ ] Coba batalkan preview dan pastikan struktur kembali seperti semula.
-- [ ] Jalankan **Preview cutover (read-only)** dan pastikan laporan menyebut bahwa tidak ada penulisan dilakukan.
-- [ ] Setelah semua uji berhasil, catat hasil dan minta persetujuan sebelum rencana produksi dibuat.
+### 6. Produksi — belum diotorisasi
 
-**Hasil yang diharapkan:** seluruh alur sudah dipahami dan terbukti aman di lingkungan uji.
+Bagian ini tetap berhenti sampai staging lolos, target dan pemilik data jelas, backup serta prosedur pemulihan siap, dan persetujuan eksplisit untuk produksi diberikan.
 
-### 6. Baru rencanakan perubahan produksi
-
-Bagian ini **belum diotorisasi dan belum dilakukan**. Jangan lanjutkan hanya karena langkah-langkah sebelumnya terlihat berhasil.
-
-- [ ] Tetapkan tanggal/jam, admin pelaksana, spreadsheet target, dan prosedur pemulihan.
-- [ ] Jalankan preview read-only pada spreadsheet produksi yang benar.
-- [ ] Tinjau semua error, produk yang belum cocok, nama kategori ambigu, jumlah kategori/produk, dan kedalaman tree.
+- [ ] Tetapkan target spreadsheet/deployment GAS, operator, jadwal, maintenance window, dan prosedur pemulihan.
+- [ ] Jalankan preview read-only produksi dan tinjau seluruh exception.
 - [ ] Buat serta verifikasi backup produksi sebelum ada write.
-- [ ] Minta persetujuan eksplisit untuk perubahan produksi setelah target dan isi preview disepakati.
-- [ ] Admin melakukan perubahan yang sudah disetujui, lalu memuat ulang kategori dan menjalankan `validateNestedCategoryTree()`.
-- [ ] Jalankan preview cutover read-only sekali lagi dan simpan hasilnya bersama referensi backup.
+- [ ] Dapatkan persetujuan eksplisit yang menyebut target dan perubahan yang diizinkan.
+- [ ] Apply hanya melalui backend manager; muat ulang kategori, validasi tree, dan jalankan preview cutover read-only kembali.
 
-**Penting:** jika data berubah antara preview dan apply, proses harus dihentikan, preview diulang, dan backup baru dibuat.
+## Jangan dilakukan dulu
 
-## Hal yang jangan dilakukan dulu
+- Jangan merge PR #29 selama CI gagal atau sebelum PR ditinjau.
+- Jangan menjalankan migrasi schema, backup, atau apply pada spreadsheet produksi.
+- Jangan memasang patch GAS ke project aktif sebelum target dan environment staging dikonfirmasi.
+- Jangan membuat duplikat spreadsheet produksi tanpa persetujuan pemilik data.
+- Jangan mengedit `parent_id` atau kolom kategori secara manual saat apply berjalan.
 
-- Jangan menjalankan `applyNestedCategorySchema()` pada spreadsheet produksi sekarang.
-- Jangan mengedit `parent_id` atau kolom lain secara manual di spreadsheet produksi.
-- Jangan menempelkan token admin, URL rahasia, atau isi spreadsheet ke chat publik/PR.
-- Jangan merge PR jika Anda belum mengerti dampaknya; minta saya menjelaskan dulu.
-- Jangan menganggap fitur sudah aktif hanya karena branch GitHub sudah ada.
+## Referensi
 
-## Langkah pertama paling mudah
-
-Jika Anda ingin melanjutkan dengan aman, mulai dari **langkah 1 saja**: buka PR, lalu minta peninjauan. Setelah itu, pekerjaan dapat dilanjutkan satu langkah pada satu waktu. Saya bisa membantu menyiapkan instruksi yang lebih rinci untuk admin teknis ketika sudah jelas siapa yang menangani deploy website dan GAS.
-
-## Referensi kode
-
-- Branch fitur: [feat/nested-category-admin-editor-20261126](https://github.com/sihaloho21/sembakorido/tree/feat/nested-category-admin-editor-20261126)
-- Panduan editor dan backend: [nested-category-admin-editor.md](nested-category-admin-editor.md)
-- Prosedur preview/cutover: [nested-category-cutover-runbook.md](nested-category-cutover-runbook.md)
-- Handler GAS yang perlu dipasang dan diuji oleh admin teknis: [gas_nested_category_admin_actions.gs](gas_nested_category_admin_actions.gs)
+- [PR #29](https://github.com/sihaloho21/sembakorido/pull/29)
+- [Deploy preview PR #29](https://deploy-preview-29--eloquent-jelly-08a8ae.netlify.app)
+- [Panduan editor admin](nested-category-admin-editor.md)
+- [Runbook cutover](nested-category-cutover-runbook.md)
+- [Patch handler backend GAS](gas_nested_category_admin_actions.gs)
