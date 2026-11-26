@@ -689,6 +689,28 @@ function getDisplayCategories() {
     return merged;
 }
 
+function getNestedDisplayCategories() {
+    if (!Array.isArray(allCategories) || allCategories.length === 0 || !allCategories.some((item) => item && item.id)) {
+        return getDisplayCategories().map((name, index) => ({ id: `legacy:${index}`, name, depth: 1, parentId: '' }));
+    }
+    const categories = allCategories.filter((item) => item && item.name && item.active !== false);
+    const byParent = new Map();
+    categories.forEach((item) => {
+        const parentId = item.parentId || '';
+        if (!byParent.has(parentId)) byParent.set(parentId, []);
+        byParent.get(parentId).push(item);
+    });
+    const ordered = [];
+    const walk = (parentId, depth) => {
+        (byParent.get(parentId) || []).forEach((item) => {
+            ordered.push({ ...item, depth });
+            walk(item.id, depth + 1);
+        });
+    };
+    walk('', 1);
+    return ordered.length ? ordered : categories.map((item) => ({ ...item, depth: 1 }));
+}
+
 async function fetchCategories() {
     try {
         const rows = await ApiService.get('?sheet=categories', { cacheDuration: 5 * 60 * 1000 });
@@ -1994,9 +2016,8 @@ function openHeaderNotifications(notificationId) {
 function renderHeaderCategoryMenu() {
     const list = document.getElementById('header-category-list');
     if (!list) return;
-
-    const items = [{ value: 'Semua', label: 'Semua Produk' }]
-        .concat(getDisplayCategories().map((category) => ({ value: category, label: category })));
+    const items = [{ value: 'Semua', label: 'Semua Produk', depth: 0 }]
+        .concat(getNestedDisplayCategories().map((category) => ({ value: category.name, label: category.name, depth: category.depth, id: category.id })));
 
     list.innerHTML = items.map((item) => {
         const safeValue = escapeHtml(item.value);
@@ -2004,7 +2025,7 @@ function renderHeaderCategoryMenu() {
         const isActive = item.value === currentCategory ? ' is-active' : '';
         return `
             <button type="button" data-action="set-header-category" data-category="${safeValue}" class="header-category-item${isActive} flex w-full items-center border-l-4 border-transparent px-4 py-3 text-left text-sm font-semibold text-gray-700 transition hover:bg-green-50">
-                ${safeLabel}
+                <span style="padding-left:${Math.max(0, Number(item.depth || 0) - 1) * 1.15}rem">${item.depth ? '↳ ' : ''}${safeLabel}</span>
             </button>
         `;
     }).join('');
@@ -7892,8 +7913,8 @@ function loadSidebarCategories() {
     if (!categoryList) return;
     
     // Use merged categories (sheet categories + fallback from products)
-    const categories = [{ value: 'Semua', label: 'Semua Produk' }]
-        .concat(getDisplayCategories().map((category) => ({ value: category, label: category })));
+    const categories = [{ value: 'Semua', label: 'Semua Produk', depth: 0 }]
+        .concat(getNestedDisplayCategories().map((category) => ({ value: category.name, label: category.name, depth: category.depth, id: category.id })));
 
     categoryList.innerHTML = categories.map((item) => {
         const iconSvg = getCategoryIcon(item.label);
@@ -7916,7 +7937,7 @@ function loadSidebarCategories() {
                     <div class="${iconClass}">
                         ${iconSvg}
                     </div>
-                    <span class="${labelClass}">${safeLabel}</span>
+                    <span class="${labelClass}" style="padding-left:${Math.max(0, Number(item.depth || 0) - 1) * 0.85}rem">${item.depth ? '↳ ' : ''}${safeLabel}</span>
                 </button>
             </li>
         `;
