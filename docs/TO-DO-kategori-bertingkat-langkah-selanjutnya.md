@@ -6,11 +6,12 @@ Dokumen ini membantu melanjutkan pekerjaan tanpa menebak-nebak. **Spreadsheet pr
 
 - Branch fitur: `feat/nested-category-admin-editor-20261126`.
 - Draft PR #29: [feat: safe nested category admin editor](https://github.com/sihaloho21/sembakorido/pull/29). PR masih OPEN/Draft; belum di-merge.
-- Netlify deploy preview yang tersedia: [deploy preview PR #29](https://deploy-preview-29--eloquent-jelly-08a8ae.netlify.app). Preview berasal dari revision sebelum perbaikan review terbaru; tunggu deploy baru setelah commit/push berikutnya sebelum menilai versi paling baru.
-- `npm test` lulus pada working tree setelah perbaikan terbaru. Pemeriksaan sintaks JS/GAS dan `git diff --check` juga lulus.
+- Perbaikan review sudah di-commit dan dipush sebagai [`a9235cf`](https://github.com/sihaloho21/sembakorido/commit/a9235cf95735daf5828f2b087257288ef9728c87); working tree bersih.
+- [Deploy preview PR #29](https://deploy-preview-29--eloquent-jelly-08a8ae.netlify.app) sudah membangun revision terbaru. Pemeriksaan read-only menerima HTTP 200 untuk `admin/index.html` dan `admin/js/admin-script.js`; markup memuat cache-buster `20261126b`. Tidak ada JavaScript admin yang dijalankan, dan tidak ada endpoint backend/spreadsheet yang dipanggil.
+- `npm test`, pemeriksaan sintaks JavaScript, dan `git diff --check` lulus setelah push.
 - Review independen menemukan beberapa masalah UI/GAS; sudah diperbaiki secara lokal: interaksi saat apply dibekukan, refresh mengambil data sumber terbaru tanpa cache, move invalid ditolak, preview schema tidak lagi menyebut READY jika header literal `id`/`nama` tidak ada, backup diverifikasi dari file salinan, write memeriksa ulang fingerprint dan ID, rollback hanya menyasar sel yang dicoba dan diverifikasi, dan detail kategori dibersihkan setelah reload.
-- **CI terakhir pada PR gagal di `CI/build`**, sementara 15 pemeriksaan berhasil dan 5 dilewati. Log gagal karena deklarasi `addressIndexToDelete` ganda saat `assets/js/script.min.js` dan `assets/js/akun.min.js` digabung oleh `scripts/bundle-akun.js`. File sumber bundle tersebut tidak berbeda dari `origin/main`; kegagalan ini tampak sebagai masalah build dasar repo, bukan perubahan editor kategori. CI harus hijau atau kegagalan dasar ini harus diselesaikan sebelum PR dianggap siap merge.
-- Google Drive belum dapat diperiksa: Google Workspace connector sesi sedang nonaktif dan `gws` CLI mengembalikan 401 karena tidak ada kredensial. Tidak ada login/configuration change yang dilakukan. Perlu izin Anda untuk mengaktifkan akses read-only Drive/Sheets atau admin teknis menunjukkan spreadsheet staging yang benar.
+- **CI pada commit `a9235cf` gagal hanya di `build`**; pemeriksaan Netlify Redirect/Header berhasil dan `Pages changed` berstatus neutral. Log build menunjukkan deklarasi `addressIndexToDelete` berulang di `assets/js/akun.bundle.js` (baris 372 dan 559) setelah `scripts/bundle-akun.js` menggabungkan `assets/js/script.min.js` dan `assets/js/akun.min.js`. Berkas input/bundler tidak diubah oleh PR dibanding `origin/main`; kegagalan tampak berasal dari baseline. PR jangan di-merge sebelum build hijau atau pemilik repo menyetujui perbaikan baseline.
+- Google Workspace connector kini aktif atas izin Anda. Pencarian Drive **metadata-only** tidak menemukan spreadsheet dengan label staging/test/dev; pencarian nama terkait proyek menemukan dua kandidat (satu file utama dan satu salinan), tetapi salinan belum terbukti sebagai staging. Isi spreadsheet tidak dibuka; belum dipastikan mana pun aman untuk tes. Tidak ada file yang diubah.
 - Tidak ada tindakan tulis ke spreadsheet, pembuatan backup, instalasi/deploy GAS, atau merge yang dilakukan.
 
 ## Yang sudah selesai di kode
@@ -25,16 +26,17 @@ Dokumen ini membantu melanjutkan pekerjaan tanpa menebak-nebak. **Spreadsheet pr
 
 ### 1. Sinkronkan revisi terbaru ke PR dan tinjau ulang CI
 
-- [ ] Commit dan push perubahan lokal terbaru ke branch fitur dan PR #29.
-- [ ] Tunggu deploy preview/CI yang baru; cek PR tetap Draft dan belum di-merge.
+- [x] Commit dan push perubahan lokal ke branch fitur: commit `a9235cf`.
+- [x] Periksa deploy preview dan pastikan PR tetap Draft; preview terbaru menyajikan berkas admin dengan HTTP 200.
 - [ ] Pastikan perbaikan kode lulus CI. Jika `CI/build` tetap gagal pada deklarasi `addressIndexToDelete`, perbaiki penyebab build dasar atau minta pemilik repo menyetujui penanganannya sebelum merge.
-- [ ] Periksa tampilan deploy preview terbaru secara read-only. Jangan menggunakan alur apply pada preview sampai backend staging yang terisolasi tersedia.
+- [x] Periksa berkas deploy preview secara read-only. Jangan menggunakan alur apply pada preview sampai backend staging yang terisolasi tersedia.
 
 **Hasil yang diharapkan:** PR terbarui dan pemeriksaan kode transparan. Langkah ini tidak mengubah spreadsheet.
 
 ### 2. Pastikan spreadsheet staging yang aman
 
-- [ ] Dapatkan izin Anda untuk mengaktifkan Google Workspace hanya untuk pencarian metadata read-only Drive/Sheets, atau minta admin teknis memberikan file/ID staging yang benar.
+- [x] Aktifkan akses Google Workspace setelah izin Anda; cari metadata Drive saja tanpa membaca isi file.
+- [ ] Minta Anda/admin teknis menunjuk file/ID staging secara eksplisit. Jangan menganggap file salinan sebagai staging sebelum dikonfirmasi.
 - [ ] Pastikan file staging bukan spreadsheet produksi dan tidak mengandung data yang tidak boleh diduplikasi.
 - [ ] Catat pemilik, project GAS, spreadsheet target, dan siapa yang dapat memulihkan backup.
 
