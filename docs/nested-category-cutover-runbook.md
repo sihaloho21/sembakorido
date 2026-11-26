@@ -140,7 +140,11 @@ Simpan hasil verifikasi, log operator, dan referensi backup sebagai bukti cutove
 ## Status saat ini
 
 - Unit test dan regresi kode: **lulus**.
-- Preview target spreadsheet produksi: **belum dijalankan pada dokumen ini**.
+- Tool preview read-only: tersedia melalui `npm run preview:category-cutover` atau `node scripts/preview-category-cutover.js <read-only-api-url>`.
+- Preview target produksi pada 2026-11-26: **BLOCKED** untuk apply karena header nested belum tersedia.
+- Hasil preview produksi: 13 kategori, 46 produk, kedalaman tree 1, 0 produk dengan `kategori_id`, 46 produk legacy-only, 0 unmatched, dan 0 ambiguous.
+- Header yang masih harus ditambahkan melalui proses schema resmi: `categories.parent_id`, `categories.sort_order`, `categories.is_active`, dan `products.kategori_id`.
+- Produk lama masih aman untuk dipreview karena seluruh 46 nilai `kategori` cocok unik terhadap kategori aktif, tetapi belum boleh dianggap cutover selesai sebelum schema ditambahkan dan mapping ditulis melalui apply yang diotorisasi.
 - Backup produksi: **belum dibuat**.
 - Otorisasi apply produksi: **belum diberikan**.
 - Apply/cutover produksi: **belum dijalankan**.

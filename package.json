@@ -10,6 +10,7 @@
     "test:category-showcase": "node tests/category_showcase_config_test.js",
     "test:category-view-all": "node tests/category_view_all_test.js",
     "test:category-tree": "node tests/category_tree_test.js",
+    "preview:category-cutover": "node scripts/preview-category-cutover.js",
     "test:product-card-overlay": "node tests/product_card_cart_overlay_test.js",
     "test:product-detail-disclosure": "node tests/product_detail_disclosure_test.js",
     "test:image-performance": "node scripts/test-image-performance.js",
