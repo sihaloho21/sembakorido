@@ -100,7 +100,7 @@ Sebelum apply, buat backup immutable untuk `categories` dan `products`, termasuk
 - operator yang melakukan backup;
 - prosedur restore dan siapa yang berwenang menjalankannya.
 
-Apply harus idempotent, menggunakan lock, dan gagal sebelum penulisan jika backup tidak berhasil.
+Backup harus dapat dibuka dan fingerprint `categories` pada salinan harus cocok dengan fingerprint preview; sekadar keberadaan file backup tidak cukup. Apply harus idempotent, menggunakan lock, dan gagal sebelum penulisan jika backup tidak berhasil diverifikasi.
 
 ### Tahap E — Otorisasi eksplisit
 
@@ -112,13 +112,15 @@ Saat sudah diotorisasi:
 
 1. ambil lock;
 2. verifikasi ulang revision/versi target;
-3. buat backup atau pastikan backup yang sesuai masih valid;
+3. buat backup atau pastikan backup yang sesuai masih valid, dapat dibuka, dan fingerprint-nya cocok;
 4. tambahkan header yang belum ada tanpa memindahkan atau menghapus header lama;
 5. isi `parent_id`, `sort_order`, `is_active`, dan `kategori_id` hanya sesuai mapping yang sudah disetujui;
 6. pertahankan `kategori` teks lama;
 7. jangan mengubah `category_showcase_config`;
 8. tulis dalam operasi idempotent;
 9. lepaskan lock hanya setelah verifikasi selesai.
+
+> Selama apply, hentikan sementara edit manual, sort, insert, dan delete baris pada sheet kategori. ScriptLock tidak memblokir perubahan langsung melalui UI Google Sheets; handler harus membaca ulang ID sebelum menulis dan rollback, tetapi operator tetap perlu menjaga jendela apply bebas dari edit bersamaan.
 
 Jika revision berubah sejak preview, apply harus berhenti dan meminta preview ulang.
 
@@ -148,3 +150,7 @@ Simpan hasil verifikasi, log operator, dan referensi backup sebagai bukti cutove
 - Backup produksi: **belum dibuat**.
 - Otorisasi apply produksi: **belum diberikan**.
 - Apply/cutover produksi: **belum dijalankan**.
+- Editor admin drag-and-drop kini men-stage perubahan secara lokal, memvalidasi cycle/depth, dan menampilkan preview sebelum apply.
+- Aksi backend `nested_category_backup` dan `nested_category_apply` disediakan pada `docs/gas_nested_category_admin_actions.gs`; keduanya belum dianggap aktif sampai dipasang dan dideploy di project GAS.
+- Dengan schema sumber yang masih belum memuat `parent_id`, kontrol drag/apply sengaja tetap nonaktif. Preview cutover tetap read-only.
+- Detail pemasangan dan alur UI: `docs/nested-category-admin-editor.md`.

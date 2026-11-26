@@ -104,6 +104,9 @@ const REFERRAL_ALERT_STATE_KEY = 'gos_referral_alert_state_v1';
 
 let allProducts = [];
 let allCategories = [];
+let nestedCategoryDraftParents = new Map();
+let nestedCategoryDraggedId = '';
+let nestedCategoryApplyInProgress = false;
 let allOrders = [];
 let allNotifications = [];
 let allTukarPoin = [];
@@ -2677,7 +2680,7 @@ function buildAdminGetUrl(sheetName, extraParams) {
 }
 
 async function fetchSheetRows(sheetName, extraParams) {
-    const response = await fetch(buildAdminGetUrl(sheetName, extraParams));
+    const response = await fetch(buildAdminGetUrl(sheetName, { ...(extraParams || {}), _t: Date.now() }), { cache: 'no-store' });
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
@@ -3559,8 +3562,11 @@ async function ensureOrderStatusNotification(order, newStatus) {
 // ============ CATEGORY FUNCTIONS ============
 async function fetchCategories() {
     try {
-        const response = await fetch(buildAdminGetUrl(CATEGORIES_SHEET));
-        allCategories = await response.json();
+        const response = await fetch(buildAdminGetUrl(CATEGORIES_SHEET, { _t: Date.now() }), { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Gagal mengambil kategori (HTTP ${response.status}).`);
+        const categories = await response.json();
+        if (!Array.isArray(categories)) throw new Error('Respons kategori tidak berbentuk daftar.');
+        allCategories = categories;
         renderCategoryTable();
         renderNestedCategoryAdminPanel();
         updateCategoryDropdown();
@@ -3568,7 +3574,11 @@ async function fetchCategories() {
         if (bundleSection && !bundleSection.classList.contains('hidden')) {
             ensureBundleBuilderReady();
         }
-    } catch (error) { console.error(error); }
+        return true;
+    } catch (error) {
+        console.error(error);
+        return false;
+    }
 }
 
 function renderCategoryTable() {
@@ -6973,49 +6983,46 @@ function nestedCategoryText_(value) {
     return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
 }
 
-function nestedCategoryBool_(value) {
-    const normalized = nestedCategoryText_(value).toLowerCase();
-    return value !== false && value !== 0 && !['false', '0', 'no', 'tidak', 'inactive', 'nonaktif'].includes(normalized);
+function nestedCategoryEditor_() {
+    return window.NestedCategoryEditor;
 }
 
-function nestedCategoryNormalize_(rows) {
-    const source = Array.isArray(rows) ? rows : [];
-    const records = source.map((row, index) => ({
-        id: nestedCategoryText_(row && (row.id || row.category_id || row.kategori_id)),
-        name: nestedCategoryText_(row && (row.nama || row.name || row.kategori || row.category)),
-        parentId: nestedCategoryText_(row && (row.parent_id || row.parentId || row.id_induk)),
-        order: Number(row && (row.sort_order ?? row.urutan ?? row.order)) || index,
-        active: nestedCategoryBool_(row && (row.is_active ?? row.active ?? true))
-    })).filter((item) => item.id && item.name);
-    const byId = new Map(records.map((item) => [item.id, item]));
-    const visiting = new Set();
-    records.forEach((item) => {
-        if (item.parentId && !byId.has(item.parentId)) item.parentId = '';
-        const decorate = (current) => {
-            if (current.path) return;
-            if (visiting.has(current.id)) {
-                current.parentId = '';
-                current.depth = 1;
-                current.pathNames = [current.name];
-                current.path = current.name;
-                return;
-            }
-            visiting.add(current.id);
-            const parent = current.parentId ? byId.get(current.parentId) : null;
-            if (parent) {
-                decorate(parent);
-                current.depth = (parent.depth || 1) + 1;
-                current.pathNames = [...(parent.pathNames || [parent.name]), current.name];
-            } else {
-                current.depth = 1;
-                current.pathNames = [current.name];
-            }
-            current.path = current.pathNames.join(' › ');
-            visiting.delete(current.id);
-        };
-        decorate(item);
-    });
-    return { records: records.sort((a, b) => a.order - b.order || a.path.localeCompare(b.path, 'id')), byId };
+function nestedCategorySchemaReady_() {
+    return Array.isArray(allCategories) && allCategories.length > 0 &&
+        allCategories.every((row) => Object.prototype.hasOwnProperty.call(row || {}, 'parent_id'));
+}
+
+function nestedCategoryProposedRows_() {
+    const editor = nestedCategoryEditor_();
+    if (!editor) return allCategories;
+    const changes = [...nestedCategoryDraftParents.entries()].map(([id, parentId]) => ({ id, parent_id: parentId }));
+    return editor.applyParents(allCategories, changes);
+}
+
+function nestedCategoryCurrentChanges_() {
+    const editor = nestedCategoryEditor_();
+    if (!editor) return [];
+    const original = new Map(editor.normalize(allCategories).map((item) => [item.id, item.parentId]));
+    return [...nestedCategoryDraftParents.entries()]
+        .filter(([id, parentId]) => (original.get(id) || '') !== parentId)
+        .map(([id, parentId]) => ({ id, parent_id: parentId }));
+}
+
+function validateNestedCategoryTree(categories) {
+    const editor = nestedCategoryEditor_();
+    const result = editor ? editor.validate(Array.isArray(categories) ? categories : allCategories) : {
+        valid: false, errors: ['Modul validasi kategori belum dimuat'], maxDepth: 0,
+        invalidParents: [], cycles: [], missingIds: [], duplicateIds: []
+    };
+    const element = document.getElementById('nested-category-validation');
+    if (element) {
+        const errors = result.errors || [];
+        element.className = `rounded-xl border px-4 py-3 text-sm ${result.valid ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100' : 'border-amber-400/30 bg-amber-400/10 text-amber-100'}`;
+        element.textContent = result.valid
+            ? `Struktur valid: kedalaman maksimum ${result.maxDepth}, circular reference 0.`
+            : `Struktur diblokir: ${errors.join('; ')}.`;
+    }
+    return result;
 }
 
 function nestedCategoryProductsInScope_(products, tree, category) {
@@ -7048,24 +7055,37 @@ function renderNestedCategoryAdminPanel() {
     const summaryEl = document.getElementById('nested-category-summary');
     const validationEl = document.getElementById('nested-category-validation');
     if (!treeEl || !summaryEl || !validationEl) return;
-
-    const tree = nestedCategoryNormalize_(allCategories);
-    const roots = tree.records.filter((item) => !item.parentId && item.active);
-    const invalidParents = tree.records.filter((item) => item.parentId && !tree.byId.has(item.parentId));
-    const maxDepth = tree.records.reduce((max, item) => Math.max(max, item.depth || 1), 0);
-    const cycles = tree.records.filter((item) => {
-        const seen = new Set();
-        let current = item;
-        while (current) {
-            if (seen.has(current.id)) return true;
-            seen.add(current.id);
-            current = current.parentId ? tree.byId.get(current.parentId) : null;
+    const editor = nestedCategoryEditor_();
+    if (!editor) return;
+    const baseValidation = validateNestedCategoryTree(allCategories);
+    const proposedRows = nestedCategoryProposedRows_();
+    const proposedValidation = validateNestedCategoryTree(proposedRows);
+    const records = proposedValidation.valid ? proposedValidation.records : baseValidation.records;
+    const byId = new Map(records.filter((item) => item.id).map((item) => [item.id, item]));
+    const visiting = new Set();
+    const decorate = (item) => {
+        if (item.depth) return;
+        visiting.add(item.id);
+        const parent = item.parentId ? byId.get(item.parentId) : null;
+        if (parent && !visiting.has(parent.id)) {
+            decorate(parent);
+            item.depth = parent.depth + 1;
+            item.path = `${parent.path} › ${item.name}`;
+        } else {
+            item.depth = 1;
+            item.path = item.name;
         }
-        return false;
-    });
+        visiting.delete(item.id);
+    };
+    records.forEach(decorate);
+    records.sort((a, b) => a.order - b.order || a.path.localeCompare(b.path, 'id'));
+    const roots = records.filter((item) => !item.parentId && item.active);
+    const maxDepth = proposedValidation.valid ? proposedValidation.maxDepth : baseValidation.maxDepth;
+    const schemaReady = nestedCategorySchemaReady_();
+    const canEdit = schemaReady && baseValidation.valid && !nestedCategoryApplyInProgress;
 
     const stats = [
-        ['Total kategori', tree.records.length],
+        ['Total kategori', records.length],
         ['Root', roots.length],
         ['Kedalaman', maxDepth],
         ['Produk', Array.isArray(allProducts) ? allProducts.length : 0]
@@ -7083,31 +7103,52 @@ function renderNestedCategoryAdminPanel() {
         card.append(labelEl, valueEl);
         summaryEl.appendChild(card);
     });
-
-    const valid = invalidParents.length === 0 && cycles.length === 0 && maxDepth <= 3;
-    validationEl.className = `rounded-xl border px-4 py-3 text-sm ${valid ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100' : 'border-amber-400/30 bg-amber-400/10 text-amber-100'}`;
-    validationEl.textContent = valid
-        ? `Struktur valid: ${roots.length} root, kedalaman maksimum ${maxDepth}, circular reference 0.`
-        : `Perlu ditinjau: ${invalidParents.length} parent tidak valid, ${cycles.length} circular reference, kedalaman ${maxDepth}.`;
-
+    const editorNotice = document.getElementById('nested-category-editor-notice');
+    if (editorNotice) {
+        if (!schemaReady) {
+            editorNotice.textContent = 'Editor dinonaktifkan: schema sheet categories belum menyediakan kolom parent_id pada seluruh baris. Tambahkan schema melalui migrasi resmi sebelum mengubah hierarki.';
+        } else if (!baseValidation.valid) {
+            editorNotice.textContent = `Editor dinonaktifkan sampai struktur sumber diperbaiki: ${baseValidation.errors.join('; ')}.`;
+        } else {
+            editorNotice.textContent = 'Perubahan drag-and-drop hanya disimpan di preview lokal. Spreadsheet belum diubah; tombol Terapkan akan membuat backup lalu meminta backend memvalidasi ulang.';
+        }
+    }
+    const changes = nestedCategoryCurrentChanges_();
+    const draftCount = document.getElementById('nested-category-draft-count');
+    const resetButton = document.querySelector('[data-action="nested-category-reset"]');
+    const applyButton = document.querySelector('[data-action="nested-category-apply"]');
+    const refreshButton = document.querySelector('[data-action="nested-category-refresh"]');
+    if (draftCount) draftCount.textContent = changes.length ? `${changes.length} perubahan parent menunggu review.` : 'Belum ada perubahan lokal.';
+    if (resetButton) resetButton.disabled = nestedCategoryApplyInProgress || changes.length === 0;
+    if (refreshButton) refreshButton.disabled = nestedCategoryApplyInProgress;
+    if (applyButton) applyButton.disabled = nestedCategoryApplyInProgress || changes.length === 0 || !schemaReady || !baseValidation.valid || !proposedValidation.valid;
     treeEl.innerHTML = '';
+    treeEl.classList.toggle('is-invalid-preview', !proposedValidation.valid);
+    if (!proposedValidation.valid && nestedCategoryDraftParents.size) {
+        treeEl.textContent = `Preview ditahan karena perubahan lokal tidak valid: ${proposedValidation.errors.join('; ')}. Batalkan preview untuk kembali ke struktur tersimpan.`;
+        return;
+    }
     if (!roots.length) {
-        treeEl.textContent = 'Belum ada kategori root aktif.';
+        treeEl.textContent = baseValidation.valid ? 'Belum ada kategori root aktif.' : 'Struktur tersimpan perlu diperbaiki sebelum preview hierarki dapat ditampilkan.';
         return;
     }
     const list = document.createElement('ul');
     list.className = 'nested-category-tree';
-    roots.forEach((category) => list.appendChild(createNestedCategoryNode_(category, tree.records, tree.byId)));
+    roots.forEach((category) => list.appendChild(createNestedCategoryNode_(category, records, byId, canEdit)));
     treeEl.appendChild(list);
 }
 
-function createNestedCategoryNode_(category, records, byId) {
+function createNestedCategoryNode_(category, records, byId, canEdit) {
     const item = document.createElement('li');
     item.className = 'nested-category-node';
+    item.dataset.categoryNode = category.id;
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'nested-category-node-button';
+    button.className = `nested-category-node-button${canEdit ? ' is-draggable' : ''}`;
     button.dataset.categoryId = category.id;
+    button.dataset.categoryDropTarget = category.id;
+    button.draggable = canEdit;
+    button.setAttribute('aria-label', canEdit ? `Seret ${category.name} untuk mengubah parent; jatuhkan pada kategori tujuan` : category.name);
     const main = document.createElement('span');
     main.className = 'nested-category-node-main';
     const depth = document.createElement('span');
@@ -7122,6 +7163,36 @@ function createNestedCategoryNode_(category, records, byId) {
     button.append(main, meta);
     const children = records.filter((child) => child.parentId === category.id && child.active);
     meta.textContent = children.length ? `${children.length} anak` : 'leaf';
+    if (canEdit) {
+        button.addEventListener('dragstart', (event) => {
+            nestedCategoryDraggedId = category.id;
+            if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', category.id);
+            }
+            item.classList.add('is-dragging');
+        });
+        button.addEventListener('dragend', () => {
+            nestedCategoryDraggedId = '';
+            document.querySelectorAll('.nested-category-node.is-drop-target').forEach((node) => node.classList.remove('is-drop-target'));
+            document.querySelector('[data-category-drop-target=""]')?.classList.remove('is-drop-target');
+            item.classList.remove('is-dragging');
+        });
+        button.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+            item.classList.add('is-drop-target');
+        });
+        button.addEventListener('dragleave', (event) => {
+            if (!item.contains(event.relatedTarget)) item.classList.remove('is-drop-target');
+        });
+        button.addEventListener('drop', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            item.classList.remove('is-drop-target');
+            stageNestedCategoryParent_(event.dataTransfer?.getData('text/plain') || nestedCategoryDraggedId, category.id);
+        });
+    }
     button.addEventListener('click', () => {
         document.querySelectorAll('.nested-category-node-button.is-selected').forEach((el) => el.classList.remove('is-selected'));
         button.classList.add('is-selected');
@@ -7145,12 +7216,163 @@ function createNestedCategoryNode_(category, records, byId) {
     if (children.length) {
         const childList = document.createElement('ul');
         childList.className = 'nested-category-children';
-        children.forEach((child) => childList.appendChild(createNestedCategoryNode_(child, records, byId)));
+        children.forEach((child) => childList.appendChild(createNestedCategoryNode_(child, records, byId, canEdit)));
         item.appendChild(childList);
     }
     return item;
 }
 
+function resetNestedCategorySelection_(message) {
+    document.querySelectorAll('.nested-category-node-button.is-selected').forEach((el) => el.classList.remove('is-selected'));
+    const selected = document.getElementById('nested-category-selected');
+    if (selected) selected.textContent = message || 'Pilih kategori untuk melihat path dan cakupan produk.';
+}
+
+function stageNestedCategoryParent_(categoryId, parentId) {
+    if (nestedCategoryApplyInProgress) return false;
+    const draggedId = nestedCategoryText_(categoryId);
+    const nextParentId = nestedCategoryText_(parentId);
+    if (!draggedId || draggedId === nextParentId) return false;
+    const original = nestedCategoryEditor_().normalize(allCategories).find((item) => item.id === draggedId);
+    if (!original) return false;
+    const currentParent = nestedCategoryDraftParents.has(draggedId)
+        ? nestedCategoryDraftParents.get(draggedId)
+        : original.parentId;
+    if (currentParent === nextParentId) return false;
+    const candidateDraft = new Map(nestedCategoryDraftParents);
+    if (original.parentId === nextParentId) candidateDraft.delete(draggedId);
+    else candidateDraft.set(draggedId, nextParentId);
+    const candidateChanges = [...candidateDraft.entries()].map(([id, parent_id]) => ({ id, parent_id }));
+    const candidateRows = nestedCategoryEditor_().applyParents(allCategories, candidateChanges);
+    const candidateValidation = nestedCategoryEditor_().validate(candidateRows);
+    if (!candidateValidation.valid) {
+        const notice = document.getElementById('nested-category-editor-notice');
+        if (notice) notice.textContent = `Move ditolak agar tree tetap dapat diperbaiki: ${candidateValidation.errors.join('; ')}.`;
+        return false;
+    }
+    nestedCategoryDraftParents = candidateDraft;
+    resetNestedCategorySelection_('Perubahan hierarki dibuat. Pilih kembali kategori untuk melihat path dan cakupan produk terbaru.');
+    renderNestedCategoryAdminPanel();
+    return true;
+}
+
+async function runNestedCategoryCutoverPreview_() {
+    const reportEl = document.getElementById('nested-category-cutover-report');
+    if (!reportEl) return;
+    reportEl.classList.remove('hidden');
+    reportEl.textContent = 'Mengambil categories dan products untuk preview read-only…';
+    try {
+        const [categories, products] = await Promise.all([
+            fetchSheetRows(CATEGORIES_SHEET),
+            fetchSheetRows(PRODUCTS_SHEET)
+        ]);
+        const report = nestedCategoryEditor_().analyzeCutover(categories, products);
+        reportEl.textContent = `Preview cutover ${report.cutover.ready_for_apply ? 'READY' : 'BLOCKED'} — ${report.counts.categories} kategori, ${report.counts.products} produk, kedalaman ${report.tree.max_depth}; kategori tanpa ID ${report.tree.missing_ids}, siklus ${report.tree.cycle_count}; produk kategori_id ${report.mapping.products_with_kategori_id}, legacy-only ${report.mapping.products_legacy_only}, unmatched ${report.mapping.products_unmatched}, ambigu ${report.mapping.products_ambiguous}. ${report.cutover.blocked_reasons.length ? `Alasan blokir: ${report.cutover.blocked_reasons.join(', ')}.` : 'Tidak ditemukan alasan blokir.'} Tidak ada penulisan dilakukan.`;
+        reportEl.dataset.report = JSON.stringify(report);
+    } catch (error) {
+        reportEl.textContent = `Preview read-only gagal: ${error.message || error}. Tidak ada penulisan dilakukan.`;
+    }
+}
+
+async function applyNestedCategoryChanges_() {
+    if (nestedCategoryApplyInProgress) return;
+    const changes = nestedCategoryCurrentChanges_();
+    const proposed = nestedCategoryProposedRows_();
+    const validation = validateNestedCategoryTree(proposed);
+    if (!changes.length || !validation.valid || !nestedCategorySchemaReady_()) {
+        renderNestedCategoryAdminPanel();
+        return;
+    }
+    const fingerprint = nestedCategoryEditor_().snapshotFingerprint(allCategories);
+    const approved = window.confirm(`Terapkan ${changes.length} perubahan parent_id? Backend akan memeriksa ulang snapshot, membuat backup spreadsheet terlebih dahulu, lalu mengubah parent_id. Lanjutkan?`);
+    if (!approved) return;
+    nestedCategoryApplyInProgress = true;
+    const applyButton = document.querySelector('[data-action="nested-category-apply"]');
+    if (applyButton) { applyButton.disabled = true; applyButton.textContent = 'Membuat backup…'; }
+    const notice = document.getElementById('nested-category-editor-notice');
+    try {
+        renderNestedCategoryAdminPanel();
+        const backup = await GASActions.post({
+            action: 'nested_category_backup', sheet: CATEGORIES_SHEET,
+            data: { expected_snapshot: fingerprint }
+        });
+        if (!backup || backup.success !== true || !backup.backup_id || backup.snapshot_matches !== true || !backup.snapshot_hash) {
+            throw new Error(backup?.message || 'Backend tidak mengembalikan backup yang cocok dengan snapshot preview.');
+        }
+        if (notice) notice.textContent = `Backup selesai: ${backup.backup_name || backup.backup_id}. Backend sedang memvalidasi ulang snapshot sebelum apply.`;
+        if (applyButton) applyButton.textContent = 'Menerapkan…';
+        const applied = await GASActions.post({
+            action: 'nested_category_apply', sheet: CATEGORIES_SHEET,
+            data: { backup_id: backup.backup_id, expected_snapshot: fingerprint, moves: changes }
+        });
+        if (!applied || applied.success !== true) throw new Error(applied?.message || 'Backend gagal menerapkan parent_id.');
+        nestedCategoryDraftParents = new Map();
+        resetNestedCategorySelection_('Perubahan diterapkan. Pilih kategori untuk melihat path dan cakupan terbaru.');
+        const reloaded = await fetchCategories();
+        if (!reloaded) throw new Error('Perubahan diterapkan, tetapi reload kategori gagal. Jalankan Refresh tree dan validasi ulang.');
+        validateNestedCategoryTree(allCategories);
+        renderNestedCategoryAdminPanel();
+        if (notice) {
+            notice.textContent = `Berhasil. ${changes.length} parent_id diterapkan dan kategori dimuat ulang. Backup: ${backup.backup_name || backup.backup_id}${backup.backup_url ? ` — ${backup.backup_url}` : ''}.`;
+        }
+        showAdminToast('Hierarki kategori berhasil diterapkan dan dimuat ulang.', 'success');
+    } catch (error) {
+        if (notice) notice.textContent = `Apply dihentikan/gagal: ${error.message || error}. Periksa status sheet dan backup sebelum mencoba lagi.`;
+        showAdminToast(`Gagal menerapkan hierarki: ${error.message || error}`, 'error');
+    } finally {
+        nestedCategoryApplyInProgress = false;
+        if (applyButton) applyButton.textContent = 'Terapkan perubahan';
+        renderNestedCategoryAdminPanel();
+    }
+}
+
+async function refreshNestedCategoryTree_() {
+    if (nestedCategoryApplyInProgress) return;
+    if (nestedCategoryDraftParents.size && !window.confirm('Muat ulang akan membuang preview perubahan lokal yang belum diterapkan. Lanjutkan?')) return;
+    const notice = document.getElementById('nested-category-editor-notice');
+    if (notice) notice.textContent = 'Memuat ulang kategori dari spreadsheet…';
+    const loaded = await fetchCategories();
+    if (!loaded) {
+        if (notice) notice.textContent = 'Gagal memuat ulang kategori. Preview lokal tetap tersimpan; periksa koneksi sebelum mencoba lagi.';
+        return;
+    }
+    nestedCategoryDraftParents = new Map();
+    resetNestedCategorySelection_('Data kategori diperbarui. Pilih kategori untuk melihat path dan cakupan produk terbaru.');
+    const validation = validateNestedCategoryTree(allCategories);
+    renderNestedCategoryAdminPanel();
+    if (notice) notice.textContent = validation.valid
+        ? 'Tree berhasil dimuat ulang dari spreadsheet dan validasi selesai. Tidak ada penulisan dilakukan.'
+        : `Data sumber dimuat ulang, tetapi perlu diperbaiki: ${validation.errors.join('; ')}.`;
+}
+
 document.addEventListener('click', (event) => {
-    if (event.target.closest('[data-action="nested-category-refresh"]')) renderNestedCategoryAdminPanel();
+    if (event.target.closest('[data-action="nested-category-refresh"]')) refreshNestedCategoryTree_();
+    if (event.target.closest('[data-action="nested-category-reset"]')) {
+        if (nestedCategoryApplyInProgress) return;
+        nestedCategoryDraftParents = new Map();
+        renderNestedCategoryAdminPanel();
+    }
+    if (event.target.closest('[data-action="nested-category-apply"]')) applyNestedCategoryChanges_();
+    if (event.target.closest('[data-action="nested-category-cutover-preview"]')) runNestedCategoryCutoverPreview_();
+});
+
+document.addEventListener('dragover', (event) => {
+    const target = event.target.closest('[data-category-drop-target=""]');
+    if (!target || !nestedCategoryDraggedId || !nestedCategorySchemaReady_()) return;
+    event.preventDefault();
+    target.classList.add('is-drop-target');
+});
+
+document.addEventListener('dragleave', (event) => {
+    const target = event.target.closest('[data-category-drop-target=""]');
+    if (target && !target.contains(event.relatedTarget)) target.classList.remove('is-drop-target');
+});
+
+document.addEventListener('drop', (event) => {
+    const target = event.target.closest('[data-category-drop-target=""]');
+    if (!target || !nestedCategoryDraggedId || !nestedCategorySchemaReady_()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    target.classList.remove('is-drop-target');
+    stageNestedCategoryParent_(event.dataTransfer?.getData('text/plain') || nestedCategoryDraggedId, '');
 });
