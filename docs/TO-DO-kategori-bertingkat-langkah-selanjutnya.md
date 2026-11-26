@@ -6,12 +6,12 @@ Dokumen ini membantu melanjutkan pekerjaan tanpa menebak-nebak. **Spreadsheet pr
 
 - Branch fitur: `feat/nested-category-admin-editor-20261126`.
 - Draft PR #29: [feat: safe nested category admin editor](https://github.com/sihaloho21/sembakorido/pull/29). PR masih OPEN/Draft; belum di-merge.
-- Perbaikan kode sudah di-commit dan dipush sebagai [`a9235cf`](https://github.com/sihaloho21/sembakorido/commit/a9235cf95735daf5828f2b087257288ef9728c87); checklist staging dan catatan CI diperbarui di [`2c75e7d`](https://github.com/sihaloho21/sembakorido/commit/2c75e7d8b687c54e77e35fcf659d9398e608f66b) dan [`a8d8f45`](https://github.com/sihaloho21/sembakorido/commit/a8d8f45). Working tree bersih.
+- Perbaikan kode sudah di-commit dan dipush sebagai [`a9235cf`](https://github.com/sihaloho21/sembakorido/commit/a9235cf95735daf5828f2b087257288ef9728c87); checklist/status diperbarui dalam commit dokumentasi berikutnya di branch fitur.
 - [Deploy preview PR #29](https://deploy-preview-29--eloquent-jelly-08a8ae.netlify.app) sudah membangun revision terbaru. Pemeriksaan read-only menerima HTTP 200 untuk `admin/index.html` dan `admin/js/admin-script.js`; markup memuat cache-buster `20261126b`. Tidak ada JavaScript admin yang dijalankan, dan tidak ada endpoint backend/spreadsheet yang dipanggil.
 - `npm test`, pemeriksaan sintaks JavaScript, dan `git diff --check` lulus setelah push.
 - Review independen menemukan beberapa masalah UI/GAS; sudah diperbaiki secara lokal: interaksi saat apply dibekukan, refresh mengambil data sumber terbaru tanpa cache, move invalid ditolak, preview schema tidak lagi menyebut READY jika header literal `id`/`nama` tidak ada, backup diverifikasi dari file salinan, write memeriksa ulang fingerprint dan ID, rollback hanya menyasar sel yang dicoba dan diverifikasi, dan detail kategori dibersihkan setelah reload.
-- **Run CI lengkap terakhir pada commit `2c75e7d` gagal hanya di `CI/build`** (1 gagal, 15 sukses, 5 dilewati; deploy preview siap). Log build pada kode `a9235cf` menunjukkan deklarasi `addressIndexToDelete` berulang di `assets/js/akun.bundle.js` (baris 372 dan 559) setelah `scripts/bundle-akun.js` menggabungkan `assets/js/script.min.js` dan `assets/js/akun.min.js`. Berkas input/bundler tidak diubah oleh PR dibanding `origin/main`; kegagalan tampak berasal dari baseline. Setelah commit dokumentasi `a8d8f45`, GitHub memulai checks ulang; status terakhir yang dilihat: 6 sukses, 2 dilewati, 9 masih pending. PR jangan di-merge sebelum seluruh checks selesai dan build hijau atau pemilik repo menyetujui perbaikan baseline.
-- Google Workspace connector kini aktif atas izin Anda. Pencarian Drive **metadata-only** tidak menemukan spreadsheet dengan label staging/test/dev; pencarian nama terkait proyek menemukan dua kandidat (satu file utama dan satu salinan), tetapi salinan belum terbukti sebagai staging. Isi spreadsheet tidak dibuka; belum dipastikan mana pun aman untuk tes. Tidak ada file yang diubah.
+- **Run CI lengkap terakhir yang selesai** gagal hanya di `CI/build` (1 gagal, 15 sukses, 5 dilewati; deploy preview siap). Log build menunjukkan deklarasi `addressIndexToDelete` berulang di `assets/js/akun.bundle.js` setelah bundler menyatukan dua sumber. Berkas input/bundler tidak diubah oleh PR dibanding `origin/main`; kegagalan tampak berasal dari baseline. Checks yang dipicu oleh commit dokumentasi terakhir sebelumnya masih berjalan saat terakhir diperiksa; cek status PR sebelum merge.
+- Google Workspace connector aktif atas izin Anda. Anda mengonfirmasi **belum ada spreadsheet staging**. Pencarian Drive metadata-only tidak menemukan file berlabel staging/test/dev; dua kandidat terkait proyek tidak dikonfirmasi sebagai staging. Isi file tidak dibuka dan tidak ada file yang dibuat/diubah.
 - Tidak ada tindakan tulis ke spreadsheet, pembuatan backup, instalasi/deploy GAS, atau merge yang dilakukan.
 
 ## Yang sudah selesai di kode
@@ -26,7 +26,7 @@ Dokumen ini membantu melanjutkan pekerjaan tanpa menebak-nebak. **Spreadsheet pr
 
 ### 1. Sinkronkan revisi terbaru ke PR dan tinjau ulang CI
 
-- [x] Commit dan push perubahan kode (`a9235cf`) beserta checklist/status (`2c75e7d`, `a8d8f45`) ke branch fitur.
+- [x] Commit dan push perubahan kode serta checklist/status ke branch fitur; lihat commit terakhir pada PR #29.
 - [x] Periksa deploy preview dan pastikan PR tetap Draft; preview terbaru menyajikan berkas admin dengan HTTP 200.
 - [ ] Pastikan perbaikan kode lulus CI. Jika `CI/build` tetap gagal pada deklarasi `addressIndexToDelete`, perbaiki penyebab build dasar atau minta pemilik repo menyetujui penanganannya sebelum merge.
 - [x] Periksa berkas deploy preview secara read-only. Jangan menggunakan alur apply pada preview sampai backend staging yang terisolasi tersedia.
@@ -36,11 +36,12 @@ Dokumen ini membantu melanjutkan pekerjaan tanpa menebak-nebak. **Spreadsheet pr
 ### 2. Pastikan spreadsheet staging yang aman
 
 - [x] Aktifkan akses Google Workspace setelah izin Anda; cari metadata Drive saja tanpa membaca isi file.
-- [ ] Minta Anda/admin teknis menunjuk file/ID staging secara eksplisit. Jangan menganggap file salinan sebagai staging sebelum dikonfirmasi.
-- [ ] Pastikan file staging bukan spreadsheet produksi dan tidak mengandung data yang tidak boleh diduplikasi.
-- [ ] Catat pemilik, project GAS, spreadsheet target, dan siapa yang dapat memulihkan backup.
+- [x] Konfirmasi dari Anda: saat ini belum ada spreadsheet staging.
+- [ ] Minta admin teknis membuat **spreadsheet kosong baru dan project GAS staging terpisah**, menggunakan data sintetis/fixture saja; jangan menyalin spreadsheet produksi.
+- [ ] Catat ID spreadsheet staging, project/deployment GAS staging, pemilik, daftar operator, dan siapa yang bertanggung jawab atas pemulihan.
+- [ ] Verifikasi akses, konfigurasi, endpoint dan kredensial staging terpisah dari produksi sebelum uji.
 
-**Hasil yang diharapkan:** target uji teridentifikasi jelas. Jangan menebak berdasarkan nama file dan jangan membuat salinan data produksi tanpa persetujuan.
+**Hasil yang diharapkan:** environment uji terpisah tersedia dengan data sintetis. Jangan menganggap kandidat file atau duplikat produksi sebagai staging.
 
 ### 3. Siapkan schema pada staging saja
 
