@@ -21,7 +21,7 @@
     }
 
     function slugifyCategory(value) {
-        const raw = value && typeof value === 'object' ? (value.path || value.name) : value;
+        const raw = value && typeof value === 'object' ? value.name : value;
         return normalizeCategory(raw).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s-]/g, '').trim().replace(/[-\s]+/g, '-');
     }
     function buildCategoryPageUrl(category) {
@@ -29,8 +29,7 @@
         url.search = '';
         url.hash = '';
         const categoryName = normalizeCategory(category && typeof category === 'object' ? category.name : category);
-        const categoryPath = normalizeCategory(category && typeof category === 'object' ? category.path : categoryName);
-        const categorySlug = slugifyCategory(category && typeof category === 'object' ? (category.path || category.name) : categoryName);
+        const categorySlug = slugifyCategory(categoryName);
         url.searchParams.set('view', 'category');
         url.searchParams.set('category', categorySlug);
         if (category && typeof category === 'object' && category.id && !String(category.id).startsWith('legacy:')) url.searchParams.set('category_id', category.id);
@@ -39,7 +38,7 @@
             ...(Array.isArray(window.categoryShowcaseProducts) ? window.categoryShowcaseProducts.map((product) => normalizeCategory(product && (product.category || product.kategori))) : [])
         ].filter(Boolean);
         const collision = catalogNames.some((candidate) => candidate.toLocaleLowerCase('id') !== categoryName.toLocaleLowerCase('id') && slugifyCategory(candidate) === categorySlug);
-        if (collision || (category && typeof category === 'object' && categoryPath !== categoryName)) url.searchParams.set('category_name', categoryPath);
+        if (collision) url.searchParams.set('category_name', categoryName);
         return `${url.pathname}${url.search}`;
     }
     function normalizeImageUrl(value) {
@@ -146,13 +145,16 @@
 
     function getCategoryProducts(category, limit) {
         const products = Array.isArray(window.categoryShowcaseProducts) ? window.categoryShowcaseProducts : [];
-        let categoryProducts = products;
-        if (window.CategoryTree && Array.isArray(window.categoryShowcaseCategories) && category && typeof category === 'object') {
-            categoryProducts = window.CategoryTree.productsInScope(products, window.categoryShowcaseCategories, category);
-        } else {
-            const target = normalizeCategory(category && category.name ? category.name : category).toLocaleLowerCase('id');
-            categoryProducts = products.filter((product) => normalizeCategory(product.category || product.kategori).toLocaleLowerCase('id') === target);
-        }
+        const target = normalizeCategory(category && category.name ? category.name : category).toLocaleLowerCase('id');
+        const categoryId = normalizeCategory(category && typeof category === 'object' ? category.id : '');
+        const categoryRecord = categoryId && Array.isArray(window.categoryShowcaseCategories)
+            ? window.categoryShowcaseCategories.find((item) => normalizeCategory(item && item.id) === categoryId)
+            : null;
+        const categoryProducts = products.filter((product) => {
+            const productCategoryId = normalizeCategory(product && (product.kategori_id || product.category_id || product.categoryId));
+            if (categoryRecord && productCategoryId) return productCategoryId === categoryId;
+            return normalizeCategory(product && (product.category || product.kategori)).toLocaleLowerCase('id') === target;
+        });
         return sortProductsByAvailability(filterAvailableProducts(categoryProducts)).slice(0, limit);
     }
     function renderSharedCards(products) {
@@ -206,8 +208,8 @@
         host.innerHTML = '';
         if (!safeConfig.enabled) { host.classList.add('hidden'); return; }
         const sections = safeConfig.categories.map((entry, index) => {
-            const categoryRecord = window.CategoryTree && Array.isArray(window.categoryShowcaseCategories)
-                ? window.categoryShowcaseCategories.find((item) => item.id === entry.category_id || item.name.toLocaleLowerCase('id') === entry.category.toLocaleLowerCase('id'))
+            const categoryRecord = Array.isArray(window.categoryShowcaseCategories)
+                ? window.categoryShowcaseCategories.find((item) => (entry.category_id && item.id === entry.category_id) || normalizeCategory(item.name).toLocaleLowerCase('id') === entry.category.toLocaleLowerCase('id')) || entry.category
                 : entry.category;
             const products = getCategoryProducts(categoryRecord || entry.category, entry.max_products);
             if (!entry.enabled || products.length === 0) return '';

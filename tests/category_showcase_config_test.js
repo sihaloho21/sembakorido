@@ -70,6 +70,8 @@ const showcaseCss = fs.readFileSync('assets/css/category-showcase.css', 'utf8');
 const adminSource = fs.readFileSync('admin/js/admin-script.js', 'utf8');
 const adminMarkup = fs.readFileSync('admin/index.html', 'utf8');
 const gasSource = fs.readFileSync('docs/gas_v71_category_showcase_merged.gs', 'utf8');
+assert.doesNotMatch(homepageSource, /CategoryTree|getNestedDisplayCategories|productsInScope|parent_id/, 'storefront categories should stay flat');
+assert.doesNotMatch(source, /CategoryTree|productsInScope|parent_id/, 'category showcase should not inherit products from nested categories');
 assert.match(homepageSource, /filterAvailableProducts\(allProducts\)/);
 assert.match(homepageSource, /'tidak tersedia'/);
 

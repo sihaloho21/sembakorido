@@ -587,37 +587,20 @@ function initializeCategoryPageShell() {
     if (retryButton) retryButton.addEventListener('click', () => fetchProducts());
 }
 
-function renderCategoryPageNavigation(category) {
-    const breadcrumb = document.querySelector('.category-page-breadcrumb');
-    if (!breadcrumb || !category) return;
-    const names = Array.isArray(category.pathNames) ? category.pathNames : [category.name];
-    const links = names.map((name, index) => {
-        const ancestor = allCategories.find((item) => item.name === name && item.depth === index + 1);
-        const href = window.CategoryShowcase && typeof window.CategoryShowcase.buildCategoryPageUrl === 'function'
-            ? window.CategoryShowcase.buildCategoryPageUrl(ancestor || name)
-            : `index.html?view=category&category=${encodeURIComponent(slugifyCategoryLabel(name))}`;
-        return `<a class="category-page-crumb-link${index === names.length - 1 ? ' is-current' : ''}" href="${escapeAttribute(href)}">${escapeHtml(name)}</a>`;
-    }).join('<span class="category-page-crumb-separator" aria-hidden="true">›</span>');
-    const children = typeof CategoryTree !== 'undefined' ? CategoryTree.childrenOf(allCategories, category.id) : [];
-    const childMarkup = children.length ? `<div class="category-page-children" aria-label="Subkategori ${escapeAttribute(category.name)}"><span class="category-page-children-label">Jelajahi subkategori:</span>${children.map((child) => {
-        const href = window.CategoryShowcase && typeof window.CategoryShowcase.buildCategoryPageUrl === 'function'
-            ? window.CategoryShowcase.buildCategoryPageUrl(child) : '#';
-        return `<a class="category-page-child-link" href="${escapeAttribute(href)}">${escapeHtml(child.name)}</a>`;
-    }).join('')}</div>` : '';
-    breadcrumb.innerHTML = escapeHtml('') + `<a href="index.html" class="category-page-back-link"><span>‹ Beranda</span></a><span class="category-page-crumb-separator" aria-hidden="true">›</span>${links}${childMarkup}`;
-}
 function resolveCategoryPageRoute() {
     if (!categoryPageMode) return;
     const params = new URLSearchParams(window.location.search || '');
-    const category = typeof CategoryTree !== 'undefined' && allCategories.length
-        ? CategoryTree.findCategory(allCategories, categoryPageRequestedSlug, categoryPageRequestedName, params.get('category_id') || '')
-        : null;
-    const legacyCategory = category || resolveCategoryNameFromRoute(getDisplayCategories(), categoryPageRequestedSlug, categoryPageRequestedName);
+    const requestedId = String(params.get('category_id') || '').trim();
+    const activeCategories = Array.isArray(allCategories) ? allCategories.filter((item) => item && item.active !== false) : [];
+    const resolvedName = resolveCategoryNameFromRoute(getDisplayCategories(), categoryPageRequestedSlug, categoryPageRequestedName);
+    const category = (requestedId && activeCategories.find((item) => item.id === requestedId)) ||
+        activeCategories.find((item) => item.name.replace(/\s+/g, ' ').toLocaleLowerCase('id') === String(resolvedName).replace(/\s+/g, ' ').toLocaleLowerCase('id')) || null;
+    const categoryName = category ? category.name : resolvedName;
     const titleElement = document.getElementById('category-page-title');
     const grid = document.getElementById('product-grid');
     const pagination = document.getElementById('pagination-container');
     const countElement = document.getElementById('category-results-count');
-    if (!legacyCategory) {
+    if (!categoryName) {
         categoryPageCategory = '';
         categoryPageCategoryRecord = null;
         if (titleElement) titleElement.textContent = 'Kategori tidak ditemukan';
@@ -629,13 +612,12 @@ function resolveCategoryPageRoute() {
         return;
     }
     categoryPageCategoryRecord = category;
-    categoryPageCategory = category ? category.name : legacyCategory;
-    currentCategory = categoryPageCategory;
-    if (titleElement) titleElement.textContent = category ? category.name : legacyCategory;
-    if (category) renderCategoryPageNavigation(category);
-    document.title = `${category ? category.path : legacyCategory} | Paket Sembako`;
+    categoryPageCategory = categoryName;
+    currentCategory = categoryName;
+    if (titleElement) titleElement.textContent = categoryName;
+    document.title = `${categoryName} | Paket Sembako`;
     const searchInput = document.getElementById('category-product-search');
-    if (searchInput) searchInput.placeholder = `Cari produk di ${category ? category.name : legacyCategory}…`;
+    if (searchInput) searchInput.placeholder = `Cari produk di ${categoryName}…`;
     filterProducts();
 }
 function extractCategoryName(row) {
@@ -650,12 +632,29 @@ function extractCategoryName(row) {
 
 function extractCategorySortOrder(row, index) {
     if (!row || typeof row !== 'object') return index;
-    const candidates = ['sort_order', 'urutan', 'order', 'sort', 'no', 'id'];
+    const candidates = ['sort_order', 'urutan', 'order', 'sort', 'no'];
     for (let i = 0; i < candidates.length; i += 1) {
         const parsed = parseInt(row[candidates[i]], 10);
         if (Number.isFinite(parsed)) return parsed;
     }
     return index;
+}
+
+function normalizeFlatCategories(rows) {
+    const source = Array.isArray(rows) ? rows : [];
+    return source.map((row, index) => {
+        const name = extractCategoryName(row);
+        if (!name) return null;
+        const id = row && (row.id ?? row.category_id ?? row.kategori_id ?? row.ID);
+        const activeValue = row && (row.is_active ?? row.active ?? true);
+        const activeText = String(activeValue).trim().toLocaleLowerCase('id');
+        return {
+            id: String(id == null ? '' : id).trim(),
+            name,
+            order: extractCategorySortOrder(row, index),
+            active: activeValue !== false && activeValue !== 0 && !['false', '0', 'no', 'tidak', 'inactive', 'nonaktif'].includes(activeText)
+        };
+    }).filter((item) => item && item.name).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'id'));
 }
 
 function deriveCategoriesFromProducts() {
@@ -669,46 +668,21 @@ function deriveCategoriesFromProducts() {
 
 function getDisplayCategories() {
     const fromProducts = deriveCategoriesFromProducts();
-    if (!Array.isArray(allCategories) || allCategories.length === 0) {
-        return fromProducts;
-    }
-
+    const fromSheet = (Array.isArray(allCategories) ? allCategories : [])
+        .filter((item) => item && item.active !== false)
+        .map((item) => item.name);
     const merged = [];
-    const seen = {};
+    const seen = new Set();
     const pushUnique = (name) => {
         const category = normalizeCategoryLabel(name);
-        if (!category) return;
-        const key = category.toLowerCase();
-        if (seen[key]) return;
-        seen[key] = true;
+        const key = category.toLocaleLowerCase('id');
+        if (!category || seen.has(key)) return;
+        seen.add(key);
         merged.push(category);
     };
-
-    allCategories.forEach((item) => pushUnique(item && item.name ? item.name : item));
+    fromSheet.forEach(pushUnique);
     fromProducts.forEach(pushUnique);
     return merged;
-}
-
-function getNestedDisplayCategories() {
-    if (!Array.isArray(allCategories) || allCategories.length === 0 || !allCategories.some((item) => item && item.id)) {
-        return getDisplayCategories().map((name, index) => ({ id: `legacy:${index}`, name, depth: 1, parentId: '' }));
-    }
-    const categories = allCategories.filter((item) => item && item.name && item.active !== false);
-    const byParent = new Map();
-    categories.forEach((item) => {
-        const parentId = item.parentId || '';
-        if (!byParent.has(parentId)) byParent.set(parentId, []);
-        byParent.get(parentId).push(item);
-    });
-    const ordered = [];
-    const walk = (parentId, depth) => {
-        (byParent.get(parentId) || []).forEach((item) => {
-            ordered.push({ ...item, depth });
-            walk(item.id, depth + 1);
-        });
-    };
-    walk('', 1);
-    return ordered.length ? ordered : categories.map((item) => ({ ...item, depth: 1 }));
 }
 
 async function fetchCategories() {
@@ -852,7 +826,7 @@ async function fetchProducts() {
             }),
             fetchCategories()
         ]);
-        allCategories = typeof CategoryTree !== 'undefined' ? CategoryTree.normalizeCategories(categories) : categories;
+        allCategories = normalizeFlatCategories(categories);
         
         allProducts = products.map((p, index) => {
             const cashPrice = parseInt(p.harga) || 0;
@@ -2016,8 +1990,8 @@ function openHeaderNotifications(notificationId) {
 function renderHeaderCategoryMenu() {
     const list = document.getElementById('header-category-list');
     if (!list) return;
-    const items = [{ value: 'Semua', label: 'Semua Produk', depth: 0 }]
-        .concat(getNestedDisplayCategories().map((category) => ({ value: category.name, label: category.name, depth: category.depth, id: category.id })));
+    const items = [{ value: 'Semua', label: 'Semua Produk' }]
+        .concat(getDisplayCategories().map((name) => ({ value: name, label: name })));
 
     list.innerHTML = items.map((item) => {
         const safeValue = escapeHtml(item.value);
@@ -2025,7 +1999,7 @@ function renderHeaderCategoryMenu() {
         const isActive = item.value === currentCategory ? ' is-active' : '';
         return `
             <button type="button" data-action="set-header-category" data-category="${safeValue}" class="header-category-item${isActive} flex w-full items-center border-l-4 border-transparent px-4 py-3 text-left text-sm font-semibold text-gray-700 transition hover:bg-green-50">
-                <span style="padding-left:${Math.max(0, Number(item.depth || 0) - 1) * 1.15}rem">${item.depth ? '↳ ' : ''}${safeLabel}</span>
+                <span>${safeLabel}</span>
             </button>
         `;
     }).join('');
@@ -2533,12 +2507,12 @@ function getCategoryPageProducts(products, category, query) {
         ? window.CategoryShowcase.filterAvailableProducts(products)
         : (Array.isArray(products) ? products.filter((product) => product && product.isHidden !== true && hasProductAvailableStock(product)) : []);
     const normalizedQuery = normalizeSearch(query);
-    let scoped = source;
-    if (typeof CategoryTree !== 'undefined' && categoryPageCategoryRecord) {
-        scoped = CategoryTree.productsInScope(source, allCategories, categoryPageCategoryRecord);
-    } else {
-        scoped = source.filter((product) => normalizeCategoryLabel(product && (product.category || product.kategori)).replace(/\s+/g, ' ').toLocaleLowerCase('id') === categoryKey);
-    }
+    const categoryId = categoryPageCategoryRecord && categoryPageCategoryRecord.id;
+    const scoped = source.filter((product) => {
+        const productCategoryId = String(product && (product.kategori_id || product.category_id || product.categoryId) || '').trim();
+        if (categoryId && productCategoryId) return productCategoryId === categoryId;
+        return normalizeCategoryLabel(product && (product.category || product.kategori)).replace(/\s+/g, ' ').toLocaleLowerCase('id') === categoryKey;
+    });
     const unique = new Set();
     return scoped.filter((product, index) => {
         const id = String(product.productId || product.id || product.sku || product.slug || `row:${index}`);
@@ -7913,8 +7887,8 @@ function loadSidebarCategories() {
     if (!categoryList) return;
     
     // Use merged categories (sheet categories + fallback from products)
-    const categories = [{ value: 'Semua', label: 'Semua Produk', depth: 0 }]
-        .concat(getNestedDisplayCategories().map((category) => ({ value: category.name, label: category.name, depth: category.depth, id: category.id })));
+    const categories = [{ value: 'Semua', label: 'Semua Produk' }]
+        .concat(getDisplayCategories().map((name) => ({ value: name, label: name })));
 
     categoryList.innerHTML = categories.map((item) => {
         const iconSvg = getCategoryIcon(item.label);
@@ -7937,7 +7911,7 @@ function loadSidebarCategories() {
                     <div class="${iconClass}">
                         ${iconSvg}
                     </div>
-                    <span class="${labelClass}" style="padding-left:${Math.max(0, Number(item.depth || 0) - 1) * 0.85}rem">${item.depth ? '↳ ' : ''}${safeLabel}</span>
+                    <span class="${labelClass}">${safeLabel}</span>
                 </button>
             </li>
         `;

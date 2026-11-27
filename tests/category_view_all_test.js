@@ -80,6 +80,8 @@ const helperNames = [
 ];
 const helperContext = {
     window: { CategoryShowcase: showcase },
+    categoryPageCategoryRecord: null,
+    allCategories: [],
     hasProductAvailableStock(product) {
         const ownStock = Number(product && product.stok);
         return (Number.isFinite(ownStock) && ownStock > 0) ||
@@ -109,6 +111,15 @@ const searchByVariant = helperContext.categoryViewTestHelpers.getCategoryPagePro
 assert.deepEqual(Array.from(searchByVariant, (product) => product.id), ['variant-label-match']);
 const allAvailableInCategory = helperContext.categoryViewTestHelpers.getCategoryPageProducts(categoryProducts, 'Beras', '');
 assert.deepEqual(Array.from(allAvailableInCategory, (product) => product.id), ['variant-label-match', 'name-match']);
+helperContext.categoryPageCategoryRecord = { id: 'rice-category' };
+const productsWithCategoryIds = [
+    { id: 'direct-category-product', kategori_id: 'rice-category', category: 'Beras', stok: 1 },
+    { id: 'other-category-product', kategori_id: 'other-category', category: 'Beras', stok: 1 },
+    { id: 'legacy-category-product', category: 'Beras', stok: 1 }
+];
+const directCategoryProducts = helperContext.categoryViewTestHelpers.getCategoryPageProducts(productsWithCategoryIds, 'Beras', '');
+assert.deepEqual(Array.from(directCategoryProducts, (product) => product.id), ['direct-category-product', 'legacy-category-product']);
+helperContext.categoryPageCategoryRecord = null;
 assert.equal(helperContext.categoryViewTestHelpers.formatCategoryResultsCount(24), 'Menampilkan 24 Produk');
 assert.equal(helperContext.categoryViewTestHelpers.formatCategoryResultsCount(0), 'Menampilkan 0 Produk');
 const categoryNames = ['Susu & Olahan', 'Susu Olahan', 'Beras'];

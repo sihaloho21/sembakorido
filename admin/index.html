@@ -677,40 +677,6 @@
 
             <!-- Section: Kategori -->
             <section id="section-kategori" class="hidden space-y-6">
-                <div id="nested-category-admin-panel" class="nested-category-admin-panel bg-slate-950 text-white rounded-2xl overflow-hidden shadow-sm border border-slate-800">
-                    <div class="px-6 py-5 md:px-8 border-b border-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div>
-                            <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Nested catalog</p>
-                            <h3 class="text-xl font-extrabold mt-1">Struktur kategori bertingkat</h3>
-                            <p class="text-sm text-slate-300 mt-1">Preview tree dari <code>parent_id</code>. Panel ini read-only dan tidak mengubah spreadsheet.</p>
-                        </div>
-                        <button type="button" data-action="nested-category-refresh" class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-slate-950 hover:bg-emerald-400 transition">
-                            <span aria-hidden="true">↻</span> Refresh tree
-                        </button>
-                    </div>
-                    <div class="p-6 md:p-8 space-y-5">
-                        <div id="nested-category-summary" class="grid grid-cols-2 md:grid-cols-4 gap-3" aria-live="polite"></div>
-                        <div id="nested-category-validation" class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300" aria-live="polite">Memuat validasi kategori…</div>
-                        <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(260px,0.8fr)] gap-5">
-                            <div class="rounded-2xl bg-white text-slate-800 p-5">
-                                <div class="flex items-center justify-between gap-3 mb-4">
-                                    <h4 class="font-extrabold">Category tree</h4>
-                                    <span class="text-xs text-slate-500">Urut berdasarkan sort_order</span>
-                                </div>
-                                <div id="nested-category-tree" class="nested-category-tree" aria-live="polite"></div>
-                            </div>
-                            <div class="rounded-2xl bg-white/10 border border-white/10 p-5">
-                                <h4 class="font-extrabold">Cara baca struktur</h4>
-                                <div class="mt-4 space-y-3 text-sm text-slate-300">
-                                    <p><span class="nested-category-legend-dot bg-emerald-400"></span> Root tidak memiliki <code>parent_id</code>.</p>
-                                    <p><span class="nested-category-legend-dot bg-cyan-400"></span> Anak menunjuk ID parent yang valid.</p>
-                                    <p><span class="nested-category-legend-dot bg-amber-400"></span> Produk parent mencakup seluruh descendant aktif.</p>
-                                </div>
-                                <div id="nested-category-selected" class="mt-6 rounded-xl bg-black/20 p-4 text-sm text-slate-300">Pilih kategori untuk melihat path dan cakupan produk.</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
                     <h3 class="text-lg font-bold text-gray-800 mb-6">Tambah Kategori Baru</h3>
                     <form id="category-form" class="space-y-4">

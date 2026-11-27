@@ -332,11 +332,3 @@ body.category-page-mode #category-page-view:not([hidden]) { display: block; }
   .category-page-search-shell,.category-page-search-submit,.category-page-retry { transition: none; }
 }
 .category-page-breadcrumb { align-items: center; display: flex; flex-wrap: wrap; gap: .42rem; }
-.category-page-crumb-link { color: #15803d; font-size: .82rem; font-weight: 700; text-decoration: none; }
-.category-page-crumb-link:hover { text-decoration: underline; text-underline-offset: .18rem; }
-.category-page-crumb-link.is-current { color: #374151; }
-.category-page-crumb-separator { color: #9ca3af; font-weight: 800; }
-.category-page-children { align-items: center; display: flex; flex-basis: 100%; flex-wrap: wrap; gap: .45rem; margin-top: .45rem; }
-.category-page-children-label { color: #6b7280; font-size: .78rem; font-weight: 700; }
-.category-page-child-link { background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 999px; color: #166534; font-size: .78rem; font-weight: 700; padding: .35rem .65rem; text-decoration: none; }
-.category-page-child-link:hover { background: #dcfce7; }
